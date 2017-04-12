@@ -2,3 +2,4 @@
 
 partial(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])
 
+approx(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])

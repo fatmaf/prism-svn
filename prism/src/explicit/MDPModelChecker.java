@@ -113,9 +113,8 @@ public class MDPModelChecker extends ProbModelChecker
 		Expression ltl = exprRew.getExpression();
 
 		// Build model costs
-		RewardStruct  costStruct = exprRew.getRewardStructByIndexObject(modulesFile, modulesFile.getConstantValues());
 		mainLog.println("Building cost structure...");
-		Rewards costsModel= constructRewards(model, costStruct);
+		Rewards costsModel= constructRewards(model, 0);
 
 		//build DFA
 		AcceptanceType[] allowedAcceptance = {
@@ -186,7 +185,7 @@ public class MDPModelChecker extends ProbModelChecker
 		mcProduct.inheritSettings(this);
 
 		sparseMdp = new MDPSparse((MDPSimple)product.getProductModel());
-		ModelCheckerPartialSatResult res = mcProduct.iterateDiscountedRewards(sparseMdp, acc, progRewards, prodCosts,0.99,0.05,1);
+		ModelCheckerPartialSatResult res = mcProduct.iterateDiscountedRewards(sparseMdp, acc, progRewards, prodCosts,0.49,0.05,1);
 		//ModelCheckerPartialSatResult res = mcProduct.computeApproximateSol((MDP)model, progRewards, (MDPRewards)costsModel, progStates);
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, sparseMdp);
 		// Mapping probabilities in the original model
@@ -252,9 +251,8 @@ public class MDPModelChecker extends ProbModelChecker
 //		System.out.println(" ");
 		
 		// Build model costs
-		RewardStruct  costStruct = exprRew.getRewardStructByIndexObject(modulesFile, modulesFile.getConstantValues());
 		mainLog.println("Building cost structure...");
-		Rewards costsModel= constructRewards(model, costStruct);
+		Rewards costsModel= constructRewards(model, 0);
 		
 		//build DFA
 		AcceptanceType[] allowedAcceptance = {
@@ -1145,6 +1143,7 @@ public class MDPModelChecker extends ProbModelChecker
 			timer = System.currentTimeMillis();
 			mcCheckCost = mcDTMC.computeReachRewardsValIter(dtmc, mcCosts, acc, no, null, null);
 			timer = System.currentTimeMillis() - timer;
+			//TODO: Needs to use another approach, this one doesnt converge when prob<1
 			mainLog.println(" DTMC cost verification took " + timer / 1000.0 + " seconds. Result=" + mcCheckCost.soln[0]);
 
 			currentDiscount = currentDiscount + discountStep;
