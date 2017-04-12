@@ -425,6 +425,7 @@ public class TypeCheck extends ASTTraverse
 			}
 			break;
 		case ExpressionFunc.PARTIAL:
+		case ExpressionFunc.APPROX:
 			// Anything goes
 			break;
 		default:
@@ -460,6 +461,7 @@ public class TypeCheck extends ASTTraverse
 			break;
 		case ExpressionFunc.MULTI:
 		case ExpressionFunc.PARTIAL:
+		case ExpressionFunc.APPROX:
 			// Resulting type is always same as first arg
 			if (types[0] instanceof TypeBool)
 				e.setType(TypeBool.getInstance());
