@@ -26,6 +26,7 @@
 
 package explicit.rewards;
 
+import strat.MDStrategy;
 import explicit.Model;
 import explicit.Product;
 
@@ -49,6 +50,16 @@ public class MCRewardsFromMDPRewards implements MCRewards
 	{
 		this.mdpRewards = mdpRewards;
 		this.strat = strat;
+	}
+
+	public MCRewardsFromMDPRewards(MDPRewards mdpRewards, MDStrategy strat)
+	{
+		this.mdpRewards = mdpRewards;
+		int n = strat.getNumStates();
+		this.strat = new int[n];
+		for (int i = 0; i < n; i++) {
+			this.strat[i] = strat.getChoiceIndex(i);
+		}
 	}
 
 	@Override

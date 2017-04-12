@@ -47,11 +47,12 @@ public class ExpressionFunc extends Expression
 	public static final int LOG = 6;
 	public static final int MULTI = 7;
 	public static final int PARTIAL = 8;
+	public static final int APPROX = 9;
 	// Built-in function names
-	public static final String names[] = { "min", "max", "floor", "ceil", "pow", "mod", "log", "multi", "partial"};
+	public static final String names[] = { "min", "max", "floor", "ceil", "pow", "mod", "log", "multi", "partial", "approx" };
 	// Min/max function arities
-	public static final int minArities[] = { 2, 2, 1, 1, 2, 2, 2, 1, 1};
-	public static final int maxArities[] = { -1, -1, 1, 1, 2, 2, 2, -1, -1};
+	public static final int minArities[] = { 2, 2, 1, 1, 2, 2, 2, 1, 1, 1 };
+	public static final int maxArities[] = { -1, -1, 1, 1, 2, 2, 2, -1, -1, -1 };
 
 	// Function name
 	private String name = "";

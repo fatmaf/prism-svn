@@ -881,6 +881,50 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	}
 
 	@Override
+	public double mvDiscountedMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, double discount, boolean min, int strat[])
+	{
+		int j, k, stratCh = -1;
+		double d, prob, minmax;
+		boolean first;
+		List<Distribution> step;
+
+		minmax = 0;
+		first = true;
+		j = -1;
+		step = trans.get(s);
+
+		for (Distribution distr : step) {
+			j++;
+			// Compute sum for this distribution
+			d = mdpRewards.getTransitionReward(s, j);
+			for (Map.Entry<Integer, Double> e : distr) {
+				k = (Integer) e.getKey();
+				prob = (Double) e.getValue();
+				d = prob * (d + discount * vect[k]);
+			}
+			// Check whether we have exceeded min/max so far
+			if (first || (min && d < minmax) || (!min && d > minmax)) {
+				minmax = d;
+				// If strategy generation is enabled, remember optimal choice
+				if (strat != null)
+					stratCh = j;
+			}
+			first = false;
+		}
+		// If strategy generation is enabled, store optimal choice
+		if (strat != null & !first) {
+			// For max, only remember strictly better choices
+			if (min) {
+				strat[s] = stratCh;
+			} else if (strat[s] == -1 || minmax > vect[s]) {
+				strat[s] = stratCh;
+			}
+		}
+
+		return minmax;
+	}
+
+	@Override
 	public double mvMultRewMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
 		int j, k, stratCh = -1;
@@ -970,7 +1014,7 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 	@Override
 	public double mvMultRewJacMinMaxSingle(int s, double vect[], MDPRewards mdpRewards, boolean min, int strat[])
 	{
-		int j, k = -1, stratCh = -1;
+		int j, k, stratCh = -1;
 		double diag, d, prob, minmax;
 		boolean first;
 		List<Distribution> step;
@@ -983,9 +1027,7 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			j++;
 			diag = 1.0;
 			// Compute sum for this distribution
-			// (note: have to add state rewards in the loop for Jacobi)
-			d = mdpRewards.getStateReward(s);
-			d += mdpRewards.getTransitionReward(s, j);
+			d = mdpRewards.getTransitionReward(s, j);
 			for (Map.Entry<Integer, Double> e : distr) {
 				k = (Integer) e.getKey();
 				prob = (Double) e.getValue();
@@ -997,10 +1039,6 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			}
 			if (diag > 0)
 				d /= diag;
-			// Catch special case of probability 1 self-loop (Jacobi does it wrong)
-			if (distr.size() == 1 && k == s) {
-				d = Double.POSITIVE_INFINITY;
-			}
 			// Check whether we have exceeded min/max so far
 			if (first || (min && d < minmax) || (!min && d > minmax)) {
 				minmax = d;
@@ -1011,6 +1049,8 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			}
 			first = false;
 		}
+		// Add state reward (doesn't affect min/max)
+		minmax += mdpRewards.getStateReward(s);
 		// If strategy generation is enabled, store optimal choice
 		if (strat != null & !first) {
 			// For max, only remember strictly better choices
