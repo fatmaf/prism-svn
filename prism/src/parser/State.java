@@ -105,6 +105,18 @@ public class State implements Comparable<State>
 	}
 
 	/**
+	 * Create a new State object defined as a subset of this one, taking the values from indices {@code begin} to {@code end - 1}.
+	 */
+	public State substate(int begin, int end)
+	{
+		State substate = new State(end - begin);
+		for (int i = begin; i < end; i++) {
+			substate.setValue(i - begin, varValues[i]);
+		}
+		return substate;
+	}
+	
+	/**
 	 * Clear: set all values to null
 	 */
 	public void clear()
