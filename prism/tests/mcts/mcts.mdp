@@ -1,0 +1,170 @@
+mdp
+ 
+module M 
+ 
+waypoint:[-1..26] init 2;
+door_edge0:[-1..1] init -1;
+door_edge1:[-1..1] init -1;
+door_edge2:[-1..1] init -1;
+door_edge3:[-1..1] init -1;
+executed_metric_map_at_WayPoint1:[0..1] init 0;
+executed_metric_map_at_WayPoint2:[0..1] init 0;
+executed_metric_map_at_WayPoint3:[0..1] init 0;
+executed_metric_map_at_WayPoint4:[0..1] init 0;
+executed_metric_map_at_WayPoint5:[0..1] init 0;
+executed_metric_map_at_WayPoint19:[0..1] init 0;
+executed_metric_map_at_WayPoint20:[0..1] init 0;
+executed_metric_map_at_WayPoint13:[0..1] init 0;
+executed_metric_map_at_WayPoint14:[0..1] init 0;
+executed_metric_map_at_WayPoint15:[0..1] init 0;
+
+
+
+
+[ChargingPoint_Station] (waypoint=0) -> 1:(waypoint'=1);
+[Station_ChargingPoint] (waypoint=1) -> 1:(waypoint'=0);
+[Station_WayPoint1] (waypoint=1) -> 1:(waypoint'=2);
+[Station_WayPoint4] (waypoint=1) -> 1:(waypoint'=21);
+[Station_WayPoint17] (waypoint=1) -> 1:(waypoint'=10);
+[WayPoint1_Station] (waypoint=2) & (door_edge0=-1) -> 1:(waypoint'=1) & (door_edge0'=-1);
+[WayPoint1_WayPoint17] (waypoint=2) & (door_edge0=-1) -> 1:(waypoint'=10) & (door_edge0'=-1);
+[WayPoint1_WayPoint2] (waypoint=2) & (door_edge0=1) -> 1:(waypoint'=13) & (door_edge0'=-1);
+[WayPoint10_WayPoint4] (waypoint=3) & (door_edge1=-1) -> 1:(waypoint'=21) & (door_edge1'=-1);
+[WayPoint10_WayPoint13] (waypoint=3) & (door_edge1=-1) -> 1:(waypoint'=6) & (door_edge1'=-1);
+[WayPoint10_WayPoint11] (waypoint=3) & (door_edge1=1) -> 1:(waypoint'=4) & (door_edge1'=-1);
+[WayPoint11_WayPoint12] (waypoint=4) & (door_edge1=-1) -> 1:(waypoint'=5) & (door_edge1'=-1);
+[WayPoint11_WayPoint10] (waypoint=4) & (door_edge1=1) -> 1:(waypoint'=3) & (door_edge1'=-1);
+[WayPoint12_WayPoint11] (waypoint=5) -> 1:(waypoint'=4);
+[WayPoint13_WayPoint10] (waypoint=6) -> 1:(waypoint'=3);
+[WayPoint13_WayPoint14] (waypoint=6) -> 1:(waypoint'=7);
+[WayPoint14_WayPoint13] (door_edge2=-1) & (waypoint=7) -> 1:(door_edge2'=-1) & (waypoint'=6);
+[WayPoint14_WayPoint15] (door_edge2=1) & (waypoint=7) -> 1:(door_edge2'=-1) & (waypoint'=8);
+[WayPoint15_WayPoint16] (door_edge2=-1) & (waypoint=8) -> 1:(door_edge2'=-1) & (waypoint'=9);
+[WayPoint15_WayPoint14] (door_edge2=1) & (waypoint=8) -> 1:(door_edge2'=-1) & (waypoint'=7);
+[WayPoint16_WayPoint15] (waypoint=9) -> 1:(waypoint'=8);
+[WayPoint17_WayPoint1] (waypoint=10) -> 1:(waypoint'=2);
+[WayPoint17_WayPoint4] (waypoint=10) -> 1:(waypoint'=21);
+[WayPoint17_Station] (waypoint=10) -> 1:(waypoint'=1);
+[WayPoint17_WayPoint5] (waypoint=10) -> 1:(waypoint'=22);
+[WayPoint17_WayPoint18] (waypoint=10) -> 1:(waypoint'=11);
+[WayPoint18_WayPoint17] (waypoint=11) -> 1:(waypoint'=10);
+[WayPoint18_WayPoint19] (waypoint=11) -> 1:(waypoint'=12);
+[WayPoint19_WayPoint18] (waypoint=12) -> 1:(waypoint'=11);
+[WayPoint19_WayPoint20] (waypoint=12) -> 1:(waypoint'=14);
+[WayPoint2_WayPoint3] (waypoint=13) & (door_edge0=-1) -> 0.625:(waypoint'=20) & (door_edge0'=-1) + 0.375:(waypoint'=-1) & (door_edge0'=-1);
+[WayPoint2_WayPoint1] (waypoint=13) & (door_edge0=1) -> 0.888888895512:(waypoint'=2) & (door_edge0'=-1) + 0.111111104488:(waypoint'=-1) & (door_edge0'=1);
+[WayPoint20_WayPoint19] (waypoint=14) -> 1:(waypoint'=12);
+[WayPoint20_WayPoint21] (waypoint=14) -> 1:(waypoint'=15);
+[WayPoint21_WayPoint20] (waypoint=15) -> 1:(waypoint'=14);
+[WayPoint21_WayPoint22] (waypoint=15) -> 1:(waypoint'=16);
+[WayPoint21_WayPoint25] (waypoint=15) -> 1:(waypoint'=19);
+[WayPoint22_WayPoint21] (waypoint=16) -> 1:(waypoint'=15);
+[WayPoint22_WayPoint23] (waypoint=16) -> 1:(waypoint'=17);
+[WayPoint22_WayPoint24] (waypoint=16) -> 1:(waypoint'=18);
+[WayPoint22_WayPoint25] (waypoint=16) -> 1:(waypoint'=19);
+[WayPoint23_WayPoint22] (waypoint=17) -> 1:(waypoint'=16);
+[WayPoint23_WayPoint24] (waypoint=17) -> 1:(waypoint'=18);
+[WayPoint23_WayPoint25] (waypoint=17) -> 1:(waypoint'=19);
+[WayPoint24_WayPoint22] (waypoint=18) -> 1:(waypoint'=16);
+[WayPoint24_WayPoint23] (waypoint=18) -> 1:(waypoint'=17);
+[WayPoint25_WayPoint21] (waypoint=19) -> 1:(waypoint'=15);
+[WayPoint25_WayPoint22] (waypoint=19) -> 1:(waypoint'=16);
+[WayPoint25_WayPoint23] (waypoint=19) -> 1:(waypoint'=17);
+[WayPoint3_WayPoint2] (waypoint=20) -> 0.882352948189:(waypoint'=13) + 0.117647051811:(waypoint'=-1);
+[WayPoint4_Station] (waypoint=21) -> 1:(waypoint'=1);
+[WayPoint4_WayPoint5] (waypoint=21) -> 1:(waypoint'=22);
+[WayPoint4_WayPoint10] (waypoint=21) -> 1:(waypoint'=3);
+[WayPoint4_WayPoint17] (waypoint=21) -> 1:(waypoint'=10);
+[WayPoint5_WayPoint4] (waypoint=22) -> 1:(waypoint'=21);
+[WayPoint5_WayPoint6] (waypoint=22) -> 1:(waypoint'=23);
+[WayPoint5_WayPoint17] (waypoint=22) -> 1:(waypoint'=10);
+[WayPoint6_WayPoint5] (waypoint=23) & (door_edge3=-1) -> 1:(waypoint'=22) & (door_edge3'=-1);
+[WayPoint6_WayPoint7] (waypoint=23) & (door_edge3=1) -> 0.652173936367:(waypoint'=24) & (door_edge3'=-1) + 0.347826063633:(waypoint'=-1) & (door_edge3'=1);
+[WayPoint7_WayPoint8] (waypoint=24) & (door_edge3=-1) -> 1:(waypoint'=25) & (door_edge3'=-1);
+[WayPoint7_WayPoint6] (waypoint=24) & (door_edge3=1) -> 0.769230782986:(waypoint'=23) & (door_edge3'=-1) + 0.230769217014:(waypoint'=-1) & (door_edge3'=1);
+[WayPoint8_WayPoint7] (waypoint=25) -> 1:(waypoint'=24);
+[WayPoint8_WayPoint9] (waypoint=25) -> 1:(waypoint'=26);
+[WayPoint9_WayPoint8] (waypoint=26) -> 1:(waypoint'=25);
+[check_door0_at_WayPoint1] (waypoint=2) & (door_edge0=-1) -> 0.1:(waypoint'=2) & (door_edge0'=0) + 0.9:(waypoint'=2) & (door_edge0'=1);
+[WayPoint1_Station] (waypoint=2) & (door_edge0=1) -> 1:(waypoint'=1) & (door_edge0'=-1);
+[WayPoint1_Station] (waypoint=2) & (door_edge0=0) -> 1:(waypoint'=1) & (door_edge0'=0);
+[WayPoint1_WayPoint17] (waypoint=2) & (door_edge0=1) -> 1:(waypoint'=10) & (door_edge0'=-1);
+[WayPoint1_WayPoint17] (waypoint=2) & (door_edge0=0) -> 1:(waypoint'=10) & (door_edge0'=0);
+[check_door1_at_WayPoint10] (waypoint=3) & (door_edge1=-1) -> 0.1:(waypoint'=3) & (door_edge1'=0) + 0.9:(waypoint'=3) & (door_edge1'=1);
+[WayPoint10_WayPoint4] (waypoint=3) & (door_edge1=1) -> 1:(waypoint'=21) & (door_edge1'=-1);
+[WayPoint10_WayPoint4] (waypoint=3) & (door_edge1=0) -> 1:(waypoint'=21) & (door_edge1'=0);
+[WayPoint10_WayPoint13] (waypoint=3) & (door_edge1=1) -> 1:(waypoint'=6) & (door_edge1'=-1);
+[WayPoint10_WayPoint13] (waypoint=3) & (door_edge1=0) -> 1:(waypoint'=6) & (door_edge1'=0);
+[check_door1_at_WayPoint11] (waypoint=4) & (door_edge1=-1) -> 0.1:(waypoint'=4) & (door_edge1'=0) + 0.9:(waypoint'=4) & (door_edge1'=1);
+[WayPoint11_WayPoint12] (waypoint=4) & (door_edge1=1) -> 1:(waypoint'=5) & (door_edge1'=-1);
+[WayPoint11_WayPoint12] (waypoint=4) & (door_edge1=0) -> 1:(waypoint'=5) & (door_edge1'=0);
+[check_door2_at_WayPoint14] (door_edge2=-1) & (waypoint=7) -> 0.1:(door_edge2'=0) & (waypoint'=7) + 0.9:(door_edge2'=1) & (waypoint'=7);
+[WayPoint14_WayPoint13] (door_edge2=1) & (waypoint=7) -> 1:(door_edge2'=-1) & (waypoint'=6);
+[WayPoint14_WayPoint13] (door_edge2=0) & (waypoint=7) -> 1:(door_edge2'=0) & (waypoint'=6);
+[check_door2_at_WayPoint15] (door_edge2=-1) & (waypoint=8) -> 0.1:(door_edge2'=0) & (waypoint'=8) + 0.9:(door_edge2'=1) & (waypoint'=8);
+[WayPoint15_WayPoint16] (door_edge2=1) & (waypoint=8) -> 1:(door_edge2'=-1) & (waypoint'=9);
+[WayPoint15_WayPoint16] (door_edge2=0) & (waypoint=8) -> 1:(door_edge2'=0) & (waypoint'=9);
+[check_door0_at_WayPoint2] (waypoint=13) & (door_edge0=-1) -> 0.1:(waypoint'=13) & (door_edge0'=0) + 0.9:(waypoint'=13) & (door_edge0'=1);
+[WayPoint2_WayPoint3] (waypoint=13) & (door_edge0=1) -> 0.625:(waypoint'=20) & (door_edge0'=-1) + 0.375:(waypoint'=-1) & (door_edge0'=1);
+[WayPoint2_WayPoint3] (waypoint=13) & (door_edge0=0) -> 0.625:(waypoint'=20) & (door_edge0'=0) + 0.375:(waypoint'=-1) & (door_edge0'=0);
+[check_door3_at_WayPoint6] (waypoint=23) & (door_edge3=-1) -> 0.1:(waypoint'=23) & (door_edge3'=0) + 0.9:(waypoint'=23) & (door_edge3'=1);
+[WayPoint6_WayPoint5] (waypoint=23) & (door_edge3=1) -> 1:(waypoint'=22) & (door_edge3'=-1);
+[WayPoint6_WayPoint5] (waypoint=23) & (door_edge3=0) -> 1:(waypoint'=22) & (door_edge3'=0);
+[check_door3_at_WayPoint7] (waypoint=24) & (door_edge3=-1) -> 0.1:(waypoint'=24) & (door_edge3'=0) + 0.9:(waypoint'=24) & (door_edge3'=1);
+[WayPoint7_WayPoint8] (waypoint=24) & (door_edge3=1) -> 1:(waypoint'=25) & (door_edge3'=-1);
+[WayPoint7_WayPoint8] (waypoint=24) & (door_edge3=0) -> 1:(waypoint'=25) & (door_edge3'=0);
+[metric_map_at_WayPoint1] (executed_metric_map_at_WayPoint1=0) & (waypoint=2) -> 1.0:(executed_metric_map_at_WayPoint1'=1);
+[metric_map_at_WayPoint2] (waypoint=13) & (executed_metric_map_at_WayPoint2=0) -> 1.0:(executed_metric_map_at_WayPoint2'=1);
+[metric_map_at_WayPoint3] (waypoint=20) & (executed_metric_map_at_WayPoint3=0) -> 1.0:(executed_metric_map_at_WayPoint3'=1);
+[metric_map_at_WayPoint4] (executed_metric_map_at_WayPoint4=0) & (waypoint=21) -> 1.0:(executed_metric_map_at_WayPoint4'=1);
+[metric_map_at_WayPoint5] (executed_metric_map_at_WayPoint5=0) & (waypoint=22) -> 1.0:(executed_metric_map_at_WayPoint5'=1);
+[metric_map_at_WayPoint19] (executed_metric_map_at_WayPoint19=0) & (waypoint=12) -> 1.0:(executed_metric_map_at_WayPoint19'=1);
+[metric_map_at_WayPoint20] (executed_metric_map_at_WayPoint20=0) & (waypoint=14) -> 1.0:(executed_metric_map_at_WayPoint20'=1);
+[metric_map_at_WayPoint13] (executed_metric_map_at_WayPoint13=0) & (waypoint=6) -> 1.0:(executed_metric_map_at_WayPoint13'=1);
+[metric_map_at_WayPoint14] (executed_metric_map_at_WayPoint14=0) & (waypoint=7) -> 1.0:(executed_metric_map_at_WayPoint14'=1);
+[metric_map_at_WayPoint15] (executed_metric_map_at_WayPoint15=0) & (waypoint=8) -> 1.0:(executed_metric_map_at_WayPoint15'=1);
+
+
+endmodule
+
+label "Station" = (waypoint=1);
+label "ChargingPoint" = (waypoint=0);
+label "WayPoint25" = (waypoint=19);
+label "WayPoint24" = (waypoint=18);
+label "WayPoint21" = (waypoint=15);
+label "WayPoint20" = (waypoint=14);
+label "WayPoint23" = (waypoint=17);
+label "WayPoint22" = (waypoint=16);
+label "WayPoint8" = (waypoint=25);
+label "WayPoint9" = (waypoint=26);
+label "WayPoint6" = (waypoint=23);
+label "WayPoint7" = (waypoint=24);
+label "WayPoint4" = (waypoint=21);
+label "WayPoint5" = (waypoint=22);
+label "WayPoint2" = (waypoint=13);
+label "WayPoint3" = (waypoint=20);
+label "WayPoint1" = (waypoint=2);
+label "WayPoint18" = (waypoint=11);
+label "WayPoint19" = (waypoint=12);
+label "WayPoint10" = (waypoint=3);
+label "WayPoint11" = (waypoint=4);
+label "WayPoint12" = (waypoint=5);
+label "WayPoint13" = (waypoint=6);
+label "WayPoint14" = (waypoint=7);
+label "WayPoint15" = (waypoint=8);
+label "WayPoint16" = (waypoint=9);
+label "WayPoint17" = (waypoint=10);
+
+rewards "time"
+   [metric_map_at_WayPoint1] (executed_metric_map_at_WayPoint1=0) & (waypoint=2):240.0;
+   [metric_map_at_WayPoint2] (waypoint=13) & (executed_metric_map_at_WayPoint2=0):240.0;
+   [metric_map_at_WayPoint3] (waypoint=20) & (executed_metric_map_at_WayPoint3=0):240.0;
+   [metric_map_at_WayPoint4] (executed_metric_map_at_WayPoint4=0) & (waypoint=21):240.0;
+   [metric_map_at_WayPoint5] (executed_metric_map_at_WayPoint5=0) & (waypoint=22):240.0;
+   [metric_map_at_WayPoint19] (executed_metric_map_at_WayPoint19=0) & (waypoint=12):240.0;
+   [metric_map_at_WayPoint20] (executed_metric_map_at_WayPoint20=0) & (waypoint=14):240.0;
+   [metric_map_at_WayPoint13] (executed_metric_map_at_WayPoint13=0) & (waypoint=6):240.0;
+   [metric_map_at_WayPoint14] (executed_metric_map_at_WayPoint14=0) & (waypoint=7):240.0;
+   [metric_map_at_WayPoint15] (executed_metric_map_at_WayPoint15=0) & (waypoint=8):240.0;
+
+endrewards

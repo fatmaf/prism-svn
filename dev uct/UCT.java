@@ -36,6 +36,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +44,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Random;
 
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
@@ -189,7 +191,7 @@ public final class UCT extends PrismComponent
 		 */
 		void updateExpectedRewEstimate(double reward)
 		{
-			this.expectedRewEstimate = ((this.numVisits - 1)*this.expectedRewEstimate + reward)/(this.numVisits);
+			this.expectedRewEstimate = ((double)(this.numVisits - 1)*this.expectedRewEstimate + reward)/(double)(this.numVisits);
 		}
 		
 
@@ -265,14 +267,26 @@ public final class UCT extends PrismComponent
 
 	/** model exploration component to generate new states */
 	private ModelGenerator modelGen;
+	/**State to start trials in */
+	State initialState;
 	/** rollout depth */
 	private int depth;
+	/** automata list */
+	private List<DA<BitSet,? extends AcceptanceOmega>> automata;
+	List<Integer> daStateIndices;
+	int nSpecs;
+	List<Double> weights;
 	
 	/** reward structure to use for analysis */
 	private RewardStruct rewStruct = null;
 	/** model constants */
 	private Values constantValues = null;
-
+	/**random number generation */
+	Random randomGen;
+	
+	
+	
+	
 	///** maps from state (assignment of variable values) to property object */
 	//private LinkedHashMap<State,StateProp> states;
 
@@ -284,14 +298,23 @@ public final class UCT extends PrismComponent
 	/**
 	 * Constructor.
 	 */
-	public UCT(PrismComponent parent, ModelGenerator modelGen, int depth) throws PrismException
+	public UCT(PrismComponent parent, ModelGenerator modelGen, State initialState, int depth, List<DA<BitSet,? extends AcceptanceOmega>> automata, List<Double> weights) throws PrismException
 	{
 		super(parent);
 		
 		this.modelGen = modelGen;
+		this.initialState = initialState;
 		this.depth = depth;
+		this.automata = automata;
+		nSpecs = automata.size();
+		this.daStateIndices = new ArrayList<Integer>(nSpecs);
+		for (int i = 0; i < nSpecs; i++) {
+			daStateIndices.add(modelGen.getVarIndex("_da" + i));
+		}
+		this.weights = weights;
 		rewStruct = null;
 		constantValues = null;
+		randomGen = new Random();
 	}
 
 
@@ -302,7 +325,7 @@ public final class UCT extends PrismComponent
 	 */
 	public void setRewardStruct(RewardStruct rewStruct)
 	{
-		this.rewStruct = rewStruct;
+		this.rewStruct = rewStruct; //TENHO Q METER AQUI UMA MERDA COM A PROGRESSION EM VEZ DISTO
 	}
 	
 	/**
@@ -322,6 +345,7 @@ public final class UCT extends PrismComponent
 		double prob;
 		UCTNode[] succNodes;
 		
+		modelGen.exploreState(node.getState());
 		if (node.isDecisionNode()) {
 			nc = modelGen.getNumChoices();
 			succNodes = new UCTNode[nc];
@@ -346,9 +370,9 @@ public final class UCT extends PrismComponent
 		node.setAsExpanded();
 	}
 	
-	public UCTNode getBestUCTSucc(UCTNode node, double bias) {
+	public UCTNode getBestUCTSucc2(UCTNode node, double bias) {
 		int i, numSuccs;
-		double score, maxScore = Double.MIN_VALUE;
+		double score, maxScore = -Double.MAX_VALUE;
 		UCTNode succNode, bestSucc;
 		UCTNode[] succNodes = node.getSuccNodes();
 		
@@ -365,57 +389,144 @@ public final class UCT extends PrismComponent
 				bestSucc = succNode;
 			}
 		}
-		//System.out.println("PILA" + bestSucc);
 		return bestSucc;
 	}
 	
-	public double getReward(State state, String action) throws PrismException{
-		//System.out.println("ACTION " + action);
-		int numStateItems = rewStruct.getNumItems();
-		double res = 0.0;
-		for (int i = 0; i < numStateItems; i++) {
-			Expression guard = rewStruct.getStates(i);
-			if (guard.evaluateBoolean(constantValues, state)) {
-				String currentAction = rewStruct.getSynch(i);
-				if (action.equals(currentAction)) {
-					res = res + rewStruct.getReward(i).evaluateDouble(constantValues, state);
+	public UCTNode getBestUCTSucc(UCTNode node, double bias) {
+		UCTNode bestSucc = null;
+		if (node.isExpanded()) {
+			double score, maxScore = -Double.MAX_VALUE;
+			UCTNode[] succNodes = node.getSuccNodes();
+			
+			List<UCTNode> shuffledSuccs = Arrays.asList(succNodes);
+			Collections.shuffle(shuffledSuccs);
+			
+			bestSucc = null;
+			for (UCTNode succNode : shuffledSuccs) {
+				score = succNode.getUCTScore(node.getNumVisits(), bias);
+				if (score == Double.MAX_VALUE) {
+					return succNode;
+				}
+				if (score > maxScore) {
+					maxScore = score;
+					bestSucc = succNode;
 				}
 			}
+		} else {
+			int i;
+			try {
+				modelGen.exploreState(node.getState());
+				i = randomGen.nextInt(modelGen.getNumChoices());
+				bestSucc = new UCTNode(node.state, i, modelGen.getChoiceAction(i).toString(), -1, false);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		return res;
+		return bestSucc;
 	}
+	
+	
+	
+	public double getProgressionRew(State source, State target) {
+		double prog = 0;
+		for (int i = 0; i < nSpecs; i++) {
+			int daStateIndex = daStateIndices.get(i);
+			DA<BitSet, ? extends AcceptanceOmega> da = automata.get(i);
+			int daSource = (int)source.varValues[daStateIndex];
+			int daTarget = (int) target.varValues[daStateIndex];
+			prog = prog + weights.get(i)*(da.getDistsToAcc().get(daSource) - da.getDistsToAcc().get(daTarget));
+		}
+		//return Math.max(prog, 0);
+		return prog;
+	}
+	
+	
+/*	public double getProgressionRew(State source, State target) {		
+		int daSource = (int)source.varValues[daStateIndex];
+		int daTarget = (int) target.varValues[daStateIndex];
+		double prog = 100*(da.getDistsToAcc().get(daSource) - da.getDistsToAcc().get(daTarget));
+		//if (prog < 0.0) 	System.out.println(prog);
+		return Math.max(prog, 0);
+		//return prog;
+	}
+	
+	
+	public double getProgressionRew2(State source, State target) {		
+		int daSource = (int)source.varValues[daStateIndex];
+		int daTarget = (int) target.varValues[daStateIndex];
+		if (PrismUtils.doublesAreEqual(da.getDistsToAcc().get(daTarget), 0.0)) {
+			//return 0.0;
+			return 100;
+		} else {
+			//double prog = 100*(da.getDistsToAcc().get(daSource) - da.getDistsToAcc().get(daTarget));
+			//if (prog < 0.0) 	System.out.println(prog);
+			//return Math.max(prog, 0);
+			return 0.0;
+			//return prog;
+		}
+	}*/
 	
 	public UCTNode sampleSucc(UCTNode node) {
 		int i, numSuccs;
-		double sampled, currentProbSum = 0.0;
+		double sampled, currentProbSum = 0.0, prob;
 		UCTNode currentSucc = null;
 		UCTNode[] succs;
-		
-		sampled = Math.random();
-		numSuccs = node.getNumSuccs();
-		succs = node.getSuccNodes();
-		for (i = 0; i < numSuccs; i++) {
-			currentSucc = succs[i];
-			currentProbSum = currentProbSum + currentSucc.getReachProb();
-			if (currentProbSum >= sampled) {
-				return currentSucc;
-				//break;
+		sampled = randomGen.nextDouble();		
+		if (node.isExpanded()) {
+			
+			numSuccs = node.getNumSuccs();
+			succs = node.getSuccNodes();
+			for (i = 0; i < numSuccs; i++) {
+				currentSucc = succs[i];
+				currentProbSum = currentProbSum + currentSucc.getReachProb();
+				if (currentProbSum >= sampled) {
+					return currentSucc;
+					//break;
+				}
 			}
+			System.out.println("FODA_SE");			
+		} else {
+			try {
+				modelGen.exploreState(node.getState());
+				numSuccs = modelGen.getNumTransitions(node.getAction());
+				for (i = 0; i < numSuccs; i++) {
+					prob = modelGen.getTransitionProbability(node.getAction(), i);
+					currentProbSum = currentProbSum + prob;
+					if (currentProbSum >= sampled) {
+						State succState = modelGen.computeTransitionTarget(node.getAction(), i);
+						return new UCTNode(succState, node.getAction(), null, prob, true);
+					}
+				}
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 		}
-		System.out.println("FODA_SE");
 		return currentSucc;
 	}
 	
-	public double rollout(UCTNode node, int depth, double bias) throws PrismException {
+	public double rollout(UCTNode node, int depth, double bias, boolean expand) throws PrismException {
 		double res = 0.0;
 		UCTNode succNode;
 		
 		if (depth == 0) {
-			return 0;
+			return 0.0;
 		}
-		modelGen.exploreState(node.getState());
+		
+/*
+		if (!node.isExpanded() && expand) {
+  			modelGen.exploreState(node.getState());
+			expandNode(node);
+			if (node.isDecisionNode()) {
+				expand = false;
+			}
+		} */
+		
 		if (!node.isExpanded()) {
 			expandNode(node);
+			//depth = 1;
 		}
 
 		node.incrementNumVisits();
@@ -430,32 +541,33 @@ public final class UCT extends PrismComponent
 //				res = getReward(node.getState(), actionString);
 			}
 		} else {
-			String actionString =  modelGen.getChoiceAction(node.getAction()).toString();
-			res = getReward(node.getState(), actionString);
+			//String actionString =  modelGen.getChoiceAction(node.getAction()).toString();
+			//res = getReward(node.getState(), actionString);
 			succNode = sampleSucc(node);
+			res = getProgressionRew(node.getState(), succNode.getState());
 			depth = depth - 1;
 			
 		}
-		res = res + rollout(succNode, depth, bias);
+		bias = 2;//(node.getExpectedRewEstimate()) + 0.001;
+		res = res + rollout(succNode, depth, bias, expand);
 		node.updateExpectedRewEstimate(res);
 	
 		return res;
 
 	}
 	
-	public UCTNode  search() throws PrismException
+	public UCTNode search() throws PrismException
 	{
-		if (!modelGen.hasSingleInitialState())
-			throw new PrismException("UCT rquires a single initial state");
+
 		
 		mainLog.println("\nRunning UCT...");
-		State initState = modelGen.getInitialState();
-		UCTNode initNode = new UCTNode(initState, -1, null, 1, true);
-		for (int i = 0; i < 10000; i++) {
+		UCTNode initNode = new UCTNode(initialState, -1, null, 1, true);
+		for (int i = 0; i < 50000; i++) {
 //			System.out.println("NODE" + initNode);
-			double bias = initNode.getExpectedRewEstimate();
-			//double bias = 500;
-			rollout(initNode, this.depth, bias);
+			double bias = 2;//initNode.getExpectedRewEstimate();
+			if (i%5000 == 0)  System.out.println(initNode.getExpectedRewEstimate());
+			//double bias = 10;
+			rollout(initNode, this.depth, bias, true);
 //			System.out.println(":_____________________");
 		}
 //		System.out.println("PILA" + initNode.getExpectedRewEstimate());
@@ -464,10 +576,13 @@ public final class UCT extends PrismComponent
 	}
 	
 	
-	public DTMC buildDTMC(UCTNode node) throws PrismException {
+	public MDP buildDTMC(UCTNode node) throws PrismException{
 		DTMCSimple dtmc = new DTMCSimple();
+		MDPSimple mdp = new MDPSimple();
 		int i, currentStateIndex, succStateIndex, nSuccs;
 		double max, prob;
+		Distribution distr;
+		String action;
 		UCTNode currentNode, currentSucc, bestSucc, succs[];
 		Deque<UCTNode> nodeQueue = new ArrayDeque<UCTNode>();
 		Deque<Integer> indexQueue = new ArrayDeque<Integer>();
@@ -476,13 +591,19 @@ public final class UCT extends PrismComponent
 		
 		VarList varList = modelGen.createVarList();
 		dtmc.setVarList(varList);
+		mdp.setVarList(varList);
 		
 		nodeQueue.add(node);
 		currentStateIndex = dtmc.addState();
+		mdp.addState();
 		dtmc.addInitialState(currentStateIndex);
+		mdp.addInitialState(currentStateIndex);
 		indexQueue.add(currentStateIndex);
 		statesList.add(node.getState());
 		
+		
+		
+		//getBestPolicy(node);
 		
 				
 		while(!nodeQueue.isEmpty()) {
@@ -492,13 +613,15 @@ public final class UCT extends PrismComponent
 			//find succ corresponding to best decision
 			succs = currentNode.getSuccNodes();
 			nSuccs = currentNode.getNumSuccs();
-			max = Double.MIN_VALUE;
+			max = -Double.MAX_VALUE;
 			bestSucc = null;
+			action = null;
 			for (i = 0; i < nSuccs; i++) {
 				currentSucc = succs[i];
 				if (currentSucc.getExpectedRewEstimate() > max) {
 					bestSucc = currentSucc;
 					max = currentSucc.getExpectedRewEstimate();
+					action = currentSucc.actionName;
 				}
 			}
 			
@@ -510,28 +633,47 @@ public final class UCT extends PrismComponent
 				currentNode = bestSucc;
 				succs = currentNode.getSuccNodes();
 				nSuccs = currentNode.getNumSuccs();
+				distr = new Distribution();
 				for (i = 0; i < nSuccs; i++) {
 					currentSucc = succs[i];
-					succStateIndex = dtmc.addState();
+					currentState = currentSucc.getState();
+					succStateIndex = statesList.indexOf(currentState);
+					if (succStateIndex == -1) {
+						succStateIndex = dtmc.addState();
+						mdp.addState();
+						statesList.add(currentState);
+					}
 					prob = currentSucc.getReachProb();
+					distr.add(succStateIndex, prob);
+
+	
 					dtmc.setProbability(currentStateIndex, succStateIndex, prob);
+	
 					nodeQueue.add(currentSucc);
 					indexQueue.add(succStateIndex);
-					currentState = currentSucc.getState();
-					statesList.add(currentState);
-					System.out.println(currentState);
+									
+					//System.out.println(currentState);
 				}
+				//System.out.println(currentStateIndex);
+				//System.out.println(distr);
+				//System.out.println(action);
+				mdp.addActionLabelledChoice(currentStateIndex, distr, action);
+				
 			}
+			
+			
 			
 		}
 	
+		mdp.setStatesList(statesList);
 		dtmc.setStatesList(statesList);
 		System.out.println(varList.getName(0));
 		
 		
+		mdp.exportToDotFile("/home/bruno/Desktop/mdp.dot");
+		dtmc.exportToDotFile("/home/bruno/Desktop/dtmc.dot");
 		
-		
-		return dtmc;
+		return mdp;
 	}
 	
 	
@@ -542,13 +684,15 @@ public final class UCT extends PrismComponent
 			System.out.println(modelGen.getChoiceAction(node.getAction()).toString());
 			System.out.println("_________________");
 		}
-		double max = Double.MIN_VALUE;
+		double max = -Double.MAX_VALUE;
 		UCTNode bestNextNode = null;
 		for (int i = 0; i < node.getNumSuccs(); i++) {
 			UCTNode currentNode = node.getSuccNodes()[i];
+			//if (currentNode.getNumVisits() > max) {
 			if (currentNode.getExpectedRewEstimate() > max) {
 				bestNextNode = currentNode;
 				max = currentNode.getExpectedRewEstimate();
+				//max = currentNode.getNumVisits();
 			}
 		}
 		if (bestNextNode != null) {

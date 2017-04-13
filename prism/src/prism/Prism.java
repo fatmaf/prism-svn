@@ -71,6 +71,7 @@ import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
 import strat.Strategy;
+import explicit.MCTSModelChecker;
 
 /**
  * Main class for all PRISM's core functionality.
@@ -277,6 +278,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 	// Has the CUDD library been initialised yet?
 	private boolean cuddStarted = false;
 
+	protected ModelChecker mc;
+
+
 	//------------------------------------------------------------------------------
 	// Constructors + options methods
 	//------------------------------------------------------------------------------
@@ -306,6 +310,10 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		this(mainLog);
 	}
 
+	public ModelChecker getModelChecker()
+	{
+		return mc;
+}
 	/**
 	 * Read in PRISM settings from the default file (.prism in user's home directory).
 	 * If no file exists, attempt to create a new one with default settings.
@@ -1689,6 +1697,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
+		currentModel = null;
+		currentModelExpl = null;
 
 		// Print basic model info
 		mainLog.println("\nType:        " + currentModulesFile.getModelType());
@@ -1734,6 +1744,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModelGenerator == null ? null : currentModelGenerator.getModelType();
 		currentModelInfo = currentModelGenerator;
 		currentDefinedMFConstants = null;
+		currentModel = null;
+		currentModelExpl = null;
 
 		// Print basic model info
 		mainLog.println("\nGenerator:   " + currentModelGenerator.getClass().getName());
@@ -1764,6 +1776,9 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		if (currentModelGenerator != null) {
 			currentModelGenerator.setSomeUndefinedConstants(definedMFConstants);
 		}
+		// Reset dependent info
+		currentModel = null;
+		currentModelExpl = null;
 
 		// If required, export parsed PRISM model, with constants expanded
 		if (exportPrismConst) {
@@ -1797,6 +1812,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
+		currentModelExpl = null;
 	}
 
 	/**
@@ -1816,6 +1832,7 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		// Reset dependent info
 		currentModelType = currentModel == null ? null : currentModel.getModelType();
 		currentDefinedMFConstants = null;
+		currentModelExpl = null;
 	}
 
 	/**
@@ -1845,6 +1862,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 		currentModelType = currentModulesFile == null ? null : currentModulesFile.getModelType();
 		currentModelInfo = currentModulesFile;
 		currentDefinedMFConstants = null;
+		currentModel = null;
+		currentModelExpl = null;
 
 		return currentModulesFile;
 	}
@@ -2834,6 +2853,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
 			return fauMC.check(prop.getExpression());
 		}
+		// For MCTS
+		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("MCTS")) {
+			MCTSModelChecker mctsMC;
+			mctsMC = new MCTSModelChecker(this, currentModulesFile, propertiesFile);
+			return mctsMC.check(prop.getExpression());
+		}
 		// Auto-switch engine if required
 		else if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {
@@ -2898,6 +2923,8 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 				currentModelType = ModelType.MDP;
 				currentModelGenerator = new ModulesFileModelGenerator(currentModulesFile, this);
 				clearBuiltModel();
+				currentModel = null;
+				currentModelExpl = null;
 				// If required, export generated PRISM model
 				if (exportDigital) {
 					try {

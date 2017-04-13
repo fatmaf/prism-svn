@@ -240,7 +240,7 @@ public class PrismSettings implements Observer
 																			"Which iterative method to use when solving linear equation systems." },
 			{ DOUBLE_TYPE,		PRISM_LIN_EQ_METHOD_PARAM,				"Over-relaxation parameter",			"2.1",			new Double(0.9),															"",																							
 																			"Over-relaxation parameter for iterative numerical methods such as JOR/SOR." },
-			{ CHOICE_TYPE,		PRISM_MDP_SOLN_METHOD,					"MDP solution method",				"4.0",			"Value iteration",																"Value iteration,Gauss-Seidel,Policy iteration,Modified policy iteration,Linear programming",
+			{ CHOICE_TYPE,		PRISM_MDP_SOLN_METHOD,					"MDP solution method",				"4.0",			"Value iteration",																"Value iteration,Gauss-Seidel,Policy iteration,Modified policy iteration,Linear programming,MCTS",
 																			"Which method to use when solving Markov decision processes." },
 			{ CHOICE_TYPE,		PRISM_MDP_MULTI_SOLN_METHOD,			"MDP multi-objective solution method",				"4.0.3",			"Value iteration",											"Value iteration,Gauss-Seidel,Linear programming",
 																			"Which method to use when solving multi-objective queries on Markov decision processes." },
@@ -910,6 +910,7 @@ public class PrismSettings implements Observer
 		else if (sw.equals("explicit") || sw.equals("ex")) {
 			set(PRISM_ENGINE, "Explicit");
 		}
+
 		// Exact model checking
 		else if (sw.equals("exact")) {
 			set(PRISM_EXACT_ENABLED, true);
@@ -982,6 +983,8 @@ public class PrismSettings implements Observer
 		} else if (sw.equals("linprog") || sw.equals("lp")) {
 			set(PRISM_MDP_SOLN_METHOD, "Linear programming");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Linear programming");
+		} else if (sw.equals("mcts")) {
+			set(PRISM_MDP_SOLN_METHOD, "MCTS");
 		}
 		// Linear equation solver over-relaxation parameter
 		else if (sw.equals("omega")) {
