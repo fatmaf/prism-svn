@@ -113,7 +113,7 @@ executed_metric_map_at_WayPoint15:[0..1] init 0;
 [check_door3_at_WayPoint7] (waypoint=24) & (door_edge3=-1) -> 0.1:(waypoint'=24) & (door_edge3'=0) + 0.9:(waypoint'=24) & (door_edge3'=1);
 [WayPoint7_WayPoint8] (waypoint=24) & (door_edge3=1) -> 1:(waypoint'=25) & (door_edge3'=-1);
 [WayPoint7_WayPoint8] (waypoint=24) & (door_edge3=0) -> 1:(waypoint'=25) & (door_edge3'=0);
-[metric_map_at_WayPoint1] (executed_metric_map_at_WayPoint1=0) & (waypoint=2) -> 1.0:(executed_metric_map_at_WayPoint1'=1);
+[metric_map_at_WayPoint1] (waypoint=2) -> 1.0:(executed_metric_map_at_WayPoint1'=1);
 [metric_map_at_WayPoint2] (waypoint=13) & (executed_metric_map_at_WayPoint2=0) -> 1.0:(executed_metric_map_at_WayPoint2'=1);
 [metric_map_at_WayPoint3] (waypoint=20) & (executed_metric_map_at_WayPoint3=0) -> 1.0:(executed_metric_map_at_WayPoint3'=1);
 [metric_map_at_WayPoint4] (executed_metric_map_at_WayPoint4=0) & (waypoint=21) -> 1.0:(executed_metric_map_at_WayPoint4'=1);

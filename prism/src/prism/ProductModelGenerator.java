@@ -408,4 +408,15 @@ public class ProductModelGenerator implements ModelGenerator
 		// Find/return successor
 		return da.getEdgeDestByLabel(q, bsLabels);
 	}
+	
+	public double getProgressionRew(State source, State target) {
+		int daSource = (int)source.varValues[numVars - 1];
+		int daTarget = (int)target.varValues[numVars - 1];
+		double prog = 100*(da.getDistsToAcc().get(daSource) - da.getDistsToAcc().get(daTarget));
+		//if (prog < 0.0) 	System.out.println(prog);
+		System.out.println(da.getDistsToAcc().get(daTarget));
+		//return Math.max(prog, 0);
+		//return prog;
+		return da.getDistsToAcc().get(daTarget);
+	}
 }

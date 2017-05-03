@@ -34,6 +34,7 @@ import java.lang.Math;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
@@ -462,15 +463,16 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	 */
 	public void setDistancesToAcc()
 	{		
+		BitSet acc = null;
 		//Check if its a DFA
 		if (!(acceptance instanceof AcceptanceReach)) {
-			distsToAcc=null;
-			return;
+			acc = ((AcceptanceRabin)acceptance).get(0).getK();
+		} else {
+			acc = ((AcceptanceReach)acceptance).getGoalStates();
 		}
 		
 		//initialise distances list
-		distsToAcc = new ArrayList<Double>(size);
-		BitSet acc = ((AcceptanceReach)acceptance).getGoalStates();				
+		distsToAcc = new ArrayList<Double>(size);				
 		int i, j;
 		Deque<Integer> queue = new ArrayDeque<Integer>();
 		for(i = 0; i < size; i++) {
@@ -493,7 +495,8 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 			for (i = 0; i < size; i++) {
 				numEdges = getNumEdges(i,currentState);
 				if (numEdges > 0) {
-					newDist=distsToAcc.get(currentState)+1.0/numEdges;
+					double a =(double)Math.pow(2, apList.size())/(double)numEdges;
+					newDist=distsToAcc.get(currentState) + Math.log(a)/Math.log(2);
 					if (newDist < distsToAcc.get(i)) {
 						queue.add(i);
 						distsToAcc.set(i,newDist);
@@ -502,23 +505,23 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 				}
 			}
 		}
-
-		BitSet reachableStatesI, reachableStatesJ;
-		for (i=0; i < size; i++) {
-			reachableStatesI=getReachableStates(i);
-			for (j=0; j < size; j++) {
-				reachableStatesJ=getReachableStates(j);
-				if (reachableStatesI.get(j) && reachableStatesJ.get(i)) {
-					distsToAcc.set(i, Math.max(distsToAcc.get(i), distsToAcc.get(j)));
-				}
-			}
-		}
-
+                                        
+/*        BitSet reachableStates;
+        for (i=0; i < size; i++) {
+                reachableStates=getReachableStates(i);
+                for (j=0; j < size; j++) {
+                        if (reachableStates.get(j)) {
+                                distsToAcc.set(i, Math.max(distsToAcc.get(i), distsToAcc.get(j)));
+                        }
+                }
+        }*/
+                        
+		
 		//Make distance between states 1
-		//for(i = 0; i < size; i++) {
-                    //distsToAcc.set(i, Math.max(0, Math.log(distsToAcc.get(i)/minDist)/Math.log(2)+1));
-                   // System.out.println(distsToAcc.get(i));
-                //}
+		double maxDist = Collections.max(distsToAcc);
+		for(i = 0; i < size; i++) {
+			distsToAcc.set(i, distsToAcc.get(i)/maxDist);
+        }
 	}
 
 	/**

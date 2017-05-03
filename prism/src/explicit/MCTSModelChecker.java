@@ -36,6 +36,7 @@ import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
+import explicit.UCT.UCTNode;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
@@ -127,16 +128,61 @@ public class MCTSModelChecker extends PrismComponent
 		Result res;
 
 		// Current range of supported properties is quite limited...
-		if (expr instanceof ExpressionReward)
-			res = checkExpressionReward((ExpressionReward) expr);
+		if (expr instanceof ExpressionProb)
+			res = checkExpressionProb((ExpressionProb) expr);
+		//if (expr instanceof ExpressionReward)
+			//res = checkExpressionReward((ExpressionReward) expr);
 		else
 			throw new PrismNotSupportedException("MCTS not yet supported for this operator");
 
 		return res;
 	}
+	
 	/**
 	 * Model check an R operator.
 	 */
+	private Result checkExpressionProb(ExpressionProb expr) throws PrismException
+	{
+		System.out.println("LTL"  + expr.getExpression());
+		LTLModelChecker ltlMC = new LTLModelChecker(this);
+		List<Expression> labelExprs = new ArrayList<Expression>();
+		AcceptanceType[] allowedAcceptance = {
+				AcceptanceType.RABIN,
+				AcceptanceType.REACH
+		};
+		DA<BitSet,? extends AcceptanceOmega> da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
+		da.setDistancesToAcc();
+		ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, this);
+		ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
+		
+		
+		UCT uct = new UCT(this, prodModelGen, 100, 10000);
+
+		UCTNode res = uct.search();
+		DTMC dtmc = uct.buildDTMC(res);
+		MDP mdp = uct.buildMDP(res);
+		//dtmc.exportToDotFile("/home/bruno/Desktop/dtmc.dot");
+		// Create a DTMC model checker (for solving policies)
+		DTMCModelChecker mcDTMC = new DTMCModelChecker(null);
+		//mcDTMC.inheritSettings(this);
+		mcDTMC.setLog(new PrismDevNullLog());
+		
+		BitSet no, acc;
+		no = new BitSet(dtmc.getNumStates());
+		acc = new BitSet(dtmc.getNumStates());
+		acc = findAccStates(dtmc, da);
+		ModelCheckerResult mcCheckProb = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, acc, null, null);
+		//mcDTMC.check(dtmc, expr);
+		//System.out.println("AHAH#" + expr.getExpression());
+		//Result mcCheckProb = mcDTMC.check(dtmc, new ExpressionProb(expr.getExpression(), RelOp.MAX.toString(), null));
+		
+		mainLog.println("\nThe reward is " + mcCheckProb.soln[0]);
+		return new Result(new Double(1));//uct.getReward()
+	}
+	
+/*	*//**
+	 * Model check an R operator.
+	 *//*
 	private Result checkExpressionReward(ExpressionReward expr) throws PrismException
 	{
 		System.out.println("LTL"  + expr.getExpression());
@@ -154,7 +200,7 @@ public class MCTSModelChecker extends PrismComponent
 		
 		DTMCModelChecker mcDTMC;
 		
-		UCT uct = new UCT(this, prodModelGen, 100);		
+		UCT uct = new UCT(this, prodModelGen, 100);
 		RewardStruct rewStruct = expr.getRewardStructByIndexObject(modulesFile, constantValues);
 		uct.setRewardStruct(rewStruct);
 		uct.setConstantValues(constantValues);
@@ -176,7 +222,7 @@ public class MCTSModelChecker extends PrismComponent
 		
 		mainLog.println("\nThe reward is " + mcCheckProb.soln[0]);
 		return new Result(new Double(1));//uct.getReward()
-	}
+	}*/
 	
 	public BitSet findAccStates(DTMC dtmc, DA<BitSet,? extends AcceptanceOmega> da) {
 		int i, n;
