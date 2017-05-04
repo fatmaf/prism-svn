@@ -1,3 +1,0 @@
-//Pmax=? [ (G !"crash")&(G F "goal") ]
-//R{"time"}min=? [(!"crash") & (F "goal")]
-R{"time"}min=?[!"crash" U "goal"]
