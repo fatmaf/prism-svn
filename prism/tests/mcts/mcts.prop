@@ -1,4 +1,4 @@
 //Rmax=?[F "WayPoint1"]
 //Pmax=?[(F executed_metric_map_at_WayPoint2=1)]
-Pmax=?[(G (F waypoint=25))]
-//Pmax=?[(G (F executed_metric_map_at_WayPoint1=1)) & (F executed_metric_map_at_WayPoint2=1) & (F executed_metric_map_at_WayPoint3=1) & (F executed_metric_map_at_WayPoint4=1) & (F executed_metric_map_at_WayPoint5=1) & (F executed_metric_map_at_WayPoint13=1) & (F executed_metric_map_at_WayPoint14=1) & (F executed_metric_map_at_WayPoint15=1)]
+//Pmax=?[(G (F waypoint=25))]
+Pmax=?[(G (F waypoint=25)) & (F executed_metric_map_at_WayPoint2=1) & (F executed_metric_map_at_WayPoint3=1) & (F executed_metric_map_at_WayPoint4=1) & (F executed_metric_map_at_WayPoint5=1) & (F executed_metric_map_at_WayPoint13=1) & (F executed_metric_map_at_WayPoint14=1) & (F executed_metric_map_at_WayPoint15=1)]

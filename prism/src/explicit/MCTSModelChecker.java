@@ -26,8 +26,10 @@
 
 package explicit;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Deque;
 import java.util.List;
 import java.util.Vector;
 
@@ -37,7 +39,9 @@ import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import explicit.UCT.UCTNode;
+import parser.State;
 import parser.Values;
+import parser.VarList;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
@@ -156,11 +160,11 @@ public class MCTSModelChecker extends PrismComponent
 		ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 		
 		
-		UCT uct = new UCT(this, prodModelGen, 100, 10000);
+		UCT uct = new UCT(this, prodModelGen, 40, 10000);
 
 		UCTNode res = uct.search();
-		DTMC dtmc = uct.buildDTMC(res);
-		MDP mdp = uct.buildMDP(res);
+		DTMC dtmc = buildDTMC(res, prodModelGen);
+		MDP mdp = buildMDP(res, prodModelGen);
 		//dtmc.exportToDotFile("/home/bruno/Desktop/dtmc.dot");
 		// Create a DTMC model checker (for solving policies)
 		DTMCModelChecker mcDTMC = new DTMCModelChecker(null);
@@ -179,6 +183,185 @@ public class MCTSModelChecker extends PrismComponent
 		mainLog.println("\nThe reward is " + mcCheckProb.soln[0]);
 		return new Result(new Double(1));//uct.getReward()
 	}
+	
+	
+	
+	
+	public DTMC buildDTMC(UCTNode node, ModelGenerator modelGen) throws PrismException {
+		DTMCSimple dtmc = new DTMCSimple();
+		int i, currentStateIndex, succStateIndex, nSuccs;
+		double max, prob;
+		UCTNode currentNode, currentSucc, bestSucc, succs[];
+		Deque<UCTNode> nodeQueue = new ArrayDeque<UCTNode>();
+		Deque<Integer> indexQueue = new ArrayDeque<Integer>();
+		State currentState;
+		List<State> statesList = new ArrayList<State>();
+		
+		VarList varList = modelGen.createVarList();
+		dtmc.setVarList(varList);
+		
+		nodeQueue.add(node);
+		currentStateIndex = dtmc.addState();
+		dtmc.addInitialState(currentStateIndex);
+		indexQueue.add(currentStateIndex);
+		statesList.add(node.getState());
+		
+		
+				
+		while(!nodeQueue.isEmpty()) {
+			currentNode = nodeQueue.poll();
+			currentStateIndex = indexQueue.poll();
+			
+			//find succ corresponding to best decision
+			succs = currentNode.getSuccNodes();
+			nSuccs = currentNode.getNumSuccs();
+			max = Double.MIN_VALUE;
+			bestSucc = null;
+			for (i = 0; i < nSuccs; i++) {
+				currentSucc = succs[i];
+				if (currentSucc.getExpectedRewEstimate() > max) {
+					bestSucc = currentSucc;
+					max = currentSucc.getExpectedRewEstimate();
+				}
+			}
+			
+			
+
+			
+			//add and queue all succs corresponding to possible outcomes for best decision
+			if (bestSucc != null) {
+				currentNode = bestSucc;
+				succs = currentNode.getSuccNodes();
+				nSuccs = currentNode.getNumSuccs();
+				for (i = 0; i < nSuccs; i++) {
+					currentSucc = succs[i];
+					succStateIndex = dtmc.addState();
+					prob = currentSucc.getReachProb();
+					dtmc.setProbability(currentStateIndex, succStateIndex, prob);
+					nodeQueue.add(currentSucc);
+					indexQueue.add(succStateIndex);
+					currentState = currentSucc.getState();
+					statesList.add(currentState);
+					System.out.println(currentState);
+				}
+			}
+			
+		}
+	
+		dtmc.setStatesList(statesList);
+		System.out.println(varList.getName(0));
+		
+		
+		
+		
+		return dtmc;
+	}
+	
+	
+	
+	public MDP buildMDP(UCTNode node, ModelGenerator modelGen) throws PrismException{
+		DTMCSimple dtmc = new DTMCSimple();
+		MDPSimple mdp = new MDPSimple();
+		int i, currentStateIndex, succStateIndex, nSuccs;
+		double min, prob;
+		Distribution distr;
+		String action;
+		UCTNode currentNode, currentSucc, bestSucc, succs[];
+		Deque<UCTNode> nodeQueue = new ArrayDeque<UCTNode>();
+		Deque<Integer> indexQueue = new ArrayDeque<Integer>();
+		State currentState;
+		List<State> statesList = new ArrayList<State>();
+		
+		VarList varList = modelGen.createVarList();
+		dtmc.setVarList(varList);
+		mdp.setVarList(varList);
+		
+		nodeQueue.add(node);
+		currentStateIndex = dtmc.addState();
+		mdp.addState();
+		dtmc.addInitialState(currentStateIndex);
+		mdp.addInitialState(currentStateIndex);
+		indexQueue.add(currentStateIndex);
+		statesList.add(node.getState());
+		
+		
+		
+		//getBestPolicy(node);
+		
+				
+		while(!nodeQueue.isEmpty()) {
+			currentNode = nodeQueue.poll();
+			currentStateIndex = indexQueue.poll();
+			
+			//find succ corresponding to best decision
+			succs = currentNode.getSuccNodes();
+			nSuccs = currentNode.getNumSuccs();
+			min = Double.MAX_VALUE;
+			bestSucc = null;
+			action = null;
+			for (i = 0; i < nSuccs; i++) {
+				currentSucc = succs[i];
+				if (currentSucc.getNumVisits() > 0) {
+					if (currentSucc.getExpectedRewEstimate() < min) {
+						bestSucc = currentSucc;
+						min = currentSucc.getExpectedRewEstimate();
+						action = currentSucc.getActionName();
+					}
+				}
+			}
+			
+			
+
+			
+			//add and queue all succs corresponding to possible outcomes for best decision
+			if (bestSucc != null) {
+				currentNode = bestSucc;
+				succs = currentNode.getSuccNodes();
+				nSuccs = currentNode.getNumSuccs();
+				distr = new Distribution();
+				for (i = 0; i < nSuccs; i++) {
+					currentSucc = succs[i];
+					currentState = currentSucc.getState();
+					succStateIndex = statesList.indexOf(currentState);
+					if (succStateIndex == -1) {
+						succStateIndex = dtmc.addState();
+						mdp.addState();
+						statesList.add(currentState);
+					}
+					prob = currentSucc.getReachProb();
+					distr.add(succStateIndex, prob);
+
+	
+					dtmc.setProbability(currentStateIndex, succStateIndex, prob);
+	
+					nodeQueue.add(currentSucc);
+					indexQueue.add(succStateIndex);
+									
+					//System.out.println(currentState);
+				}
+				//System.out.println(currentStateIndex);
+				//System.out.println(distr);
+				//System.out.println(action);
+				mdp.addActionLabelledChoice(currentStateIndex, distr, action);
+				
+			}
+			
+			
+			
+		}
+	
+		mdp.setStatesList(statesList);
+		dtmc.setStatesList(statesList);
+		System.out.println(varList.getName(0));
+		
+		
+		mdp.exportToDotFile("/home/bruno/Desktop/mdp.dot");
+		dtmc.exportToDotFile("/home/bruno/Desktop/dtmc.dot");
+		
+		return mdp;
+	}
+	
+	
 	
 /*	*//**
 	 * Model check an R operator.
