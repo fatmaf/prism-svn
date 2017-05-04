@@ -1,0 +1,12 @@
+Pmax=? [ F "goal1" ]
+
+Pmin=? [ F "goal1" ]
+
+Pmax=? [ F "goal2" ]
+
+Pmin=? [ F "goal2" ]
+
+Pmin=?[F "hazard"];
+
+Pmin=? [F !("goal1")];
+

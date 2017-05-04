@@ -1,0 +1,29 @@
+// a simple 6 state MDP with deterministic actions n,s,e,w
+//       ----
+//       | 5|
+//  --------------
+// | 0| 1| 2| 3| 4|
+//  --------------
+
+
+mdp 
+
+module robot
+
+       s:[0..5] init 0;
+       
+       [e] s=0 -> (s'=1); 
+       [e] s=1 -> (s'=2);
+       [e] s=2 -> (s'=3);
+       [n] s=2 -> (s'=5);
+       [e] s=3 -> (s'=4);
+       [e] s=4 -> (s'=4);
+       [s] s=5 -> (s'=2); 
+
+endmodule
+
+label "goal" = (s=4); 
+
+rewards "time"
+	true: 1; 
+endrewards

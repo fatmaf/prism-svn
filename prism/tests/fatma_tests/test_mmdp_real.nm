@@ -1,0 +1,80 @@
+// 2 robots
+//    s
+// r1 s r2
+// 
+//    s
+// g2 s g1
+//
+
+mdp 
+
+module robots
+       
+       s:[0..15] init 2; 
+
+       [ew] s=0 -> (s'=4); 
+       [ew] s=1 -> (s'=4); 
+       [en] s=1 -> (s'=7); 
+       [ew] s=2 -> (s'=5); 
+       [es] s=3 -> (s'=5); 
+       [ew] s=4 -> (s'=8); 
+       [nw] s=4 -> (s'=12); 
+       [nn] s=5 -> (s'=15); 
+       [ew] s=5 -> (s'=8); 
+       [ew] s=6 -> (s'=9); 
+       [nw] s=6 -> (s'=13); 
+       [es] s=7 -> (s'=9); 
+       [ns] s=7 -> (s'=13); 
+       [ew] s=8 -> (s'=8); 
+       [ew] s=9 -> (s'=8); 
+       [en] s=9 -> (s'=11); 
+       [ew] s=10 -> (s'=9); 
+       [es] s=11 -> (s'=9); 
+       [sw] s=12 -> (s'=4); 
+       [sw] s=13 -> (s'=4); 
+       [sn] s=13 -> (s'=7); 
+       [sw] s=14 -> (s'=5); 
+       [ss] s=15 -> (s'=5);
+       //adding a wait action
+       [dd] s=15 -> (s'=15);
+       [sd] s=15 -> (s'=7); 
+       [ds] s=15 -> (s'=13); 
+       [ed] s=3 -> (s'=7); 
+       [ed] s=7 -> (s'=11); 
+       [nd] s=7 -> (s'=15); 
+       [ed] s=11 -> (s'=11); 
+       [dw] s=12 -> (s'=12); 
+       [dw] s=13 -> (s'=12); 
+       [dn] s=13 -> (s'=15); 
+       [dw] s=14 -> (s'=13);
+       //adding delays for r1 in first state
+       [dw] s=0 -> (s'=0); 
+       [dw] s=1 -> (s'=0); 
+       [dn] s=1 -> (s'=3); 
+       [dw] s=2 -> (s'=1); 
+       [ds] s=3 -> (s'=1); 
+       [dd] s=3 -> (s'=3);
+       //adding delays for r2 in first state 
+       [ed] s=2 -> (s'=6); 
+       [ed] s=6 -> (s'=10); 
+       [nd] s=6 -> (s'=14); 
+       [ed] s=10 -> (s'=10); 
+       [sd] s=14 -> (s'=6); 
+       [dd] s=14 -> (s'=14);
+       
+endmodule
+
+label "goal" = (s=8);
+label "crash" = ((s=0) | (s=5) | (s=10) | (s=15));
+rewards "time"
+	true:1;
+endrewards
+
+//rewards "crash"
+//	s=0 : 1; 
+//	s=5 : 1; 
+//	s=10: 1; 
+//	s=15: 1; 
+//	//adding what Dave said 
+//	//true:1;
+//endrewards
