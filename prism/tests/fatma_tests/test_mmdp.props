@@ -1,3 +1,0 @@
-//R{"time"}min=? [F ("goal1") & ("goal2") & !("crash")]
-R{"collision"}min=? [F ("goals")]
-
