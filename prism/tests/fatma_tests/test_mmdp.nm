@@ -1,0 +1,55 @@
+// a simple 6 state MDP with deterministic actions n,s,e,w and two robots
+//       ----
+//       | 5|
+//  --------------
+// | 0| 1| 2| 3| 4|
+//  --------------
+
+
+mdp 
+
+
+module robot1
+
+       s:[0..5] init 0;
+       
+       [e] s=0 -> (s'=1); 
+       [d] s=0 -> (s'=0);
+       [e] s=1 -> (s'=2);
+       [e] s=2 -> (s'=3);
+       [n] s=2 -> (s'=5);
+       [e] s=3 -> (s'=4);
+       [e] s=4 -> (s'=4);
+       [s] s=5 -> (s'=2);
+       [d] s=5 -> (s'=5); 
+
+endmodule
+
+module robot2
+
+       y:[0..5] init 4;
+       
+       [w] y=0 -> (y'=0); 
+       [w] y=1 -> (y'=0);
+       [w] y=2 -> (y'=1);
+       [n_] y=2 -> (y'=5);
+       [w] y=3 -> (y'=2);
+       [w] y=4 -> (y'=3);
+       [d_] y=4 -> (y'=4);
+       [s_] y=5 -> (y'=2); 
+       [d_] y=5 -> (y'=5);
+
+endmodule
+ 
+
+label "goal1" = (s=4); 
+label "goal2" = (y=0); 
+label "crash" = (s=y);
+label "goals" = (s=4) & (y=0); 
+rewards "time"
+	true: 1; 
+endrewards
+
+rewards "collision"
+	s=y : 1; 
+endrewards

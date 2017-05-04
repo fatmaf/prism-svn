@@ -1,0 +1,70 @@
+//	labels		states
+//	  |c|d|		|3|4|
+//	|a|b|	      |1|2|
+
+//partial(R{"time"}min=?[(!"c" U "b") & (!"c" U "d")])
+//partial(R{"time"}min=?[(!"c" U "b") | (!"c" U "d")])
+
+mdp 
+
+module world 
+
+       s:[1..4] init 1;
+ 
+       [e] s=1 -> (s'=2); 
+       [s] s=1 -> (s'=1); 
+       [w] s=1 -> (s'=1); 
+       [n] s=1 -> (s'=1); 
+
+       [e] s=2 -> (s'=2);
+       [n] s=2 -> 1.0:(s'=3) + 0.0:(s'=4) ;
+       [s] s=2 -> (s'=2); 
+       [w] s=2 -> (s'=1); 
+
+ 
+       [e] s=3 -> (s'=4); 
+       [s] s=3 -> (s'=2);
+       [w] s=3 -> (s'=3); 
+       [n] s=3 -> (s'=3); 
+ 
+
+       [e] s=4 -> (s'=4); 
+       [s] s=4 -> (s'=4); 
+       [w] s=4 -> (s'=3); 
+       [n] s=4 -> (s'=4); 
+
+
+endmodule
+
+label "a" = s=1; 
+label "b" = s=2; 
+label "c" = s=3; 
+label "d" = s=4; 
+
+rewards "time"
+	//true: 1;
+	//gave me an error the stuff above cuz its a simple reward
+	[e] (s=1):1.0;
+	[s] (s=1):1.0;
+	[w] (s=1):1.0;
+	[n] (s=1):1.0;
+
+	[e] (s=2):1.0;
+	[s] (s=2):1.0;
+	[w] (s=2):1.0;
+	[n] (s=2):1.0;
+
+	[e] (s=3):1.0;
+	[s] (s=3):1.0;
+	[w] (s=3):1.0;
+	[n] (s=3):1.0;
+
+	[e] (s=4):1.0;
+	[s] (s=4):1.0;
+	[w] (s=4):1.0;
+	[n] (s=4):1.0;
+	
+
+
+
+endrewards 
