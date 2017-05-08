@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
@@ -38,6 +39,7 @@ import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
+import explicit.LTLModelChecker.LTLProduct;
 import explicit.UCT.UCTNode;
 import parser.State;
 import parser.Values;
@@ -56,9 +58,11 @@ import prism.PrismComponent;
 import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismNotSupportedException;
+import prism.PrismSettings;
 import prism.ProductModelGenerator;
 import prism.Result;
 import simulator.ModulesFileModelGenerator;
+import strat.MDStrategy;
 
 /**
  * MDP model checker based on MCTS
@@ -75,6 +79,11 @@ public class MCTSModelChecker extends PrismComponent
 	private LabelList labelListModel;
 	// Labels from the property file
 	private LabelList labelListProp;
+	
+	AcceptanceType[] allowedAcceptance = {
+			AcceptanceType.RABIN,
+			AcceptanceType.REACH
+	};
 	
 	/**
 	 * Constructor.
@@ -160,104 +169,25 @@ public class MCTSModelChecker extends PrismComponent
 		ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 		
 		
-		UCT uct = new UCT(this, prodModelGen, 40, 10000);
+		UCT uct = new UCT(this, prodModelGen, 40, 50000); //TODO iterative deepening; tweak exploration param, # samples, depth
 
-		UCTNode res = uct.search();
-		DTMC dtmc = buildDTMC(res, prodModelGen);
-		MDP mdp = buildMDP(res, prodModelGen);
-		//dtmc.exportToDotFile("/home/bruno/Desktop/dtmc.dot");
-		// Create a DTMC model checker (for solving policies)
-		DTMCModelChecker mcDTMC = new DTMCModelChecker(null);
-		//mcDTMC.inheritSettings(this);
-		mcDTMC.setLog(new PrismDevNullLog());
+		UCTNode uctRes = uct.search();
 		
-		BitSet no, acc;
-		no = new BitSet(dtmc.getNumStates());
-		acc = new BitSet(dtmc.getNumStates());
-		acc = findAccStates(dtmc, da);
-		ModelCheckerResult mcCheckProb = mcDTMC.computeReachProbsGaussSeidel(dtmc, no, acc, null, null);
-		//mcDTMC.check(dtmc, expr);
-		//System.out.println("AHAH#" + expr.getExpression());
-		//Result mcCheckProb = mcDTMC.check(dtmc, new ExpressionProb(expr.getExpression(), RelOp.MAX.toString(), null));
+		uct.getBestPolicy(uctRes);
 		
-		mainLog.println("\nThe reward is " + mcCheckProb.soln[0]);
+		StateValues res = checkUCTResult(uctRes, expr, da, prodModelGen, "policy");
+
+		
+		
+		//DTMC dtmc = buildDTMC(res, prodModelGen);
+		//MDP mdp = buildMDP(res, prodModelGen);
+		
+		
+		
+		mainLog.println("\nThe reward is " + res.valuesD[0]);
 		return new Result(new Double(1));//uct.getReward()
 	}
-	
-	
-	
-	
-	public DTMC buildDTMC(UCTNode node, ModelGenerator modelGen) throws PrismException {
-		DTMCSimple dtmc = new DTMCSimple();
-		int i, currentStateIndex, succStateIndex, nSuccs;
-		double max, prob;
-		UCTNode currentNode, currentSucc, bestSucc, succs[];
-		Deque<UCTNode> nodeQueue = new ArrayDeque<UCTNode>();
-		Deque<Integer> indexQueue = new ArrayDeque<Integer>();
-		State currentState;
-		List<State> statesList = new ArrayList<State>();
-		
-		VarList varList = modelGen.createVarList();
-		dtmc.setVarList(varList);
-		
-		nodeQueue.add(node);
-		currentStateIndex = dtmc.addState();
-		dtmc.addInitialState(currentStateIndex);
-		indexQueue.add(currentStateIndex);
-		statesList.add(node.getState());
-		
-		
-				
-		while(!nodeQueue.isEmpty()) {
-			currentNode = nodeQueue.poll();
-			currentStateIndex = indexQueue.poll();
-			
-			//find succ corresponding to best decision
-			succs = currentNode.getSuccNodes();
-			nSuccs = currentNode.getNumSuccs();
-			max = Double.MIN_VALUE;
-			bestSucc = null;
-			for (i = 0; i < nSuccs; i++) {
-				currentSucc = succs[i];
-				if (currentSucc.getExpectedRewEstimate() > max) {
-					bestSucc = currentSucc;
-					max = currentSucc.getExpectedRewEstimate();
-				}
-			}
-			
-			
 
-			
-			//add and queue all succs corresponding to possible outcomes for best decision
-			if (bestSucc != null) {
-				currentNode = bestSucc;
-				succs = currentNode.getSuccNodes();
-				nSuccs = currentNode.getNumSuccs();
-				for (i = 0; i < nSuccs; i++) {
-					currentSucc = succs[i];
-					succStateIndex = dtmc.addState();
-					prob = currentSucc.getReachProb();
-					dtmc.setProbability(currentStateIndex, succStateIndex, prob);
-					nodeQueue.add(currentSucc);
-					indexQueue.add(succStateIndex);
-					currentState = currentSucc.getState();
-					statesList.add(currentState);
-					System.out.println(currentState);
-				}
-			}
-			
-		}
-	
-		dtmc.setStatesList(statesList);
-		System.out.println(varList.getName(0));
-		
-		
-		
-		
-		return dtmc;
-	}
-	
-	
 	
 	public MDP buildMDP(UCTNode node, ModelGenerator modelGen) throws PrismException{
 		DTMCSimple dtmc = new DTMCSimple();
@@ -361,9 +291,146 @@ public class MCTSModelChecker extends PrismComponent
 		return mdp;
 	}
 	
+	private StateValues checkUCTResult(UCTNode result, Expression expr, DA<BitSet,? extends AcceptanceOmega> da, ProductModelGenerator prodModelGen, String modelName) throws PrismException {
+		//DTMCModelChecker mcDTMC;
+		ModelCheckerResult policyCheck = null;
+			
+		//mcDTMC = new DTMCModelChecker(null);
+		//mcDTMC.setSettings(this.getSettings());
+		//mcDTMC.setLog(new PrismDevNullLog());
+		
+		MDP resMDP = buildMDP(result, prodModelGen);
+
+		
+		MDPModelChecker mcMdp = new MDPModelChecker(null);
+		mcMdp.setSettings(new PrismSettings());
+		mcMdp.setLog(new PrismDevNullLog());
+		mcMdp.setGenStrat(true);
+		mcMdp.setExportAdv(true);
+		mcMdp.setExportAdvFilename("/home/bruno/Desktop/policy.adv");
+		
+		LTLModelChecker mcLtl = new LTLModelChecker(null);
+		mcLtl.setSettings(new PrismSettings());
+		mcLtl.setLog(new PrismDevNullLog());
+		
+		
+		BitSet initState = new BitSet(resMDP.getNumStates());
+		for (int i = 0; i < resMDP.getNumStates(); i++) {
+			if (resMDP.isInitialState(i)) {
+				initState.set(i);
+			}
+		}
+		
+		
+
+		resMDP.findDeadlocks(true);
+		LTLProduct<MDP> prod = mcLtl.constructProductMDP(mcMdp, resMDP, ((ExpressionProb)expr).getExpression(), initState, allowedAcceptance);
+		//List<BitSet> ecs = mcLtl.findAcceptingECsForRabin(prod.getProductModel(), (AcceptanceRabin)prod.getAcceptance());
+		BitSet ecs = mcLtl.findAcceptingECStatesForRabin(prod.getProductModel(), (AcceptanceRabin)prod.getAcceptance());
+		
+		StateValues policyCheckRes = null;
+		
+		prod.getProductModel().exportToDotFile("/home/bruno/Desktop/prod.dot");
+
+		
+				
+		BitSet no, acc;
+		no = new BitSet(resMDP.getNumStates());
+		acc = new BitSet(resMDP.getNumStates());
+		//acc = findAccStates(prod.getProductModel(), da, prodModelGen.getVarIndex("_da0"));
+		acc = findAccStates(prod.getProductModel(), da, 0); //da variable is always index 0 on an explicit product
+		
+		
+		
+		int[] strat = new int[prod.getProductModel().getNumStates()];
+		for (int i = 0; i < prod.getProductModel().getNumStates(); i++) {
+			strat[i]=-1;
+		}
+		
+		
+		
+		
+		ModelCheckerResult res = mcMdp.computeReachProbs((MDP) prod.getProductModel(), ecs, false);
+
+		
+		
+		mcMdp.prob1(prod.getProductModel(), ecs, acc, false, strat);
+		
+		for (int i = 0; i < prod.getProductModel().getNumStates(); i++) {
+			if(acc.get(i)) {
+				for (int j = 0; j < prod.getProductModel().getNumChoices(i); j++) {
+					boolean goodSucc = true;
+					Iterator<Integer> succs = prod.getProductModel().getSuccessorsIterator(i, j);
+					while (succs.hasNext()) {
+						if (!(ecs.get(succs.next()))) {
+							goodSucc = false;
+						}
+					}
+					if (goodSucc) {
+						strat[i] = j;
+						break;
+					}
+				}
+		 	} else {
+				int choice = ((MDStrategy)res.strat).getChoiceIndex(i);
+				if (choice >= 0) {
+					strat[i] = choice;
+				}
+		 	}
+		}
+		
+		
+		//mcMdp.restrictStrategyToReachableStates((MDP)result, strat);
+		DTMC policy = new DTMCFromMDPMemorylessAdversary(prod.getProductModel(), strat);
+		policy.exportToDotFile("/home/bruno/Desktop/policy" + modelName + ".dot");
+		
+		if(resMDP instanceof MDP) {		
+			//policyCheck = mcMdp.computeReachProbs((MDP)model, acc, false);
+			//model = new MDPSparse((MDPSimple)model);
+			//Result policyCheckRes = mcMdp.check((MDP)result, expr);
+			policyCheckRes =  mcMdp.checkExpressionProb((MDP)resMDP, (ExpressionProb)expr, null);
+			//policyCheck = mcMdp.computeReachProbsGaussSeidel((MDP)result, no, acc, false, null, null, strat);
+			System.out.println(strat);
+			
+			//mcMdp.restrictStrategyToReachableStates((MDP)result, strat);
+			
+			//DTMC policy = new DTMCFromMDPAndMDStrategy((MDP)model, (MDStrategy)policyCheck.strat);
+			
+		}
+		//else {
+			//policyCheck = mcDTMC.computeReachProbsGaussSeidel((DTMC)result, no, acc, null, null);
+		//}
+		
+		return policyCheckRes;
+	}
+	
+
+	
+	public BitSet findAccStates(Model dtmc, DA<BitSet,? extends AcceptanceOmega> da, int daStateIndex) {
+		int i, n;
+		BitSet daAcc, acc;
+		if (da.getAcceptance() instanceof AcceptanceReach) {
+			mainLog.println("\nSkipping BSCC computation since acceptance is defined via goal states...");
+			daAcc = ((AcceptanceReach)da.getAcceptance()).getGoalStates();
+		} else {
+			mainLog.println("\n");
+			AcceptanceRabin acceptance = (AcceptanceRabin)da.getAcceptance();
+			daAcc = acceptance.get(0).getK();
+		}
+		
+		n = dtmc.getNumStates();
+		acc = new BitSet(n);
+		for (i = 0; i < n; i++) {
+			if (daAcc.get((int)dtmc.getStatesList().get(i).varValues[daStateIndex])) {
+				acc.set(i);
+			}
+		}
+		
+		return acc;
+	}
 	
 	
-/*	*//**
+	/*	*//**
 	 * Model check an R operator.
 	 *//*
 	private Result checkExpressionReward(ExpressionReward expr) throws PrismException
@@ -405,31 +472,7 @@ public class MCTSModelChecker extends PrismComponent
 		
 		mainLog.println("\nThe reward is " + mcCheckProb.soln[0]);
 		return new Result(new Double(1));//uct.getReward()
-	}*/
-	
-	public BitSet findAccStates(DTMC dtmc, DA<BitSet,? extends AcceptanceOmega> da) {
-		int i, n;
-		BitSet daAcc, acc;
-		if (da.getAcceptance() instanceof AcceptanceReach) {
-			mainLog.println("\nSkipping BSCC computation since acceptance is defined via goal states...");
-			daAcc = ((AcceptanceReach)da.getAcceptance()).getGoalStates();
-		} else {
-			mainLog.println("\n");
-			AcceptanceRabin acceptance = (AcceptanceRabin)da.getAcceptance();
-			daAcc = acceptance.get(0).getK();
-		}
-		
-		n = dtmc.getNumStates();
-		acc = new BitSet(n);
-		for (i = 0; i < n; i++) {
-			
-		}
-		
-		return acc;
 	}
-	
-	
-	
 	
 	private Result checkExpressionReward2(ExpressionReward expr) throws PrismException
 	{
@@ -450,5 +493,7 @@ public class MCTSModelChecker extends PrismComponent
 		prodModel.exportToPrismExplicitTra(mainLog);
 		
 		return new Result(new Double(1));
-	}
+	}*/
+	
+	
 }

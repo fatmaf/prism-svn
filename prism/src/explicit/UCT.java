@@ -267,7 +267,7 @@ public final class UCT extends PrismComponent
 			if (numVisits == 0) {
 				return Double.MAX_VALUE;
 			} else {
-				return bias*Math.sqrt(Math.log(parentVisits)/numVisits) + expectedRewEstimate;
+				return -bias*Math.sqrt(Math.log(parentVisits)/numVisits) + expectedRewEstimate;
 			}
 		}
 	}
@@ -399,22 +399,6 @@ public final class UCT extends PrismComponent
 		return bestSucc;
 	}
 	
-	public double getReward(State state, String action) throws PrismException{
-		//System.out.println("ACTION " + action);
-		int numStateItems = rewStruct.getNumItems();
-		double res = 0.0;
-		for (int i = 0; i < numStateItems; i++) {
-			Expression guard = rewStruct.getStates(i);
-			if (guard.evaluateBoolean(constantValues, state)) {
-				String currentAction = rewStruct.getSynch(i);
-				if (action.equals(currentAction)) {
-					res = res + rewStruct.getReward(i).evaluateDouble(constantValues, state);
-				}
-			}
-		}
-		return res;
-	}
-	
 
 	
 	public UCTNode sampleSucc(UCTNode node) {
@@ -473,6 +457,7 @@ public final class UCT extends PrismComponent
 		if (node.isDecisionNode()) {
 			succNode = getBestUCTSucc(node, bias);
 			if (succNode == null) {
+				res = res + (modelGen.getProgressionRew(node.getState(), node.getState()) * depth);
 				depth = 0;
 			} else {
 //				modelGen.exploreState(succNode.getState());
@@ -486,6 +471,7 @@ public final class UCT extends PrismComponent
 			depth = depth - 1;
 			
 		}
+		bias=node.getExpectedRewEstimate();
 		res = res + rollout(succNode, depth, bias);
 		node.updateExpectedRewEstimate(res);
 	
@@ -503,8 +489,8 @@ public final class UCT extends PrismComponent
 		UCTNode initNode = new UCTNode(initState, -1, null, 1, true);
 		for (int i = 0; i < this.nSamples; i++) {
 //			System.out.println("NODE" + initNode);
-			//double bias = initNode.getExpectedRewEstimate();
-			double bias = 0.1;
+			//double bias = 0.1*initNode.getExpectedRewEstimate();
+			double bias = this.depth;
 			rollout(initNode, this.depth, bias);
 //			System.out.println(":_____________________");
 		}
@@ -521,13 +507,13 @@ public final class UCT extends PrismComponent
 			System.out.println(modelGen.getChoiceAction(node.getAction()).toString());
 			System.out.println("_________________");
 		}
-		double max = Double.MIN_VALUE;
+		double min = Double.MAX_VALUE;
 		UCTNode bestNextNode = null;
 		for (int i = 0; i < node.getNumSuccs(); i++) {
 			UCTNode currentNode = node.getSuccNodes()[i];
-			if (currentNode.getExpectedRewEstimate() > max) {
+			if (currentNode.getExpectedRewEstimate() < min) {
 				bestNextNode = currentNode;
-				max = currentNode.getExpectedRewEstimate();
+				min = currentNode.getExpectedRewEstimate();
 			}
 		}
 		if (bestNextNode != null) {
@@ -537,6 +523,6 @@ public final class UCT extends PrismComponent
 		}
 	}
 	
-	
+
 }
 	
