@@ -194,6 +194,8 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	{
 		return edges.get(i).get(j).dest;
 	}
+	
+
 
 	/**
 	 * Get the label of edge j from state i.
@@ -201,6 +203,17 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	public Symbol getEdgeLabel(int i, int j)
 	{
 		return edges.get(i).get(j).label;
+	}
+	/**
+	 * Get the labels of edges from state src to state dest
+	 */
+	public List<Symbol> getEdgeLabels(int src, int dest)
+	{
+		List<Symbol> result = new ArrayList<Symbol>();
+		for  (Edge e : invertedEdges.get(dest))
+			if (e.dest == src)
+				result.add(e.label);
+		return result;
 	}
 
 	/**
@@ -214,6 +227,8 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 				return e.dest;
 		return -1;
 	}
+	
+	
 
 	/**
 	 * Get the distances of each state to an accepting state
