@@ -92,11 +92,15 @@ public class MDPModelChecker extends ProbModelChecker {
 	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr, BitSet statesOfInterest)
 			throws PrismException {
 		switch (expr.getNameCode()) {
-		case ExpressionFunc.PARTIAL:
+		case ExpressionFunc.PARTIAL:{
+			//genStrat = true;
 			// return checkPartialSat(model, expr, statesOfInterest);
+			// return checkPartialSatMod(model, expr, statesOfInterest);
+			 
 			// return checkWS(model, expr, statesOfInterest);
 			//return doNothing(model, expr, statesOfInterest);
 			return trySkipping(model,expr,statesOfInterest);
+			 }
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
@@ -534,10 +538,9 @@ public class MDPModelChecker extends ProbModelChecker {
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
 		MDPModelChecker mcProduct;
-		LTLModelChecker.LTLProduct<MDP> product, kutta, reuse;
-		MDP productMdp, kuttaykabacha;
+		LTLModelChecker.LTLProduct<MDP> product;
+		MDP productMdp;
 		DA<BitSet, ? extends AcceptanceOmega> da;
-		DA<BitSet, ? extends AcceptanceOmega> wda;
 		Vector<BitSet> labelBS;
 		String saveplace = "/home/fatma/hubic/phD/work/code/mdpltl/prism-svn/prism/tests/fatma_tests/dotfiles/";
 
@@ -574,74 +577,6 @@ public class MDPModelChecker extends ProbModelChecker {
 			// Dummy return vector
 			return new StateValues(TypeInt.getInstance(), model);
 		}
-		// trying out the transition stuff *******************
-		wda = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
-		List<String> aplist = new ArrayList<String>(da.getAPList());
-		List<String> aplistc = new ArrayList<String>(aplist);
-		// add the empty set
-		aplist.add(" ");
-		// assuming we don't care about sets with more than one element so if
-		// numaplist = 2 we dont care about {0,1} if numaplist = 3 {0,1} {1,2}
-		// {0,1,2}
-		// making a table thing
-		int num_ap = aplist.size();
-		for (int i = 0; i < num_ap; i++) {
-			for (int j = 0; j < num_ap; j++) {
-				if (i != j) {
-					aplistc.add(aplist.get(i) + aplist.get(j));
-				}
-			}
-		}
-		// blind wda
-		BitSet lab;
-		for (int i = 0; i < da.size(); i++) {
-			for (int j = 0; j < da.size(); j++) {
-				int numedges = da.getNumEdges(i, j);
-				List<BitSet> edgelabels = da.getEdgeLabels(i, j);
-				wlabel tmp = new wlabel(num_ap - 1);
-				StringBuilder sb = new StringBuilder();
-				for (BitSet b : edgelabels) {
-					// for each bitset make a new one
-
-					tmp.print(mainLog, b);
-					for (int k = 0; k < tmp.phy.size(); k++) {
-						BitSet tlab = tmp.phy.get(k);
-						if (!tlab.equals(b))
-							wda.addEdge(i, tlab, j);
-					}
-					sb.append(b.toString());
-					sb.append("\t");
-				}
-
-				mainLog.println(numedges + " (" + i + "," + j + ") " + sb.toString());
-				// for(int e = 0; e<numedges; e++)
-				// {
-				// lab = da.get
-				//
-				// byte arr[] = lab.toByteArray();
-				// // System.arraycopy(lab.toByteArray(), 0, arr, 0,
-				// lab.toByteArray().length);
-				// if (arr.length > 0)
-				// mainLog.println(lab.size()+"(s,e,s')"+i+","+e+","+j+lab.toString()+"-"+arr[0]+"
-				// edges"+numedges);
-				// else
-				// mainLog.println(lab.size()+"(s,e,s')"+i+","+e+","+j+lab.toString()+"
-				// edges"+numedges);
-				//
-				//
-				// }
-			}
-		}
-
-		try {
-			dadot = new PrintStream(new File(saveplace + "wda.dot"));
-			wda.printDot(dadot);
-			dadot.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		// build product
 		int numStates = model.getNumStates();
 		BitSet bsInit = new BitSet(numStates);
@@ -649,58 +584,54 @@ public class MDPModelChecker extends ProbModelChecker {
 			bsInit.set(i, model.isInitialState(i));
 		}
 		MDPRewardsSimple skipcosts = null;
+		MDPRewardsSimple prodcosts = null;
 		Object arr[] = mcLtl.constructWProductModel(da,(MDP) model, labelBS, bsInit);
-		kutta =(LTLProduct<MDP>) arr[0]; 
+		product =(LTLProduct<MDP>) arr[0]; 
 		skipcosts = (MDPRewardsSimple) arr[1];
-		//mdpProd.exportToDotFile(saveplace + "prod_oo.dot");
-		//mdpProd_actionCopies.exportToDotFile(saveplace + "prod_ac.dot");
+		prodcosts = (MDPRewardsSimple) arr[2];
 
-		//kutta = mcLtl.constructProductModel(wda, (MDP) model, labelBS, bsInit);
-		product = mcLtl.constructProductModel(da, (MDP) model, labelBS, bsInit);
-
+		
 		mainLog.println("printing product mdp ");
 
 		// Find accepting states + compute reachability probabilities
+		
 		BitSet acc;
 		if (product.getAcceptance() instanceof AcceptanceReach) {
 			mainLog.println("\nSkipping accepting MEC computation since acceptance is defined via goal states...");
 			acc = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
 		} else {
 			mainLog.println("\nFinding accepting MECs...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
+			acc = new LTLModelChecker(null).findAcceptingECStates(product.getProductModel(), product.getAcceptance());
 		}
+		
+		//TODO create a varlist in the product mdp stuff 
+		mcProduct = new MDPModelChecker(this);
+		mcProduct.inheritSettings(this);
+		
+		MDPRewards[] rewards = new MDPRewards[2]; 
+		rewards[0]= skipcosts;
+		//MDPRewards prodCosts = ((MDPRewards) costsModel).liftFromModel(product);
+		//rewards[1]=prodCosts;
+		rewards[1]=prodcosts;
+		
 		if (product.getProductModel().getNumStates() > 10000) {
 			mainLog.println("\nChanging product to MDPSparse...");
 			productMdp = new MDPSparse((MDPSimple) product.getProductModel());
-			kuttaykabacha = new MDPSparse((MDPSimple) kutta.getProductModel());
 		} else {
+
 			productMdp = (MDP) product.getProductModel();
-			kuttaykabacha = (MDP) kutta.getProductModel();
 		}
-
-		BitSet acc2;
-		if (kutta.getAcceptance() instanceof AcceptanceReach) {
-			mainLog.println("\nSkipping accepting MEC computation since acceptance is defined via goal states...");
-			acc2 = ((AcceptanceReach) kutta.getAcceptance()).getGoalStates();
-		} else {
-			mainLog.println("\nFinding accepting MECs...");
-			acc2 = new LTLModelChecker(null).findAcceptingECStates(kutta.getProductModel(), kutta.getAcceptance());
-		}
-		if (kutta.getProductModel().getNumStates() > 10000) {
-			mainLog.println("\nChanging product to MDPSparse...");
-			kuttaykabacha = new MDPSparse((MDPSimple) kutta.getProductModel());
-		} else {
-
-			kuttaykabacha = (MDP) kutta.getProductModel();
-		}
+//		computeValueIterWS(productMdp,rewards[0]);
+		
+		BitSet progStates = progressionTrim(product, (MDPRewardsSimple) rewards[0], (MDPRewardsSimple) rewards[1]);
 
 		// Output product, if required
 		if (getExportProductTrans()) {
 			mainLog.println(
 					"\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
 			product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
-			kutta.getProductModel().exportToPrismExplicitTra(new File(saveplace + "kutta.tra"));
-			kutta.getProductModel().exportToDotFile(saveplace + "kutta.dot");
+			product.getProductModel().exportToPrismExplicitTra(new File(saveplace + "kutta.tra"));
+			product.getProductModel().exportToDotFile(saveplace + "kutta.dot");
 		}
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
@@ -712,18 +643,73 @@ public class MDPModelChecker extends ProbModelChecker {
 				daVar = "_" + daVar;
 			}
 			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-			kutta.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, den);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, den);
 			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
 			out.close();
 			den.close();
 		}
 
 		productMdp.exportToDotFile(saveplace + "prod.dot");
-		kuttaykabacha.exportToDotFile(saveplace + "kuttaykabacha.dot");
+		
+		//cheating again 
+		BitSet toreach = new BitSet(); 
+		toreach.set(8);
+	
+		ModelCheckerResult res2; //= mcProduct.computeReachRewards(productMdp, skipcosts,toreach , true);
+		res2 = mcProduct.computeReachRewards(productMdp, skipcosts,acc , true);
+		ModelCheckerPartialSatResult res = mcProduct.computeNestedValIterS(productMdp, acc, rewards[0],rewards[1],
+				progStates);	
+		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
+		// Mapping probabilities in the original model
+		probs = product.projectToOriginalModel(probsProduct);
+		// Get final prob result
+		double maxProb = probs.getDoubleArray()[model.getFirstInitialState()];
+		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
 
-		MDPRewards prodCosts = ((MDPRewards) costsModel).liftFromModel(product);
-		computeValueIterWS((MDP) productMdp, prodCosts);
-		return test;
+		if (getExportProductVector()) {
+			mainLog.println("\nExporting success probabilites over product to file \""
+					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1) + "\"...");
+			PrismFileLog out = new PrismFileLog(
+					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1));
+			probsProduct.print(out, false, false, false, false);
+			out.close();
+		}
+
+		rewsProduct = StateValues.createFromDoubleArray(res.solnProg, productMdp);
+		rews = product.projectToOriginalModel(rewsProduct);
+		double maxRew = rews.getDoubleArray()[model.getFirstInitialState()];
+		mainLog.println("\nFor p = " + maxProb
+				+ ", the maximum expected cummulative reward to satisfy specification is " + maxRew);
+
+		if (getExportProductVector()) {
+			mainLog.println("\nExporting expected progression reward over product to file \""
+					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2) + "\"...");
+			PrismFileLog out = new PrismFileLog(
+					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2));
+			rewsProduct.print(out, false, false, false, false);
+			out.close();
+		}
+		costsProduct = StateValues.createFromDoubleArray(res.solnCost, productMdp);
+//		costsProduct = StateValues.createFromDoubleArray(res2.soln, productMdp);
+		costs = product.projectToOriginalModel(costsProduct);
+		double minCost = costs.getDoubleArray()[model.getFirstInitialState()];
+		mainLog.println("\nFor p = " + maxProb + ", r = " + +maxRew
+				+ " the minimum expected  cummulative cost to satisfy specification is " + minCost);
+		// System.out.println("Probability to find objects: " + maxProb);
+		// System.out.println("Expected progression reward: " + maxRew);
+		// System.out.println("Expected time to execute task: " + minCost);
+		// System.out.println("--------------------------------------------------------------");
+		if (getExportProductVector()) {
+			mainLog.println("\nExporting expected times until no more progression over product to file \""
+					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 3) + "\"...");
+			PrismFileLog out = new PrismFileLog(
+					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 3));
+			costsProduct.print(out, false, false, false, false);
+			out.close();
+		}
+
+		return costs;
+
 
 	}
 
@@ -742,8 +728,8 @@ public class MDPModelChecker extends ProbModelChecker {
 		int numRewards = rewards.length;
 		ModelCheckerPartialSatResultVar res;
 		
-		MDPRewards progRewards = rewards[0];
-		MDPRewards prodCosts = rewards[1];
+		//MDPRewards progRewards = rewards[0];
+		//MDPRewards prodCosts = rewards[1];
 
 		timerGlobal = System.currentTimeMillis();
 
@@ -999,151 +985,6 @@ public class MDPModelChecker extends ProbModelChecker {
 
 
 
-	protected StateValues checkWS(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
-		LTLModelChecker mcLtl;
-		MDPModelChecker mcProduct = null;
-		LTLModelChecker.LTLProduct<MDP> product;
-		MDP productMdp;
-		DA<BitSet, ? extends AcceptanceOmega> da;
-		Vector<BitSet> labelBS;
-		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
-
-		// For LTL model checking routines
-		mcLtl = new LTLModelChecker(this);
-
-		// Get LTL spec
-		ExpressionReward exprRew = (ExpressionReward) expr.getOperand(0);
-		Expression ltl = exprRew.getExpression();
-		// System.out.println("--------------------------------------------------------------");
-		// //System.out.println("The flat MDP model has " + model.getNumStates()
-		// + " states");
-		// System.out.println("The specification is " + ltl.toString());
-		// System.out.println("Generating optimal policy...");
-		// System.out.println(" ");
-
-		// Build model costs
-		RewardStruct costStruct = exprRew.getRewardStructByIndexObject(modulesFile, modulesFile.getConstantValues());
-		mainLog.println("Building cost structure...");
-		Rewards costsModel = constructRewards(model, costStruct);
-
-		// build DFA
-		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
-		labelBS = new Vector<BitSet>();
-		da = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
-
-		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
-			mainLog.println("\nAutomaton is not a DFA. Breaking.");
-			// Dummy return vector
-			return new StateValues(TypeInt.getInstance(), model);
-		}
-		// mainLog.println("\nAutomaton state distances to an accepting state: "
-		// + da.getDistsToAcc());
-		// mainLog.println("Time for DFA distance to acceptance metric
-		// calculation: " + time / 1000.0 + " seconds.");
-
-		// build product
-		int numStates = model.getNumStates();
-		BitSet bsInit = new BitSet(numStates);
-		for (int i = 0; i < numStates; i++) {
-			bsInit.set(i, model.isInitialState(i));
-		}
-		product = mcLtl.constructProductModel(da, (MDP) model, labelBS, bsInit);
-		if (product.getProductModel().getNumStates() > 10000) {
-			mainLog.println("\nChanging product to MDPSparse...");
-			productMdp = new MDPSparse((MDPSimple) product.getProductModel());
-		} else {
-			productMdp = (MDP) product.getProductModel();
-		}
-		mcProduct = new MDPModelChecker(this);
-		mcProduct.inheritSettings(this);
-
-		ModelCheckerResult res = mcProduct.computeReachProbs(productMdp, bsInit, true);
-
-		// System.out.println("The product MDP has " +
-		// product.getProductModel().getNumStates() + " states");
-
-		// Find accepting states + compute reachability probabilities
-		BitSet acc;
-		if (product.getAcceptance() instanceof AcceptanceReach) {
-			mainLog.println("\nSkipping accepting MEC computation since acceptance is defined via goal states...");
-			acc = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
-		} else {
-			mainLog.println("\nFinding accepting MECs...");
-			acc = mcLtl.findAcceptingECStates(product.getProductModel(), product.getAcceptance());
-		}
-		// Output product, if required
-		if (getExportProductTrans()) {
-			mainLog.println(
-					"\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
-			product.getProductModel().exportToPrismExplicitTra(getExportProductTransFilename());
-		}
-		if (getExportProductStates()) {
-			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
-			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
-			String daVar = "_da";
-			while (newVarList.getIndex(daVar) != -1) {
-				daVar = "_" + daVar;
-			}
-			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
-			out.close();
-		}
-
-		probsProduct = StateValues.createFromDoubleArray(res.soln, productMdp);
-		// Mapping probabilities in the original model
-		probs = product.projectToOriginalModel(probsProduct);
-		// Get final prob result
-		double maxProb = probs.getDoubleArray()[model.getFirstInitialState()];
-		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
-
-		if (getExportProductVector()) {
-			mainLog.println("\nExporting success probabilites over product to file \""
-					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1) + "\"...");
-			PrismFileLog out = new PrismFileLog(
-					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1));
-			probsProduct.print(out, false, false, false, false);
-			out.close();
-		}
-
-		rewsProduct = StateValues.createFromDoubleArray(res.soln, productMdp);
-		rews = product.projectToOriginalModel(rewsProduct);
-		double maxRew = rews.getDoubleArray()[model.getFirstInitialState()];
-		mainLog.println("\nFor p = " + maxProb
-				+ ", the maximum expected cummulative reward to satisfy specification is " + maxRew);
-
-		if (getExportProductVector()) {
-			mainLog.println("\nExporting expected progression reward over product to file \""
-					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2) + "\"...");
-			PrismFileLog out = new PrismFileLog(
-					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2));
-			rewsProduct.print(out, false, false, false, false);
-			out.close();
-		}
-
-		costsProduct = StateValues.createFromDoubleArray(res.soln, productMdp);
-		costs = product.projectToOriginalModel(costsProduct);
-		double minCost = costs.getDoubleArray()[model.getFirstInitialState()];
-		mainLog.println("\nFor p = " + maxProb + ", r = " + +maxRew
-				+ " the minimum expected  cummulative cost to satisfy specification is " + minCost);
-		// System.out.println("Probability to find objects: " + maxProb);
-		// System.out.println("Expected progression reward: " + maxRew);
-		// System.out.println("Expected time to execute task: " + minCost);
-		// System.out.println("--------------------------------------------------------------");
-		if (getExportProductVector()) {
-			mainLog.println("\nExporting expected times until no more progression over product to file \""
-					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 3) + "\"...");
-			PrismFileLog out = new PrismFileLog(
-					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 3));
-			costsProduct.print(out, false, false, false, false);
-			out.close();
-		}
-
-		return costs;
-
-		// return null;
-
-	}
 
 	protected ModelCheckerResult computeValueIterWS(MDP mdp, Rewards cm) {
 		ModelCheckerResult res = null;
@@ -1200,251 +1041,6 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	}
 
-	protected ModelCheckerPartialSatResult computeNestedValIterWS(MDP trimProdMdp, BitSet target,
-			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates) throws PrismException {
-		ModelCheckerPartialSatResult res = null;
-		int i, n, iters, numYes, numNo;
-		double initValProb, initValRew, initValCost;
-		double solnProb[], soln2Prob[];
-		double solnProg[], soln2Prog[];
-
-		double solnCost[], soln2Cost[];
-		boolean done;
-		BitSet no, yes, unknown;
-		long timerVI, timerProb0, timerProb1, timerGlobal;
-		int strat[] = null;
-		boolean min = false;
-
-		timerGlobal = System.currentTimeMillis();
-
-		// Check for deadlocks in non-target state (because breaks e.g. prob1)
-		trimProdMdp.checkForDeadlocks(target);
-
-		// Store num states
-		n = trimProdMdp.getNumStates();
-
-		// If required, export info about target states
-		if (getExportTarget()) {
-			BitSet bsInit = new BitSet(n);
-			for (i = 0; i < n; i++) {
-				bsInit.set(i, trimProdMdp.isInitialState(i));
-			}
-			List<BitSet> labels = Arrays.asList(bsInit, target);
-			List<String> labelNames = Arrays.asList("init", "target");
-			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-			PrismLog out = new PrismFileLog(getExportTargetFilename());
-			exportLabels(trimProdMdp, labels, labelNames, Prism.EXPORT_PLAIN, out);
-			out.close();
-		}
-
-		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
-		if (genStrat || exportAdv) {
-			strat = new int[n];
-			for (i = 0; i < n; i++) {
-				strat[i] = target.get(i) ? -2 : -1;
-			}
-		}
-
-		// Precomputation
-		timerProb0 = System.currentTimeMillis();
-		if (precomp && prob0) {
-			no = prob0(trimProdMdp, null, target, min, strat);
-		} else {
-			no = new BitSet();
-		}
-		timerProb0 = System.currentTimeMillis() - timerProb0;
-		timerProb1 = System.currentTimeMillis();
-		if (precomp && prob1) {
-			yes = prob1(trimProdMdp, null, target, min, strat);
-		} else {
-			yes = (BitSet) target.clone();
-		}
-		timerProb1 = System.currentTimeMillis() - timerProb1;
-
-		// Print results of precomputation
-		numYes = yes.cardinality();
-		numNo = no.cardinality();
-		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe="
-				+ (n - (numYes + numNo)));
-
-		// If still required, store strategy for no/yes (0/1) states.
-		// This is just for the cases max=0 and min=1, where arbitrary choices
-		// suffice (denoted by -2)
-		if (genStrat || exportAdv) {
-			if (min) {
-				for (i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
-					if (!target.get(i))
-						strat[i] = -2;
-				}
-			} else {
-				for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
-					strat[i] = -2;
-				}
-			}
-		}
-		ModelCheckerResult resc = computeReachProbsValIter(trimProdMdp, no, yes, min, null, null, strat);
-
-		// Start value iteration
-		timerVI = System.currentTimeMillis();
-		mainLog.println("Starting prioritised value iteration (" + (min ? "min" : "max") + ")...");
-
-		// Create solution vector(s)
-		solnProb = new double[n];
-		// soln2Prob = new double[n];
-		solnProg = new double[n];
-		// soln2Prog = new double[n];
-		solnCost = new double[n];
-		// soln2Cost = new double[n];
-
-		// Initialise solution vectors to initVal
-		// where initVal is 0.0 or 1.0, depending on whether we converge from
-		// below/above.
-		initValProb = 0.0;
-		initValRew = 0.0;
-		initValCost = 0.0;
-
-		// (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
-
-		// Determine set of states actually need to compute values for
-		// unknown = new BitSet();
-		// unknown.set(0, n);
-		// unknown.andNot(yes);
-		// unknown.andNot(no);
-
-		// for (i = 0; i < n; i++) {
-		//// solnProb[i] = soln2Prob[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 :
-		// initValProb;
-		//// solnProg[i] = soln2Prog[i] = initValRew;
-		//// solnCost[i] = soln2Cost[i] = initValCost;
-		// solnProb[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
-		// solnProg[i] = initValRew;
-		// solnCost[i] = initValCost;
-		// }
-		//
-		// // Start iterations
-		// iters = 0;
-		// done = false;
-		//
-		// int j;
-		// int numChoices;
-		// double currentProbVal, currentProgVal, currentCostVal;
-		// boolean sameProb, sameProg, sameCost;
-		//
-		// while (!done && iters < maxIters) {
-		// iters++;
-		// done = true;
-		// for(i = 0; i < n; i++) {
-		// if(progStates.get(i)) {
-		// numChoices = trimProdMdp.getNumChoices(i);
-		// for(j = 0; j < numChoices; j++) {
-		// currentProbVal = trimProdMdp.mvMultJacSingle(i, j, solnProb);
-		// currentProgVal = trimProdMdp.mvMultRewSingle(i, j, solnProg,
-		// progRewards);
-		// currentCostVal = trimProdMdp.mvMultRewSingle(i, j, solnCost,
-		// prodCosts);
-		// sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i],
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		// sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i],
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		// sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i],
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		// if(!sameProb && currentProbVal > solnProb[i]) {
-		// done = false;
-		// solnProb[i] = currentProbVal;
-		// solnProg[i] = currentProgVal;
-		// solnCost[i] = currentCostVal;
-		// if (genStrat || exportAdv) {
-		// strat[i]=j;
-		// }
-		// }
-		// else {
-		// if (sameProb) {
-		// if(!sameProg && currentProgVal > solnProg[i]) {
-		// done = false;
-		// //solnProb[i] = currentProbVal;
-		// solnProg[i] = currentProgVal;
-		// solnCost[i] = currentCostVal;
-		// if (genStrat || exportAdv) {
-		// strat[i]=j;
-		// }
-		// }
-		// else {
-		// if (sameProg) {
-		// if(!sameCost && currentCostVal < solnCost[i]) {
-		// done = false;
-		// //solnProb[i] = currentProbVal;
-		// //solnProg[i] = currentProgVal;
-		// solnCost[i] = currentCostVal;
-		// if (genStrat || exportAdv) {
-		// strat[i]=j;
-		// }
-		// }
-		// }
-		// }
-		// }
-		// }
-		// }
-		// }
-		// }
-		// // Check termination
-		//// done = PrismUtils.doublesAreClose(solnProb, soln2Prob,
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		//// done = done && PrismUtils.doublesAreClose(solnProg, soln2Prog,
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		//// done = done && PrismUtils.doublesAreClose(solnCost, soln2Cost,
-		// termCritParam, termCrit == TermCrit.ABSOLUTE);
-		//
-		//
-		// //Save previous iter
-		//// soln2Prob = solnProb.clone();
-		//// soln2Prog = solnProg.clone();
-		//// soln2Cost = solnCost.clone();
-		// }
-
-		// Finished value iteration
-		timerVI = System.currentTimeMillis() - timerVI;
-		mainLog.print("Prioritised value iteration (" + (min ? "min" : "max") + ")");
-		// mainLog.println(" took " + iters + " iterations and " + timerVI /
-		// 1000.0 + " seconds.");
-
-		timerGlobal = System.currentTimeMillis() - timerGlobal;
-		mainLog.println("Overall policy calculation took  " + timerGlobal / 1000.0 + " seconds.");
-
-		// Non-convergence is an error (usually)
-		// if (!done && errorOnNonConverge) {
-		// String msg = "Iterative method did not converge within " + iters + "
-		// iterations.";
-		// msg += "\nConsider using a different numerical method or increasing
-		// the maximum number of iterations";
-		// throw new PrismException(msg);
-		// }
-
-		res = new ModelCheckerPartialSatResult();
-		// Store strategy
-		if (genStrat) {
-			res.strat = new MDStrategyArray(trimProdMdp, strat);
-		}
-		// Export adversary
-		if (exportAdv) {
-			// Prune strategy
-			// restrictStrategyToReachableStates(trimProdMdp, strat);
-			// Export
-			PrismLog out = new PrismFileLog(exportAdvFilename);
-			new DTMCFromMDPMemorylessAdversary(trimProdMdp, strat).exportToPrismExplicitTra(out);
-			out.close();
-		}
-
-		// Return results
-		res.solnProb = solnProb;
-		res.solnProg = solnProg;
-		res.solnCost = solnCost;
-		// res.numIters = iters;
-		res.timeTaken = timerGlobal / 1000.0;
-		return res;
-	}
-
 	protected StateValues checkPartialSat(Model model, ExpressionFunc expr, BitSet statesOfInterest)
 			throws PrismException {
 		LTLModelChecker mcLtl;
@@ -1464,7 +1060,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		// System.out.println("--------------------------------------------------------------");
 		// //System.out.println("The flat MDP model has " + model.getNumStates()
 		// + " states");
-		// System.out.println("The specification is " + ltl.toString());
+		System.out.println("The specification is " + ltl.toString());
 		// System.out.println("Generating optimal policy...");
 		// System.out.println(" ");
 
@@ -1560,6 +1156,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		ModelCheckerPartialSatResult res = mcProduct.computeNestedValIter(productMdp, acc, progRewards, prodCosts,
 				progStates);
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
+		
 		// Mapping probabilities in the original model
 		probs = product.projectToOriginalModel(probsProduct);
 		// Get final prob result
@@ -2493,6 +2090,265 @@ public class MDPModelChecker extends ProbModelChecker {
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
 		return u;
+	}
+
+	/**
+	 * Compute reachability probabilities using value iteration. Optionally,
+	 * store optimal (memoryless) strategy info.
+	 * 
+	 * @param progStates
+	 * @param mdp
+	 *            The MDP
+	 * @param no
+	 *            Probability 0 states
+	 * @param yes
+	 *            Probability 1 states
+	 * @param min
+	 *            Min or max probabilities (true=min, false=max)
+	 * @param init
+	 *            Optionally, an initial solution vector (will be overwritten)
+	 * @param known
+	 *            Optionally, a set of states for which the exact answer is
+	 *            known
+	 * @param strat
+	 *            Storage for (memoryless) strategy choice indices (ignored if
+	 *            null) Note: if 'known' is specified (i.e. is non-null, 'init'
+	 *            must also be given and is used for the exact values.
+	 */
+	protected ModelCheckerPartialSatResult computeNestedValIterS(MDP trimProdMdp, BitSet target, MDPRewards progRewards,
+			MDPRewards prodCosts, BitSet progStates) throws PrismException {
+		ModelCheckerPartialSatResult res;
+		int i, n, iters, numYes, numNo;
+		double initValProb, initValRew, initValCost;
+		double solnProb[], soln2Prob[];
+		double solnProg[], soln2Prog[];
+		double solnCost[], soln2Cost[];
+		boolean done;
+		BitSet no, yes, unknown;
+		long timerVI, timerProb0, timerProb1, timerGlobal;
+		int strat[] = null;
+		boolean min = false;
+
+		timerGlobal = System.currentTimeMillis();
+
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		trimProdMdp.checkForDeadlocks(target);
+
+		// Store num states
+		n = trimProdMdp.getNumStates();
+
+		// If required, export info about target states
+		if (getExportTarget()) {
+			BitSet bsInit = new BitSet(n);
+			for (i = 0; i < n; i++) {
+				bsInit.set(i, trimProdMdp.isInitialState(i));
+			}
+			List<BitSet> labels = Arrays.asList(bsInit, target);
+			List<String> labelNames = Arrays.asList("init", "target");
+			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
+			PrismLog out = new PrismFileLog(getExportTargetFilename());
+			exportLabels(trimProdMdp, labels, labelNames, Prism.EXPORT_PLAIN, out);
+			out.close();
+		}
+
+		// If required, create/initialise strategy storage
+		// Set choices to -1, denoting unknown
+		// (except for target states, which are -2, denoting arbitrary)
+		if (genStrat || exportAdv) {
+			strat = new int[n];
+			for (i = 0; i < n; i++) {
+				strat[i] = target.get(i) ? -2 : -1;
+			}
+		}
+
+		// Precomputation
+		timerProb0 = System.currentTimeMillis();
+		if (precomp && prob0) {
+			no = prob0(trimProdMdp, null, target, min, strat);
+		} else {
+			no = new BitSet();
+		}
+		timerProb0 = System.currentTimeMillis() - timerProb0;
+		timerProb1 = System.currentTimeMillis();
+		if (precomp && prob1) {
+			yes = prob1(trimProdMdp, null, target, min, strat);
+		} else {
+			yes = (BitSet) target.clone();
+		}
+		timerProb1 = System.currentTimeMillis() - timerProb1;
+
+		// Print results of precomputation
+		numYes = yes.cardinality();
+		numNo = no.cardinality();
+		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe="
+				+ (n - (numYes + numNo)));
+
+		// If still required, store strategy for no/yes (0/1) states.
+		// This is just for the cases max=0 and min=1, where arbitrary choices
+		// suffice (denoted by -2)
+		if (genStrat || exportAdv) {
+			if (min) {
+				for (i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
+					if (!target.get(i))
+						strat[i] = -2;
+				}
+			} else {
+				for (i = no.nextSetBit(0); i >= 0; i = no.nextSetBit(i + 1)) {
+					strat[i] = -2;
+				}
+			}
+		}
+
+		// Start value iteration
+		timerVI = System.currentTimeMillis();
+		mainLog.println("Starting prioritised value iteration (" + (min ? "min" : "max") + ")...");
+
+		// Create solution vector(s)
+		solnProb = new double[n];
+		// soln2Prob = new double[n];
+		solnProg = new double[n];
+		// soln2Prog = new double[n];
+		solnCost = new double[n];
+		// soln2Cost = new double[n];
+
+		// Initialise solution vectors to initVal
+		// where initVal is 0.0 or 1.0, depending on whether we converge from
+		// below/above.
+		initValProb = 0.0;
+		initValRew = 0.0;
+		initValCost = 0.0;
+
+		// (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
+
+		// Determine set of states actually need to compute values for
+		unknown = new BitSet();
+		unknown.set(0, n);
+		unknown.andNot(yes);
+		unknown.andNot(no);
+		for (i = 0; i < n; i++) {
+			// solnProb[i] = soln2Prob[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 :
+			// initValProb;
+			// solnProg[i] = soln2Prog[i] = initValRew;
+			// solnCost[i] = soln2Cost[i] = initValCost;
+			//soln[i] = soln2[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+			solnProb[i] = target.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
+//			solnProg[i] =  target.get(i) ? 0.0 : no.get(i) ? Double.POSITIVE_INFINITY : 0.0;//1000;//initValRew;//target.get(i) ? 0.0 : no.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+			solnProg[i] = initValRew;
+			solnCost[i] = initValCost;
+		}
+
+		// Start iterations
+		iters = 0;
+		done = false;
+
+		int j;
+		int numChoices;
+		double currentProbVal, currentProgVal, currentCostVal;
+		boolean sameProb, sameProg, sameCost;
+
+		while (!done && iters < maxIters) {
+			iters++;
+			done = true;
+			for (i = 0; i < n; i++) {
+				if (progStates.get(i)) {
+					numChoices = trimProdMdp.getNumChoices(i);
+					for (j = 0; j < numChoices; j++) {
+						currentProbVal = trimProdMdp.mvMultJacSingle(i, j, solnProb);
+						currentProgVal = trimProdMdp.mvMultRewSingle(i, j, solnProg, progRewards);
+						currentCostVal = trimProdMdp.mvMultRewSingle(i, j, solnCost, prodCosts);
+						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam,
+								termCrit == TermCrit.ABSOLUTE);
+						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam,
+								termCrit == TermCrit.ABSOLUTE);
+						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam,
+								termCrit == TermCrit.ABSOLUTE);
+						if (!sameProb && currentProbVal > solnProb[i]) {
+							done = false;
+							solnProb[i] = currentProbVal;
+							solnProg[i] = currentProgVal;
+							solnCost[i] = currentCostVal;
+							if (genStrat || exportAdv) {
+								strat[i] = j;
+							}
+						} else {
+							if (sameProb) {
+								if (!sameProg && currentProgVal < solnProg[i]) {
+									done = false;
+									// solnProb[i] = currentProbVal;
+									solnProg[i] = currentProgVal;
+									solnCost[i] = currentCostVal;
+									if (genStrat || exportAdv) {
+										strat[i] = j;
+									}
+								} else {
+									if (sameProg) {
+										if (!sameCost && currentCostVal < solnCost[i]) {
+											done = false;
+											// solnProb[i] = currentProbVal;
+											// solnProg[i] = currentProgVal;
+											solnCost[i] = currentCostVal;
+											if (genStrat || exportAdv) {
+												strat[i] = j;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			// Check termination
+			// done = PrismUtils.doublesAreClose(solnProb, soln2Prob,
+			// termCritParam, termCrit == TermCrit.ABSOLUTE);
+			// done = done && PrismUtils.doublesAreClose(solnProg, soln2Prog,
+			// termCritParam, termCrit == TermCrit.ABSOLUTE);
+			// done = done && PrismUtils.doublesAreClose(solnCost, soln2Cost,
+			// termCritParam, termCrit == TermCrit.ABSOLUTE);
+
+			// Save previous iter
+			// soln2Prob = solnProb.clone();
+			// soln2Prog = solnProg.clone();
+			// soln2Cost = solnCost.clone();
+		}
+
+		// Finished value iteration
+		timerVI = System.currentTimeMillis() - timerVI;
+		mainLog.print("Prioritised value iteration (" + (min ? "min" : "max") + ")");
+		mainLog.println(" took " + iters + " iterations and " + timerVI / 1000.0 + " seconds.");
+
+		timerGlobal = System.currentTimeMillis() - timerGlobal;
+		mainLog.println("Overall policy calculation took  " + timerGlobal / 1000.0 + " seconds.");
+
+		// Non-convergence is an error (usually)
+		if (!done && errorOnNonConverge) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+
+		res = new ModelCheckerPartialSatResult();
+		// Store strategy
+		if (genStrat) {
+			res.strat = new MDStrategyArray(trimProdMdp, strat);
+		}
+		// Export adversary
+		if (exportAdv) {
+			// Prune strategy
+			// restrictStrategyToReachableStates(trimProdMdp, strat);
+			// Export
+			PrismLog out = new PrismFileLog(exportAdvFilename);
+			new DTMCFromMDPMemorylessAdversary(trimProdMdp, strat).exportToPrismExplicitTra(out);
+			out.close();
+		}
+
+		// Return results
+		res.solnProb = solnProb;
+		res.solnProg = solnProg;
+		res.solnCost = solnCost;
+		res.numIters = iters;
+		res.timeTaken = timerGlobal / 1000.0;
+		return res;
 	}
 
 	/**

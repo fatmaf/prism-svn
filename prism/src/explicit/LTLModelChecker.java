@@ -635,6 +635,305 @@ public class LTLModelChecker extends PrismComponent {
 		return product;
 	}
 
+	public <M extends Model> LTLProduct<M> constructWeightedProductModel(DA<BitSet, ? extends AcceptanceOmega> da, M model,
+			Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException {
+		ModelType modelType = model.getModelType();
+		int daSize = da.size();
+		int numAPs = da.getAPList().size();
+		int modelNumStates = model.getNumStates();
+		int prodNumStates = modelNumStates * daSize;
+		int s_1, s_2, q_1, q_2,q_2_real;
+		BitSet s_labels = new BitSet(numAPs);
+		List<State> prodStatesList = null, daStatesList = null;
+
+		VarList newVarList = null;
+
+		if (model.getVarList() != null) {
+			VarList varList = model.getVarList();
+			// Create a (new, unique) name for the variable that will represent
+			// DA states
+			String daVar = "_da";
+			while (varList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+
+			newVarList = (VarList) varList.clone();
+			// NB: if DA only has one state, we add an extra dummy state
+			Declaration decl = new Declaration(daVar,
+					new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(da.size() - 1, 1))));
+			newVarList.addVar(0, decl, 1, model.getConstantValues());
+		}
+
+		// Create a (simple, mutable) model of the appropriate type
+		ModelSimple prodModel = null;
+		switch (modelType) {
+		case DTMC: {
+			DTMCSimple dtmcProd = new DTMCSimple();
+			dtmcProd.setVarList(newVarList);
+			prodModel = dtmcProd;
+			break;
+		}
+		case MDP: {
+			MDPSimple mdpProd = new MDPSimple();
+			mdpProd.setVarList(newVarList);
+			prodModel = mdpProd;
+			break;
+		}
+		case STPG: {
+			STPGExplicit stpgProd = new STPGExplicit();
+			stpgProd.setVarList(newVarList);
+			prodModel = stpgProd;
+			break;
+		}
+		default:
+			throw new PrismNotSupportedException("Model construction not supported for " + modelType + "s");
+		}
+
+		// Encoding:
+		// each state s' = <s, q> = s * daSize + q
+		// s(s') = s' / daSize
+		// q(s') = s' % daSize
+
+		LinkedList<Point> queue = new LinkedList<Point>();
+		int map[] = new int[prodNumStates];
+		Arrays.fill(map, -1);
+
+		if (model.getStatesList() != null) {
+			prodStatesList = new ArrayList<State>();
+			daStatesList = new ArrayList<State>(da.size());
+			for (int i = 0; i < da.size(); i++) {
+				daStatesList.add(new State(1).setValue(0, i));
+			}
+		}
+
+		// We need results for all states of the original model in
+		// statesOfInterest
+		// We thus explore states of the product starting from these states.
+		// These are designated as initial states of the product model
+		// (a) to ensure reachability is done for these states; and
+		// (b) to later identify the corresponding product state for the
+		// original states
+		// of interest
+		for (int s_0 : new IterableStateSet(statesOfInterest, model.getNumStates())) {
+			// Get BitSet representing APs (labels) satisfied by state s_0
+			for (int k = 0; k < numAPs; k++) {
+				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
+			}
+			// Find corresponding initial state in DA
+			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
+			if (q_0 < 0) {
+				throw new PrismException(
+						"The deterministic automaton is not complete (state " + da.getStartState() + ")");
+			}
+			// Add (initial) state to product
+			queue.add(new Point(s_0, q_0));
+			switch (modelType) {
+			case STPG:
+				((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
+				break;
+			default:
+				prodModel.addState();
+				break;
+			}
+			prodModel.addInitialState(prodModel.getNumStates() - 1);
+			map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
+			if (prodStatesList != null) {
+				// Store state information for the product
+				prodStatesList.add(new State(daStatesList.get(q_0), model.getStatesList().get(s_0)));
+			}
+		}
+
+		// Product states
+		BitSet visited = new BitSet(prodNumStates);
+		while (!queue.isEmpty()) {
+			Point p = queue.pop();
+			s_1 = p.x;
+			q_1 = p.y;
+			visited.set(s_1 * daSize + q_1);
+
+			// Go through transitions from state s_1 in original model
+			int numChoices = (model instanceof NondetModel) ? ((NondetModel) model).getNumChoices(s_1) : 1;
+			for (int j = 0; j < numChoices; j++) {
+				Iterator<Map.Entry<Integer, Double>> iter;
+				switch (modelType) {
+				case DTMC:
+					iter = ((DTMC) model).getTransitionsIterator(s_1);
+					break;
+				case MDP:
+					iter = ((MDP) model).getTransitionsIterator(s_1, j);
+					break;
+				case STPG:
+					iter = ((STPG) model).getTransitionsIterator(s_1, j);
+					break;
+				default:
+					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
+				}
+				Distribution prodDistr = null;
+				if (modelType.nondeterministic()) {
+					prodDistr = new Distribution();
+				}
+				while (iter.hasNext()) {
+					Map.Entry<Integer, Double> e = iter.next();
+					s_2 = e.getKey();
+					double prob = e.getValue();
+					// Get BitSet representing APs (labels) satisfied by
+					// successor state s_2
+					for (int k = 0; k < numAPs; k++) {
+						s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_2));
+					}
+					// Find corresponding successor in DA
+					//loop here, for all possible labels to the next state 
+					for(int da_state = 0; da_state<daSize; da_state++){
+					q_2_real = da.getEdgeDestByLabel(q_1, s_labels); //TODO fix this 
+					q_2 = da_state;
+					int numEdges=da.getNumEdges(q_1, q_2);
+					if(numEdges>0){
+					if (q_2 < 0) {
+						throw new PrismException("The deterministic automaton is not complete (state " + q_1 + ")");
+					}
+					// Add state/transition to model
+					if (!visited.get(s_2 * daSize + q_2) && map[s_2 * daSize + q_2] == -1) {
+						queue.add(new Point(s_2, q_2));
+						switch (modelType) {
+						case STPG:
+							((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_2));
+							break;
+						default:
+							prodModel.addState();
+							break;
+						}
+						map[s_2 * daSize + q_2] = prodModel.getNumStates() - 1;
+						if (prodStatesList != null) {
+							// Store state information for the product
+							prodStatesList.add(new State(daStatesList.get(q_2), model.getStatesList().get(s_2)));
+						}
+					}
+					switch (modelType) {
+					case DTMC:
+						((DTMCSimple) prodModel).setProbability(map[s_1 * daSize + q_1], map[s_2 * daSize + q_2], prob);
+						break;
+					case MDP:
+					case STPG:
+						prodDistr.set(map[s_2 * daSize + q_2], prob);
+						break;
+					default:
+						throw new PrismNotSupportedException(
+								"Product construction not implemented for " + modelType + "s");
+					}
+				}
+				switch (modelType) {
+				case MDP:
+					((MDPSimple) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr,
+							((MDP) model).getAction(s_1, j));
+					break;
+				case STPG:
+					((STPGExplicit) prodModel).addActionLabelledChoice(map[s_1 * daSize + q_1], prodDistr,
+							((STPG) model).getAction(s_1, j));
+					break;
+				default:
+					break;
+				}
+			}}
+			}
+		}
+
+		// Build a mapping from state indices to states (s,q), encoded as (s *
+		// daSize + q)
+		int invMap[] = new int[prodModel.getNumStates()];
+		for (int i = 0; i < map.length; i++) {
+			if (map[i] != -1) {
+				invMap[map[i]] = i;
+			}
+		}
+
+		prodModel.findDeadlocks(false);
+
+		if (prodStatesList != null) {
+			prodModel.setStatesList(prodStatesList);
+		}
+
+		@SuppressWarnings("unchecked")
+		LTLProduct<M> product = new LTLProduct<M>((M) prodModel, model, null, daSize, invMap);
+
+		// generate acceptance for the product model by lifting
+		product.setAcceptance(liftAcceptance(product, da.getAcceptance()));
+
+		// lift the labels
+		for (String label : model.getLabels()) {
+			BitSet liftedLabel = product.liftFromModel(model.getLabelStates(label));
+			prodModel.addLabel(label, liftedLabel);
+		}
+
+		return product;
+	}
+
+	double getCost(BitSet s, BitSet t, double costs[],boolean max)
+	{
+		double res;
+		if (max)
+			res = getCostMax(s,t,costs); 
+		else 
+			res = getCostSum(s,t,costs);
+		
+		return res;
+	}
+
+	double getCostSum(BitSet s, BitSet t, double costs[])
+	{
+		double res=0;
+		
+		if(!s.equals(t))
+		{
+			for(int i = 0; i<costs.length; i++)
+			{
+				if (s.get(i) ^ t.get(i))
+				{
+					res = res + costs[i];
+				}
+			}
+		}
+		return res;
+	}
+	
+	double getCostMax(BitSet s, BitSet t, double costs[])
+	{
+		double res=0;
+		
+		if(!s.equals(t))
+		{
+			for(int i = 0; i<costs.length; i++)
+			{
+				//if same aps then dont care , if neither then dont care either 
+				if (s.get(i) ^ t.get(i))
+				{
+					if (costs[i]>res)
+						res = costs[i];
+				}
+			}
+		}
+		return res;
+	}
+	
+	private List<Point> getStateSuccessorsList(MDP model, int q, int numchoices, int qp)
+	{
+		List<Point> qtoqp = new ArrayList<Point>();
+		for (int c = 0; c < numchoices; c++) {
+			Iterator<Map.Entry<Integer, Double>> iter = ((MDP) model).getTransitionsIterator(q, c);
+			
+			while (iter.hasNext()) {
+				Map.Entry<Integer, Double> e = iter.next();
+				if (qp == e.getKey()) {
+					Point p = new Point();
+					p.setLocation((double) c, e.getValue());
+
+					qtoqp.add(p);
+				}
+
+			}
+		}
+		return qtoqp;
+
+	}
 	// test constructmodel function with a weighted dfa
 	public <M> Object[] constructWProductModel(DA<BitSet, ? extends AcceptanceOmega> da, M model,
 			Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException {
@@ -675,6 +974,8 @@ public class LTLModelChecker extends PrismComponent {
 				mainLog.println("adding (q,z) (" + q_i + "," + z_i + ")");
 			}
 		}
+		
+		
 
 		// add states to product
 		mdpProd.addStates(all_s.size());
@@ -684,14 +985,17 @@ public class LTLModelChecker extends PrismComponent {
 		MDPSimple mdpProd_actionCopies = new MDPSimple(mdpProd);
 		// for each AP there is a cost for skipping it
 		// the powerset is 2^numAPs
-		int ps = (int) Math.pow(2.0, (double) numAPs);
-		double apCosts[] = new double[ps + 1]; // the first one will be 0 for
+		//int ps = (int) Math.pow(2.0, (double) numAPs);
+		double apCosts[] = new double[numAPs]; // the first one will be 0 for
 												// nothing
 		// lets just set them all ourselves
-		apCosts[0] = 0;
-		for (int ap = 1; ap < ps + 1; ap++) {
+		//apCosts[0] = 0;
+		for (int ap = 0; ap < numAPs ; ap++) {
 			apCosts[ap] = ap + 10; // this is just so i can test stuff
 		}
+		//cheating cuz i know this 
+		apCosts[0]=1; 
+		apCosts[1]=10;
 		// if only I cared about much else
 		// mitti pao :P
 		// create a thing for MDPRewards, add the states or whatever and for
@@ -700,15 +1004,20 @@ public class LTLModelChecker extends PrismComponent {
 		// things will have their own stuff
 		// look into this
 		MDPRewardsSimple skipcosts = new MDPRewardsSimple(mdpProd.numStates);
+		MDPRewardsSimple actualcosts = new MDPRewardsSimple(mdpProd.numStates);
+		
 
 		for (int i = 0; i < mdpProd.numStates; i++) {
 			for (int j = i; j < mdpProd.numStates; j++) {
+				if(!(i==j)){ //i dont want to stay in the same state at any point unless it is the final state 
 				int q = all_s.get(i).x;
 				int z = all_s.get(i).y;
 				int qp = all_s.get(j).x;
 				int zp = all_s.get(j).y;
 
+					
 				boolean mdphasedge = ((MDP)model).isSuccessor(q, qp);
+			
 
 				List<BitSet> edges_da = da.getEdgeLabels(z, zp);
 				int edges_da_num = edges_da.size();
@@ -723,36 +1032,10 @@ public class LTLModelChecker extends PrismComponent {
 				int numchoicesqp = ((MDP) model).getNumChoices(qp);
 				// for each choice get the state and action label
 				// does this choice have this as a successor state
-				List<Point> qtoqp = new ArrayList<Point>();
-				List<Point> qptoq = new ArrayList<Point>();
+				List<Point> qtoqp = getStateSuccessorsList((MDP)model,q,numchoices,qp);
+				List<Point> qptoq = getStateSuccessorsList((MDP)model,qp,numchoicesqp,q);
 
-				for (int c = 0; c < numchoices; c++) {
-					Iterator<Map.Entry<Integer, Double>> iter = ((MDP) model).getTransitionsIterator(q, c);
-					while (iter.hasNext()) {
-						Map.Entry<Integer, Double> e = iter.next();
-						if (qp == e.getKey()) {
-							Point p = new Point();
-							p.setLocation((double) c, e.getValue());
-
-							qtoqp.add(p);
-						}
-
-					}
-				}
-
-				for (int c = 0; c < numchoicesqp; c++) {
-					Iterator<Map.Entry<Integer, Double>> iter = ((MDP) model).getTransitionsIterator(qp, c);
-					while (iter.hasNext()) {
-						Map.Entry<Integer, Double> e = iter.next();
-						if (q == e.getKey()) {
-							Point p = new Point();
-							p.setLocation((double) c, e.getValue());
-
-							qptoq.add(p);
-						}
-					}
-				}
-
+			
 				String info = "(d,d') e ->D (" + q + "," + qp + ") " + mdphasedge + " L(d')= " + qp_labels.toString()
 						+ " (z,z') " + "(" + z + ", " + zp + ") z'=z " + (zp == z) + " t -> z' = d(z,t) = ";
 				StringBuilder sb2 = new StringBuilder();
@@ -775,37 +1058,20 @@ public class LTLModelChecker extends PrismComponent {
 									((MDP) model).getAction(q, (int) qtoqp.get(c).getX()));
 							mdpProd_actionCopies.addActionLabelledChoice(i, probd,
 									((MDP) model).getAction(q, (int) qtoqp.get(c).getX()).toString() + c + ed);
+							//
+							//TODO fix this 
+							//mdpProd_actionCopies.addActionLabelledChoice(i, probd,
+							//		((MDP) model).getAction(q, (int) qtoqp.get(c).getX()));
+							
+							actualcosts.addToTransitionReward(i, mdpProd_actionCopies.getNumChoices(i)-1, 1.0);
 							// get the cost
-							double cost = 0;
+							
 							boolean max_semantics = true;
-							if (!qp_labels.equals(edges_da.get(ed))) {
-								int ap1 = 0;
-								long arr[] = qp_labels.toLongArray();
-								if (arr.length > 0) {
-									ap1 = (int) arr[0] + 1;
-								}
-
-								int ap2 = 0;
-								long arr2[] = edges_da.get(ed).toLongArray();
-								if (arr2.length > 0)
-									ap2 = (int) arr2[0] + 1;
-								if (max_semantics) {
-
-									if (apCosts[ap1] < apCosts[ap2]) {
-										cost = apCosts[ap2];
-									} else
-										cost = apCosts[ap1];
-								}
-
-								else {
-									// sum
-									cost = apCosts[ap1] + apCosts[ap2];
-								}
-							}
-							skipcosts.addToTransitionReward(i, mdpProd_actionCopies.getNumChoices(i), cost);
+							double cost = getCost(qp_labels,edges_da.get(ed),apCosts,max_semantics);
+						
+							skipcosts.addToTransitionReward(i, mdpProd_actionCopies.getNumChoices(i)-1, cost);
 							mainLog.println(
 									"cost: " + qp_labels.toString() + "," + edges_da.get(ed).toString() + ":" + cost);
-
 						}
 						edsb.append(edges_da.get(ed).toString());
 					}
@@ -831,37 +1097,17 @@ public class LTLModelChecker extends PrismComponent {
 								probd.add(i, qptoq.get(c).getY());
 								mdpProd.addActionLabelledChoice(j, probd,
 										((MDP) model).getAction(qp, (int) qptoq.get(c).getX()));
+								//TODO fix this 
 
 								mdpProd_actionCopies.addActionLabelledChoice(j, probd,
 										((MDP) model).getAction(qp, (int) qptoq.get(c).getX()).toString() + c + ed);
+						//		mdpProd_actionCopies.addActionLabelledChoice(j, probd,
+						//							((MDP) model).getAction(qp, (int) qptoq.get(c).getX()));
 								// get the cost
-								double cost = 0;
 								boolean max_semantics = true;
-								if (!q_labels.equals(edges_da_rev.get(ed))) {
-									int ap1 = 0;
-									long arr[] = q_labels.toLongArray();
-									if (arr.length > 0) {
-										ap1 = (int) arr[0] + 1;
-									}
-
-									int ap2 = 0;
-									long arr2[] = edges_da_rev.get(ed).toLongArray();
-									if (arr2.length > 0)
-										ap2 = (int) arr2[0] + 1;
-									if (max_semantics) {
-
-										if (apCosts[ap1] < apCosts[ap2]) {
-											cost = apCosts[ap2];
-										} else
-											cost = apCosts[ap1];
-									}
-
-									else {
-										// sum
-										cost = apCosts[ap1] + apCosts[ap2];
-									}
-								}
-								skipcosts.addToTransitionReward(j, mdpProd_actionCopies.getNumChoices(j), cost);
+								double cost = getCost(q_labels,edges_da_rev.get(ed),apCosts,max_semantics);
+								skipcosts.addToTransitionReward(j, mdpProd_actionCopies.getNumChoices(j)-1, cost);
+								actualcosts.addToTransitionReward(j, mdpProd_actionCopies.getNumChoices(j)-1, 1);
 								mainLog.println("cost: " + q_labels.toString() + "," + edges_da_rev.get(ed).toString()
 										+ ":" + cost);
 							}
@@ -882,10 +1128,15 @@ public class LTLModelChecker extends PrismComponent {
 
 					// mainLog.println(info2);
 				}
+				}//end (i==j)
 
 			}
 
 		}
+		//TODO cheating for now 
+		//TODO set init state 
+		mdpProd_actionCopies.addInitialState(0);
+		
 		int invMap[] = new int[mdpProd_actionCopies.getNumStates()];
 		for (int i = 0; i < invMap.length; i++)
 			invMap[i] = i;
@@ -921,9 +1172,10 @@ public class LTLModelChecker extends PrismComponent {
 		// prodModel.addLabel(label, liftedLabel);
 		// }
 		//
-		Object toret[] = new Object[2];
+		Object toret[] = new Object[3];
 		toret[0]=product;
 		toret[1]=skipcosts;
+		toret[2]=actualcosts;
 		//return product;
 		return toret;
 	}
