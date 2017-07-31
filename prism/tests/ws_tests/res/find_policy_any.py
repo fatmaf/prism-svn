@@ -165,43 +165,43 @@ def moves_pp(pol):
             moves_pp(pol[j]);
 
 def test(pol,plines,file_lines):
-    print "in test with pol "
-    print pol
+    #print "in test with pol "
+    #print pol
     cpol = []
     cplines=[]
     lenp = len(pol)
     for j in range(0,lenp):
-        print "pol j =",
-        print j,
-        print ",",
-        print pol[j]
+        #print "pol j =",
+        #print j,
+        #print ",",
+        #print pol[j]
         if(type(pol[j])==int):
-            print "adding to cpol",
-            print cpol,
+            #print "adding to cpol",
+            #print cpol,
             cpol.append(pol[j])
             cplines.append(plines[j])
-            print cpol
+            #print cpol
             (nump,temp,lines)=count_policies(pol[j],file_lines)
-            print "numbers and temp",
-            print nump,
-            print temp
+            #print "numbers and temp",
+            #print nump,
+            #print temp
             #if nump>1:
-            print "greater than 1",
-            print temp
+            #print "greater than 1",
+            #print temp
             (ccpol,ccplines)=test(temp,lines,file_lines)
-            print "printing ccpol",
-            print ccpol,
+            #print "printing ccpol",
+            #print ccpol,
             cpol.append(ccpol)
             cplines.append(ccplines)
-            print "appending to cpol"
-            print cpol,
+            #print "appending to cpol"
+            #print cpol,
                 
         else:
-            print "calling the function again"
+            #print "calling the function again"
             (cpol,cplines) = test(pol[j],file_lines)
-            print "new pol done"
-    print "done",
-    print cpol
+            #print "new pol done"
+    #print "done",
+    #print cpol
     return (cpol,cplines)
                 
 
@@ -329,8 +329,8 @@ def create_easytra_dot(fn,tra_lines):
 #i = 0; 
 #if i == 0:
 for i in range(len(names)):
-    if not 'six_room_office' in names[i]:
-        continue
+    #if not 'six_room_office' in names[i]:
+    #    continue
     tar = get_file_with_name(names[i],tars);
     sta = get_file_with_name(names[i],stas); 
     adv = get_file_with_name(names[i],advs);
