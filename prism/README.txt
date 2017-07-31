@@ -1,3 +1,16 @@
+Running the tests 
+cd into prism/tests/fatma_tests 
+
+if you want to run all the tests in one go run test_exec.sh (make sure you have the res and dotfiles folder there)
+
+Changes in this repo: 
+
+*Changed
+ *prism/src/explicit/LTLModelChecker.java (one function to construct weighted product)
+ *prism/src/explicit/MDPModelChecker.java (functions for weighted skipping and modified nested value iter in a new function) 
+ *prism/src/automata/DA.java (added a function to get all labels)
+ *fatma_tests (added tests)
+
 ======
 README
 ======
