@@ -1,0 +1,4 @@
+//partial(R{"time"}min=?[(F "c")]);
+partial(R{"time"}min=?[(!"c" U "b")]);
+//partial(R{"time"}min=?[(!"b" U "c")]);
+//partial(R{"move"}min=?[(!"c" U "b") & (F "c")]);

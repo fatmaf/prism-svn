@@ -3,7 +3,6 @@
 //	|a|b|f|	      |1|2|5|
 
 //partial(R{"time"}min=?[(!"c" U "b") & (!"c" U "d")])
-//partial(R{"time"}min=?[(!"b" & !"g") U (!"g" & "d")])
 
 mdp 
 
