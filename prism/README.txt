@@ -1,5 +1,5 @@
 Running the tests 
-cd into prism/tests/fatma_tests 
+cd into prism/tests/ws_tests 
 
 if you want to run all the tests in one go run test_exec.sh (make sure you have the res and dotfiles folder there)
 
