@@ -29,6 +29,11 @@ module world
 
 endmodule 
 
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+
 rewards "time"
 
 	
