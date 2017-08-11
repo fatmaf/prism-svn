@@ -1,0 +1,59 @@
+// a two room two robot scenario 
+// since I will be hard coding most of this I will only put down the stuff for a single robot 
+// the actual scenario 
+// _/0 | 3\_ 
+//   |   |
+//   1---2
+// _/ = door \_ = door  
+// | = edge or wall (wall between 0 and 3, edges between 0,1 and 2,3 and 1,2)
+// Robot 1 = 1, Robot 2 = 2 
+//this is for robot 1 
+// no probabilities , doors are always open 
+// uniform cost called time 
+
+
+mdp
+
+
+       const double fail = 0.2;
+       const double succ = 0.8;
+
+
+module world
+
+       s:[0..4] init 1; 
+       //the fourth state is a fail state 
+
+       [v0_v1] (s=0) -> succ:(s'=1)+fail:(s'=4); 
+       [v1_v2] (s=1) -> succ:(s'=2)+fail:(s'=4); 
+       [v2_v3] (s=2) -> succ:(s'=3)+fail:(s'=4); 
+
+       [v3_v2] (s=3) -> succ:(s'=2)+fail:(s'=4); 
+       [v2_v1] (s=2) -> succ:(s'=1)+fail:(s'=4); 
+       [v1_v0] (s=1) -> succ:(s'=0)+fail:(s'=4); 
+       
+       [failed] (s=4) -> (s'=4);
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+
+rewards "time"
+
+	
+       [v0_v1] (s=0) : 1.0; 
+       [v1_v2] (s=1) : 1.0; 
+       [v2_v3] (s=2) : 1.0; 
+
+       [v3_v2] (s=3) : 1.0; 
+       [v2_v1] (s=2) : 1.0; 
+       [v1_v0] (s=1) : 1.0; 
+
+       [failed] (s=4) : 1.0;
+
+endrewards
+
+
