@@ -121,6 +121,9 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
 
+		int numrobots = 2;
+		BitSet initstates[] = new BitSet[numrobots];
+		
 		// Get LTL spec
 		// Number of Operands
 		int numOp = expr.getNumOperands();
@@ -159,11 +162,17 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		int numStates = model.getNumStates();
 		BitSet bsInit = new BitSet(numStates);
+		initstates[0]=new BitSet(numStates);
+		initstates[1]=new BitSet(numStates);
 		for (int i = 0; i < numStates; i++) {
-			bsInit.set(i, model.isInitialState(i));
+			//bsInit.set(i, model.isInitialState(i));
+			initstates[0].set(i,model.isInitialState(i));
 			// lets set all the states
 			bsInit.set(i);
 		}
+		initstates[1].set(2);//hardcoding this realy
+		//initstates[1]=(BitSet)initstates[0].clone(); 
+		
 
 		model.exportToDotFile(saveplace + "mdp.dot");
 		BitSet accStates = null;
@@ -232,10 +241,13 @@ public class MDPModelChecker extends ProbModelChecker {
 			mainLog.println("oldaccStatesFsofar "+oldaccStatesFsofar.toString());
 }
 			}
+			mainLog.println("Before product "+danum+" model states: "+productMdp.getNumStates()+" da states "+das[danum].size());
 
 
 			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
+			
 			numStates=product.getProductModel().getNumStates();
+			mainLog.println("After product "+danum+" product states: "+numStates);
 			mainLog.println("Product" + danum + " accepting states: "
 					+ ((AcceptanceReach) product.getAcceptance()).getGoalStates().toString());
 			accStates = ((AcceptanceReach) product.getAcceptance()).getGoalStates(); 
@@ -250,6 +262,9 @@ public class MDPModelChecker extends ProbModelChecker {
 				//the old states are states of the previous product 
 				//we get those and save them as new states of this product. any old state that has the same value will be an accepting state 
 				tempstates = new BitSet(numStates); 
+				BitSet tempinitstates[] = new BitSet[numrobots];
+				for(int r=0; r<numrobots; r++)
+					tempinitstates[r]=new BitSet(numStates);
 				for (int s = 0; s< numStates; s++)
 				{
 					oldstate = product.getModelState(s); 
@@ -257,9 +272,16 @@ public class MDPModelChecker extends ProbModelChecker {
 					{
 						tempstates.set(s);
 					}
+					for(int r=0; r<numrobots; r++)
+					{
+						if(initstates[r].get(oldstate))
+							tempinitstates[r].set(s);
+					}
 				}
 				allAccStates[tempnum]= (BitSet)tempstates.clone();
-						
+				//for each robot update the initial state too 
+				for(int r=0; r<numrobots; r++)
+					initstates[r]=(BitSet)tempinitstates[r].clone();
 				
 			}
 			//printing all acc states saved 
@@ -291,6 +313,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			switchStates.or(allAccStates[tempnum]);
 		}
 		switchStates.xor(accStatesF); //remember switch states are only states which are initial states of robots //so you need to fix this too. 
+		
 		//TODO: make sure switch states are initial states of the robot 
 		//printing all acc states saved 
 		for(int tempnum = 0; tempnum<numOp-1; tempnum++)
@@ -300,7 +323,18 @@ public class MDPModelChecker extends ProbModelChecker {
 		mainLog.println("All switch states  " + switchStates.toString());
 		mainLog.println("All accepting states " + accStatesF.toString());
 		
-		int numrobots = 2;
+		//fixing the states now 
+		BitSet allinitstates = new BitSet(numStates);
+		for(int r=0; r<numrobots; r++)
+		{
+			allinitstates.or(initstates[r]);
+			mainLog.println("Initial states for robot "+r+":"+initstates[r].toString()); 
+			mainLog.println("All initial states "+allinitstates.toString());
+		}
+		BitSet oldSwitchStates = (BitSet)switchStates.clone();
+		switchStates.and(allinitstates);
+		mainLog.println("All real switch states"+switchStates.toString());
+
 		//this is just over designing but probably making my life easier 
 		//maybe in the future we have different agent models so everything will change 
 		//that will not be okay cuz this is just a workaround 
