@@ -21,16 +21,22 @@ mdp
 
 module world
 
-       s:[0..4] init 1; 
+       s:[0..5] init 5; 
        //the fourth state is a fail state 
 
        [v0_v1] (s=0) -> succ:(s'=1)+fail:(s'=4); 
        [v1_v2] (s=1) -> succ:(s'=2)+fail:(s'=4); 
-       [v2_v3] (s=2) -> succ:(s'=3)+fail:(s'=4); 
+       [v2_v3] (s=2) -> succ:(s'=3)+fail:(s'=4);
+       [v0_v5] (s=0) -> succ:(s'=5)+fail:(s'=4); 
+       [v5_v2] (s=5) -> succ:(s'=2)+fail:(s'=4);
 
+       [v5_v0] (s=5) -> succ:(s'=0)+fail:(s'=4); 
        [v3_v2] (s=3) -> succ:(s'=2)+fail:(s'=4); 
        [v2_v1] (s=2) -> succ:(s'=1)+fail:(s'=4); 
-       [v1_v0] (s=1) -> succ:(s'=0)+fail:(s'=4); 
+       [v2_v5] (s=2) -> succ:(s'=5)+fail:(s'=4); 
+       [v1_v0] (s=1) -> succ:(s'=0)+fail:(s'=4);
+       
+  
        
        [failed] (s=4) -> (s'=4);
 
@@ -40,6 +46,7 @@ label "v0" = s=0;
 label "v1" = s=1; 
 label "v2" = s=2; 
 label "v3" = s=3; 
+label "v4" = s=5;
 
 rewards "time"
 
@@ -47,6 +54,10 @@ rewards "time"
        [v0_v1] (s=0) : 1.0; 
        [v1_v2] (s=1) : 1.0; 
        [v2_v3] (s=2) : 1.0; 
+       [v0_v5] (s=0) : 1.0;
+       [v5_v0] (s=5) : 1.0;
+       [v2_v5] (s=2) : 1.0; 
+       [v5_v2] (s=5) : 1.0;
 
        [v3_v2] (s=3) : 1.0; 
        [v2_v1] (s=2) : 1.0; 
