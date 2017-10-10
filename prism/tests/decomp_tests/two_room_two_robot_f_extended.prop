@@ -7,6 +7,5 @@
 //partial(R{"time"}min=? [ ( F ( "v0" ) ) &  ( F ( "v3" ) ) & ( G ( "v0" => "v1" ) ) ])
 //multi(Pmax=? [ F "v0"], Pmax=? [ F "v3" ])
 //partial(multi(Pmax=? [ F "v0"], Pmax=? [ F "v3" ]))
-//partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v3" ] , Pmax=? [G (!"v1") ] )
-partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v3" ] , Pmax=? [G (!"failstate") ] )
+partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v1" ] ,Pmax=? [F "v7"], Pmax=? [F "v4"], Pmax=? [G (!"v5")],Pmax=?[G (!"v3")]  )
 //partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v3" ]  )

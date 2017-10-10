@@ -113,6 +113,7 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	protected Object[] constructMdpDaProd(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
 			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[]) throws PrismException {
+		int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
 		LTLModelChecker.LTLProduct<MDP> product = null;
 		MDP productMdp;
 		Vector<BitSet> labelBSs[];
@@ -145,7 +146,10 @@ public class MDPModelChecker extends ProbModelChecker {
 			bsInit.set(i);
 		}
 		for(int r=1; r<numrobots;r++) {
-		initstates[r].set(2);// hardcoding this realy
+			if (robot_model == 0)
+				initstates[r].set(2);// hardcoding this realy
+			else if (robot_model==1)
+				initstates[r].set(2);
 		//initstates[r]=(BitSet)initstates[0].clone();
 		}
 
@@ -313,8 +317,8 @@ public class MDPModelChecker extends ProbModelChecker {
 		}}
 		
 		//TODO: JUST DOING THIS TO CHECK SOMETHING 
-		justinitstates[0].set(18,false);
-		justinitstates[1].set(14,false);
+	//	justinitstates[0].set(18,false);
+		//justinitstates[1].set(14,false);
 
 		// printing all acc states saved
 		for (int tempnum = 0; tempnum < numOp; tempnum++) {
@@ -335,6 +339,251 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	}
 
+	protected Object[] constructMdpDaProd_new(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
+			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[]) throws PrismException {
+		int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
+		LTLModelChecker.LTLProduct<MDP> product = null;
+		MDP productMdp;
+		Vector<BitSet> labelBSs[];
+		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
+		BitSet initstates[] = new BitSet[numrobots];
+		BitSet safeltl_accstates = new BitSet(numOp); //these tell us the bad states 
+		//
+		int numres = 5;
+		Object res[] = new Object[numres];
+		labelBSs = new Vector[numOp];
+		BitSet accs[] = new BitSet[numOp];
+
+		// build DFA
+		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
+
+		// for all the automata save the accepting states
+
+		// build product
+		// time to build weighted skipping product
+		long time = System.currentTimeMillis();
+
+		int numStates = model.getNumStates();
+		BitSet bsInit = new BitSet(numStates);
+		for (int r = 0; r<numrobots; r++) {
+//			for(int da = 0; da<numOp; da++)
+//				{
+				initstates[r] = new BitSet(numStates);
+//				}
+		}
+		for (int i = 0; i < numStates; i++) {
+			// bsInit.set(i, model.isInitialState(i));
+			initstates[0].set(i, model.isInitialState(i));
+			// lets set all the states
+			bsInit.set(i);
+		}
+		for(int r=1; r<numrobots;r++) {
+			if (robot_model == 0)
+				initstates[r].set(2);// hardcoding this realy
+			else if (robot_model==1)
+				initstates[r].set(2);
+		//initstates[r]=(BitSet)initstates[0].clone();
+		}
+//		for(int r = 0; r<numrobots; r++) {
+//		for (int da = 1; da<numOp; da++)
+//		{
+//			initstates[r][da]=(BitSet)initstates[r][0].clone();
+//		}
+//		}
+
+		model.exportToDotFile(saveplace + "mdp.dot");
+		BitSet allAccStates[] = new BitSet[numOp]; //so there are bad states here too that are being converted always 
+		productMdp = (MDP) model;
+		for (int danum = 0; danum < numOp; danum++) {
+
+			labelBSs[danum] = new Vector<BitSet>();
+			//check if expression is cosafe 
+			boolean iscosafe = Expression.isCoSafeLTLSyntactic(ltls[danum], true); 
+
+			if (!iscosafe)
+				{mainLog.println(ltls[danum].toString()+" is not cosafe, converting it to cosafe");
+				ltls[danum] = Expression.Not(ltls[danum]);
+				safeltl_accstates.set(danum);
+				mainLog.println("--->"+ltls[danum].toString());
+				}
+			das[danum] = mcLtls[danum].constructDAForLTLFormula(this, productMdp, ltls[danum], labelBSs[danum],
+					allowedAcceptance);
+
+			try {
+				File fn = new File(saveplace + "da" + danum + "_"
+						+ ltls[danum].toString().replace(" ", "").replace("\"", "") + ".dot");
+				mainLog.println("Saving to file " + fn.getName());
+				PrintStream out;
+				out = new PrintStream(new FileOutputStream(fn));
+				das[danum].printDot(out);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// TODO check if I need so many model checker instances
+
+			if (!(das[danum].getAcceptance() instanceof AcceptanceReach)) { // a safety condition is not really a
+																			// reachability problem so if you have a
+																			// safety condition
+				mainLog.println("\nAutomaton is not a DFA. .");
+				if (!(das[danum].getAcceptance() instanceof AcceptanceRabin)) // should be an or thing but fix it later
+				{
+					mainLog.println("\nAutomaton is not a DRA either..Breaking");
+					// Dummy return vector
+					return null;
+					// return new StateValues(TypeInt.getInstance(), model);
+				} else {
+					safeltl_accstates.set(danum);
+					
+					// do nothing. find out what to do here
+					mainLog.println("Need to get accepting states for this rabin automata");
+					continue;
+				}
+			} else {
+				accs[danum] = ((AcceptanceReach) das[danum].getAcceptance()).getGoalStates();
+				mainLog.println(
+						"Accepting States bit set for " + ltls[danum].toString() + " : " + accs[danum].toString());
+				mainLog.println("Labels Bitset " + labelBSs[danum].toString());
+			}
+
+			mainLog.println("Before product " + danum + " model states: " + productMdp.getNumStates() + " da states "
+					+ das[danum].size());
+
+			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
+
+			numStates = product.getProductModel().getNumStates();
+			mainLog.println("After product " + danum + " product states: " + numStates);
+			mainLog.println("Product" + danum + " accepting states: "
+					+ ((AcceptanceReach) product.getAcceptance()).getGoalStates().toString());
+			allAccStates[danum] = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
+			// convert to new model if possible
+			int oldstate = -1;
+			BitSet tempstates = null;
+			numStates = product.getProductModel().getNumStates();
+			//need to convert the init state for the first one too 
+			if (danum == 0) {
+//			for(int da = 0; da<numOp; da++) {
+			for(int r = 0; r<numrobots; r++)
+			{
+				BitSet tempinitstate = new BitSet(numStates);
+				for(int s=0; s<numStates; s++)
+				{
+					oldstate=product.getModelState(s); 
+					if(initstates[r].get(oldstate))
+					{
+						tempinitstate.set(s);
+					}
+				}
+				initstates[r]=(BitSet)tempinitstate.clone();
+			}}
+			for (int tempnum = 0; tempnum < danum; tempnum++) {
+				// assumption - since each model is a product of the previous product and the da
+				// the old states are states of the previous product
+				// we get those and save them as new states of this product. any old state that
+				// has the same value will be an accepting state
+				tempstates = new BitSet(numStates);
+				BitSet tempinitstates[] = new BitSet[numrobots];
+				for (int r = 0; r < numrobots; r++)
+					tempinitstates[r] = new BitSet(numStates);
+				for (int s = 0; s < numStates; s++) {
+					oldstate = product.getModelState(s);
+					if (allAccStates[tempnum].get(oldstate)) {
+						tempstates.set(s);
+					}
+					for (int r = 0; r < numrobots; r++) {
+						if (initstates[r].get(oldstate))
+							tempinitstates[r].set(s);
+					}
+				}
+				allAccStates[tempnum] = (BitSet) tempstates.clone();
+				// for each robot update the initial state too
+				for (int r = 0; r < numrobots; r++)
+					initstates[r] = (BitSet) tempinitstates[r].clone();
+
+			}
+			// printing all acc states saved
+			for (int tempnum = 0; tempnum <= danum; tempnum++) {
+				mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+			}
+			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
+			product.getProductModel().exportToPrismExplicitTra(saveplace + "p" + danum + ".tra");
+			PrismFileLog out = new PrismFileLog(saveplace + "p" + danum + ".sta");
+			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
+			out.close();
+			productMdp = product.getProductModel();
+			
+		}
+		mainLog.println("DFAs with bad states = "+safeltl_accstates.toString());
+		//filter out the bad states from the accepting states 
+		for(int tempnum = 0; tempnum <numOp; tempnum++)
+		{
+			if (safeltl_accstates.get(tempnum))
+			{
+				//then check for all others and just unset them 
+				//maybe a bitwise operation 
+				for(int tempnum2=0; tempnum2<numOp;tempnum2++)
+				{
+					if(tempnum2!=tempnum)
+					{
+						//xor then and 
+						BitSet temp = (BitSet)allAccStates[tempnum2].clone(); 
+						temp.xor(allAccStates[tempnum]);
+						temp.and(allAccStates[tempnum2]);
+						allAccStates[tempnum2]=(BitSet)temp.clone();
+					}
+				}
+			}
+		}
+		//need to exclude all final states from init states not for switch states but actual ones 
+		BitSet justinitstates[]=new BitSet[numrobots];
+		for(int r = 0; r<numrobots; r++)
+		{
+//			for(int da=0; da<numOp; da++)
+			 justinitstates[r] = (BitSet)initstates[r].clone();
+		}
+		for(int tempnum = 0; tempnum<numOp; tempnum++) {
+		//get rid of these from the inital states
+		for(int r = 0; r<numrobots; r++)
+		{
+//			for(int da=0; da<numOp; da++) {
+			BitSet tempinit = (BitSet)justinitstates[r].clone();
+			tempinit.xor(allAccStates[tempnum]);
+			tempinit.and(initstates[r]);
+			justinitstates[r]=(BitSet)tempinit.clone();}
+		}
+		
+		//TODO: JUST DOING THIS TO CHECK SOMETHING 
+	//	justinitstates[0].set(18,false);
+		//justinitstates[1].set(14,false);
+
+		// printing all acc states saved
+		for (int tempnum = 0; tempnum < numOp; tempnum++) {
+			mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+		}
+		for(int r = 0; r<numrobots; r++)
+		{
+//			for(int da=0; da<numOp; da++) {
+			mainLog.println("r"+r+" init states: "+initstates[r].toString());
+			mainLog.println("r"+r+" init states: "+justinitstates[r].toString());
+//			}
+		}
+		
+		res[0] = product;
+		res[1] = allAccStates;
+		res[2] = initstates;
+		res[3] = safeltl_accstates;
+		res[4] = justinitstates;
+		return res;
+
+	}
+
+
 	protected Object[] constructSumMDP(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
 			MDP productMdp, BitSet safeltl, BitSet justinitstates[]) throws PrismException {
 		int numres = 3;
@@ -351,6 +600,14 @@ public class MDPModelChecker extends ProbModelChecker {
 		MDP productRobots[] = new MDP[numrobots]; // fix this
 		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
 
+		// switch states = states that are the final states of some das but not all 
+		//important to remember which switch states belong to which da cuz when you link them 
+		//switch states can only be from the same da. 
+		//so i'm going to ignore the work i've done below for a bit 
+		//and find a better way to do this switch state stuff 
+		BitSet daswitchstates[] = new BitSet[allAccStates.length];
+		//basically from the acc states get rid of the states that are the same in all of them. 
+		//so if something is in the final acc states get rid of it.  work done where you see LALALA :P 
 		for (int tempnum = 0; tempnum < numOp ; tempnum++) {
 			if (!safeltl.get(tempnum)) {
 			accStatesF.and(allAccStates[tempnum]);
@@ -363,6 +620,16 @@ public class MDPModelChecker extends ProbModelChecker {
 		switchStates.xor(accStatesF); // remember switch states are only states which are initial states of robots
 										// //so you need to fix this too.
 
+		//LALALALA :P 
+		for(int tempnum=0; tempnum < numOp; tempnum++)
+		{
+			if (!safeltl.get(tempnum)) {
+			daswitchstates[tempnum] = (BitSet)allAccStates[tempnum].clone();
+			daswitchstates[tempnum].and(switchStates); //so just the ones i found and where they are you know :P 
+			mainLog.println("Switch states for da "+tempnum+": "+daswitchstates[tempnum].toString());
+			//now get rid of the ones that are in the all acc states 
+			}
+		}
 		// TODO: make sure switch states are initial states of the robot
 		// printing all acc states saved
 		for (int tempnum = 0; tempnum < numOp ; tempnum++) {
@@ -442,8 +709,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		// WE NEED TO COME UP WITH BETTER INDEXING. REMEMBER. okay cool :P
 		// should be using a map maybe need to check this
 		int prodNumStates = numrobots*numStates;
+		int map_robots[][] = new int[numrobots][numStates];
 		int map[] = new int[prodNumStates];
 		Arrays.fill(map, -1);
+		for(int r=0; r<numrobots;r++)
+		Arrays.fill(map_robots[r],-1);
 //
 		int expStates = 0;
 		int expChoices = 0;
@@ -459,6 +729,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			for (int s = 0; s < numStates; s++) {
 				sumprod.addState();
 				int cs = (r * numStates) + s;
+				
 				if (accStatesF.get(s))
 				{
 					newAccStates.set(cs);
@@ -472,7 +743,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				//add as init state ? //only add the first robot's init state as an init state otherwise no
 				if (r==0 && justinitstates[r].get(s))
 				{
-					sumprod.addInitialState(cs);
+					sumprod.addInitialState(map[cs]);
 //					sumprod.isInitialState(cs);
 				}
 				numchoices = pr.getNumChoices(s);
@@ -496,7 +767,7 @@ public class MDPModelChecker extends ProbModelChecker {
 						prodDistr.add(ns, prob);
 					}
 
-					sumprod.addActionLabelledChoice(cs, prodDistr, pr.getAction(s, j) + "_r" + r);
+					sumprod.addActionLabelledChoice(map[cs], prodDistr, pr.getAction(s, j) + "_r" + r);
 //					mainLog.println("Adding (" + s + "," + s_ + ")" + cs + " " + prodDistr.toString() + " "
 //							+ pr.getAction(s, j) + "_r" + r);
 				}
@@ -514,31 +785,37 @@ public class MDPModelChecker extends ProbModelChecker {
 		}
 		// now we're going to add the switch transitions
 		// just link up all the switch states in all the mdps
+		//TODO fix this... link switch states based on the da (use daswitchstates) 
+		//so change all of this ? // TODO!!!! 
 		int totswitches = 0;
 		double switchprob = 1.0;
 		mainLog.println("Switch States now");
 		for (int r = 1; r < numrobots; r++) {
+			for (int da=0; da<numOp; da++) {
+				if (!safeltl.get(da)) {
 			int setbit1 = -1;
 			int setbit2 = -1;
-			setbit1 = switchStates.nextSetBit(setbit1 + 1);
+			setbit1 = daswitchstates[da].nextSetBit(setbit1 + 1);
 			do {
 				setbit2 = -1;
-				setbit2 = switchStates.nextSetBit(setbit2 + 1);
+				setbit2 = daswitchstates[da].nextSetBit(setbit2 + 1);
 				do {
 
 					Distribution prodDistr = new Distribution();
 					// linking in r-1 to r
-					
-					prodDistr.add(r * numStates + setbit2, switchprob);
-					sumprod.addActionLabelledChoice((r - 1) * numStates + setbit1, prodDistr, "switch");
-//					mainLog.println("Linking "+setbit1+"->"+setbit2+" "+((r - 1) * numStates + setbit1)+"->"+(r * numStates + setbit2));
+					int cs2 = r * numStates + setbit2;
+					int cs1 = (r - 1) * numStates + setbit1;
+
+					prodDistr.add(map[cs2], switchprob);
+					sumprod.addActionLabelledChoice(map[cs1], prodDistr, "switch_r"+(r-1)+"_r"+r);
+					mainLog.println("Linking "+setbit1+"->"+setbit2+" "+map[((r - 1) * numStates + setbit1)]+"("+cs1+")->"+map[(r * numStates + setbit2)]+"("+cs2+")");
 					totswitches++;
-					setbit2 = switchStates.nextSetBit(setbit2 + 1);
+					setbit2 =daswitchstates[da].nextSetBit(setbit2 + 1);
 				} while (setbit2 != -1);
 
-				setbit1 = switchStates.nextSetBit(setbit1 + 1);
+				setbit1 = daswitchstates[da].nextSetBit(setbit1 + 1);
 			} while (setbit1 != -1);
-		}
+		}}}
 		if (prodStatesList != null) {
 			sumprod.setStatesList(prodStatesList);
 		}
@@ -588,6 +865,711 @@ public class MDPModelChecker extends ProbModelChecker {
 		mainLog.println("New Bad States: "+newbadStates.toString());
 		return res;
 	}
+
+	private void printState(State x1,int nv)
+	{
+		
+		Object x1v[] = x1.varValues; 
+		for(int i=0; i<nv; i++)
+			mainLog.print((int)x1v[i]);
+	}
+	//check whether two states are in the same da state 
+	//exclude last var as being the state variable 
+	private boolean sameDAVals(State x1, State x2, int numVar)
+	{
+		boolean isSame = true; 
+//		mainLog.print("Comparing ");
+//		printState(x1,numVar); 
+//		mainLog.print(" : ");
+//		printState(x2,numVar); 
+		
+		Object x1v[] = x1.varValues; 
+		Object x2v[] = x2.varValues;
+		for(int v=0; v<numVar-1; v++)
+			if (((int)x1v[v])!=((int)x2v[v]))
+				{
+				isSame = false;
+				break;
+				}
+//		mainLog.print(":"+isSame+"\n");
+		return isSame;
+	}
+	private boolean isRealInitState(State x1, int dainits[],int numVar)
+	{
+		boolean res = true; 
+//		printState(x1,numVar);
+		Object x1v[] = x1.varValues; 
+		for(int v = 0; v<numVar-1; v++)
+		{
+			if (((int)x1v[v])!=dainits[v])
+			{
+				res=false; 
+				break;
+			}
+		}
+		return res;
+	}
+	protected Object[] constructSumMDP_new_old(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
+			MDP productMdp, BitSet safeltl, BitSet justinitstates[]) throws PrismException {
+		
+		int numres = 3;
+		Object res[] = new Object[numres];
+		int numStates = productMdp.getNumStates();
+		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
+
+		BitSet finalAccStates = new BitSet(numStates);
+		BitSet badStates = new BitSet(numStates);
+		BitSet allSwitchStates = new BitSet(numStates);
+		finalAccStates.set(0,numStates);
+		badStates.set(0,numStates,false);
+		
+		//switch states and not acc states 
+		BitSet switchStates[] = new BitSet[numOp]; 
+		BitSet initStates_da[][] = new BitSet[numrobots][numOp+1];
+		for(int da = 0; da<numOp; da++)
+		{
+			if(!safeltl.get(da)) {
+				for(int r = 0; r<numrobots; r++)
+				{
+					initStates_da[r][da] = (BitSet)initstates[r].clone();
+					initStates_da[r][da].and(allAccStates[da]);
+			
+				}
+			finalAccStates.and(allAccStates[da]);
+			
+			switchStates[da] = (BitSet)allAccStates[da].clone();
+			allSwitchStates.or(allAccStates[da]);
+			}
+			else {
+				badStates.or(allAccStates[da]);
+			}
+		}
+		
+		//making sure none of the bad states are in the final acc states 
+		//TODO: do this here allaccstates = allaccstates-badstates. 
+		finalAccStates.andNot(badStates);
+		allSwitchStates.andNot(badStates);
+		allSwitchStates.andNot(finalAccStates);
+		
+		for(int r=0; r<numrobots; r++)
+		{
+			initstates[r].andNot(badStates);
+		}
+		
+		//clean up the init states and the switch states too
+		for(int da = 0; da<numOp; da++)
+		{
+			if (!safeltl.get(da))
+			{
+				switchStates[da].andNot(badStates);
+				for(int r=0; r<numrobots; r++)
+					initStates_da[r][da].andNot(badStates);
+			}
+		}
+		//and make sure the final acc states aren't in there 
+		for(int da = 0; da<numOp; da++)
+		{
+			if(!safeltl.get(da)) {
+			switchStates[da].andNot(finalAccStates);}
+		}
+		for(int r=0; r<numrobots;r++ )
+			initStates_da[r][numOp] = new BitSet(numStates);
+		
+		//the last one is the actual init states everything that is in init states but not in initstatesda 
+		for(int r=0; r<numrobots; r++)
+		{
+			for(int da=0; da<numOp; da++)
+			{
+				if(!safeltl.get(da))
+				{
+					initStates_da[r][numOp].or(initStates_da[r][da]);
+				}
+				else
+				{
+					initStates_da[r][numOp].or(allAccStates[da]);
+				}
+			}
+			initStates_da[r][numOp].xor(initstates[r]);
+			//now get rid of the bad states 
+			initStates_da[r][numOp].andNot(badStates);
+		}
+
+		
+		VarList oldstateslist = productMdp.getVarList();
+		int nv=oldstateslist.getNumVars();
+		List<State>alls = oldstateslist.getAllStates();
+//		State x = alls.get(0);
+//		Object arr[] = x.varValues;
+//		for(int i = 0; i<alls.size(); i++)
+//		{
+//			x = alls.get(i); 
+//			arr = x.varValues; 
+//			mainLog.print(i+": ");
+//			for(int v=0; v<nv; v++)
+//				mainLog.print(arr[v]+",");
+//			mainLog.print("\n");
+//		}
+//		int vart = (int)test.decodeFromInt(0, 0);
+		
+		
+		
+		//printing everyting 
+		mainLog.println("Final States: "+finalAccStates.toString());
+		mainLog.println("Bad States: "+badStates.toString());
+		mainLog.println("Switch States: "+allSwitchStates.toString());
+		//printing values 
+		for(int i = 0; i<alls.size(); i++)
+		{
+			String slabel = "";
+			if (finalAccStates.get(i))
+			{
+				slabel =slabel+"f";
+			}
+			if (badStates.get(i))
+				slabel = slabel+"b"; 
+			if (allSwitchStates.get(i))
+				slabel = slabel+"s";
+			for(int r = 0; r<numrobots; r++)
+			{
+				if(initstates[r].get(i))
+					slabel=slabel+"r"+r;
+			}
+			if (!(slabel==""))
+			{
+				String statevars = ""; 
+				Object arr[] = alls.get(i).varValues;
+				for(int j=0; j<nv; j++)
+					statevars=statevars+arr[j].toString();
+				
+				mainLog.println(slabel+i+":"+statevars);
+			}
+				
+		}
+			for(int da =0; da<numOp; da++)
+			{
+				if(!safeltl.get(da))
+				{
+					mainLog.println(da+":Acc States: "+allAccStates[da].toString());
+					mainLog.println(da+":Switch States: "+switchStates[da].toString());
+				}
+			}
+			
+			for(int r=0; r<numrobots;r++ )
+			{
+				mainLog.println(r+": Init States: "+initstates[r].toString());
+				for(int da = 0; da<numOp; da++)
+				{
+					if (!safeltl.get(da))
+					mainLog.println(r+","+da+":Init States: "+initStates_da[r][da].toString());
+				}
+				mainLog.println(r+","+numOp+":Init States: "+initStates_da[r][numOp].toString());
+			}
+			//remember: 
+			//finalAccStates = target 
+			//!badStates = remain 
+			//switch states from r1[da] link to initstates r2[da] 
+			
+//			// now lets make a copy of this mdp
+//			for (int r = 0; r < numrobots; r++) {
+//				productRobots[r] = productMdp; // i dont know if this is a deep copy
+//				switches[r] = (BitSet) switchStates.clone();
+//				finals[r] = (BitSet) accStatesF.clone();
+//			}
+			//lets build this map thing again 
+			VarList newVarList = null;
+
+			if (productMdp.getVarList() != null) {
+				VarList varList = productMdp.getVarList();
+				// Create a (new, unique) name for the variable that will represent
+				// DA states
+				String daVar = "_da";
+				while (varList.getIndex(daVar) != -1) {
+					daVar = "_" + daVar;
+				}
+
+				newVarList = (VarList) varList.clone();
+				// NB: if DA only has one state, we add an extra dummy state
+				DeclarationInt daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numrobots - 1, 1)));
+				Declaration decl = new Declaration(daVar, daint);
+				newVarList.addVar(0, decl, 1, productMdp.getConstantValues());
+			}
+
+			// we need to make a new product which will basically be a sum of the old ones
+			// so maxstates = numStates*numrobots
+			// for each product mdp add transitions to switch states
+			MDPSimple sumprod = new MDPSimple();
+			sumprod.setVarList(newVarList);
+			ArrayList<State> prodStatesList = null, daStatesList = null;
+
+			if (productMdp.getStatesList() != null) {
+				prodStatesList = new ArrayList<State>();
+				daStatesList = new ArrayList<State>(numrobots);
+				for (int i = 0; i < numrobots; i++) {
+					daStatesList.add(new State(1).setValue(0, i));
+				}
+			}
+
+			// newstate = r*NUMSTATES + s
+			// lets make copies
+			// TODO: LOOK AT THE STUFF FOR NEWSTATE. IT KIND OF MEANS THAT EACH ROBOT HAS TO
+			// HAVE THE SAME AMOUNT OF STATES. WHICH WILL NOT ALWAYS BE THE CASE
+			// WE NEED TO COME UP WITH BETTER INDEXING. REMEMBER. okay cool :P
+			// should be using a map maybe need to check this
+			int prodNumStates = numrobots*numStates;
+			int map_robots[][] = new int[numrobots][numStates];
+			int map[] = new int[prodNumStates];
+			Arrays.fill(map, -1);
+			for(int r=0; r<numrobots;r++)
+			Arrays.fill(map_robots[r],-1);
+	//
+			BitSet newAccStates = new BitSet(prodNumStates); 
+			BitSet newBadStates = new BitSet(prodNumStates);
+			int expStates = 0;
+			int expChoices = 0;
+			for (int r = 0; r < numrobots; r++) {
+				// go over the entire product mdp for robot r
+				MDP pr = productMdp;
+				numStates = pr.getNumStates();
+				mainLog.println("Robot " + r + " states " + numStates + " choices " + pr.getNumChoices());
+				expStates += numStates;
+				expChoices += pr.getNumChoices();
+				int numchoices = -1;
+				int s_ = -1;
+				for (int s = 0; s < numStates; s++) {
+					sumprod.addState();
+					int cs = (r * numStates) + s;
+					
+					if (finalAccStates.get(s))
+					{
+						newAccStates.set(cs);
+					}
+					if (badStates.get(s))
+					{
+						newBadStates.set(cs);
+					}
+					map[cs]=sumprod.getNumStates()-1;
+					
+					//add as init state ? //only add the first robot's init state as an init state otherwise no
+					//TODO: can we change this stuff ? let the mdp decide ? not have r == 0 ? 
+					if (r==0 && initStates_da[r][numOp].get(s))
+					{
+						sumprod.addInitialState(map[cs]);
+//						sumprod.isInitialState(cs);
+					}
+					numchoices = pr.getNumChoices(s);
+					if (prodStatesList != null) {
+						// Store state information for the product
+						prodStatesList.add(new State(daStatesList.get(r), pr.getStatesList().get(s)));
+					}
+					Iterator<Map.Entry<Integer, Double>> iter;
+			
+//					if (!badStatesF.get(s)) {
+					for (int j = 0; j < numchoices; j++) {
+						iter = pr.getTransitionsIterator(s, j);
+		
+						int ns = 0;
+						Distribution prodDistr = new Distribution();
+						while (iter.hasNext()) {
+							Map.Entry<Integer, Double> e = iter.next();
+							s_ = e.getKey();
+							double prob = e.getValue();
+							ns = (r * numStates) + s_;
+							prodDistr.add(ns, prob);
+						}
+
+						sumprod.addActionLabelledChoice(map[cs], prodDistr, pr.getAction(s, j) + "_r" + r);
+//						mainLog.println("Adding (" + s + "," + s_ + ")" + cs + " " + prodDistr.toString() + " "
+//								+ pr.getAction(s, j) + "_r" + r);
+					}
+//					}
+//					else
+//					{
+//						//if its a bad state add a self loop and not other transitions
+//						//dont want to add the state if no other states go to it though, maybe I should count or something 
+//						Distribution prodDistr = new Distribution(); 
+//						prodDistr.add(cs, 1.0); //self loop 
+//						sumprod.addActionLabelledChoice(cs, prodDistr, "bad_state"+ "_r" + r);
+//					}
+				
+				}
+			}
+			// now we're going to add the switch transitions
+			// just link up all the switch states in all the mdps
+			//TODO fix this... link switch states based on the da (use daswitchstates) 
+			//so change all of this ? // TODO!!!! 
+			int totswitches = 0;
+			double switchprob = 1.0;
+			mainLog.println("Switch States now");
+			for (int r = 1; r < numrobots; r++) {
+//				for (int da=0; da<numOp; da++) {
+//					if (!safeltl.get(da)) {
+				int setbit1 = -1;
+				int setbit2 = -1;
+				setbit1 = allSwitchStates.nextSetBit(setbit1+1);//switchStates[da].nextSetBit(setbit1 + 1);
+				if (setbit1==34)
+					mainLog.println("Check here");
+				do {
+					setbit2 = -1;
+					setbit2 = initstates[r].nextSetBit(setbit2+1);//initStates_da[r][da].nextSetBit(setbit2 + 1);
+					do {
+						mainLog.print(setbit1+":"+setbit2);
+						if (sameDAVals(alls.get(setbit1),alls.get(setbit2),nv)) {
+						Distribution prodDistr = new Distribution();
+						// linking in r-1 to r
+						int cs2 = r * numStates + setbit2;
+						int cs1 = (r - 1) * numStates + setbit1;
+
+						prodDistr.add(map[cs2], switchprob);
+						sumprod.addActionLabelledChoice(map[cs1], prodDistr, "switch_r"+(r-1)+"_r"+r);
+						mainLog.println("Linking "+setbit1+"->"+setbit2+" "+map[((r - 1) * numStates + setbit1)]+"("+cs1+")->"+map[(r * numStates + setbit2)]+"("+cs2+")");
+						totswitches++;}
+						setbit2 = initstates[r].nextSetBit(setbit2+1);//initStates_da[r][da].nextSetBit(setbit2 + 1);
+					} while (setbit2 != -1);
+
+					setbit1 = allSwitchStates.nextSetBit(setbit1+1);//switchStates[da].nextSetBit(setbit1 + 1);
+					if (setbit1==34)
+						mainLog.println("Check here");
+
+				} while (setbit1 != -1);
+			}
+			//}}
+			if (prodStatesList != null) {
+				sumprod.setStatesList(prodStatesList);
+			}
+			//fix deadlocks 
+			sumprod.findDeadlocks(true);
+			
+			sumprod.exportToDotFile(saveplace + "finalprod.dot");
+			sumprod.exportToPrismExplicitTra(saveplace + "finalp" + ".tra");
+			mainLog.println("Num States " + sumprod.getNumStates() + " choices " + sumprod.getNumChoices());
+			int numss = 0; 
+			for(int da=0; da<numOp; da++)
+			{
+				if (!safeltl.get(da))
+					numss+=switchStates[da].cardinality();
+			}
+			mainLog.println("Switch States " + numss);
+
+			mainLog.println("Exp Num States " + expStates + " choices " + expChoices + " switches " + totswitches + " = "
+					+ (expChoices + totswitches));
+
+			if (getExportProductTrans()) {
+				mainLog.println(
+						"\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
+				sumprod.exportToPrismExplicitTra(getExportProductTransFilename());
+			}
+			if (getExportProductStates()) {
+				mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
+				PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
+				VarList newVarList2 = (VarList) modulesFile.createVarList().clone();
+				String daVar = "_da";
+				while (newVarList2.getIndex(daVar) != -1) {
+					daVar = "_" + daVar;
+				}
+				newVarList2.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+				sumprod.exportStates(Prism.EXPORT_PLAIN, newVarList2, out);
+				out.close();
+			}
+
+			res[0] = sumprod;
+			res[1] = newAccStates;//accStatesF;
+			res[2] = newBadStates;
+
+		
+		
+
+		return res;
+	}
+	protected Object[] constructSumMDP_new(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
+			MDP productMdp, BitSet safeltl, BitSet justinitstates[]) throws PrismException {
+		
+		int numres = 3;
+		Object res[] = new Object[numres];
+		int numStates = productMdp.getNumStates();
+		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
+
+		BitSet finalAccStates = new BitSet(numStates);
+		BitSet badStates = new BitSet(numStates);
+		BitSet allSwitchStates = new BitSet(numStates);
+		BitSet rinitstates[]= new BitSet[numrobots]; 
+		
+		finalAccStates.set(0,numStates);
+		badStates.set(0,numStates,false);
+		
+		//finalAccStates are states that are in all the acc states 
+		//switch states are the ones that are not 
+		//badStates are the ones in safeltl 
+		
+		for(int i = 0; i<numOp; i++)
+		{
+			if (!safeltl.get(i))
+			{
+				allSwitchStates.or(allAccStates[i]);
+				finalAccStates.and(allAccStates[i]);
+			}
+			else
+			{
+				badStates.or(allAccStates[i]);
+			}
+		}
+		//make sure you get rid of the badStates 
+		allSwitchStates.andNot(badStates); 
+		finalAccStates.andNot(badStates);
+		allSwitchStates.andNot(finalAccStates);
+		//init states //get rid of all the bad states 
+		for(int i = 0; i<numrobots; i++)
+			initstates[i].andNot(badStates);
+		//now lets get the varlist 
+		
+		int numVars = productMdp.getVarList().getNumVars(); 
+		List<State> states = productMdp.getVarList().getAllStates(); 
+		List<State> pstates = productMdp.getStatesList(); 
+		
+		//hardcoding this but add it later //you have to get these when you do the product 
+		int dainits[] = new int[numVars]; 
+		for(int i = 0; i<numVars; i++)
+			dainits[i]=0; 
+		
+		//printing stuff 
+		mainLog.println("Bad States:"+badStates.toString());
+		mainLog.println("Final States:"+finalAccStates.toString());
+		mainLog.println("Switch States:"+allSwitchStates.toString());
+		for(int i = 0; i<numrobots; i++)
+		{	mainLog.println("Init States"+i+" :"+initstates[i].toString());
+			rinitstates[i] = new BitSet(numStates);
+			int numis = initstates[i].cardinality(); 
+			int setbit = initstates[i].nextSetBit(0);
+			for(int j = 0; j<numis; j++)
+			{
+				if(setbit != -1) {
+					boolean isinitstate = isRealInitState(pstates.get(setbit),dainits,numVars);
+				mainLog.println(":"+setbit+":"+isinitstate);
+				if (isinitstate)
+					rinitstates[i].set(setbit);
+				setbit = initstates[i].nextSetBit(setbit+1);}
+				
+			}
+		}
+
+		// this is just over designing but probably making my life easier
+		// maybe in the future we have different agent models so everything will change
+		// that will not be okay cuz this is just a workaround
+		// it should be da0xda1 and so on and the switch states being the final states
+		// for each da
+		// maybe I will find a way to do this. make all this mehnat raigan
+
+		BitSet switches[] = new BitSet[numrobots];
+		BitSet finals[] = new BitSet[numrobots];
+		BitSet badstates[] = new BitSet[numrobots];
+
+		MDP[] productRobots= new MDP[numrobots];
+		// now lets make a copy of this mdp
+		for (int r = 0; r < numrobots; r++) {
+			productRobots[r] = productMdp; // i dont know if this is a deep copy
+			switches[r] = (BitSet) allSwitchStates.clone();
+			finals[r] = (BitSet) finalAccStates.clone();
+			badstates[r] = (BitSet) badStates.clone();
+		}
+
+		VarList newVarList = null;
+
+		if (productMdp.getVarList() != null) {
+			VarList varList = productMdp.getVarList();
+			// Create a (new, unique) name for the variable that will represent
+			// DA states
+			String daVar = "_da";
+			while (varList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+
+			newVarList = (VarList) varList.clone();
+			// NB: if DA only has one state, we add an extra dummy state
+			DeclarationInt daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numrobots - 1, 1)));
+			Declaration decl = new Declaration(daVar, daint);
+			newVarList.addVar(0, decl, 1, productMdp.getConstantValues());
+		}
+
+		// we need to make a new product which will basically be a sum of the old ones
+		// so maxstates = numStates*numrobots
+		// for each product mdp add transitions to switch states
+		MDPSimple sumprod = new MDPSimple();
+		sumprod.setVarList(newVarList);
+		ArrayList<State> prodStatesList = null, daStatesList = null;
+
+		if (productRobots[0].getStatesList() != null) {
+			prodStatesList = new ArrayList<State>();
+			daStatesList = new ArrayList<State>(numrobots);
+			for (int i = 0; i < numrobots; i++) {
+				daStatesList.add(new State(1).setValue(0, i));
+			}
+		}
+
+		// newstate = r*NUMSTATES + s
+		// lets make copies
+		// TODO: LOOK AT THE STUFF FOR NEWSTATE. IT KIND OF MEANS THAT EACH ROBOT HAS TO
+		// HAVE THE SAME AMOUNT OF STATES. WHICH WILL NOT ALWAYS BE THE CASE
+		// WE NEED TO COME UP WITH BETTER INDEXING. REMEMBER. okay cool :P
+		// should be using a map maybe need to check this
+		int prodNumStates = numrobots*numStates;
+		int map[] = new int[prodNumStates];
+		BitSet newAccStates = new BitSet(prodNumStates); 
+		BitSet newbadStates = new BitSet(prodNumStates);
+		Arrays.fill(map, -1);
+//
+		int expStates = 0;
+		int expChoices = 0;
+		for (int r = 0; r < numrobots; r++) {
+			// go over the entire product mdp for robot r
+			MDP pr = productRobots[r];
+			numStates = pr.getNumStates();
+			mainLog.println("Robot " + r + " states " + numStates + " choices " + pr.getNumChoices());
+			expStates += numStates;
+			expChoices += pr.getNumChoices();
+			int numchoices = -1;
+			int s_ = -1;
+			for (int s = 0; s < numStates; s++) {
+				sumprod.addState();
+				int cs = (r * numStates) + s;
+				
+				if (finals[r].get(s))
+				{
+					newAccStates.set(cs);
+				}
+				if (badstates[r].get(s))
+				{
+					newbadStates.set(cs);
+				}
+				map[cs]=sumprod.getNumStates()-1;
+				
+				//add as init state ? //only add the first robot's init state as an init state otherwise no
+				if (r==0 && rinitstates[r].get(s))
+				{
+					sumprod.addInitialState(map[cs]);
+//					sumprod.isInitialState(cs);
+				}
+				numchoices = pr.getNumChoices(s);
+				if (prodStatesList != null) {
+					// Store state information for the product
+					prodStatesList.add(new State(daStatesList.get(r), pr.getStatesList().get(s)));
+				}
+				Iterator<Map.Entry<Integer, Double>> iter;
+		
+//				if (!badStatesF.get(s)) {
+				for (int j = 0; j < numchoices; j++) {
+					iter = pr.getTransitionsIterator(s, j);
+	
+					int ns = 0;
+					Distribution prodDistr = new Distribution();
+					while (iter.hasNext()) {
+						Map.Entry<Integer, Double> e = iter.next();
+						s_ = e.getKey();
+						double prob = e.getValue();
+						ns = (r * numStates) + s_;
+						prodDistr.add(ns, prob);
+					}
+
+					sumprod.addActionLabelledChoice(map[cs], prodDistr, pr.getAction(s, j) + "_r" + r);
+//					mainLog.println("Adding (" + s + "," + s_ + ")" + cs + " " + prodDistr.toString() + " "
+//							+ pr.getAction(s, j) + "_r" + r);
+				}
+//				}
+//				else
+//				{
+//					//if its a bad state add a self loop and not other transitions
+//					//dont want to add the state if no other states go to it though, maybe I should count or something 
+//					Distribution prodDistr = new Distribution(); 
+//					prodDistr.add(cs, 1.0); //self loop 
+//					sumprod.addActionLabelledChoice(cs, prodDistr, "bad_state"+ "_r" + r);
+//				}
+			
+			}
+		}
+		// now we're going to add the switch transitions
+		// just link up all the switch states in all the mdps
+		//TODO fix this... link switch states based on the da (use daswitchstates) 
+		//so change all of this ? // TODO!!!! 
+		int totswitches = 0;
+		double switchprob = 1.0;
+		mainLog.println("Switch States now");
+		int numSwitchStates = allSwitchStates.cardinality(); 
+		int numInitStates = 0; 
+		int setbit_r = allSwitchStates.nextSetBit(0); 
+		int setbit_r1 = 0; 
+		int cs2,cs1; 
+		Distribution prodDistr = null;
+		for(int r = 1; r< numrobots; r++)
+		{
+			numInitStates = initstates[r].cardinality(); 
+			 
+			setbit_r = allSwitchStates.nextSetBit(0);
+			while(setbit_r != -1) {
+				setbit_r1 = initstates[r].nextSetBit(0);	
+				while(setbit_r1 !=-1) {
+					if(sameDAVals(pstates.get(setbit_r1),pstates.get(setbit_r),numVars))
+					{
+						prodDistr = new Distribution();
+						cs2 = r*numStates+setbit_r1; 
+						cs1 = (r-1)*numStates+setbit_r; 
+						prodDistr.add(map[cs2], switchprob); 
+						sumprod.addActionLabelledChoice(map[cs1], prodDistr, "switch_"+(r-1)+"_"+r);
+						mainLog.println("SS:"+setbit_r+"->"+setbit_r1+":"+map[cs1]+"->"+map[cs2]);
+						totswitches++;
+					}
+				setbit_r1 = initstates[r].nextSetBit(setbit_r1+1);	
+				}
+			
+			setbit_r = allSwitchStates.nextSetBit(setbit_r+1);
+//			if (setbit_r == 34)
+//				mainLog.println("Check Here");
+			}
+		}
+		if (prodStatesList != null) {
+			sumprod.setStatesList(prodStatesList);
+		}
+		//fix deadlocks 
+		sumprod.findDeadlocks(true);
+		
+		sumprod.exportToDotFile(saveplace + "finalprod.dot");
+		sumprod.exportToPrismExplicitTra(saveplace + "finalp" + ".tra");
+		mainLog.println("Num States " + sumprod.getNumStates() + " choices " + sumprod.getNumChoices());
+		mainLog.println("Switch States " + allSwitchStates.cardinality());
+
+		mainLog.println("Exp Num States " + expStates + " choices " + expChoices + " switches " + totswitches + " = "
+				+ (expChoices + totswitches));
+
+		if (getExportProductTrans()) {
+			mainLog.println(
+					"\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
+			sumprod.exportToPrismExplicitTra(getExportProductTransFilename());
+		}
+		if (getExportProductStates()) {
+			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
+			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
+			VarList newVarList2 = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList2.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList2.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			sumprod.exportStates(Prism.EXPORT_PLAIN, newVarList2, out);
+			out.close();
+		}
+
+		res[0] = sumprod;
+		res[1] = newAccStates;//accStatesF;
+		res[2] = newbadStates;
+
+
+//			res[0] = sumprod;
+//			res[1] = newAccStates;//accStatesF;
+//			res[2] = newBadStates;
+
+		
+		
+
+		return res;
+	}
+
 
 	protected Object[] constructSumMDP_badstates(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
 			MDP productMdp, BitSet safeltl, BitSet justinitstates[]) throws PrismException {
@@ -852,6 +1834,7 @@ public class MDPModelChecker extends ProbModelChecker {
 	// when you're ready to make a castle from the sand (box)
 	@SuppressWarnings("unchecked")
 	protected StateValues castlebox(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
+		
 		LTLModelChecker mcLtls[];
 		LTLModelChecker.LTLProduct<MDP> product = null;
 		MDP productMdp;
@@ -891,20 +1874,29 @@ public class MDPModelChecker extends ProbModelChecker {
 		System.out.println("Generating optimal policy...");
 		System.out.println(" ");
 
-		// TODO constructmdpdaprod here
-		Object resMdp[] = constructMdpDaProd(numrobots, numOp, (MDP) model, mcLtls, das, ltls);
+//		// TODO constructmdpdaprod here
+//		Object resMdp[] = constructMdpDaProd(numrobots, numOp, (MDP) model, mcLtls, das, ltls);
+//		product = (LTLModelChecker.LTLProduct<MDP>) resMdp[0];
+//		allAccStates = (BitSet[]) resMdp[1];
+//		initstates = (BitSet[]) resMdp[2];
+//		safeltl = (BitSet) resMdp[3];
+//		justinitstates = (BitSet[]) resMdp[4];
+//		productMdp = product.getProductModel();
+//		// res[0]=product;
+//		// res[1]=allAccStates;
+//		// res[2]=initstates;
+		
+		Object resMdp[] = constructMdpDaProd_new(numrobots, numOp, (MDP) model, mcLtls, das, ltls);
 		product = (LTLModelChecker.LTLProduct<MDP>) resMdp[0];
 		allAccStates = (BitSet[]) resMdp[1];
 		initstates = (BitSet[]) resMdp[2];
 		safeltl = (BitSet) resMdp[3];
 		justinitstates = (BitSet[]) resMdp[4];
 		productMdp = product.getProductModel();
-		// res[0]=product;
-		// res[1]=allAccStates;
-		// res[2]=initstates;
+
 
 		// TODO constructSumMdp()
-		resMdp = constructSumMDP(numOp, numrobots, allAccStates, initstates, productMdp,safeltl,justinitstates);
+		resMdp = constructSumMDP_new(numOp, numrobots, allAccStates, initstates, productMdp,safeltl,justinitstates);
 		// ret sumprod and accStates
 		MDPSimple sumprod = (MDPSimple) resMdp[0];
 		accStatesF = (BitSet) resMdp[1];

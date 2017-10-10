@@ -47,7 +47,7 @@ label "v1" = s=1;
 label "v2" = s=2; 
 label "v3" = s=3; 
 label "v4" = s=5;
-
+label "failstate" = s=4;
 rewards "time"
 
 	
