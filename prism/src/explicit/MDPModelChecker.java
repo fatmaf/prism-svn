@@ -338,7 +338,36 @@ public class MDPModelChecker extends ProbModelChecker {
 		return res;
 
 	}
+	private BitSet essentialStates(BitSet accs, MDP prod)
+	{
+		//check if an accepting state is connected to a non accepting state 
+		//basically I want a bitset of all the edges and and it with !(accepting states), if its not null I know 
+		int numstates = prod.getNumStates();
+		BitSet accsCopy= (BitSet)accs.clone();
+		BitSet essentialaccs = new BitSet(numstates);
+		int setbit = -1;
+		for(int s = 0; s<numstates; s++)
+		{
+			if (!accs.get(s)) //if not an accepting state
+			{
+//				if(prod.someSuccessorsInSet(s, accs)) //check if any accepting state is in the succ set 
+				setbit = accsCopy.nextSetBit(0);
+	
+				while(setbit!=-1)
+				{
+					if (prod.isSuccessor(s, setbit))
+					{
+						essentialaccs.set(setbit);
+						accsCopy.clear(setbit);
+					}
+				
+					setbit = accsCopy.nextSetBit(setbit+1);
+				}
+			}
+		}
+		return essentialaccs;
 
+	}
 	protected Object[] constructMdpDaProd_new(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
 			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[]) throws PrismException {
 		int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
@@ -353,6 +382,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		Object res[] = new Object[numres];
 		labelBSs = new Vector[numOp];
 		BitSet accs[] = new BitSet[numOp];
+		BitSet essentialaccs[] = new BitSet[numOp];
 
 		// build DFA
 		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
@@ -382,17 +412,11 @@ public class MDPModelChecker extends ProbModelChecker {
 				initstates[r].set(2);// hardcoding this realy
 			else if (robot_model==1)
 				initstates[r].set(2);
-		//initstates[r]=(BitSet)initstates[0].clone();
 		}
-//		for(int r = 0; r<numrobots; r++) {
-//		for (int da = 1; da<numOp; da++)
-//		{
-//			initstates[r][da]=(BitSet)initstates[r][0].clone();
-//		}
-//		}
 
 		model.exportToDotFile(saveplace + "mdp.dot");
 		BitSet allAccStates[] = new BitSet[numOp]; //so there are bad states here too that are being converted always 
+		BitSet essentialStates[] = new BitSet[numOp]; //the essential states basically states that are connected to atleast one non accepting state of the same dfa
 		productMdp = (MDP) model;
 		for (int danum = 0; danum < numOp; danum++) {
 
@@ -440,7 +464,7 @@ public class MDPModelChecker extends ProbModelChecker {
 					continue;
 				}
 			} else {
-				accs[danum] = ((AcceptanceReach) das[danum].getAcceptance()).getGoalStates();
+				accs[danum] = ((AcceptanceReach) das[danum].getAcceptance()).getGoalStates();			
 				mainLog.println(
 						"Accepting States bit set for " + ltls[danum].toString() + " : " + accs[danum].toString());
 				mainLog.println("Labels Bitset " + labelBSs[danum].toString());
@@ -456,9 +480,12 @@ public class MDPModelChecker extends ProbModelChecker {
 			mainLog.println("Product" + danum + " accepting states: "
 					+ ((AcceptanceReach) product.getAcceptance()).getGoalStates().toString());
 			allAccStates[danum] = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
+			
+			essentialaccs[danum]=essentialStates(allAccStates[danum],product.getProductModel());
+			
 			// convert to new model if possible
 			int oldstate = -1;
-			BitSet tempstates = null;
+			BitSet tempstates,tempstates2;
 			numStates = product.getProductModel().getNumStates();
 			//need to convert the init state for the first one too 
 			if (danum == 0) {
@@ -482,6 +509,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				// we get those and save them as new states of this product. any old state that
 				// has the same value will be an accepting state
 				tempstates = new BitSet(numStates);
+				tempstates2 = new BitSet(numStates);
 				BitSet tempinitstates[] = new BitSet[numrobots];
 				for (int r = 0; r < numrobots; r++)
 					tempinitstates[r] = new BitSet(numStates);
@@ -490,12 +518,17 @@ public class MDPModelChecker extends ProbModelChecker {
 					if (allAccStates[tempnum].get(oldstate)) {
 						tempstates.set(s);
 					}
+					if (essentialaccs[tempnum].get(oldstate))
+					{
+						tempstates2.set(s);
+					}
 					for (int r = 0; r < numrobots; r++) {
 						if (initstates[r].get(oldstate))
 							tempinitstates[r].set(s);
 					}
 				}
 				allAccStates[tempnum] = (BitSet) tempstates.clone();
+				essentialaccs[tempnum] = (BitSet) tempstates2.clone();
 				// for each robot update the initial state too
 				for (int r = 0; r < numrobots; r++)
 					initstates[r] = (BitSet) tempinitstates[r].clone();
@@ -504,6 +537,246 @@ public class MDPModelChecker extends ProbModelChecker {
 			// printing all acc states saved
 			for (int tempnum = 0; tempnum <= danum; tempnum++) {
 				mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+				mainLog.println(tempnum + ": " + essentialaccs[tempnum].toString());
+			}
+			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
+			product.getProductModel().exportToPrismExplicitTra(saveplace + "p" + danum + ".tra");
+			PrismFileLog out = new PrismFileLog(saveplace + "p" + danum + ".sta");
+			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			String daVar = "_da";
+			while (newVarList.getIndex(daVar) != -1) {
+				daVar = "_" + daVar;
+			}
+			newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+			product.getProductModel().exportStates(Prism.EXPORT_PLAIN, newVarList, out);
+			out.close();
+			productMdp = product.getProductModel();
+			
+		}
+		mainLog.println("DFAs with bad states = "+safeltl_accstates.toString());
+		//filter out the bad states from the accepting states 
+		for(int tempnum = 0; tempnum <numOp; tempnum++)
+		{
+			if (safeltl_accstates.get(tempnum))
+			{
+				//then check for all others and just unset them 
+				//maybe a bitwise operation 
+				for(int tempnum2=0; tempnum2<numOp;tempnum2++)
+				{
+					if(tempnum2!=tempnum)
+					{
+						//xor then and 
+						BitSet temp = (BitSet)allAccStates[tempnum2].clone(); 
+						temp.xor(allAccStates[tempnum]);
+						temp.and(allAccStates[tempnum2]);
+						allAccStates[tempnum2]=(BitSet)temp.clone();
+					}
+				}
+			}
+		}
+		//TODO: JUST DOING THIS TO CHECK SOMETHING 
+	//	justinitstates[0].set(18,false);
+		//justinitstates[1].set(14,false);
+
+		// printing all acc states saved
+		for (int tempnum = 0; tempnum < numOp; tempnum++) {
+			mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+		}
+		for(int r = 0; r<numrobots; r++)
+		{
+//			for(int da=0; da<numOp; da++) {
+			mainLog.println("r"+r+" init states: "+initstates[r].toString());
+//			}
+		}
+		
+		res[0] = product;
+		res[1] = allAccStates;
+		res[2] = initstates;
+		res[3] = safeltl_accstates;
+		res[4] = essentialaccs;//justinitstates;
+		return res;
+
+	}
+
+
+
+	protected Object[] constructMdpDaProd_new_old(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
+			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[]) throws PrismException {
+		int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
+		LTLModelChecker.LTLProduct<MDP> product = null;
+		MDP productMdp;
+		Vector<BitSet> labelBSs[];
+		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
+		BitSet initstates[] = new BitSet[numrobots];
+		BitSet safeltl_accstates = new BitSet(numOp); //these tell us the bad states 
+		//
+		int numres = 5;
+		Object res[] = new Object[numres];
+		labelBSs = new Vector[numOp];
+		BitSet accs[] = new BitSet[numOp];
+		BitSet essentialaccs[] = new BitSet[numOp];
+
+		// build DFA
+		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
+
+		// for all the automata save the accepting states
+
+		// build product
+		// time to build weighted skipping product
+		long time = System.currentTimeMillis();
+
+		int numStates = model.getNumStates();
+		BitSet bsInit = new BitSet(numStates);
+		for (int r = 0; r<numrobots; r++) {
+//			for(int da = 0; da<numOp; da++)
+//				{
+				initstates[r] = new BitSet(numStates);
+//				}
+		}
+		for (int i = 0; i < numStates; i++) {
+			// bsInit.set(i, model.isInitialState(i));
+			initstates[0].set(i, model.isInitialState(i));
+			// lets set all the states
+			bsInit.set(i);
+		}
+		for(int r=1; r<numrobots;r++) {
+			if (robot_model == 0)
+				initstates[r].set(2);// hardcoding this realy
+			else if (robot_model==1)
+				initstates[r].set(2);
+		//initstates[r]=(BitSet)initstates[0].clone();
+		}
+//		for(int r = 0; r<numrobots; r++) {
+//		for (int da = 1; da<numOp; da++)
+//		{
+//			initstates[r][da]=(BitSet)initstates[r][0].clone();
+//		}
+//		}
+
+		model.exportToDotFile(saveplace + "mdp.dot");
+		BitSet allAccStates[] = new BitSet[numOp]; //so there are bad states here too that are being converted always 
+		BitSet essentialStates[] = new BitSet[numOp]; //the essential states basically states that are connected to atleast one non accepting state of the same dfa
+		productMdp = (MDP) model;
+		for (int danum = 0; danum < numOp; danum++) {
+
+			labelBSs[danum] = new Vector<BitSet>();
+			//check if expression is cosafe 
+			boolean iscosafe = Expression.isCoSafeLTLSyntactic(ltls[danum], true); 
+
+			if (!iscosafe)
+				{mainLog.println(ltls[danum].toString()+" is not cosafe, converting it to cosafe");
+				ltls[danum] = Expression.Not(ltls[danum]);
+				safeltl_accstates.set(danum);
+				mainLog.println("--->"+ltls[danum].toString());
+				}
+			das[danum] = mcLtls[danum].constructDAForLTLFormula(this, productMdp, ltls[danum], labelBSs[danum],
+					allowedAcceptance);
+
+			try {
+				File fn = new File(saveplace + "da" + danum + "_"
+						+ ltls[danum].toString().replace(" ", "").replace("\"", "") + ".dot");
+				mainLog.println("Saving to file " + fn.getName());
+				PrintStream out;
+				out = new PrintStream(new FileOutputStream(fn));
+				das[danum].printDot(out);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			// TODO check if I need so many model checker instances
+
+			if (!(das[danum].getAcceptance() instanceof AcceptanceReach)) { // a safety condition is not really a
+																			// reachability problem so if you have a
+																			// safety condition
+				mainLog.println("\nAutomaton is not a DFA. .");
+				if (!(das[danum].getAcceptance() instanceof AcceptanceRabin)) // should be an or thing but fix it later
+				{
+					mainLog.println("\nAutomaton is not a DRA either..Breaking");
+					// Dummy return vector
+					return null;
+					// return new StateValues(TypeInt.getInstance(), model);
+				} else {
+					safeltl_accstates.set(danum);
+					
+					// do nothing. find out what to do here
+					mainLog.println("Need to get accepting states for this rabin automata");
+					continue;
+				}
+			} else {
+				accs[danum] = ((AcceptanceReach) das[danum].getAcceptance()).getGoalStates();			
+				mainLog.println(
+						"Accepting States bit set for " + ltls[danum].toString() + " : " + accs[danum].toString());
+				mainLog.println("Labels Bitset " + labelBSs[danum].toString());
+			}
+
+			mainLog.println("Before product " + danum + " model states: " + productMdp.getNumStates() + " da states "
+					+ das[danum].size());
+
+			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
+
+			numStates = product.getProductModel().getNumStates();
+			mainLog.println("After product " + danum + " product states: " + numStates);
+			mainLog.println("Product" + danum + " accepting states: "
+					+ ((AcceptanceReach) product.getAcceptance()).getGoalStates().toString());
+			allAccStates[danum] = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
+			
+			essentialaccs[danum]=essentialStates(allAccStates[danum],product.getProductModel());
+			
+			// convert to new model if possible
+			int oldstate = -1;
+			BitSet tempstates,tempstates2;
+			numStates = product.getProductModel().getNumStates();
+			//need to convert the init state for the first one too 
+			if (danum == 0) {
+//			for(int da = 0; da<numOp; da++) {
+			for(int r = 0; r<numrobots; r++)
+			{
+				BitSet tempinitstate = new BitSet(numStates);
+				for(int s=0; s<numStates; s++)
+				{
+					oldstate=product.getModelState(s); 
+					if(initstates[r].get(oldstate))
+					{
+						tempinitstate.set(s);
+					}
+				}
+				initstates[r]=(BitSet)tempinitstate.clone();
+			}}
+			for (int tempnum = 0; tempnum < danum; tempnum++) {
+				// assumption - since each model is a product of the previous product and the da
+				// the old states are states of the previous product
+				// we get those and save them as new states of this product. any old state that
+				// has the same value will be an accepting state
+				tempstates = new BitSet(numStates);
+				tempstates2 = new BitSet(numStates);
+				BitSet tempinitstates[] = new BitSet[numrobots];
+				for (int r = 0; r < numrobots; r++)
+					tempinitstates[r] = new BitSet(numStates);
+				for (int s = 0; s < numStates; s++) {
+					oldstate = product.getModelState(s);
+					if (allAccStates[tempnum].get(oldstate)) {
+						tempstates.set(s);
+					}
+					if (essentialaccs[tempnum].get(oldstate))
+					{
+						tempstates2.set(s);
+					}
+					for (int r = 0; r < numrobots; r++) {
+						if (initstates[r].get(oldstate))
+							tempinitstates[r].set(s);
+					}
+				}
+				allAccStates[tempnum] = (BitSet) tempstates.clone();
+				essentialaccs[tempnum] = (BitSet) tempstates2.clone();
+				// for each robot update the initial state too
+				for (int r = 0; r < numrobots; r++)
+					initstates[r] = (BitSet) tempinitstates[r].clone();
+
+			}
+			// printing all acc states saved
+			for (int tempnum = 0; tempnum <= danum; tempnum++) {
+				mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+				mainLog.println(tempnum + ": " + essentialaccs[tempnum].toString());
 			}
 			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
 			product.getProductModel().exportToPrismExplicitTra(saveplace + "p" + danum + ".tra");
@@ -1281,7 +1554,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		return res;
 	}
 	protected Object[] constructSumMDP_new(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
-			MDP productMdp, BitSet safeltl, BitSet justinitstates[]) throws PrismException {
+			MDP productMdp, BitSet safeltl, BitSet essentialAccStates[]) throws PrismException {
 		
 		int numres = 3;
 		Object res[] = new Object[numres];
@@ -1304,7 +1577,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		{
 			if (!safeltl.get(i))
 			{
-				allSwitchStates.or(allAccStates[i]);
+				allSwitchStates.or(essentialAccStates[i]);
 				finalAccStates.and(allAccStates[i]);
 			}
 			else
