@@ -2308,7 +2308,6 @@ public class MDPModelChecker extends ProbModelChecker
 		return upperBound;
 	}
 
-
 	/**
 	 * Return true if the MDP is contracting for all states in the 'unknown'
 	 * set, i.e., if Pmin=1( unknown U target) holds.
