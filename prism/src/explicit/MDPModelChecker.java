@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Stack;
 import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
@@ -79,6 +81,7 @@ import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
 import strat.MDStrategyArray;
+import strat.Strategy;
 
 import java.awt.Point;
 
@@ -104,7 +107,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		case ExpressionFunc.PARTIAL: {
 			// checkPartialSat(model, expr, statesOfInterest);
 			// mainLog.println("------------------------SkippingNow----------------------------------------");
-			return castlebox(model, expr, statesOfInterest);
+			return ltlDecomp(model, expr, statesOfInterest);
 		}
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
@@ -343,6 +346,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		//check if an accepting state is connected to a non accepting state 
 		//basically I want a bitset of all the edges and and it with !(accepting states), if its not null I know 
 		int numstates = prod.getNumStates();
+		
 		BitSet accsCopy= (BitSet)accs.clone();
 		BitSet essentialaccs = new BitSet(numstates);
 		int setbit = -1;
@@ -369,8 +373,8 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	}
 	protected Object[] constructMdpDaProd_new(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
-			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[]) throws PrismException {
-		int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
+			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[],int robot_model) throws PrismException {
+	//	int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
 		LTLModelChecker.LTLProduct<MDP> product = null;
 		MDP productMdp;
 		Vector<BitSet> labelBSs[];
@@ -411,7 +415,11 @@ public class MDPModelChecker extends ProbModelChecker {
 			if (robot_model == 0)
 				initstates[r].set(2);// hardcoding this realy
 			else if (robot_model==1)
-				initstates[r].set(2);
+			{	if (r==1)
+					initstates[r].set(2);
+				if (r==2)
+					initstates[r].set(4);
+			}
 		}
 
 		model.exportToDotFile(saveplace + "mdp.dot");
@@ -1138,7 +1146,98 @@ public class MDPModelChecker extends ProbModelChecker {
 		mainLog.println("New Bad States: "+newbadStates.toString());
 		return res;
 	}
+	private List<Integer> findChangedStateIndices(State x1, State x2,int nv)
+	{
+		List<Integer>res = new ArrayList<Integer>(); 
+		Object x1v[] = x1.varValues; 
+		Object x2v[] = x2.varValues;
+		for(int v=1; v<nv-1; v++)
+			if (((int)x1v[v])!=((int)x2v[v]))
+				{
+		res.add(v);
+				}
 
+		return res;
+	}
+	//create a new state replacing all the values in changedIndices with val
+	private Object[] getNewState(State x1, List<Integer> changedIndices,int nv,List<Integer> val)
+	{
+		
+		Object x1v[] = x1.varValues; 
+		Object x1vp[] = x1v.clone();
+		for(int v=0; v<changedIndices.size(); v++)
+		{
+			x1vp[changedIndices.get(v)] = val.get(v);
+		}
+		return x1vp;
+	}
+	private int findSameStateExcept(State x1, List<Integer> changedIndices, List<State> states,int nv,List<Integer> val)
+	{
+		int res = -1;
+		//go over all states and find the one that equals the new one 
+		Object x1v[] = getNewState(x1,changedIndices,nv,val); 
+		for(int s =0; s<states.size(); s++)
+		{
+			if(sameDAVals(x1v,states.get(s),nv))
+			{
+				res = s; 
+				break;
+			}
+		}
+		return res;
+	}
+	private int findSameStateExcept(State x1, List<Integer> changedIndices, List<State> states,int nv,int val_)
+	{
+		List<Integer> val = new ArrayList<Integer>();
+		for(int i = 0; i<changedIndices.size(); i++)
+			val.add(val_);
+		return findSameStateExcept(x1,changedIndices, states,nv,val);
+	}
+	private int findSameStateExcept(State x1, List<Integer> changedIndices, List<State> states,int nv)
+	{
+
+		return findSameStateExcept(x1,changedIndices, states,nv,0);
+	}
+
+	private int newInitState(MDPSimple sumprod, int cs2[], double probs[])
+	{
+		int cs1 = sumprod.getNumStates(); 
+		sumprod.addState(); 
+
+		Distribution prodDistr = new Distribution(); 
+		mainLog.print(" NI:"+cs1+"->");
+		for(int i = 0; i< cs2.length; i++)
+		{
+			prodDistr.add(cs2[i], probs[i]);
+		mainLog.print(cs2[i]+",");
+		}
+
+		sumprod.addActionLabelledChoice(cs1, prodDistr, "dummy_state");
+		return cs1;
+
+		
+	}
+	private void addlink(MDPSimple sumprod, int cs1, int cs2[] , double probs[], int r,int ps)
+	{
+		String extras = "e";
+		Distribution prodDistr = new Distribution();
+		// linking in r-1 to r
+		mainLog.print("\t SER "+cs1+" -> ");
+		for(int i = 0; i< cs2.length; i++)
+		{
+			prodDistr.add(cs2[i], probs[i]);
+		mainLog.print(cs2[i]+",");
+		}
+		sumprod.addActionLabelledChoice(cs1, prodDistr, "switch_"+extras+"r"+(r-1)+"_r"+r);
+
+	}
+	private boolean isfailState(State x1, int nv)
+	{Object x1v[] = x1.varValues; 
+	//TODO: I know this in this case find a better way to do this!!! 
+	boolean failstate = ((int)x1v[nv-1] == 9); 
+	return failstate;
+		
+	}
 	private void printState(State x1,int nv)
 	{
 		
@@ -1146,6 +1245,37 @@ public class MDPModelChecker extends ProbModelChecker {
 		for(int i=0; i<nv; i++)
 			mainLog.print((int)x1v[i]);
 	}
+	//check whether two states are in the same da state 
+	//exclude last var as being the state variable 
+	private int getIndValFromState(State x1, int ind)
+	{
+		Object arr[] = x1.varValues; 
+		int res = -1;
+		if (ind < arr.length)
+			res = (int)arr[ind];
+		return res;
+			
+	}
+	//check whether two states are in the same da state 
+		//exclude last var as being the state variable 
+		private boolean sameDAVals(Object x1v[], State x2, int numVar)
+		{
+			boolean isSame = true; 
+//			mainLog.print("Comparing ");
+//			printState(x1,numVar); 
+//			mainLog.print(" : ");
+//			printState(x2,numVar); 
+			
+			Object x2v[] = x2.varValues;
+			for(int v=0; v<numVar; v++)
+				if (((int)x1v[v])!=((int)x2v[v]))
+					{
+					isSame = false;
+					break;
+					}
+//			mainLog.print(":"+isSame+"\n");
+			return isSame;
+		}
 	//check whether two states are in the same da state 
 	//exclude last var as being the state variable 
 	private boolean sameDAVals(State x1, State x2, int numVar)
@@ -2102,11 +2232,20 @@ public class MDPModelChecker extends ProbModelChecker {
 		return res;
 	}
 
-
+	int getIthSetBit(BitSet ss, int n)
+	{
+		int res = -1; 
+		for(int i = 0; i<=n; i++)
+		{
+			res = ss.nextSetBit(res+1);
+		}
+		return res; 
+		
+	}
 	
 	// when you're ready to make a castle from the sand (box)
 	@SuppressWarnings("unchecked")
-	protected StateValues castlebox(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
+	protected StateValues ltlDecomp(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
 		
 		LTLModelChecker mcLtls[];
 		LTLModelChecker.LTLProduct<MDP> product = null;
@@ -2122,6 +2261,9 @@ public class MDPModelChecker extends ProbModelChecker {
 		String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
 
 		int numrobots = 2;
+		int example_number = 1; //0 = not extended , 1 = extended 
+		if (example_number == 1)
+			numrobots= 3; 
 		BitSet initstates[] = new BitSet[numrobots];
 		BitSet justinitstates[] = new BitSet[numrobots];
 
@@ -2147,19 +2289,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		System.out.println("Generating optimal policy...");
 		System.out.println(" ");
 
-//		// TODO constructmdpdaprod here
-//		Object resMdp[] = constructMdpDaProd(numrobots, numOp, (MDP) model, mcLtls, das, ltls);
-//		product = (LTLModelChecker.LTLProduct<MDP>) resMdp[0];
-//		allAccStates = (BitSet[]) resMdp[1];
-//		initstates = (BitSet[]) resMdp[2];
-//		safeltl = (BitSet) resMdp[3];
-//		justinitstates = (BitSet[]) resMdp[4];
-//		productMdp = product.getProductModel();
-//		// res[0]=product;
-//		// res[1]=allAccStates;
-//		// res[2]=initstates;
-		
-		Object resMdp[] = constructMdpDaProd_new(numrobots, numOp, (MDP) model, mcLtls, das, ltls);
+		Object resMdp[] = constructMdpDaProd_new(numrobots, numOp, (MDP) model, mcLtls, das, ltls,example_number);
 		product = (LTLModelChecker.LTLProduct<MDP>) resMdp[0];
 		allAccStates = (BitSet[]) resMdp[1];
 		initstates = (BitSet[]) resMdp[2];
@@ -2176,38 +2306,26 @@ public class MDPModelChecker extends ProbModelChecker {
 		BitSet badStates = (BitSet) resMdp[2];
 		badStates.flip(0, sumprod.numStates);
 		mainLog.println("Using compute until");
+		
+		//TODO: what is the right way to do this 
+		genStrat = true; 
 		res = computeUntilProbs(sumprod,badStates, accStatesF, false); 
 		
+		unfoldPolicy(res, sumprod,accStatesF,numrobots);
+		sumprod.exportToDotFile(saveplace+"second_sumprod.dot");
+		sumprod.exportToPrismExplicit(saveplace+"second_sumprod");
+		
+		res = computeUntilProbs(sumprod,badStates, accStatesF, false); 
+		
+		unfoldPolicy(res, sumprod,accStatesF,numrobots,false);
+		
+		//unfoldPolicy(res, sumprod,accStatesF,numrobots);
 		StateValues probsProduct = StateValues.createFromDoubleArray(res.soln, sumprod);
 		// Mapping probabilities in the original model
 		StateValues probs = product.projectToOriginalModel(probsProduct);
 		// Get final prob result
 		double maxProb = probs.getDoubleArray()[model.getFirstInitialState()];
 		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
-		// Output product, if required
-
-		
-		
-//		mainLog.println("Using reach probs with the mdp with stuff cut");
-//		resMdp = constructSumMDP_badstates(numOp, numrobots, allAccStates, initstates, productMdp,safeltl,justinitstates);
-//		// ret sumprod and accStates
-//		sumprod = (MDPSimple) resMdp[0];
-//		accStatesF = (BitSet) resMdp[1];
-//		badStates = (BitSet) resMdp[2];
-//		
-//		res = computeReachProbs(sumprod, accStatesF, false); 
-//
-//
-//		//StateValues 
-//		probsProduct = StateValues.createFromDoubleArray(res.soln, sumprod);
-//		// Mapping probabilities in the original model
-//		//StateValues
-//		probs = product.projectToOriginalModel(probsProduct);
-//		// Get final prob result
-//		//double
-//		maxProb = probs.getDoubleArray()[model.getFirstInitialState()];
-//		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
-//		// Output product, if required
 
 		// Output vector over product, if required
 		if (getExportProductVector()) {
@@ -2224,6 +2342,257 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		return probs; // costs
 	}
+	
+	protected void unfoldPolicy(ModelCheckerResult res, MDPSimple sumprod,BitSet accStatesF,int numrobots) throws PrismException
+	{
+		unfoldPolicy(res, sumprod,accStatesF,numrobots,true);
+	}
+	
+	protected void unfoldPolicy(ModelCheckerResult res, MDPSimple sumprod,BitSet accStatesF,int numrobots,boolean addLinks) throws PrismException
+	{
+		
+		Strategy strat = res.strat;
+		ArrayList<ArrayList<Map.Entry<Integer, Integer>>> pol[] = new ArrayList[numrobots];
+		for(int i =0; i<numrobots; i++)
+		{
+			pol[i]= new ArrayList();
+		}
+		Iterator<Integer> initstates = sumprod.getInitialStates().iterator();
+		
+		ArrayList<Integer> newinitstates = new ArrayList<Integer>();
+		while (initstates.hasNext()) {
+		int inits=	(int)initstates.next();
+//		if(!addLinks) {
+//		//just go to the choice with a bad thing 
+//		Iterator<Entry<Integer, Double>> inititer = sumprod.getTransitionsIterator(inits, 0); 
+//		while(inititer.hasNext())
+//		{
+//			Entry<Integer, Double> initsn = inititer.next();
+//			if (initsn.getValue() <=0.2)
+//			{
+//				inits = initsn.getKey();
+//				break;
+//			}
+//		}}
+		
+		strat.initialise(inits);
+		int state = inits; 
+		int choices = sumprod.getNumChoices(state); 
+		
+		Stack<Map.Entry<Integer, Integer>> st = new Stack(); 
+		Stack time = new Stack(); 
+		int timecount = 0; 
+		BitSet stuckStates = new BitSet(sumprod.numStates);
+		BitSet stuckStateRobot[] = new BitSet[numrobots];
+		for(int i = 0; i< numrobots; i++)
+		{
+			stuckStateRobot[i] = new BitSet(sumprod.numStates);
+		}
+		BitSet discovered = new BitSet(sumprod.numStates);
+		
+		List<State> states = sumprod.statesList;  //i know this , the robot index is always the first one 
+		int numVar = sumprod.varList.getNumVars(); 
+		int whichRobot = -1;
+		int maxtimecount = -1; 
+		int oldtimecount = timecount;
+		Map.Entry<Integer, Integer> temp = new AbstractMap.SimpleEntry(state,-1);
+		st.push(temp) ;
+		time.push(timecount);
+		Object action = strat.getChoiceAction();
+		if (action == null || "*".equals(action))
+			continue;
+		boolean switched = false;
+		boolean switcheder = false;
+		int parentstate = -1;
+		while (!st.isEmpty())
+		{
+			Map.Entry<Integer, Integer> temp1 = st.pop();
+			state = temp1.getKey();
+			Map.Entry<Integer, Integer> temp3 ;
+			parentstate = temp1.getValue();
+			whichRobot = getIndValFromState(states.get(state),0);
+			timecount = (int)time.pop();
+			while (pol[whichRobot].size() < (timecount+1))
+			{
+				pol[whichRobot].add(new ArrayList<Map.Entry<Integer, Integer>>());
+			}
+
+			if (!discovered.get(state) & !accStatesF.get(state))
+			{
+				strat.initialise(state);
+				action = strat.getChoiceAction();
+				//if(action.toString() == "*")
+				if (action == null || "*".equals(action))
+				{
+					stuckStates.set(state);
+					stuckStateRobot[whichRobot].set(state);
+				}
+				if (action.toString().contains("switch_er"))
+				{
+					oldtimecount = timecount;
+					timecount = timecount-1;
+					switched = true;
+					switcheder = true;
+				}
+				else if (action.toString().contains("switch"))
+				{
+					oldtimecount = timecount;
+					timecount = -1;
+					switched = true;
+				}
+				if (switched)
+					mainLog.print(oldtimecount+":r"+whichRobot+":"+state+":"+action.toString());
+				else
+				mainLog.print(timecount+":r"+whichRobot+":"+state+":"+action.toString());
+				
+				discovered.set(state);
+				choices = sumprod.getNumChoices(state); 
+				for(int c = 0; c<choices; c++)
+				{
+					if (action.equals(sumprod.getAction(state, c)))
+					{
+						Iterator<Entry<Integer, Double>> iter = sumprod.getTransitionsIterator(state, c);
+						//double mprob = 0; 
+						while(iter.hasNext())
+						{
+							Entry<Integer,Double> sp = iter.next(); 
+							temp3 = new AbstractMap.SimpleEntry(sp.getKey(),state);
+							st.push(temp3);
+						//	if (switcheder)
+						//		time.push(timecount);
+						//	else
+							maxtimecount = Math.max(timecount+1,maxtimecount);
+
+							time.push(timecount+1);
+						}
+					}
+				}
+			}
+			else if (accStatesF.get(state))
+			{
+				mainLog.print(timecount+":r"+whichRobot+":"+state+":!");
+			}
+			mainLog.print("\n");
+				if (!switched)//if (timecount != -1)
+			pol[whichRobot].get(timecount).add(temp1);
+			else //if (!switcheder)
+				{pol[whichRobot].get(oldtimecount).add(temp1); switched = false;switcheder = false;}
+//			else if (switcheder)
+//			{
+//				pol[whichRobot].get(timecount).add(state); switcheder=false;
+//			}
+		}
+		mainLog.println("Stuck States: "+stuckStates.toString());
+		//link a stuck state with some prob to another stuck state or a not stuck state 
+		//this will be the round robin approach 
+		//if stuck state, save state and robot number 
+		//for next robot link this state to next robot's states 
+		if (addLinks) {
+	//	sumprod.clearInitialStates();
+		List<Integer> ci =null;
+		for(int t = 0; t<=maxtimecount; t++)
+		{
+			mainLog.print(t+"\t");
+			for(int r = 0; r<numrobots; r++)
+			{
+				ArrayList<ArrayList<Entry<Integer, Integer>>> polt = pol[r]; 
+			
+				if (polt.size() > t)
+				{
+					mainLog.print(r+":");
+					ArrayList<Entry<Integer, Integer>> polti = polt.get(t); 
+					for(int s = 0; s<polti.size(); s++)
+					{
+						int rs = polti.get(s).getKey();
+
+						mainLog.print(rs+",");
+						if (stuckStates.get(rs))
+						{
+							int ps = polti.get(s).getValue();
+//							//because I know there are only two states 
+//							//TODO: figure out a smarter way to do this 
+//							int nsi = 1;
+//							 Entry<Integer, Integer> ns = polti.get((s+nsi)%polti.size());
+//							 while(ns.getValue()!=ps & nsi < polti.size())
+//							 {
+//								 nsi++;
+//								 ns = polti.get((s+nsi)%polti.size());
+//							 }
+//							 int nss = ns.getKey();
+//							 int nislinks[] = new int[2]; 
+//							 double nisprobs[] = new double[2];
+//							 nislinks[0] = nss; 
+//							 nislinks[1] = rs; 
+//							 nisprobs[0] = 0.8; 
+//							 nisprobs[1]=0.2;
+							 //THIS is addding new initstates but I dont think I need to do this 
+						//	 int newinitstate = newInitState(sumprod,nislinks,nisprobs);
+						//	 sumprod.addInitialState(newinitstate);
+							 //the new initstate is the one where you failed. 
+							 newinitstates.add(rs);
+							// sumprod.addInitialState(rs);
+							//if (ps != -1)
+							//{
+//								ci= findChangedStateIndices(states.get(rs),states.get(nss),numVar);
+								//}
+
+							//i know this is a repeat but needs to happen 
+							int nextr = (r+1)%numrobots;
+							
+							ArrayList<Entry<Integer, Integer>> polti2 ; 
+							//exploiting the chain thing. if nextr < r  
+							//then we know that most of our tasks in r have not been acheived 
+							//so we need to find the change in state between r & nextr 
+							//as well as r and r's ps 
+							int nextrt = t;
+							if (!(pol[nextr].size() > nextrt))
+								{nextrt = pol[nextr].size()-1;
+								
+								}
+							polti2= pol[nextr].get(nextrt);
+							int otherRobotStates[] = new int[polti2.size()];
+							double probs[] = new double[polti2.size()];
+							//add link 
+							for(int ors = 0; ors<polti2.size(); ors++)
+							{	int otherstate = polti2.get(ors).getKey();
+						//	if (ps!= -1)
+						//	{	//ci= findChangedStateIndices(states.get(rs),states.get(otherstate),numVar);
+							if (nextr < r)
+							{	ci = findChangedStateIndices(states.get(rs),states.get(otherstate),numVar);
+								otherstate=findSameStateExcept(states.get(otherstate),ci,states,numVar,1);}
+							else 
+							{//get the t'th stuck state 
+								int ss = getIthSetBit(stuckStateRobot[nextr],nextrt-1);
+								ci = findChangedStateIndices(states.get(rs),states.get(ss),numVar);
+								otherstate=findSameStateExcept(states.get(otherstate),ci,states,numVar);
+							}
+							//	}
+								otherRobotStates[ors] = otherstate; 
+							if (isfailState(states.get(otherstate),numVar))
+							{
+								probs[ors]=0.2; //hardcoding this 
+							}
+							else
+								probs[ors]=0.8; 
+							}
+							//the link is not from rs to otherRobotStates but from rs to otherRobotStates where the da for rs is the same. 
+							addlink(sumprod,rs,otherRobotStates,probs,nextr,ps);
+						}
+					}
+					mainLog.print("\t");
+				}
+			}
+			mainLog.print("\n");
+		}
+		
+		sumprod.findDeadlocks(true);
+		}}
+		sumprod.clearInitialStates();
+		for(int s = 0; s<newinitstates.size(); s++)
+			sumprod.addInitialState(newinitstates.get(s));
+	}
+
+	
 
 	// when you're ready to make a castle from the sand (box)
 	@SuppressWarnings("unchecked")
@@ -3849,7 +4218,8 @@ public class MDPModelChecker extends ProbModelChecker {
 			// Prune strategy
 			restrictStrategyToReachableStates(mdp, strat);
 			// Export
-			PrismLog out = new PrismFileLog(exportAdvFilename);
+			//don't overwrite the file if it exists. 
+			PrismLog out = new PrismFileLog(exportAdvFilename,true);
 			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
 			out.close();
 		}
