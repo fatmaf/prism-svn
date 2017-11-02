@@ -1733,6 +1733,8 @@ public class MDPModelChecker extends ProbModelChecker {
 										else
 											{
 											//convert the old states to new ones basically oldnumstates = numstates/numrobots 
+											//so if you want to assume the other robots (the coming ones) haven't moved. 
+											//not the best idea because everyone has moved so you know 
 											int oldnumstates = states.size()/numrobots;
 											int nextsetbit = oldinitstates[rt].nextSetBit(0); 
 											BitSet tempbs = new BitSet(states.size());
