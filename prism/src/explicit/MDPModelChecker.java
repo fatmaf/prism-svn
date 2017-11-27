@@ -81,6 +81,10 @@ import strat.MDStrategy;
 import strat.MDStrategyArray;
 import strat.Strategy;
 
+
+//testing my class 
+import explicit.probPolicyTest;
+
 /**
  * Explicit-state model checker for Markov decision processes (MDPs).
  */
@@ -90,6 +94,8 @@ public class MDPModelChecker extends ProbModelChecker {
 	 */
 	boolean run_tests = false;
 	String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
+	boolean printHighlights = true; 
+	boolean printDetails = false; 
 
 	public MDPModelChecker(PrismComponent parent) throws PrismException {
 		super(parent);
@@ -203,9 +209,11 @@ public class MDPModelChecker extends ProbModelChecker {
 			boolean iscosafe = Expression.isCoSafeLTLSyntactic(ltls[danum], true);
 
 			if (!iscosafe) {
+				if(printHighlights)
 				mainLog.println(ltls[danum].toString() + " is not cosafe, converting it to cosafe");
 				ltls[danum] = Expression.Not(ltls[danum]);
 				safeltl_accstates.set(danum);
+				if(printHighlights)
 				mainLog.println("--->" + ltls[danum].toString());
 			}
 			das[danum] = mcLtls[danum].constructDAForLTLFormula(this, productMdp, ltls[danum], labelBSs[danum],
@@ -214,6 +222,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			try {
 				File fn = new File(saveplace + "da" + danum + "_"
 						+ ltls[danum].toString().replace(" ", "").replace("\"", "") + ".dot");
+				if(printHighlights)
 				mainLog.println("Saving to file " + fn.getName());
 				PrintStream out;
 				out = new PrintStream(new FileOutputStream(fn));
@@ -227,9 +236,11 @@ public class MDPModelChecker extends ProbModelChecker {
 			if (!(das[danum].getAcceptance() instanceof AcceptanceReach)) { // a safety condition is not really a
 																			// reachability problem so if you have a
 																			// safety condition
-				mainLog.println("\nAutomaton is not a DFA. .");
+				if(printHighlights)
+					mainLog.println("\nAutomaton is not a DFA. .");
 				if (!(das[danum].getAcceptance() instanceof AcceptanceRabin)) // should be an or thing but fix it later
 				{
+					if(printHighlights)
 					mainLog.println("\nAutomaton is not a DRA either..Breaking");
 					// Dummy return vector
 					return null;
@@ -238,23 +249,28 @@ public class MDPModelChecker extends ProbModelChecker {
 					safeltl_accstates.set(danum);
 
 					// do nothing. find out what to do here
+					if(printHighlights)
 					mainLog.println("Need to get accepting states for this rabin automata");
 					continue;
 				}
 			} else {
 				accs[danum] = ((AcceptanceReach) das[danum].getAcceptance()).getGoalStates();
+				if(printDetails)
 				mainLog.println(
 						"Accepting States bit set for " + ltls[danum].toString() + " : " + accs[danum].toString());
+				if(printHighlights)
 				mainLog.println("Labels Bitset " + labelBSs[danum].toString());
 			}
-
+			if(printHighlights)
 			mainLog.println("Before product " + danum + " model states: " + productMdp.getNumStates() + " da states "
 					+ das[danum].size());
 
 			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
 
 			numStates = product.getProductModel().getNumStates();
+			if(printHighlights)
 			mainLog.println("After product " + danum + " product states: " + numStates);
+			if(printHighlights)
 			mainLog.println("Product" + danum + " accepting states: "
 					+ ((AcceptanceReach) product.getAcceptance()).getGoalStates().toString());
 			allAccStates[danum] = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
@@ -311,7 +327,9 @@ public class MDPModelChecker extends ProbModelChecker {
 			}
 			// printing all acc states saved
 			for (int tempnum = 0; tempnum <= danum; tempnum++) {
+				if(printHighlights)
 				mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
+				if(printHighlights)
 				mainLog.println(tempnum + ": " + essentialaccs[tempnum].toString());
 			}
 			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
@@ -328,6 +346,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			productMdp = product.getProductModel();
 
 		}
+		if(printHighlights)
 		mainLog.println("DFAs with bad states = " + safeltl_accstates.toString());
 		// filter out the bad states from the accepting states
 		for (int tempnum = 0; tempnum < numOp; tempnum++) {
@@ -351,10 +370,12 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		// printing all acc states saved
 		for (int tempnum = 0; tempnum < numOp; tempnum++) {
+			if(printHighlights)
 			mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
 		}
 		for (int r = 0; r < numrobots; r++) {
 			// for(int da=0; da<numOp; da++) {
+			if(printHighlights)
 			mainLog.println("r" + r + " init states: " + initstates[r].toString());
 			// }
 		}
@@ -498,9 +519,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		sumprod.addState();
 
 		Distribution prodDistr = new Distribution();
+		if(printDetails)
 		mainLog.print(" NI:" + cs1 + "->");
 		for (int i = 0; i < cs2.length; i++) {
 			prodDistr.add(cs2[i], probs[i]);
+			if(printDetails)
 			mainLog.print(cs2[i] + ",");
 		}
 
@@ -513,9 +536,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		String extras = "e";
 		Distribution prodDistr = new Distribution();
 		// linking in r-1 to r
+		if(printDetails)
 		mainLog.print("\t SER " + cs1 + " -> ");
 		for (int i = 0; i < cs2.length; i++) {
 			prodDistr.add(cs2[i], probs[i]);
+			if(printDetails)
 			mainLog.print(cs2[i] + ",");
 		}
 		sumprod.addActionLabelledChoice(cs1, prodDistr, "switch_" + extras + "r" + (r - 1) + "_r" + r);
@@ -526,13 +551,23 @@ public class MDPModelChecker extends ProbModelChecker {
 		String extras = "e";
 		Distribution prodDistr = new Distribution();
 		// linking in r-1 to r
+		if(printDetails)
 		mainLog.print("\t SER " + cs1 + " -> ");
 		for (int i = 0; i < cs2.length; i++) {
 			prodDistr.add(cs2[i], probs[i]);
+			if(printDetails)
 			mainLog.print(cs2[i] + ",");
 		}
 		sumprod.addActionLabelledChoice(cs1, prodDistr, "switch_" + extras + "r" + (r - 1) + "_r" + r);
 
+	}
+	
+	private void addlink(MDPSimple sumprod, int cs1, int cs2, int r) {
+		int cs2arr[] = new int[1]; 
+		cs2arr[0] = cs2; 
+		double probarr[] = new double[1]; 
+		probarr[0] = 1.0; 
+ 		addlink(sumprod,cs1,cs2arr,probarr,r);
 	}
 
 	private boolean isfailState(State x1, int nv) {
@@ -736,10 +771,14 @@ public class MDPModelChecker extends ProbModelChecker {
 			dainits[i] = 0;
 
 		// printing stuff
+		if(printHighlights)
 		mainLog.println("Bad States:" + badStates.toString());
+		if(printHighlights)
 		mainLog.println("Final States:" + finalAccStates.toString());
+		if(printHighlights)
 		mainLog.println("Switch States:" + allSwitchStates.toString());
 		for (int i = 0; i < numrobots; i++) {
+			if(printHighlights)
 			mainLog.println("Init States" + i + " :" + initstates[i].toString());
 			rinitstates[i] = new BitSet(numStates);
 			int numis = initstates[i].cardinality();
@@ -747,6 +786,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			for (int j = 0; j < numis; j++) {
 				if (setbit != -1) {
 					boolean isinitstate = isRealInitState(pstates.get(setbit), dainits, numVars);
+					if(printHighlights)
 					mainLog.println(":" + setbit + ":" + isinitstate);
 					if (isinitstate)
 						rinitstates[i].set(setbit);
@@ -828,6 +868,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			// go over the entire product mdp for robot r
 			MDP pr = productRobots[r];
 			numStates = pr.getNumStates();
+			if(printDetails)
 			mainLog.println("Robot " + r + " states " + numStates + " choices " + pr.getNumChoices());
 			expStates += numStates;
 			expChoices += pr.getNumChoices();
@@ -900,6 +941,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		// so change all of this ? // TODO!!!!
 		int totswitches = 0;
 		double switchprob = 1.0;
+		if(printDetails)
 		mainLog.println("Switch States now");
 		int numSwitchStates = allSwitchStates.cardinality();
 		int numInitStates = 0;
@@ -920,6 +962,7 @@ public class MDPModelChecker extends ProbModelChecker {
 						cs1 = (r - 1) * numStates + setbit_r;
 						prodDistr.add(map[cs2], switchprob);
 						sumprod.addActionLabelledChoice(map[cs1], prodDistr, "switch_" + (r - 1) + "_" + r);
+						if(printHighlights)
 						mainLog.println("SS:" + setbit_r + "->" + setbit_r1 + ":" + map[cs1] + "->" + map[cs2]);
 						totswitches++;
 					}
@@ -941,18 +984,22 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		sumprod.exportToDotFile(saveplace + "finalprod.dot");
 		sumprod.exportToPrismExplicitTra(saveplace + "finalp" + ".tra");
+		if(printHighlights)
 		mainLog.println("Num States " + sumprod.getNumStates() + " choices " + sumprod.getNumChoices());
+		if(printHighlights)
 		mainLog.println("Switch States " + allSwitchStates.cardinality());
-
+		if(printHighlights)
 		mainLog.println("Exp Num States " + expStates + " choices " + expChoices + " switches " + totswitches + " = "
 				+ (expChoices + totswitches));
 
 		if (getExportProductTrans()) {
+			if(printHighlights)
 			mainLog.println(
 					"\nExporting product transition matrix to file \"" + getExportProductTransFilename() + "\"...");
 			sumprod.exportToPrismExplicitTra(getExportProductTransFilename());
 		}
 		if (getExportProductStates()) {
+			if(printHighlights)
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
 			VarList newVarList2 = (VarList) modulesFile.createVarList().clone();
@@ -982,6 +1029,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			BitSet initstates[], MDPSimple sumprod) {
 		int totswitches = 0;
 		double switchprob = 1.0;
+		if(printDetails)
 		mainLog.println("Switch States now");
 		int numSwitchStates = allSwitchStates[0].cardinality(); //given that all of them have the same switches
 		int numInitStates = 0;
@@ -1013,6 +1061,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				// mainLog.println("Check Here");
 			}
 		}
+		if(printHighlights)
 		mainLog.println("Max switches:"+totswitches);
 		return totswitches;
 	}
@@ -1022,6 +1071,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		Object res[] = new Object[2];
 		int totswitches = 0;
 		double switchprob = 1.0;
+		if(printDetails)
 		mainLog.println("Switch States now");
 		BitSet updatedSwitches[] = new BitSet[numrobots];//(BitSet) allSwitchStates.clone();
 		int numSwitchStates = allSwitchStates.cardinality();
@@ -1046,6 +1096,7 @@ public class MDPModelChecker extends ProbModelChecker {
 						cs1 = (r - 1) * numStates + setbit_r;
 						prodDistr.add(map[cs2], switchprob);
 						sumprod.addActionLabelledChoice(map[cs1], prodDistr, "switch_" + (r - 1) + "_" + r);
+						if (printDetails)
 						mainLog.println("SS:" + setbit_r + "->" + setbit_r1 + ":" + map[cs1] + "->" + map[cs2]);
 						totswitches++;
 					}
@@ -1404,8 +1455,10 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		// unfoldPolicy(res, sumprod, accStatesF, numrobots, sumprod_noswitches,
 		// switchStates);
-		unfoldPolicy_new_bits(res, sumprod, accStatesF, numrobots, sumprod_noswitches, switchStates, badStates, initstates,
-				true);
+		unfoldPolicyClean(res, sumprod, accStatesF, numrobots, 
+				sumprod_noswitches, switchStates, badStates);
+//		unfoldPolicy_new_bits(res, sumprod, accStatesF, numrobots, sumprod_noswitches, 
+//				switchStates, badStates, initstates,true);
 		sumprod.exportToDotFile(saveplace + "second_sumprod.dot");
 		sumprod.exportToPrismExplicit(saveplace + "second_sumprod");
 
@@ -2672,6 +2725,82 @@ public class MDPModelChecker extends ProbModelChecker {
 		return otherRobotStates;
 	}
 
+	//the clean version of updateTeamAutomatonForState 
+	//cuz that was just a misleading name okay 
+	protected Object[] addFailSwitchGetUpdatedInitialStates(probPolicyTest policy,MDPSimple teamAutomatonNoSwitches,
+			policyState current_robot_state, int combstates[][], int combNo,int numrobots)	//dont need the policy because already have that information in combstates
+	{
+		int numres = 2;
+		Object res[] = new Object[numres]; 
+		//This is a single link, there will only be one link to the state of the next robot 
+		//The probabilities for this need to be calculated elsewhere 
+		//So essentially this new state becomes the initial state 
+		//There should be a link from the parent state to this current_robot_state (that should take care of the probabilities)
+		int nextRobot = (current_robot_state.rnum+1)% numrobots; 
+		int nextRobotState = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,combstates[combNo][nextRobot]); 
+		
+		addlink(teamAutomatonNoSwitches,current_robot_state.state,nextRobotState,nextRobot);
+		
+		//update initial states 
+		BitSet newInitStates[] = new BitSet[numrobots]; 
+		int actualInitStates[] = new int[numrobots];
+		//for each robot get a list of possible inital states, 
+		//same robotmdp but different da values 
+		for(int r=0; r<numrobots; r++)
+		{
+			if(r == current_robot_state.rnum)
+				actualInitStates[r]=current_robot_state.state; 
+			else
+				actualInitStates[r] = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,combstates[combNo][r]);
+			newInitStates[r] = (BitSet)policy.getAllStates().getStatesWithSameRobotMDPState(actualInitStates[r]).clone();
+			
+		}
+		res[0]= newInitStates; 
+		res[1]=actualInitStates; 
+		return res; 
+		
+		
+	}
+	
+	//the clean version of updateTeamAutomatonForState 
+	//cuz that was just a misleading name okay 
+	protected Object[] addFailSwitchGetUpdatedInitialStates(probPolicyTest policy,MDPSimple teamAutomatonNoSwitches,
+			policyState current_robot_state, int[] statesForRobots)	//dont need the policy because already have that information in combstates
+	{
+		int numres = 3;
+		int numrobots = policy.tAutomaton.numRobots; 
+		Object res[] = new Object[numres]; 
+		//This is a single link, there will only be one link to the state of the next robot 
+		//The probabilities for this need to be calculated elsewhere 
+		//So essentially this new state becomes the initial state 
+		//There should be a link from the parent state to this current_robot_state (that should take care of the probabilities)
+		int nextRobot = (current_robot_state.rnum+1)% numrobots; 
+		int nextRobotState = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,statesForRobots[nextRobot]); 
+		
+		addlink(teamAutomatonNoSwitches,current_robot_state.state,nextRobotState,nextRobot);
+		
+		//update initial states 
+		BitSet newInitStates[] = new BitSet[numrobots]; 
+		int actualInitStates[] = new int[numrobots];
+		//for each robot get a list of possible inital states, 
+		//same robotmdp but different da values 
+		for(int r=0; r<numrobots; r++)
+		{
+			if(r == current_robot_state.rnum)
+				actualInitStates[r]=current_robot_state.state; 
+			else
+				actualInitStates[r] = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,statesForRobots[r]);
+			newInitStates[r] = (BitSet)policy.getAllStates().getStatesWithSameRobotMDPState(actualInitStates[r]).clone();
+			
+		}
+		res[0]= newInitStates; 
+		res[1]=actualInitStates; 
+		res[2]=nextRobotState;
+		return res; 
+		
+		
+	}
+
 	protected Object[] updateTeamAutomatonForState(ArrayList<Entry<Integer, Integer>> polti2, MDPSimple sumprod_new,
 			List<State> states, int rs, int r, int nextr, int numVar, int combstates[][], int newstate, int numrobots) {
 		int numres = 2;
@@ -2741,8 +2870,115 @@ public class MDPModelChecker extends ProbModelChecker {
 		res[1]=basicInitStates;
 		return res;//initstates_now;
 	}
+	protected void computeProbAndUpdateTeamAutomatonForState(probPolicyTest policy, 
+			policyState currState,int[] stateForRobot ) throws PrismException
+	{
+		MDPSimple newTeamAutomaton = policy.tAutomaton.getNewTeamAutomatonWithSwitches(currState.state);
+		
+		//add the links 
+		Object updatedInitStates[]=addFailSwitchGetUpdatedInitialStates(
+				policy,newTeamAutomaton,currState,stateForRobot);
 
-	protected void updateTeamAutomatonForStates(policyUnfolded polc, MDPSimple sumprod, int numrobots,
+		BitSet updatedPossibleInitStatesForSwitches[] = (BitSet[])updatedInitStates[0]; 
+		int updatedInitStatesRobot[] = (int[])updatedInitStates[1];
+		int nextRobotstate = (int)updatedInitStates[2];
+
+		//update switches using this information 
+		updateSwitches(policy.tAutomaton.switchstatesRobots,policy.tAutomaton.numRobots,
+				policy.tAutomaton.allStates.states,
+				policy.tAutomaton.allStates.numVar,updatedPossibleInitStatesForSwitches,
+				newTeamAutomaton);
+		//now we have the updated automaton 
+	
+		newTeamAutomaton.findDeadlocks(true);
+		//save stuff just for debugging 
+		newTeamAutomaton.exportToDotFile(saveplace + "sumprod_new" + currState.state + ".dot");
+		newTeamAutomaton.exportToPrismExplicitTra(saveplace + "sumprod_new" + currState + ".tra");
+		
+		//compute the probabilities again 
+		ModelCheckerResult res = computeUntilProbs(newTeamAutomaton, policy.tAutomaton.statesToAvoid,
+				policy.tAutomaton.finalAccStates,false);
+		
+		//add the result to the policy 
+		policy.unfoldPolicy(newTeamAutomaton, res.strat, 0, currState.pstate, nextRobotstate,updatedInitStatesRobot);
+		
+	}
+
+	protected void updateTeamAutomatonForStatesClean(probPolicyTest policy, MDPSimple teamAutomaton,
+			policyState currState) throws PrismException
+	{
+		//given a policy (which has a team automaton with no switches and other info)
+		//teamAutomaton and current state update the team automaton iteratively and 
+		//generate policies for each state 
+		
+		//step 1 get all the indices that have changed at this point 
+		//outer most array list - robot 
+		//next one - states for each robot at time of currState 
+		//last array list - index changed and corresponding value at final state 
+		//need to double check this okay 
+		ArrayList<ArrayList<Entry<policyState, ArrayList<Entry<Integer, Integer>>>>> 
+		changedIndicesForRobotStates = policy.getChangedIndicesAcrossPolicyAtTime(currState);
+		
+		//from the changed Indices generate a list of possible combinations 
+		Object combstateslist[] = createRobotCombs(policy.tAutomaton.numRobots,currState.rnum,
+				changedIndicesForRobotStates);
+		
+		//okay I know this is just weird but this is the best I've got right now okay 
+		//and if I fix more I just get more confused!! so i'm going to stop here okay 
+		//okay so here we're taking these combinations and just getting new states 
+		//combstates serves as a list of states
+		//newstates are the new states for this robot 
+		ArrayList<ArrayList<Entry<Integer, Integer>>> combinations = (ArrayList<ArrayList<Entry<Integer, Integer>>>) combstateslist[0];
+		int combstates[][] = (int[][]) combstateslist[1];
+		double combstatesProbs[] = (double[])combstateslist[2];
+		// now lets use these combinations to get new states
+		int newstates[] = policy.getStatesFromCombinations(combinations, currState.state); 
+		
+		policy.addLinkInPolicyMDP(newstates, combstatesProbs, currState.state, null,true);
+		//updateTeamAutomatonForState
+		for(int s=0; s<newstates.length; s++)
+		{
+			//create the new state //same robot, same time, different state, parent state = this state
+			policyState stateToCompute = new policyState(currState.rnum,currState.time,newstates[s],currState.state,null,currState.associatedStartState);
+			//make sure you have the right policy state 
+			policy.setCurrentPolicyToPolicyFromAllPolicies(currState.associatedStartState);
+			//update team automaton and compute probability 
+			computeProbAndUpdateTeamAutomatonForState(policy,stateToCompute,combstates[s]);
+			//TODO: no notion of whether this policy has been computed before or not 
+			//which needs to be fixed otherwise things wont work 
+		}
+
+		
+		
+		//TODO: come back here1 
+		
+		
+	}
+	protected void unfoldPolicyClean(ModelCheckerResult res, MDPSimple sumprod, BitSet accStatesF, 
+			int numrobots,
+			MDPSimple sumprod_noswitches, BitSet[] switches, BitSet badstates) throws PrismException
+	{
+		Strategy strat = res.strat;	//save the strategy
+		probPolicyTest policy = new probPolicyTest(numrobots,accStatesF,badstates,
+				sumprod_noswitches,switches,mainLog);	//initalize policy variables not the actual policy
+		policy.unfoldPolicy(sumprod, strat, 0, -1);		//compute the policy now , the time is 0 and there is no parent state
+		
+		//while all policies have not been computed 
+		while(!policy.stuckStatesQueue.isEmpty())
+		{
+			policyState computeForState = policy.stuckStatesQueue.remove(); 
+			
+			//set the current policy to be the one for this particular state 
+			//so we know where to get our information from 
+			policy.setCurrentPolicyToPolicyFromAllPolicies(computeForState.associatedStartState);
+			
+			updateTeamAutomatonForStatesClean(policy, sumprod,computeForState);
+			
+		}
+		policy.savePolicyMDPToFile(saveplace, "policyMDP");
+		
+	}
+	protected void updateTeamAutomatonForStates(policyUnfolded polc,MDPSimple sumprod, int numrobots,
 			MDPSimple sumprod_noswitches, BitSet[] switches,robotTimeState rts, BitSet badstates,BitSet accStatesF)
 			throws PrismException {
 
@@ -2783,11 +3019,15 @@ public class MDPModelChecker extends ProbModelChecker {
 			}
 		}
 		Object cirobots[] = getChangedIndicesAcrossPolicy(pol, numrobots, t, r, nextr, states, numVar);
+//		ArrayList<ArrayList<Entry<Integer, ArrayList<Entry<Integer, Integer>>>>>  changedIndicesForRobotStates = ppt.getChangedIndicesAcrossPolicyAtTime(new policyState(r,t,rs,rts.pstate));
 		Object combstateslist[] = createRobotCombs(numrobots, r, cirobots);
+//		Object combstateslist[] = createRobotCombs(numrobots, r, changedIndicesForRobotStates);
+
 		ArrayList<ArrayList<Entry<Integer, Integer>>> combinations = (ArrayList<ArrayList<Entry<Integer, Integer>>>) combstateslist[0];
 		int combstates[][] = (int[][]) combstateslist[1];
 		// now lets use these combinations to get new states
 		int newstates[] = getStatesFromCombinations(combinations, states, rs);
+		//ppt.getStatesFromCombinations(combinations, rs); 
 
 		polti2 = pol[nextr].get(nextrt);
 		if(polti2.size()>2)
@@ -2796,7 +3036,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		}
 		int otherRobotStates[] = new int[polti2.size()];
 		double probs[] = new double[polti2.size()];
-		polc.addStatesToPol(rs, newstates);
+		polc.addStatesToPol(rs, newstates); //this is adding states to the mdp pol mdp 
 		// we now have newstates len init states
 		for (int newstate = 0; newstate < newstates.length; newstate++) {
 			rs = newstates[newstate];
@@ -2812,15 +3052,22 @@ public class MDPModelChecker extends ProbModelChecker {
 
 			Object initstateinfo[]= updateTeamAutomatonForState(polti2, sumprod_new, states, rs, r, nextr, numVar,
 					combstates, newstate, numrobots);
+//			policyState temprts = new policyState(rts.rnum,rts.time,rs,rts.state);
+//				Object updatedInitStates[]=addFailSwitchGetUpdatedInitialStates(ppt,sumprod_new,temprts,combstates,newstate,numrobots);
 
 			BitSet initstates_now[] = (BitSet[])initstateinfo[0];
 			int initstates_robot[]= (int[])initstateinfo[1];
-			updateSwitches(switches, numrobots, states, numVar, initstates_now, sumprod_new);
+//			BitSet updatedPossibleInitStatesForSwitches[] = (BitSet[])updatedInitStates[0]; 
+//			int updatedInitStatesRobot[] = (int[])updatedInitStates[1];
+			updateSwitches(switches, numrobots, states, numVar, initstates_now,sumprod_new);
+//					updatedPossibleInitStatesForSwitches, sumprod_new);
 			sumprod_new.findDeadlocks(true);
 			sumprod_new.exportToDotFile(saveplace + "sumprod_new" + rs + ".dot");
 			sumprod_new.exportToPrismExplicitTra(saveplace + "sumprod_new" + rs + ".tra");
 			ModelCheckerResult res = computeUntilProbs(sumprod_new, badstates, accStatesF, false);
-			polc.updatePolicy(numrobots, sumprod_new, res.strat, accStatesF,curr_robot_state,initstates_robot); //so the time should be the next bit right ? so t+1 
+			polc.updatePolicy(numrobots, sumprod_new, res.strat,
+					accStatesF,curr_robot_state,initstates_robot); //so the time should be the next bit right ? so t+1 
+//			ppt.unfoldPolicy(sumprod_new, res.strat,0 , curr_robot_state); //the time is always 0 regardless so do i even need it here ? 
 		}
 			else
 			{
@@ -2859,6 +3106,9 @@ public class MDPModelChecker extends ProbModelChecker {
 
 		Strategy strat = res.strat;
 		policyUnfolded polc = new policyUnfolded(numrobots, sumprod, strat, accStatesF);
+//		probPolicyTest newPolVar=new probPolicyTest(numrobots, accStatesF, badstates,
+//				sumprod_noswitches,switches,mainLog);
+//		newPolVar.unfoldPolicy(sumprod, strat, 0, -1);
 		ArrayList<ArrayList<Entry<Integer, Integer>>>[] pol = polc.pol;
 		BitSet stuckStates = (BitSet) polc.stuckStates.clone();
 		ArrayList<ArrayList<Integer>> stuckStatesRobot = polc.stuckStateRobot;
@@ -2910,6 +3160,7 @@ public class MDPModelChecker extends ProbModelChecker {
 					// true);
 //				}
 //			}
+			
 			polc.printpolmap();
 			polc.polmdp.exportToDotFile(saveplace+"policytry.dot");
 			polc.polmdp.exportToPrismExplicitTra(saveplace+"policytry.tra");
@@ -3613,6 +3864,65 @@ public class MDPModelChecker extends ProbModelChecker {
 		}
 		res[0] = combinations;
 		res[1] = combstates;
+		return res;// combinations;
+	}
+
+
+	private int calculateMaxCombsNum(int numrobots, int cur_r, ArrayList<ArrayList<Entry<policyState, ArrayList<Entry<Integer, Integer>>>>> cirobots)
+	{
+		int res = 1; 
+		for(int i = 0; i<numrobots; i++)
+		{
+			if(i != cur_r)
+			res = res*cirobots.get(i).size();
+		}
+		return res;
+	}
+	private Object[] createRobotCombs(int numrobots, int cur_r, ArrayList<ArrayList<Entry<policyState, ArrayList<Entry<Integer, Integer>>>>> cirobots) {
+		int numres = 3;
+		Object res[] = new Object[numres];
+		int maxcomb = calculateMaxCombsNum(numrobots,cur_r,cirobots);//(int) Math.pow(2.0, (double) (numrobots - 1));	// this causes problems because that is not the real number of max combs
+		int combstates[][] = new int[maxcomb][numrobots];
+		double combstatesProbs[] = new double[maxcomb];
+		// combstates = new int [maxcomb][numrobots];
+		int counter[] = new int[numrobots];
+		ArrayList<Entry<policyState, ArrayList<Entry<Integer, Integer>>>> rvals;
+		for (int i = 0; i < numrobots; i++) {
+			counter[i] = 0;
+		}
+		ArrayList<ArrayList<Entry<Integer, Integer>>> combinations = new ArrayList<ArrayList<Entry<Integer, Integer>>>();
+
+		int combnum = 0;
+		int rcounter = 1;
+		mainLog.print("\n");
+		while (combnum < maxcomb) {
+			ArrayList<Entry<Integer, Integer>> currcombination = new ArrayList<Entry<Integer, Integer>>();
+			double probHere = 1; 
+			for (int r = 0; r < numrobots; r++) {
+
+				if (r != cur_r) {
+					rvals = (ArrayList<Entry<policyState, ArrayList<Entry<Integer, Integer>>>>) cirobots.get(r);
+					int rsize = rvals.size();
+					mainLog.print(" " + r + ":");
+					mainLog.print(rvals.get(counter[r]).getKey() + "," + rvals.get(counter[r]).getValue());
+					currcombination.addAll(rvals.get(counter[r]).getValue());
+					combstates[combnum][r] = rvals.get(counter[r]).getKey().state;
+					probHere *= rvals.get(counter[r]).getKey().getProb();
+					if (combnum % (rcounter + 1) == 0)
+						counter[r] = (counter[r] + 1) % rsize;
+					rcounter = (rcounter + 1) % (numrobots - 1);
+
+				}
+			}
+			combstatesProbs[combnum] = probHere;
+			combnum++;
+			
+			combinations.add(currcombination);
+			mainLog.print("\n");
+		}
+		res[0] = combinations;
+		res[1] = combstates;
+		res[2] = combstatesProbs;
 		return res;// combinations;
 	}
 
