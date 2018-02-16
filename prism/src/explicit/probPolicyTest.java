@@ -50,6 +50,7 @@ import prism.PrismComponent;
 import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismFileLog;
+import prism.PrismLangException;
 import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
@@ -66,6 +67,7 @@ class policyState
 	public Object action;
 	public int associatedStartState; 
 	public double probFromParent; 
+	public int associatedPolicyID; //add the id of the associated policy 
 
 	public policyState()
 	{
@@ -75,8 +77,8 @@ class policyState
 		pstate = -1;
 		associatedStartState = -1;
 		action = null;
-		probFromParent = 0; //not possible 
-		
+		probFromParent = 1; //so there are no errors really but this isnt smart 
+		associatedPolicyID=-1;
 	}
 
 	/**
@@ -92,7 +94,8 @@ class policyState
 		pstate = -1;
 		associatedStartState=-1;
 		action = null;
-		probFromParent = 0; 
+		probFromParent = 1; 
+		associatedPolicyID=-1;
 	}
 
 	/**
@@ -109,7 +112,8 @@ class policyState
 		pstate = p;
 		associatedStartState = -1;
 		action = null;
-		probFromParent = 0; 
+		probFromParent = 1; 
+		associatedPolicyID=-1;
 	}
 
 		/**
@@ -127,7 +131,33 @@ class policyState
 		pstate = p;
 		action = a;
 		associatedStartState = as; 
-		probFromParent = 0; 
+		probFromParent = 1; 
+		associatedPolicyID=-1;
+	}
+	public policyState(policyState currState) {
+			// TODO Auto-generated constructor stub
+		rnum = currState.rnum;
+		time = currState.time;
+		state = currState.state;
+		pstate = currState.pstate;
+		action = currState.action;
+		associatedStartState = currState.associatedStartState; 
+		probFromParent = currState.probFromParent; 
+		associatedPolicyID=currState.associatedPolicyID;
+		}
+
+	public String toStringSmall()
+	{
+		String toret ="[t:" + time + ", s:" + state;
+		if (action != null)
+			toret = toret+", a:" + action ;
+	
+		if (probFromParent != 0)
+			toret=toret+" ->"+probFromParent;
+		if (associatedPolicyID !=-1)
+			toret = toret+"="+associatedPolicyID;
+		toret = toret + "]";
+		return toret; 
 	}
 
 	/* (non-Javadoc)
@@ -141,6 +171,10 @@ class policyState
 			toret = toret+", a:" + action ;
 		if (associatedStartState != -1)
 			toret = toret + ", ss:"+associatedStartState; 
+		if (probFromParent != 0)
+			toret=toret+" ->"+probFromParent;
+		if (associatedPolicyID !=-1)
+			toret = toret+"="+associatedPolicyID;
 		toret = toret + "]";
 		return toret; 
 	}
@@ -160,6 +194,68 @@ class policyState
 		return probFromParent;
 	}
 
+
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		policyState other = (policyState) obj;
+		if (associatedStartState != other.associatedStartState)
+			return false;
+		if (pstate != other.pstate)
+			return false;
+		if (state != other.state)
+			return false;
+		if (time != other.time)
+			return false;
+		return true;
+	}
+
+	public boolean equalsNoTime(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		policyState other = (policyState) obj;
+		if (associatedStartState != other.associatedStartState)
+			return false;
+		if (pstate != other.pstate)
+			return false;
+		if (state != other.state)
+			return false;
+		return true;
+	}
+	
+	public boolean sameState(Object obj)
+	{
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		policyState other = (policyState) obj;
+	
+		if (state != other.state)
+			return false;
+	
+		return true;
+	}
+
+
+	
 };
 
 
@@ -190,7 +286,7 @@ class stateInfoFromStatesList
 	int numVar;
 	int robotState;
 	int mdpState;
-	int failState=9; 
+	int failState=16;//9; 
 
 	public stateInfoFromStatesList(MDPSimple sumprod)
 	{
@@ -212,12 +308,31 @@ class stateInfoFromStatesList
 		return x1vp;
 
 	}
+	private Object[] getNewStatePreservingRobotMDPOnlyAndChangedIndices(State s1,List<Entry<Integer, Integer>> changedIndices,boolean setAllOthersToZero) {
+		Object x1v[] = s1.varValues;
+		Object x1vp[] = x1v.clone();
+		if (setAllOthersToZero){
+		for(int v=robotState+1; v<mdpState; v++)
+		{
+			x1vp[v] = 0; 
+		}
+		}
+		for (int v = 0; v < changedIndices.size(); v++) {
+			int ind = changedIndices.get(v).getKey();
+			int val = changedIndices.get(v).getValue();
+			x1vp[ind] = val;
+		}
+		return x1vp;
+
+	}
 	
 	public int[] getStatesFromCombinations(ArrayList<ArrayList<Entry<Integer, Integer>>> combinations, int cs) {
 		int numcomb = combinations.size();
 		int newstates[] = new int[numcomb];
 		for (int comb = 0; comb < numcomb; comb++) {
-			Object[] newstate = getNewState(states.get(cs), combinations.get(comb));
+			Object[] newstate = getNewState(states.get(cs), combinations.get(comb));//getNewStatePreservingRobotMDPOnlyAndChangedIndices(states.get(cs),combinations.get(comb),true);
+			//getNewState(states.get(cs), combinations.get(comb));
+			
 			newstates[comb] = getExactlyTheSameState(newstate);
 		}
 		return newstates;
@@ -260,7 +375,7 @@ class stateInfoFromStatesList
 	private ArrayList<ArrayList<Entry<Integer, Integer>>> compareDAStatesOnly(Object[] s1, Object[] s2)
 	{
 		ArrayList<ArrayList<Entry<Integer, Integer>>> res = null;
-		for (int v = robotState; v < mdpState; v++) //because I know this 
+		for (int v = robotState+1; v < mdpState; v++) //because I know this 
 		{
 			if ((int) s1[v] != (int) s2[v]) {
 				if (res == null) {
@@ -295,7 +410,11 @@ class stateInfoFromStatesList
 		//int robotState = 0; 
 		return getIndValFromState(state, robotState);
 	}
-	
+	public int getMDPState(int state)
+	{
+		//int robotState = 0; 
+		return getIndValFromState(state, mdpState);
+	}
 	public boolean isFailState(int state)
 	{
 		if (getIndValFromState(state,mdpState) == failState)
@@ -344,6 +463,8 @@ class stateInfoFromStatesList
 		//			}
 		return res;
 	}
+	
+
 
 	//merge states s1 and s2 such that the robot num and mdp bit are the same as s2 but 
 	//the rest are the same as s1
@@ -363,6 +484,20 @@ class stateInfoFromStatesList
 		}
 		res = getExactlyTheSameState(s1v);
 		return res;
+	}
+	//get a matching robot state 
+	private int getRobotStateFromMDPState(State s1, int robotNum)
+	{
+		int res = -1;
+		Object s1v[] = s1.varValues.clone();
+		s1v[robotState] = robotNum; 
+		res = getExactlyTheSameState(s1v);
+		return res;
+	}
+	//get a matching robot state 
+	public int getRobotStateFromMDPState(int s1, int robotNum)
+	{
+		return getRobotStateFromMDPState(states.get(s1),robotNum);
 	}
 
 	public int getExactlyTheSameState(Object s1v[])
@@ -459,10 +594,59 @@ class teamAutomatonWithoutSwitches
 
 
 };
+class tempState{
+	int[] states; 
+
+
+	
+	public tempState(int ...a)
+	{
+		
+	
+		if(a.length>0) {
+		states = new int[a.length]; 
+
+		for(int i=0; i<a.length; i++)
+		{
+			states[i]=a[i];
+		}
+		}
+		
+	}
+	
+
+	@Override
+	public String toString() {
+		return "state=" + Arrays.toString(states) + "]";
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(states);
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		tempState other = (tempState) obj;
+		if (!Arrays.equals(states, other.states))
+			return false;
+		return true;
+	}
+	
+	
+};
 //policy class 
 public class probPolicyTest
 {
-	String saveplace = System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
 	String switchInFailureAction = "switch_er";
 	String simpleSwitchAction = "switch";
 
@@ -470,11 +654,15 @@ public class probPolicyTest
 	public ArrayList<Map.Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>>> allPoliciesList; //includes all the policies, the same information as policy mdp but just easier to parse (with time) 
 	public ArrayList<ArrayList<ArrayList<policyState>>> currentPolicy; //the policy that is currently being used / explored
 	private int currentPolicyState; 
-	public BitSet[] policyComputedFor; //store the states for which policy has been computed for each robot 
+	public BitSet[] policyComputedFor; //store the states for which policy has been computed for each robot
+	public ArrayList<policyState> policyComputedForList;
+	public ArrayList<int[]> policyComputedForListAllRobotStates;
 	public MDPSimple policyMDP; //the mdp that stores the policy 
 	private int policyStatesMap[]; //contains the mapping from the original team automaton to this policy mdp  	
 	private int stateNotAddedToPolicyVal; // the value of the map array if the state hasnt been added
-
+	private int policyCounter; //to count how many times policies have been expanded and use as an id for them 
+	public MDPSimple combinedPolicyMDP;
+	private ArrayList<Map.Entry<tempState,Integer>> combinedPolicyStatesMap; //contains the mapping from the original team automaton to this policy mdp  	
 	//stuff related to the mdp bit, maybe store this somewhere else but its helpful here too 
 	//	public int numRobots; 	//the number of robots does not change so its okay to store it
 	//	public BitSet finalAccStates; 		//the accepting states dont change so its okay to store them here 
@@ -488,7 +676,10 @@ public class probPolicyTest
 	PrismLog mainLog;
 	private boolean printPolicy;
 	private boolean printHighlights;
+	private ArrayList<int[]> policyComputedForListAllRobots;
+ 
 
+	
 	private boolean entrylistContains(ArrayList<Entry<Integer, Integer>> arayylist, int key)
 	{
 		boolean res = false;
@@ -510,18 +701,40 @@ public class probPolicyTest
 		return getChangedIndicesAcrossPolicyAtTime(currentPolicy, currRobotState);
 	}
 
+	private ArrayList<Entry<Integer, Integer>> combineTwoArrayLists(ArrayList<Entry<Integer, Integer>> one, ArrayList<Entry<Integer, Integer>> two)
+	{
+		if (one != null || two!= null)
+			{
+			if (one == null) 
+				one = new ArrayList<Entry<Integer, Integer>>();
+			if(two != null) {
+		for (Entry<Integer, Integer> x : two){
+			   if (!one.contains(x))
+			      one.add(x);
+			}}
+			}
+		return one;
+	}
 	public ArrayList<ArrayList<Entry<policyState,ArrayList<Entry<Integer, Integer>>>>> getChangedIndicesAcrossPolicyAtTime(ArrayList<ArrayList<ArrayList<policyState>>> policy,
 			policyState currRobotState)
 	{
 		int currTime = currRobotState.time;
 		int currRobotNum = currRobotState.rnum;
+		
 		policyState currState;
+		policyState nextRobotBeginning = null;
 		ArrayList<ArrayList<Entry<policyState,ArrayList<Entry<Integer, Integer>>>>> allChangedStates = new ArrayList<ArrayList<Entry<policyState,ArrayList<Entry<Integer, Integer>>>>>();
 		
 		//for each robot, get the policy at currTime 
 		for (int r = 0; r < tAutomaton.numRobots; r++) {
 			BitSet changedStates = new BitSet(tAutomaton.allStates.numVar);
 			policyState stateAtBeginning = (policy.get(r)).get(0).get(0); //state at the beginning of the policy
+			if(r < currRobotNum) //could this condition be a problem ? think about this later please 
+				//what i'm trying to do is make sure that changes from previous bits are reflected. However it is important to (omg you're done with this however stuff okay) 
+				//remember that if we're going round, then those changes need to be preserved for robots > currRobotNum too. 
+			{
+				nextRobotBeginning = (policy.get(r+1).get(0)).get(0);
+			}
 			int currTimeRobot = currTime;
 			if (currTimeRobot >= (policy.get(r).size())) //if there is no state for robot r at this time 
 				currTimeRobot = policy.get(r).size() - 1; //then get the one at the last time step 
@@ -533,7 +746,18 @@ public class probPolicyTest
 				currState = currStates.get(s);
 				ArrayList<Entry<Integer, Integer>> changedIndicesForS2 = tAutomaton.allStates.compareDAStatesOnly(stateAtBeginning.state, currState.state,
 						true);
+				
+//				//compare with previous state. 
+				if(r < currRobotNum) {
+				ArrayList<Entry<Integer, Integer>> changedIndicesBetweenRAndCurrRobotState = tAutomaton.allStates.compareDAStatesOnly(currState.state,
+						nextRobotBeginning.state,false);
+				changedIndicesForS2=combineTwoArrayLists(changedIndicesForS2,changedIndicesBetweenRAndCurrRobotState);
+				}
+				//but we also want to remember that the changes for currRobotNum override all the others 
+				//something we could fix elsewhere ? 
+				//TODO: above
 				changedStates.or(tAutomaton.allStates.markIndicesInBitSetFromArrayList(changedIndicesForS2)); //so just saving all the states that have changed so far 
+	
 				if (changedIndicesForS2 == null)
 					changedIndicesForS2 = new ArrayList<Entry<Integer, Integer>>();
 				changedIndicesForStates.add(new AbstractMap.SimpleEntry(currState, changedIndicesForS2));
@@ -572,6 +796,7 @@ public class probPolicyTest
 			allChangedStates.add(changedIndicesForStates);
 
 		}
+
 		return allChangedStates;
 	}
 
@@ -582,6 +807,8 @@ public class probPolicyTest
 
 	private void initialisePolicyComputedFor()
 	{
+		policyComputedForList = new ArrayList<policyState>();
+		policyComputedForListAllRobots = new ArrayList<int[]>();
 		policyComputedFor = new BitSet[tAutomaton.numRobots];
 		for (int i = 0; i < tAutomaton.numRobots; i++) {
 			policyComputedFor[i] = new BitSet(tAutomaton.numStates);
@@ -596,6 +823,286 @@ public class probPolicyTest
 		policyStatesMap = new int[tAutomaton.numStates];
 		Arrays.fill(policyStatesMap, stateNotAddedToPolicyVal);
 	}
+	private void initialiseCombinedPolicyMDP() throws PrismLangException
+	{
+		combinedPolicyMDP = new MDPSimple();
+		VarList combVarlist = new VarList(); 
+	//	newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
+		for(int i = 0; i<tAutomaton.numRobots; i++)
+		{
+			combVarlist.addVar(0, new Declaration("r"+i,new DeclarationIntUnbounded()), 1, null);
+		}
+		combinedPolicyMDP.setVarList((VarList)combVarlist.clone());
+		
+		combinedPolicyMDP.statesList = new ArrayList<State>();
+		int maxStates = 17;
+		combinedPolicyMDP.statesList = new ArrayList<State>();
+		combinedPolicyStatesMap = new ArrayList<Map.Entry<tempState,Integer>>();
+		
+		
+	}
+	private int findInCombinedPolicyStatesMap(tempState temp)
+	{
+		int toret = -1; 
+		for(int i = 0; i<combinedPolicyStatesMap.size(); i++)
+		{
+			if(combinedPolicyStatesMap.get(i).getKey().equals(temp))
+			{
+				toret = i;
+			}
+		}
+		return toret; 
+	}
+	private boolean checkCombinedPolicyStatesMap(int[] states,int value)
+	{
+		tempState temp = new tempState(states); 
+		int index = findInCombinedPolicyStatesMap(temp);
+		if (index != -1)
+		{
+			if(combinedPolicyStatesMap.get(index).getValue()== stateNotAddedToPolicyVal)
+			{combinedPolicyStatesMap.get(index).setValue(value);
+			return false;
+				
+			}
+		}
+		else
+		{
+			combinedPolicyStatesMap.add(new AbstractMap.SimpleEntry<tempState,Integer>(temp,value)); 
+			index = combinedPolicyStatesMap.size()-1; 
+
+			return false;
+		}
+	
+		return true;
+	}
+	private int[] getRobotStatesFromCombStates(int[] states)
+	{
+		for (int i =0; i<states.length; i++)
+		{
+			states[i] = tAutomaton.allStates.getMDPState(states[i]);
+		}
+		return states;
+	}
+	private int addStateToCombinedPolicyMDP(int[] states)
+	{
+		states = getRobotStatesFromCombStates(states);
+		if (!checkCombinedPolicyStatesMap(states,combinedPolicyMDP.numStates)) {
+			
+			State toadd = new State(tAutomaton.numRobots); 
+			for(int i = 0; i<tAutomaton.numRobots; i++)
+			{
+				toadd.setValue(i, states[i]);
+			}
+			combinedPolicyMDP.statesList.add(toadd);
+			combinedPolicyMDP.addState();}
+		tempState temp = new tempState(states); 
+		int index = findInCombinedPolicyStatesMap(temp);
+		return index;
+		
+	}
+	public void addLinkInCombinedPolicyMDP(ArrayList<int[]> states, ArrayList<Double> probs, int[] parentState, Object action,String additionalText)
+	{
+	
+		int indexPS = addStateToCombinedPolicyMDP(parentState);
+		Distribution distr = new Distribution(); 
+		String actionText = Arrays.toString(parentState);
+				
+				
+		
+		for(int s=0; s<states.size(); s++)
+		{
+			
+			int index = addStateToCombinedPolicyMDP(states.get(s)); 
+			distr.add(combinedPolicyStatesMap.get(index).getValue(),probs.get(s) );
+			actionText+="->"+Arrays.toString(states.get(s));
+		}
+		//just to check if I have multiple branches because I'm going over the same stuff again 
+		int numChoices = combinedPolicyMDP.getNumChoices(combinedPolicyStatesMap.get(indexPS).getValue());
+		if(action == null)
+			combinedPolicyMDP.addActionLabelledChoice(combinedPolicyStatesMap.get(indexPS).getValue(), distr, additionalText+"_"+actionText+"."+numChoices);
+		else 
+			combinedPolicyMDP.addActionLabelledChoice(combinedPolicyStatesMap.get(indexPS).getValue(), distr, additionalText+"_"+action.toString()+"."+numChoices);
+	
+	}
+	public void addAllPoliciesListToCombinedPolicyMDP()
+	{
+		 for(int polNo = 0; polNo<allPoliciesList.size(); polNo++)
+		 {
+			 Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentPolPair = allPoliciesList.get(polNo); 
+			 ArrayList<ArrayList<ArrayList<policyState>>> currentPol = currentPolPair.getValue();
+			 //size of arr = num of robots 
+			 //inner thing is time but we want time across robots
+			 int numSucc = 2;
+			 int t=1;
+			 int succt = 0;
+			 int ps[]= new int[tAutomaton.numRobots];
+			 String psaction = ""; 
+			 String succaction = "";
+			 //int ss[]= new int[tAutomaton.numRobots];
+			 ArrayList<int[]> successors = new ArrayList<int[]>();
+			 ArrayList<Double> probs = new ArrayList<Double>();
+			 //hardcoding this 
+			 for(int i =0; i<numSucc; i++ )
+			 { successors.add(new int[tAutomaton.numRobots]);
+			 	probs.add(1.0);
+			 }
+			 int maxT = 0; 
+			 for(int r = 0; r<tAutomaton.numRobots; r++)
+			 { if (maxT <currentPol.get(r).size())
+				 maxT = currentPol.get(r).size();
+			 if(currentPol.get(r).size() > 0) {
+				 if(currentPol.get(r).get(0).size() > 0) {
+			 	ps[r] = currentPol.get(r).get(0).get(0).state; 
+			 	if(currentPol.get(r).get(0).get(0).action != null)
+				 psaction+= "\n"+currentPol.get(r).get(0).get(0).action.toString();
+				 }
+			 }}
+			 while(t<maxT)
+			 {
+				 
+				 
+				 for(int r=0; r<tAutomaton.numRobots; r++)
+				 {
+					 if(currentPol.get(r).size()>t) {
+					 int size = currentPol.get(r).get(t).size();
+					 for(int ns = 0; ns<size; ns++)
+					 {
+						 successors.get(ns)[r]=currentPol.get(r).get(t).get(ns).state;
+						 probs.set(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
+						 //probs.add(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
+						 if (currentPol.get(r).get(t).get(ns).action != null)
+						 succaction+="\n"+currentPol.get(r).get(t).get(ns).action.toString();
+					 }
+					 if (size < numSucc && size!= 0)
+					 {
+						 successors.get(1)[r]= currentPol.get(r).get(t).get(size-1).state;
+					 }
+					 else if (size == 0)
+					 {
+						 for(int ns = 0; ns<numSucc; ns++)
+						 {
+							 successors.get(ns)[r]=ps[r];
+						 }
+					 }
+				 }
+					 else
+					 {
+						 for(int ns = 0; ns<numSucc; ns++)
+						 {
+							 successors.get(ns)[r]=ps[r];
+						 }
+					 }
+					 
+				 }
+				 
+				
+				t++;
+				addLinkInCombinedPolicyMDP(successors, probs, ps,psaction,"");
+				ps = successors.get(0).clone(); 
+				psaction = succaction;
+				succaction = "";
+			 }
+		 }
+	}
+	public void printAllPoliciesList()
+	{
+		 for(int polNo = 0; polNo<allPoliciesList.size(); polNo++)
+		 {
+		printPolicyNo(polNo);
+		 }
+	}
+	public void printPolicyNo(int polNo)
+	{
+	
+			 Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentPolPair = allPoliciesList.get(polNo); 
+			 ArrayList<ArrayList<ArrayList<policyState>>> currentPol = currentPolPair.getValue();
+			 printPolicy(currentPol);
+			
+		 
+	}
+	public void printCurrentPolicy()
+	{
+		printPolicy(currentPolicy);
+	}
+	public void printPolicy(ArrayList<ArrayList<ArrayList<policyState>>> currentPol)
+	{
+		
+		 //size of arr = num of robots 
+		 //inner thing is time but we want time across robots
+		 int numSucc = 2;
+		 int t=1;
+		 int succt = 0;
+		 int ps[]= new int[tAutomaton.numRobots];
+		 String psaction = ""; 
+		 String succaction = "";
+		 //int ss[]= new int[tAutomaton.numRobots];
+		 ArrayList<int[]> successors = new ArrayList<int[]>();
+		 ArrayList<Double> probs = new ArrayList<Double>();
+		 //hardcoding this 
+		 for(int i =0; i<numSucc; i++ )
+		 { successors.add(new int[tAutomaton.numRobots]);
+		 	probs.add(1.0);
+		 }
+		 int maxT = 0; 
+		 String toprint = "";
+		 for(int r = 0; r<tAutomaton.numRobots; r++)
+		 { if (maxT <currentPol.get(r).size())
+			 maxT = currentPol.get(r).size();
+		 if(currentPol.get(r).size() > 0) {
+			 if(currentPol.get(r).get(0).size() > 0) {
+		 	ps[r] = currentPol.get(r).get(0).get(0).state; 
+		 	toprint+=r+":"+ currentPol.get(r).get(0).get(0).toStringSmall()+":";
+		 
+			 }
+		 }}
+		 mainLog.println(toprint);
+		 
+		 while(t<maxT)
+		 {
+			
+			 toprint="";
+			 for(int r=0; r<tAutomaton.numRobots; r++)
+			 {
+				 if(currentPol.get(r).size()>t) {
+				 int size = currentPol.get(r).get(t).size();
+				 for(int ns = 0; ns<size; ns++)
+				 {
+					 successors.get(ns)[r]=currentPol.get(r).get(t).get(ns).state;
+						toprint+=r+":"+ currentPol.get(r).get(t).get(ns).toStringSmall()+":";
+					 probs.set(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
+					 //probs.add(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
+					
+				 }
+				 if (size < numSucc && size!= 0)
+				 {
+					 successors.get(1)[r]= currentPol.get(r).get(t).get(size-1).state;
+				 }
+				 else if (size == 0)
+				 {
+					 for(int ns = 0; ns<numSucc; ns++)
+					 {
+						 successors.get(ns)[r]=ps[r];
+					 }
+				 }
+			 }
+				 else
+				 {
+					 for(int ns = 0; ns<numSucc; ns++)
+					 {
+						 successors.get(ns)[r]=ps[r];
+					 }
+				 }
+				 
+			 }
+			 
+			
+			t++;
+			 mainLog.println(toprint);
+			//addLinkInCombinedPolicyMDP(successors, probs, ps,psaction,"");
+			 }
+		 mainLog.println();
+	}
+
 	public void printPolicyMDPStates()
 	{
 		mainLog.println("Printing Policy MDP Indices");
@@ -605,7 +1112,7 @@ public class probPolicyTest
 		{
 			if(policyStatesMap[i]!=stateNotAddedToPolicyVal)
 			{
-				mainLog.print(i+":"+policyStatesMap[i]+", ");
+				mainLog.print(i+":"+policyStatesMap[i]+"\n");
 				statesInPolicyMDP.set(i);
 			}
 		}
@@ -619,6 +1126,33 @@ public class probPolicyTest
 			policyStatesMap[state] = policyMDP.numStates; 
 			policyMDP.statesList.add(tAutomaton.allStates.states.get(state)); //should work 
 			policyMDP.addState();}
+	}
+	
+	public void addLinkInPolicyMDP(int[] states, double[] probs, int parentState, Object action,boolean normalize,String additionalText)
+	{
+		addStateToPolicyMDP(parentState);
+		Distribution distr = new Distribution(); 
+		String actionText = "childStates";
+		double normalizer = 1.0; 
+		if(normalize)
+		{
+			normalizer = 0; 
+			for(int s = 0; s<probs.length; s++)
+			normalizer+= probs[s];
+		}
+		if (normalizer != 0) {
+		for(int s=0; s<states.length; s++)
+		{
+			addStateToPolicyMDP(states[s]); 
+			distr.add(policyStatesMap[states[s]],probs[s]/normalizer );
+		}
+		//just to check if I have multiple branches because I'm going over the same stuff again 
+		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
+		if(action == null)
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+actionText+"."+numChoices);
+		else 
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+action.toString()+"."+numChoices);
+	}
 	}
 	public void addLinkInPolicyMDP(int[] states, double[] probs, int parentState, Object action,boolean normalize)
 	{
@@ -638,13 +1172,15 @@ public class probPolicyTest
 			addStateToPolicyMDP(states[s]); 
 			distr.add(policyStatesMap[states[s]],probs[s]/normalizer );
 		}
+		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
 		if(action == null)
-			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, actionText);
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, actionText+"."+numChoices);
 		else 
-			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, action);
-	}
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, action.toString()+"."+numChoices);
 	}
 
+//	addLinkInPolicyMDP(states, probs, parentState,  action, normalize,"");
+	}
 	public void addLinkInPolicyMDP(int state, double prob, int parentState, Object action)
 	{
 		ArrayList<Integer> states = new ArrayList<Integer>(); 
@@ -654,6 +1190,29 @@ public class probPolicyTest
 		
 
 		addLinkInPolicyMDP(states,probs,parentState,action);
+	}
+	public void addLinkInPolicyMDP(int state, double prob, int parentState, Object action, String additionalText)
+	{
+		addStateToPolicyMDP(parentState);
+		Distribution distr = new Distribution(); 
+		String actionText = "childStates";
+			addStateToPolicyMDP(state); 
+			distr.add(policyStatesMap[state],prob );
+		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
+		if(action == null)
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+actionText+"."+numChoices);
+		else 
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+action.toString()+".");
+		//^adding +numChoices to the above line caused problems, I have no idea why, probably need to ask dave, same state same stuff ? 
+		//its evening outside and the tree is gliterring =D 
+
+//		ArrayList<Integer> states = new ArrayList<Integer>(); 
+//		states.add(state);
+//		ArrayList<Double> probs = new ArrayList<Double>(); 
+//	probs.add(prob);
+//		
+//
+//		addLinkInPolicyMDP(states,probs,parentState,action,additionalText);
 	}
 	public void addLinkInPolicyMDP(ArrayList<Integer> states, ArrayList<Double> probs, int parentState, Object action)
 	{
@@ -665,10 +1224,28 @@ public class probPolicyTest
 			addStateToPolicyMDP(states.get(s)); 
 			distr.add(policyStatesMap[states.get(s)],probs.get(s) );
 		}
+		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
 		if(action == null)
-			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, actionText);
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, actionText+"."+numChoices);
 		else 
-			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, action);
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, action.toString()+"."+numChoices);
+
+	}
+	public void addLinkInPolicyMDP(ArrayList<Integer> states, ArrayList<Double> probs, int parentState, Object action,String additionalText)
+	{
+		addStateToPolicyMDP(parentState);
+		Distribution distr = new Distribution(); 
+		String actionText = "childStates";
+		for(int s=0; s<states.size(); s++)
+		{
+			addStateToPolicyMDP(states.get(s)); 
+			distr.add(policyStatesMap[states.get(s)],probs.get(s) );
+		}
+		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
+		if(action == null)
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+actionText+"."+numChoices);
+		else 
+			policyMDP.addActionLabelledChoice(policyStatesMap[parentState], distr, additionalText+"_"+action.toString()+"."+numChoices);
 	}
 	private void initialiseCurrentPolicy()
 	{
@@ -703,18 +1280,21 @@ public class probPolicyTest
 		policyMDP = null;
 		currentPolicy = null;
 		policyComputedFor = null;
+		policyComputedForList =null;
+		policyComputedForListAllRobots = null;
 
 	}
 
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, int parent_state)
+	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState)
 	{
-		unfoldPolicy(sumprod,strat,timecount,parent_state,-1,null);
+		unfoldPolicy(sumprod,strat,timecount,currState,-1,null);
 		
 	}
 
 	
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, int parent_state, int succState, int[] allRobotInitStates)
+	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState, int succState, int[] allRobotInitStates)
 	{
+		int parent_state = currState.pstate;
 		//is this the first time 
 		boolean firstUnfolding = false;
 		if (stuckStatesQueue == null) {
@@ -725,6 +1305,7 @@ public class probPolicyTest
 			initialisePolicyComputedFor();
 			stuckStatesQueue = new LinkedList<policyState>();
 			firstUnfolding = true;
+			policyCounter = -1;
 		}
 		// just testing 
 		//policyState testState = new policyState(0,0,6,parent_state); 
@@ -733,7 +1314,10 @@ public class probPolicyTest
 		while (initialStatesIter.hasNext()) {
 			int state = initialStatesIter.next();
 			int rnum = tAutomaton.allStates.getRobotNum(state);
-			policyState testState = new policyState(rnum, timecount, state, parent_state); //so the timecount is always 0 
+			policyState testState = new policyState(currState);//new policyState(rnum, timecount, state, parent_state); //so the timecount is always 0 
+			testState.state = state;
+			testState.rnum = rnum;
+			
 			unfoldPolicyForState(sumprod, strat, testState,succState, allRobotInitStates);
 
 		}
@@ -744,6 +1328,9 @@ public class probPolicyTest
 	{
 		if (printHighlights)
 		mainLog.println("Unfolding Policy for State "+rts.toString());
+		//r:3, t:3, s:2713, ps:2713, ss:1832 ->1.0=5
+		if (rts.rnum==3 && rts.time==3 && rts.state==2713)
+			mainLog.println("The error starts here");
 		int state = rts.state; //current state 
 		int choices = -1;
 		int timecount = rts.time;
@@ -751,17 +1338,24 @@ public class probPolicyTest
 		Object action = null;
 
 		BitSet discovered = new BitSet(tAutomaton.numStates); //just so we don't visit states over and over even though this shouldnt matter
-		Stack<policyState> statesStack = new Stack(); //to store all the states we need to explore, so dfs to the goal , well its not dfs but yeah
+		List<policyState> discoveredStates = new LinkedList<policyState>();
+		//on second thought this does not matter (the thing below) because we might visit the same state again but it may be a child of another state 
+		//and so the inital state of the robot would have changed (though maybe no new task would be acheived)
+//		BitSet addedToStuckQ = new BitSet(tAutomaton.numStates); //for each policy unfolding we don't need to add the same state over and over again to the stuck stack
+		
+		Stack<policyState> statesStack = new Stack<policyState>(); //to store all the states we need to explore, so dfs to the goal , well its not dfs but yeah
 		policyState currState = rts;
 		currState.associatedStartState = rts.state;
 		statesStack.push(currState);
 		//TODO: what do you do when the policy has been computed before and we're just here again ? 
 		//Do we care about this here or later ? 
+		policyComputedForList.add(rts);
 		policyComputedFor[rts.rnum].set(rts.state); //say that we've computed the policy for this state now //we dont know if we'll need to add a link later
+		policyComputedForListAllRobots.add(allRobotInitStates.clone());
 		//forget any of the other policies 
 		initialiseCurrentPolicy();
 		currentPolicyState = rts.state;
-
+		String prevTextToAdd = "";
 		while (!statesStack.isEmpty()) //the main bit - go to the next state, get the action go to the next state and so on
 		{
 			//TODO: addstatetopolmdp(currState.state) 
@@ -774,18 +1368,33 @@ public class probPolicyTest
 			currState.setAction(action);
 			
 			//just making sure we have enough elements in the array 
-			while (currentPolicy.get(currState.rnum).size() < (timecount + 1)) {//+1 because we're adding successors 
+			while (currentPolicy.get(currState.rnum).size() < ((timecount-rts.time) + 1)) {//+1 because we're adding successors 
 				currentPolicy.get(currState.rnum).add(new ArrayList<policyState>());
 			}
-			if (!discovered.get(currState.state) & !tAutomaton.finalAccStates.get(currState.state)) //if it is not an accepting state and not discovered explore
+			if (
+					!discoveredStates.contains(currState)
+					//!discovered.get(currState.state)
+					& !tAutomaton.finalAccStates.get(currState.state)) //if it is not an accepting state and not discovered explore
 			{
 				//add it if it is a stuck state 
 				if (action == null || "*".equals(action)) {
 					//if this state has no next actions and it is not a final state then we need to add it to the stuck states Queue 
 					//you cant add this state if the policy has already been computed for this state 
 					//only add to stuck states if all robots have not failed 
-					if(!allRobotsHaveFailed(allRobotInitStates)) {
-					if(policyComputedFor[currState.rnum].get(currState.state))	//if you've said the policy is already computed 
+			
+
+					if(!allRobotsHaveFailed(allRobotInitStates)) {	
+						if(policyComputedForList.contains(currState))
+						{
+							mainLog.println("computing policy for a state thats already done");
+						}
+						if(policyComputedForListAllRobots.contains(allRobotInitStates.clone()))
+						{
+							mainLog.println("computing policy for a state thats already done for all robots");
+						}
+					if(
+							policyComputedFor[currState.rnum].get(currState.state)
+							)	//if you've said the policy is already computed 
 					{
 						//then you can add its successor states [basically get the next robot and add that state (like adding a switch)
 						//i've already computed these 
@@ -795,11 +1404,33 @@ public class probPolicyTest
 						{
 							policyState nextState = new policyState(tAutomaton.allStates.getRobotNum(nextSuccState),
 									currState.time,nextSuccState,currState.state,null,currState.state); 
-							stuckStatesQueue.add(nextState);
+							//add a link from currState to nextState in the policy MDP 
 							//add the entire policy for this state to to the big policy 
-							if(allRobotInitStates!=null)
+							//and update the initstate of the robot in question (so there are no repeats) 
+							if(allRobotInitStates!=null) {
+								allRobotInitStates[currState.rnum] = currState.state;
 								createPolicyFromRobotInitStates(allRobotInitStates, currState);
+								}
+							nextState.associatedPolicyID = allPoliciesList.size(); //this works on the assumption that the current policy is empty ^
+							String textToAdd = currState.state+"_"+currState.pstate+"_"+rts.associatedStartState;//"abc";//currState.state+"_"+currState.associatedStartState; 
+							
+//							if(prevTextToAdd == textToAdd)
+//								mainLog.println("Adding the same state again - fix this "+textToAdd);
+//							prevTextToAdd = textToAdd;
+//							if (textToAdd.contains("489_23"))
+//							{
+//								mainLog.println("multiple states being added why? the same  state multiple times i.e");
+//							}
+//							if(!addedToStuckQ.get(nextState.state)) {
+							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum,textToAdd);
+							//^ caused the edge lines to disappear in the policy mdp, I'm not entirely sure why, so I removed the number in this function 
+//							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum);
+
+							stuckStatesQueue.add(nextState);
+//							addedToStuckQ.set(nextState.state);
+							
 							//and now like dont add it later or do anything so like just quit
+//							}
 							continue; 
 							//TODO: this should only be the case for policies that have been expanded and are being expanded for the first time.
 							
@@ -809,7 +1440,10 @@ public class probPolicyTest
 						
 					}
 					else
-					stuckStatesQueue.add(currState);
+					{	currState.associatedPolicyID = allPoliciesList.size();//policyCounter+1; 
+						stuckStatesQueue.add(currState);
+					
+					}
 					//TODO: fix this later because we actually add its successors 
 					//continue; 
 					//we only add repeat states for different policies
@@ -830,7 +1464,8 @@ public class probPolicyTest
 					}
 				}
 				//					mainLog.println(currState.toString());
-				discovered.set(currState.state);
+				//discovered.set(currState.state);
+				discoveredStates.add(currState);
 				choices = sumprod.getNumChoices(currState.state);
 				for (int c = 0; c < choices; c++) {
 					if (action.equals(sumprod.getAction(currState.state, c))) {
@@ -848,8 +1483,8 @@ public class probPolicyTest
 										currState.state,null,rts.state); //just go back one time step
 								
 							else if (action.toString().contains(simpleSwitchAction))
-								succState = new policyState(tAutomaton.allStates.getRobotNum(stateProbPair.getKey()), 0, stateProbPair.getKey(),
-										currState.state,null,rts.state); //TODO: fix hardcoding this because I know its 0
+								succState = new policyState(tAutomaton.allStates.getRobotNum(stateProbPair.getKey()), rts.time, stateProbPair.getKey(),
+										currState.state,null,rts.state); //same as the initial states time
 							else
 								succState = new policyState(tAutomaton.allStates.getRobotNum(stateProbPair.getKey()), currState.time + 1,
 										stateProbPair.getKey(), currState.state,null,rts.state);
@@ -858,7 +1493,10 @@ public class probPolicyTest
 							states.add(succState.state); 
 							probs.add(succState.getProb());
 						}
-						addLinkInPolicyMDP(states,probs, currState.state, action);
+						addLinkInPolicyMDP(states,probs, currState.state, action,currState.state+"_"+rts.state+"_"+rts.associatedStartState);
+//						addLinkInPolicyMDP(states,probs, currState.state, action);
+						break; 
+						//don't go over all choices - actions are unique
 					}
 				}
 
@@ -869,22 +1507,44 @@ public class probPolicyTest
 			//				}
 			if (printPolicy)
 			mainLog.println(currState.toString());
-			addtoCurrentPolicy(currState);
+			addtoCurrentPolicy(currState,rts.time);
 
 		}
 		//once we're done add the current policy to the big policy 
 		//and also check if the policy has at least init values for all robots 
-		if(allRobotInitStates != null)
-			checkCurrentPolicy(allRobotInitStates,rts);
+//		if(allRobotInitStates != null)
+//			checkCurrentPolicy(allRobotInitStates,rts);
+		checkCurrentPolicyHasPolicyForAllRobotsAndFix(allRobotInitStates,rts);
 		addCurrentPolicyToAllPolicies(rts);
 
 	}
+	
 	public void savePolicyMDPToFile(String location, String name) throws PrismException
 	{
 		policyMDP.exportToDotFile(location+name+".dot");
+		PrismLog out = new PrismFileLog(location+name+"_sta.dot", true);
+		policyMDP.exportToDotFile(out, null, true);
+		policyMDP.exportToPrismExplicitTra(location+name+".tra");
+		
+		initialiseCombinedPolicyMDP();
+		printAllPoliciesList();
+		addAllPoliciesListToCombinedPolicyMDP();
+		name = "comb"+name;
+		combinedPolicyMDP.exportToDotFile(location+name+".dot");
+		//PrismLog 
+		out = new PrismFileLog(location+name+"_sta.dot", true);
+		combinedPolicyMDP.exportToDotFile(out, null, true);
+		combinedPolicyMDP.exportToPrismExplicitTra(location+name+".tra");
+		
+	}
+	
+	public void savePolicyMDPToFile(MDPSimple policyMDP,String location, String name) throws PrismException
+	{
+		policyMDP.exportToDotFile(location+name+".dot");
+		PrismLog out = new PrismFileLog(location+name+"_sta.dot", true);
+		policyMDP.exportToDotFile(out, null, true);
 		policyMDP.exportToPrismExplicitTra(location+name+".tra");
 	}
-
 	private void checkCurrentPolicy(int[] robotInitStates,policyState state)
 	{
 		//just checking to make sure the current policy has states for each robot 
@@ -897,6 +1557,28 @@ public class probPolicyTest
 				addtoCurrentPolicy(currState);
 			}
 		}
+	}
+	private boolean checkCurrentPolicyHasPolicyForAllRobotsAndFix(int[] robotInitStates,policyState state)
+	{
+		boolean res = true;
+		for(int r=0; r<tAutomaton.numRobots; r++)
+		{
+			if(currentPolicy.get(r).size()==0)
+			{
+				if(robotInitStates == null) {
+				res = false; 
+				break; 
+				}
+				else
+				{
+					policyState currState = createRobotState(robotInitStates[r],state); 
+					addtoCurrentPolicy(currState,state.time); //make this more robust cuz i know the offset 
+				}
+			}
+		}
+		if(!res)
+			mainLog.println("ERROR HERE!!!");
+		return res; 
 	}
 	private boolean allRobotsHaveFailed(int[] robotInitStates)
 	{
@@ -915,6 +1597,11 @@ public class probPolicyTest
 		}
 		return res; 
 	}
+	public boolean allRobotsHaveFailed(int[] robotInitStates,policyState currRobot)
+	{
+		robotInitStates[currRobot.rnum]=currRobot.state; 
+		return allRobotsHaveFailed(robotInitStates);
+	}
 	private void createPolicyFromRobotInitStates(int[] robotInitStates, policyState state)
 	{
 		//so basically add this policy to the current state for this state 
@@ -923,7 +1610,7 @@ public class probPolicyTest
 		for(int r = 0; r<robotInitStates.length; r++)
 		{
 			policyState currState = createRobotState(robotInitStates[r],state); 
-			addtoCurrentPolicy(currState);
+			addtoCurrentPolicy(currState,state.time);
 		}
 	}
 	private policyState createPolicyStateFromNumState(int numState)
@@ -934,24 +1621,41 @@ public class probPolicyTest
 		return res; 
 		
 	}
+	public int getRobotStateFromMDPState(int state,int robotNum)
+	{
+		int res = -1; 
+		res = tAutomaton.allStates.getRobotStateFromMDPState(state, robotNum);
+		return res; 
+	}
 	private policyState createRobotState(int numState, policyState state)
 	{
 		policyState currState = createPolicyStateFromNumState(numState); 
 		currState.pstate = state.state; 
 		currState.associatedStartState = state.state; 
-		currState.time = 0; //TODO: what is this ??? fix this later do we even care ? 
+		currState.time = state.time; 
 		return currState;
 	}
 	private void addCurrentPolicyToAllPolicies(policyState startState)
 	{
 		SimpleEntry currentEntry = new AbstractMap.SimpleEntry<>(startState, deepCopyPolicy(currentPolicy));
 		allPoliciesList.add(currentEntry);
+		policyCounter = allPoliciesList.size()-1;
+	//	policyCounter++;
 	}
 	//if policy for state found in all polices change it, otherwise let it be the same
 	public void setCurrentPolicyToPolicyFromAllPolicies(int state)
 	{
 		if(currentPolicyState != state) {
 		ArrayList<ArrayList<ArrayList<policyState>>> res = getPolicyFromAllPoliciesForState(state); 
+		if(res != null)
+			currentPolicy = res; 
+		}
+	}
+	//if policy for state found in all polices change it, otherwise let it be the same
+	public void setCurrentPolicyToPolicyFromAllPoliciesPolicyID(int polID)
+	{
+		if(policyCounter!= polID) {
+		ArrayList<ArrayList<ArrayList<policyState>>> res = getPolicyFromAllPoliciesIDForState(polID); 
 		if(res != null)
 			currentPolicy = res; 
 		}
@@ -966,12 +1670,27 @@ public class probPolicyTest
 	private ArrayList<ArrayList<ArrayList<policyState>>> getPolicyFromAllPoliciesForState(int state)
 	{
 		ArrayList<ArrayList<ArrayList<policyState>>> res = null;
-		for (int i = 0; i < allPoliciesList.size(); i++) {
+//		for (int i = 0; i < allPoliciesList.size(); i++) {
+		for(int i = allPoliciesList.size()-1; i>=0; i--) {
 			Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentState = allPoliciesList.get(i);
-			if (currentState.getKey().state == state) {
-				res = deepCopyPolicy(currentState.getValue());
+			if (currentState.getKey().state == state) {	//possible errors because of this matching - cuz you dont care about the pstate or associatedstate and this is important 
+				res = deepCopyPolicy(currentState.getValue()); 
+				break; // this does not get the latest ? do I care about this ? this will change things so maybe reverse the order 
 			}
 		}
+		return res;
+
+	}	
+	
+	private ArrayList<ArrayList<ArrayList<policyState>>> getPolicyFromAllPoliciesIDForState(int polID)
+	{
+		ArrayList<ArrayList<ArrayList<policyState>>> res = null;
+			Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentState = allPoliciesList.get(polID);
+//			if (currentState.getKey().state == state) {	//possible errors because of this matching - cuz you dont care about the pstate or associatedstate and this is important 
+				res = deepCopyPolicy(currentState.getValue()); 
+//				break; // this does not get the latest ? do I care about this ? this will change things so maybe reverse the order 
+//			}
+	
 		return res;
 
 	}	
@@ -993,14 +1712,22 @@ public class probPolicyTest
 		}
 		return res;
 	}
-
 	private void addtoCurrentPolicy(policyState currState)
 	{
 		// TODO Auto-generated method stub
-		while (currentPolicy.get(currState.rnum).size() < (currState.time + 1)) {
+		while (currentPolicy.get(currState.rnum).size() < ((currState.time) + 1)) {
 			currentPolicy.get(currState.rnum).add(new ArrayList<policyState>());
 		}
 		currentPolicy.get(currState.rnum).get(currState.time).add(currState);
+	}
+	private void addtoCurrentPolicy(policyState currState, int timeoffset)
+	{
+		int newtime = currState.time - timeoffset; 
+		// TODO Auto-generated method stub
+		while (currentPolicy.get(currState.rnum).size() < ((newtime) + 1)) {
+			currentPolicy.get(currState.rnum).add(new ArrayList<policyState>());
+		}
+		currentPolicy.get(currState.rnum).get(newtime).add(currState);
 	}
 	
 
