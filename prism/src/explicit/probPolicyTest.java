@@ -57,9 +57,11 @@ import strat.MDStrategy;
 import strat.MDStrategyArray;
 import strat.Strategy;
 
+
 //class to store robot state  
 class policyState
 {
+	int BADVALUE = -2;
 	public int rnum;
 	public int time;
 	public int state;
@@ -71,14 +73,14 @@ class policyState
 
 	public policyState()
 	{
-		rnum = -1;
-		time = -1;
-		state = -1;
-		pstate = -1;
-		associatedStartState = -1;
+		rnum = BADVALUE;
+		time = BADVALUE;
+		state = BADVALUE;
+		pstate = BADVALUE;
+		associatedStartState = BADVALUE;
 		action = null;
 		probFromParent = 1; //so there are no errors really but this isnt smart 
-		associatedPolicyID=-1;
+		associatedPolicyID=BADVALUE;
 	}
 
 	/**
@@ -91,11 +93,11 @@ class policyState
 		rnum = r;
 		time = t;
 		state = s;
-		pstate = -1;
-		associatedStartState=-1;
+		pstate = BADVALUE;
+		associatedStartState=BADVALUE;
 		action = null;
 		probFromParent = 1; 
-		associatedPolicyID=-1;
+		associatedPolicyID=BADVALUE;
 	}
 
 	/**
@@ -110,10 +112,10 @@ class policyState
 		time = t;
 		state = s;
 		pstate = p;
-		associatedStartState = -1;
+		associatedStartState = BADVALUE;
 		action = null;
 		probFromParent = 1; 
-		associatedPolicyID=-1;
+		associatedPolicyID=BADVALUE;
 	}
 
 		/**
@@ -132,7 +134,7 @@ class policyState
 		action = a;
 		associatedStartState = as; 
 		probFromParent = 1; 
-		associatedPolicyID=-1;
+		associatedPolicyID=BADVALUE;
 	}
 	public policyState(policyState currState) {
 			// TODO Auto-generated constructor stub
@@ -154,7 +156,7 @@ class policyState
 	
 		if (probFromParent != 0)
 			toret=toret+" ->"+probFromParent;
-		if (associatedPolicyID !=-1)
+		if (associatedPolicyID !=BADVALUE)
 			toret = toret+"="+associatedPolicyID;
 		toret = toret + "]";
 		return toret; 
@@ -169,11 +171,11 @@ class policyState
 		String toret ="[r:" + rnum + ", t:" + time + ", s:" + state + ", ps:" + pstate; 
 		if (action != null)
 			toret = toret+", a:" + action ;
-		if (associatedStartState != -1)
+		if (associatedStartState != BADVALUE)
 			toret = toret + ", ss:"+associatedStartState; 
 		if (probFromParent != 0)
 			toret=toret+" ->"+probFromParent;
-		if (associatedPolicyID !=-1)
+		if (associatedPolicyID !=BADVALUE)
 			toret = toret+"="+associatedPolicyID;
 		toret = toret + "]";
 		return toret; 
@@ -261,10 +263,11 @@ class policyState
 
 class robotStateCombination{
 	int state; 
+	int BADVALUE = -2;
 	int combinationStates[]; 
 	public robotStateCombination(int numrobots)
 	{
-		state = -1;
+		state = BADVALUE;
 		combinationStates = new int[numrobots]; 
 	}
 	public robotStateCombination(int state_, int numrobots)
@@ -282,11 +285,12 @@ class robotStateCombination{
 //a class I can use to manipulate the states list because otherwise it gets so messy 
 class stateInfoFromStatesList
 {
+int BADVALUE = -2;
 	List<State> states;
 	int numVar;
 	int robotState;
 	int mdpState;
-	int failState=16;//9; 
+	int failState=-1;//16;//11;//7;//11;//16;//9; 
 
 	public stateInfoFromStatesList(MDPSimple sumprod)
 	{
@@ -398,7 +402,7 @@ class stateInfoFromStatesList
 	{
 		State stateObj = states.get(state);
 		Object[] stateArr = stateObj.varValues;
-		int res = -1;
+		int res = BADVALUE;
 		if (ind < stateArr.length) {
 			res = (int) stateArr[ind];
 		}
@@ -476,7 +480,7 @@ class stateInfoFromStatesList
 
 	public int getMergedState(State s1, State s2, int statesToKeeps2[])
 	{
-		int res = -1;
+		int res = BADVALUE;
 		Object s1v[] = s1.varValues.clone();
 		Object s2v[] = s2.varValues;
 		for (int i = 0; i < statesToKeeps2.length; i++) {
@@ -488,7 +492,7 @@ class stateInfoFromStatesList
 	//get a matching robot state 
 	private int getRobotStateFromMDPState(State s1, int robotNum)
 	{
-		int res = -1;
+		int res = BADVALUE;
 		Object s1v[] = s1.varValues.clone();
 		s1v[robotState] = robotNum; 
 		res = getExactlyTheSameState(s1v);
@@ -502,7 +506,7 @@ class stateInfoFromStatesList
 
 	public int getExactlyTheSameState(Object s1v[])
 	{
-		int res = -1;
+		int res = BADVALUE;
 		for (int s = 0; s < states.size(); s++) {
 			if (statesAreEqual(s1v, states.get(s))) {
 				res = s;
@@ -533,6 +537,7 @@ class stateInfoFromStatesList
 
 class teamAutomatonWithoutSwitches
 {
+	int BADVALUE = -2;
 	public int numRobots; //the number of robots does not change so its okay to store it
 	public BitSet finalAccStates; //the accepting states dont change so its okay to store them here 
 	public int numStates; //the number of states in the initial MDP so no one has to remember it 
@@ -595,6 +600,7 @@ class teamAutomatonWithoutSwitches
 
 };
 class tempState{
+	int BADVALUE = -2;
 	int[] states; 
 
 
@@ -647,6 +653,7 @@ class tempState{
 //policy class 
 public class probPolicyTest
 {
+	int BADVALUE = -2;
 	String switchInFailureAction = "switch_er";
 	String simpleSwitchAction = "switch";
 
@@ -843,7 +850,7 @@ public class probPolicyTest
 	}
 	private int findInCombinedPolicyStatesMap(tempState temp)
 	{
-		int toret = -1; 
+		int toret = BADVALUE; 
 		for(int i = 0; i<combinedPolicyStatesMap.size(); i++)
 		{
 			if(combinedPolicyStatesMap.get(i).getKey().equals(temp))
@@ -857,7 +864,7 @@ public class probPolicyTest
 	{
 		tempState temp = new tempState(states); 
 		int index = findInCombinedPolicyStatesMap(temp);
-		if (index != -1)
+		if (index != BADVALUE)
 		{
 			if(combinedPolicyStatesMap.get(index).getValue()== stateNotAddedToPolicyVal)
 			{combinedPolicyStatesMap.get(index).setValue(value);
@@ -879,6 +886,10 @@ public class probPolicyTest
 	{
 		for (int i =0; i<states.length; i++)
 		{
+			if(states[i]==tAutomaton.allStates.failState)
+			{
+				states[i]=0;
+			}
 			states[i] = tAutomaton.allStates.getMDPState(states[i]);
 		}
 		return states;
@@ -1324,6 +1335,25 @@ public class probPolicyTest
 
 	}
 
+	private boolean arrayListContainsArray(ArrayList<int[]> arrlist, int[] arr)
+	{
+		boolean res = false; 
+		for(int i = 0; i<arrlist.size(); i++)
+		{
+			int[] currArr = arrlist.get(i);
+			boolean arraysAreTheSame = true;
+			for(int j = 0; j<arr.length; j++)
+			{
+				if (currArr[j]!=arr[j])
+				{	arraysAreTheSame = false;
+				break;
+				}
+			}
+			if(arraysAreTheSame)
+				{res = true; break;}
+		}
+		return res;
+	}
 	public void unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts, int nextSuccState, int[] allRobotInitStates)
 	{
 		if (printHighlights)
@@ -1384,17 +1414,20 @@ public class probPolicyTest
 			
 
 					if(!allRobotsHaveFailed(allRobotInitStates)) {	
+						boolean addToStuckStates = true;
 						if(policyComputedForList.contains(currState))
 						{
 							mainLog.println("computing policy for a state thats already done");
 						}
-						if(policyComputedForListAllRobots.contains(allRobotInitStates.clone()))
+						if(arrayListContainsArray(policyComputedForListAllRobots,allRobotInitStates))
 						{
 							mainLog.println("computing policy for a state thats already done for all robots");
 						}
-					if(
-							policyComputedFor[currState.rnum].get(currState.state)
-							)	//if you've said the policy is already computed 
+						
+//					if(
+//							policyComputedFor[currState.rnum].get(currState.state)
+//							)	//if you've said the policy is already computed 
+						if(policyComputedForList.contains(currState) && arrayListContainsArray(policyComputedForListAllRobots,allRobotInitStates))
 					{
 						//then you can add its successor states [basically get the next robot and add that state (like adding a switch)
 						//i've already computed these 
@@ -1414,30 +1447,21 @@ public class probPolicyTest
 							nextState.associatedPolicyID = allPoliciesList.size(); //this works on the assumption that the current policy is empty ^
 							String textToAdd = currState.state+"_"+currState.pstate+"_"+rts.associatedStartState;//"abc";//currState.state+"_"+currState.associatedStartState; 
 							
-//							if(prevTextToAdd == textToAdd)
-//								mainLog.println("Adding the same state again - fix this "+textToAdd);
-//							prevTextToAdd = textToAdd;
-//							if (textToAdd.contains("489_23"))
-//							{
-//								mainLog.println("multiple states being added why? the same  state multiple times i.e");
-//							}
-//							if(!addedToStuckQ.get(nextState.state)) {
+
 							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum,textToAdd);
 							//^ caused the edge lines to disappear in the policy mdp, I'm not entirely sure why, so I removed the number in this function 
-//							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum);
 
 							stuckStatesQueue.add(nextState);
-//							addedToStuckQ.set(nextState.state);
 							
-							//and now like dont add it later or do anything so like just quit
-//							}
+							
 							continue; 
+						}
 							//TODO: this should only be the case for policies that have been expanded and are being expanded for the first time.
 							
-						}
+						
 						else
 							mainLog.println("This state is interesting "+currState.toString());
-						
+							
 					}
 					else
 					{	currState.associatedPolicyID = allPoliciesList.size();//policyCounter+1; 
@@ -1623,7 +1647,7 @@ public class probPolicyTest
 	}
 	public int getRobotStateFromMDPState(int state,int robotNum)
 	{
-		int res = -1; 
+		int res = BADVALUE; 
 		res = tAutomaton.allStates.getRobotStateFromMDPState(state, robotNum);
 		return res; 
 	}

@@ -91,6 +91,7 @@ public class MDPModelChecker extends ProbModelChecker {
 	 * Create a new MDPModelChecker, inherit basic state from parent (unless null).
 	 */
 	boolean run_tests = false;
+	int BADVALUE = -2;
 	String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
 	//System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
 	boolean printHighlights = true; 
@@ -194,12 +195,40 @@ public class MDPModelChecker extends ProbModelChecker {
 				initstates[r].set(2);// hardcoding this realy
 			else if (robot_model == 1) {
 				if (r == 1)
-					initstates[r].set(2);
+					initstates[r].set(3);
 				if (r == 2)
-					initstates[r].set(4);
+					initstates[r].set(5);
 				if (r==3)
-					initstates[r].set(11);
+					initstates[r].set(13);
 			}
+			else if (robot_model == 2) {
+				if (r==0)
+				{
+					initstates[r].set(2);
+				}
+				if (r==1)
+					initstates[r].set(7);
+				if (r==2)
+					initstates[r].set(8);
+			}
+			else if (robot_model == 3) {
+//				if (r == 0)
+//					initstates[r].set(1);
+				if(r==1)
+					initstates[r].set(2);
+				if(r==2)
+					initstates[r].set(3);
+			}
+			else if (robot_model == 4)
+			{
+				if (r==1)
+					initstates[r].set(3);
+				if (r==2)
+					initstates[r].set(6);
+				if(r==3)
+					initstates[r].set(13);
+			}
+		
 		}
 /////////////////////////////////////DECIDE Robot init states HERE///////////////////////////////////////
 
@@ -340,8 +369,12 @@ public class MDPModelChecker extends ProbModelChecker {
 				mainLog.println(tempnum + ": " + essentialaccs[tempnum].toString());
 			}
 			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
+			PrismLog out = new PrismFileLog(saveplace + "p" + danum +"_sta.dot", true);
+			product.getProductModel().exportToDotFile(out, null, true);
+			out.close();
 			product.getProductModel().exportToPrismExplicitTra(saveplace + "p" + danum + ".tra");
-			PrismFileLog out = new PrismFileLog(saveplace + "p" + danum + ".sta");
+			//PrismFileLog
+			out = new PrismFileLog(saveplace + "p" + danum + ".sta");
 			VarList newVarList = (VarList) modulesFile.createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
@@ -1109,7 +1142,7 @@ public class MDPModelChecker extends ProbModelChecker {
 	}
 
 	int getIthSetBit(BitSet ss, int n) {
-		int res = -1;
+		int res = BADVALUE;
 		for (int i = 0; i <= n; i++) {
 			res = ss.nextSetBit(res + 1);
 		}
@@ -1135,9 +1168,12 @@ public class MDPModelChecker extends ProbModelChecker {
 		// "/tests/decomp_tests/temp/";
 /////////////////////////////////////DECIDE NUM ROBOTS HERE///////////////////////////////////////
 		int numrobots = 2;
-		int example_number = 1; // 0 = not extended , 1 = extended
-		if (example_number == 1)
+		int example_number = 4; // 0 = not extended , 1 = extended, 2 = debugging on two_room_three_robot_blowup_reduced, 3 = three_robot_simple 
+			//4 = topo_map
+		if (example_number == 1 || example_number == 4)
 			numrobots = 4; //TODO: change robot init states here 
+		if (example_number == 2 || example_number == 3)
+			numrobots=3; 
 		BitSet initstates[] = new BitSet[numrobots];
 		BitSet essentialstates[] = new BitSet[numrobots];
 /////////////////////////////////////DECIDE NUM ROBOTS HERE///////////////////////////////////////
@@ -1283,9 +1319,14 @@ public class MDPModelChecker extends ProbModelChecker {
 		int nextRobot = (current_robot_state.rnum+1)% numrobots; 
 		int nextRobotState = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,statesForRobots[nextRobot]); 
 		//if nextRobotState does not exist this means that the mdp state of next robot is an accepting state for one of the tasks 
-		if(nextRobotState == -1)
+		if(nextRobotState == BADVALUE)
 		{
-			//just change the robot number 
+			//this should happen only when the next robot is at an accepting state 
+			//like its a mdp state 7 and the goal was Fv7 not otherwise 
+			//so basically merge attempt to keep this state as well. 
+			//this is hacky really 
+			//the better way to solve this would be to determine the change in the other robot's state at this point and include that 
+			
 			mainLog.println("error");
 			mainLog.println(Arrays.toString(statesForRobots)); 
 			mainLog.println("Next Robot:"+nextRobot); 
@@ -1313,6 +1354,8 @@ public class MDPModelChecker extends ProbModelChecker {
 				actualInitStates[r]=current_robot_state.state; 
 			else
 				actualInitStates[r] = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,statesForRobots[r]);
+			if(actualInitStates[r]==BADVALUE)
+				mainLog.println("error");
 			newInitStates[r] = (BitSet)policy.getAllStates().getStatesWithSameRobotMDPState(actualInitStates[r]).clone();
 			
 		}
@@ -1486,7 +1529,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		
 
 		int combnum = 0;
-		int rcounter = 0;
+	
 	
 		//this is possibly the most overcomplicated bit of the whole thing 
 		//needlessly so - basically making combinations of states making sure everythings included. 
@@ -2351,7 +2394,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			List<BitSet> labels = Arrays.asList(bsInit, target);
 			List<String> labelNames = Arrays.asList("init", "target");
 			mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog(getExportTargetFilename()));
+			exportLabels(mdp, labels, labelNames, Prism.EXPORT_PLAIN, new PrismFileLog( getExportTargetFilename()));
 		}
 
 		// If required, create/initialise strategy storage
@@ -2442,6 +2485,9 @@ public class MDPModelChecker extends ProbModelChecker {
 			// don't overwrite the file if it exists.
 			//TODO: check here  , possible place for errors 
 			PrismLog out = new PrismFileLog(exportAdvFilename,true);
+			//PrismLog out = new PrismFileLog("stdout");
+			if (!out.ready()) 
+				System.exit(1);
 //			PrismLog out = new PrismFileLog(exportAdvFilename);
 //			PrismLog out = new PrismPrintStreamLog(System.out);
 			new DTMCFromMDPMemorylessAdversary(mdp, strat).exportToPrismExplicitTra(out);
