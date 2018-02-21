@@ -394,7 +394,6 @@ public class LTLModelChecker extends PrismComponent {
 
 		return product;
 	}
-
 	/**
 	 * Construct the product of a DA and a model.
 	 * 
@@ -411,6 +410,27 @@ public class LTLModelChecker extends PrismComponent {
 	 */
 	public <M extends Model> LTLProduct<M> constructProductModel(DA<BitSet, ? extends AcceptanceOmega> da, M model,
 			Vector<BitSet> labelBS, BitSet statesOfInterest) throws PrismException {
+		return constructProductModel(da,model,labelBS,statesOfInterest,false);
+	}
+	/**
+	 * Construct the product of a DA and a model.
+	 * 
+	 * @param da
+	 *            The DA
+	 * @param model
+	 *            The model
+	 * @param labelBS
+	 *            BitSets giving the set of states for each AP in the DA
+	 * @param statesOfInterest
+	 *            the set of states for which values should be calculated (null
+	 *            = all states)
+	 *  @param allStatesInDFA 
+	 *  		 true = explores all states in DFA as initial states 
+	 *  		false = explores only states that match the labels 
+	 * @return The product model
+	 */
+	public <M extends Model> LTLProduct<M> constructProductModel(DA<BitSet, ? extends AcceptanceOmega> da, M model,
+			Vector<BitSet> labelBS, BitSet statesOfInterest, boolean allStatesInDFA) throws PrismException {
 		ModelType modelType = model.getModelType();
 		int daSize = da.size();
 		int numAPs = da.getAPList().size();
@@ -495,10 +515,13 @@ public class LTLModelChecker extends PrismComponent {
 			}
 			// Find corresponding initial state in DA
 			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
+			
 			if (q_0 < 0) {
 				throw new PrismException(
 						"The deterministic automaton is not complete (state " + da.getStartState() + ")");
 			}
+			if (!allStatesInDFA) {
+
 			// Add (initial) state to product
 			queue.add(new Point(s_0, q_0));
 			switch (modelType) {
@@ -514,6 +537,32 @@ public class LTLModelChecker extends PrismComponent {
 			if (prodStatesList != null) {
 				// Store state information for the product
 				prodStatesList.add(new State(daStatesList.get(q_0), model.getStatesList().get(s_0)));
+			}
+		}
+			else
+			{
+				//get all the states in the da 
+				for (q_0 = 0; q_0<da.size(); q_0++) {
+//					
+//					// Add (initial) state to product
+					queue.add(new Point(s_0, q_0));
+					switch (modelType) {
+					case STPG:
+						((STPGExplicit) prodModel).addState(((STPG) model).getPlayer(s_0));
+						break;
+					default:
+						prodModel.addState();
+						break;
+					}
+					prodModel.addInitialState(prodModel.getNumStates() - 1);
+					map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
+					if (prodStatesList != null) {
+						// Store state information for the product
+						prodStatesList.add(new State(daStatesList.get(q_0), model.getStatesList().get(s_0)));
+					}
+//					
+				}
+				
 			}
 		}
 

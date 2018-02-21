@@ -301,7 +301,8 @@ public class MDPModelChecker extends ProbModelChecker {
 			mainLog.println("Before product " + danum + " model states: " + productMdp.getNumStates() + " da states "
 					+ das[danum].size());
 
-			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
+//			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null);
+			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null,true);
 
 			numStates = product.getProductModel().getNumStates();
 			if(printHighlights)
@@ -318,7 +319,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			BitSet tempstates, tempstates2;
 			numStates = product.getProductModel().getNumStates();
 			// need to convert the init state for the first one too
-			if (danum == 0) {
+//			if (danum == 0) {
 				// for(int da = 0; da<numOp; da++) {
 				for (int r = 0; r < numrobots; r++) {
 					BitSet tempinitstate = new BitSet(numStates);
@@ -330,7 +331,7 @@ public class MDPModelChecker extends ProbModelChecker {
 					}
 					initstates[r] = (BitSet) tempinitstate.clone();
 				}
-			}
+	//		}
 			for (int tempnum = 0; tempnum < danum; tempnum++) {
 				// assumption - since each model is a product of the previous product and the da
 				// the old states are states of the previous product
@@ -338,9 +339,6 @@ public class MDPModelChecker extends ProbModelChecker {
 				// has the same value will be an accepting state
 				tempstates = new BitSet(numStates);
 				tempstates2 = new BitSet(numStates);
-				BitSet tempinitstates[] = new BitSet[numrobots];
-				for (int r = 0; r < numrobots; r++)
-					tempinitstates[r] = new BitSet(numStates);
 				for (int s = 0; s < numStates; s++) {
 					oldstate = product.getModelState(s);
 					if (allAccStates[tempnum].get(oldstate)) {
@@ -349,24 +347,40 @@ public class MDPModelChecker extends ProbModelChecker {
 					if (essentialaccs[tempnum].get(oldstate)) {
 						tempstates2.set(s);
 					}
-					for (int r = 0; r < numrobots; r++) {
-						if (initstates[r].get(oldstate))
-							tempinitstates[r].set(s);
-					}
 				}
 				allAccStates[tempnum] = (BitSet) tempstates.clone();
 				essentialaccs[tempnum] = (BitSet) tempstates2.clone();
 				// for each robot update the initial state too
-				for (int r = 0; r < numrobots; r++)
-					initstates[r] = (BitSet) tempinitstates[r].clone();
 
 			}
+//			BitSet tempinitstates[] = new BitSet[numrobots];
+//			
+//			for (int r = 0; r < numrobots; r++)
+//				tempinitstates[r] = new BitSet(numStates);
+//			for (int s = 0; s < numStates; s++) {
+//				oldstate = product.getModelState(s);
+//
+//			for (int r = 0; r < numrobots; r++) {
+//				if (initstates[r].get(oldstate))
+//					tempinitstates[r].set(s);
+//			}
+//			for (int r = 0; r < numrobots; r++)
+//				initstates[r] = (BitSet) tempinitstates[r].clone();
+//			}
+
+
 			// printing all acc states saved
 			for (int tempnum = 0; tempnum <= danum; tempnum++) {
 				if(printHighlights)
 				mainLog.println(tempnum + ": " + allAccStates[tempnum].toString());
 				if(printHighlights)
 				mainLog.println(tempnum + ": " + essentialaccs[tempnum].toString());
+			}
+			for (int r = 0; r < numrobots; r++) {
+				// for(int da=0; da<numOp; da++) {
+				if(printHighlights)
+				mainLog.println("r" + r + " init states: " + initstates[r].toString());
+				// }
 			}
 			product.getProductModel().exportToDotFile(saveplace + "p" + danum + ".dot");
 			PrismLog out = new PrismFileLog(saveplace + "p" + danum +"_sta.dot", true);
@@ -1331,8 +1345,8 @@ public class MDPModelChecker extends ProbModelChecker {
 			mainLog.println(Arrays.toString(statesForRobots)); 
 			mainLog.println("Next Robot:"+nextRobot); 
 			mainLog.println("current robot state: "+current_robot_state.toString());
-			policy.printPolicyNo(current_robot_state.associatedPolicyID);
-			policy.printCurrentPolicy();
+			policy.printPolicyNo(current_robot_state.associatedPolicyID,mainLog);
+			policy.printCurrentPolicy(mainLog);
 			try {
 				policy.savePolicyMDPToFile(saveplace, "tempMDP");
 			} catch (PrismException e) {
