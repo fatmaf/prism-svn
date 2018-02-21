@@ -1015,27 +1015,27 @@ public class probPolicyTest
 			 }
 		 }
 	}
-	public void printAllPoliciesList()
+	public void printAllPoliciesList(PrismLog printLog)
 	{
 		 for(int polNo = 0; polNo<allPoliciesList.size(); polNo++)
 		 {
-		printPolicyNo(polNo);
+		printPolicyNo(polNo,printLog);
 		 }
 	}
-	public void printPolicyNo(int polNo)
+	public void printPolicyNo(int polNo,PrismLog printLog)
 	{
 	
 			 Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentPolPair = allPoliciesList.get(polNo); 
 			 ArrayList<ArrayList<ArrayList<policyState>>> currentPol = currentPolPair.getValue();
-			 printPolicy(currentPol);
+			 printPolicy(currentPol,printLog);
 			
 		 
 	}
-	public void printCurrentPolicy()
+	public void printCurrentPolicy(PrismLog printLog)
 	{
-		printPolicy(currentPolicy);
+		printPolicy(currentPolicy,printLog);
 	}
-	public void printPolicy(ArrayList<ArrayList<ArrayList<policyState>>> currentPol)
+	public void printPolicy(ArrayList<ArrayList<ArrayList<policyState>>> currentPol,PrismLog printLog)
 	{
 		
 		 //size of arr = num of robots 
@@ -1062,11 +1062,11 @@ public class probPolicyTest
 		 if(currentPol.get(r).size() > 0) {
 			 if(currentPol.get(r).get(0).size() > 0) {
 		 	ps[r] = currentPol.get(r).get(0).get(0).state; 
-		 	toprint+=r+":"+ currentPol.get(r).get(0).get(0).toStringSmall()+":";
+		 	toprint+=r+":"+ currentPol.get(r).get(0).get(0).toStringSmall()+",";
 		 
 			 }
 		 }}
-		 mainLog.println(toprint);
+		 printLog.println(toprint);
 		 
 		 while(t<maxT)
 		 {
@@ -1079,7 +1079,7 @@ public class probPolicyTest
 				 for(int ns = 0; ns<size; ns++)
 				 {
 					 successors.get(ns)[r]=currentPol.get(r).get(t).get(ns).state;
-						toprint+=r+":"+ currentPol.get(r).get(t).get(ns).toStringSmall()+":";
+						toprint+=r+":"+ currentPol.get(r).get(t).get(ns).toStringSmall()+",";
 					 probs.set(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 					 //probs.add(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 					
@@ -1108,10 +1108,10 @@ public class probPolicyTest
 			 
 			
 			t++;
-			 mainLog.println(toprint);
+			printLog.println(toprint);
 			//addLinkInCombinedPolicyMDP(successors, probs, ps,psaction,"");
 			 }
-		 mainLog.println();
+		 printLog.println();
 	}
 
 	public void printPolicyMDPStates()
@@ -1546,18 +1546,26 @@ public class probPolicyTest
 	public void savePolicyMDPToFile(String location, String name) throws PrismException
 	{
 		policyMDP.exportToDotFile(location+name+".dot");
-		PrismLog out = new PrismFileLog(location+name+"_sta.dot", true);
+		PrismLog out = new PrismFileLog(location+name+"_sta.dot");
 		policyMDP.exportToDotFile(out, null, true);
+		out.close();
 		policyMDP.exportToPrismExplicitTra(location+name+".tra");
 		
 		initialiseCombinedPolicyMDP();
-		printAllPoliciesList();
+		printAllPoliciesList(mainLog);
+		out = new PrismFileLog(location+name+"_policies.txt");
+		printAllPoliciesList(out);
+		out.close();
+		out = new PrismFileLog(location+name+"_policies_dump.txt");
+		out.println(allPoliciesList.toString());
+		out.close();
 		addAllPoliciesListToCombinedPolicyMDP();
 		name = "comb"+name;
 		combinedPolicyMDP.exportToDotFile(location+name+".dot");
 		//PrismLog 
-		out = new PrismFileLog(location+name+"_sta.dot", true);
-		combinedPolicyMDP.exportToDotFile(out, null, true);
+		out = new PrismFileLog(location+name+"_sta.dot");
+		combinedPolicyMDP.exportToDotFile(out, null,true);
+		out.close();
 		combinedPolicyMDP.exportToPrismExplicitTra(location+name+".tra");
 		
 	}
