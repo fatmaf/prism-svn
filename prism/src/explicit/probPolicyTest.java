@@ -414,7 +414,7 @@ public class probPolicyTest
 	//	public BitSet statesToAvoid; 
 	//	public MDPSimple teamAutomatonNoSwitches; 
 	//	public BitSet[] switchstatesRobots; 
-
+	public double probThreshold = 0;//1e-10;
 	public teamAutomatonWithoutSwitches tAutomaton;
 	PrismLog mainLog;
 	private boolean printPolicy;
@@ -1171,6 +1171,8 @@ public class probPolicyTest
 						{
 							policyState nextState = new policyState(tAutomaton.allStates.getRobotNum(nextSuccState),
 									currState.time,nextSuccState,currState.state,null,currState.state); 
+							nextState.cumulativeProb=currState.cumulativeProb;
+							if (nextState.cumulativeProb > probThreshold) {
 							//add a link from currState to nextState in the policy MDP 
 							//add the entire policy for this state to to the big policy 
 							//and update the initstate of the robot in question (so there are no repeats) 
@@ -1179,15 +1181,15 @@ public class probPolicyTest
 								createPolicyFromRobotInitStates(allRobotInitStates, currState);
 								}
 							nextState.associatedPolicyID = allPoliciesList.size(); //this works on the assumption that the current policy is empty ^
-							nextState.cumulativeProb=currState.cumulativeProb;
+						
 							String textToAdd = currState.state+"_"+currState.pstate+"_"+rts.associatedPolicyID;//"abc";//currState.state+"_"+currState.associatedStartState; 
 							
 
 							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum,textToAdd);
 							//^ caused the edge lines to disappear in the policy mdp, I'm not entirely sure why, so I removed the number in this function 
-
-							stuckStatesQueue.add(nextState);
 							
+							stuckStatesQueue.add(nextState);
+							}
 							
 							continue; 
 						}
@@ -1200,8 +1202,9 @@ public class probPolicyTest
 							}
 					}
 					else
-					{	currState.associatedPolicyID = allPoliciesList.size();//policyCounter+1; 
-						stuckStatesQueue.add(currState);
+					{if (currState.cumulativeProb > probThreshold) {
+						currState.associatedPolicyID = allPoliciesList.size();//policyCounter+1; 
+						stuckStatesQueue.add(currState);}
 					
 					}
 					//TODO: fix this later because we actually add its successors 

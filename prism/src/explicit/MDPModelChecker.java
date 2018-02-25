@@ -105,6 +105,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		case ExpressionFunc.PARTIAL: {
 			// checkPartialSat(model, expr, statesOfInterest);
 			// mainLog.println("------------------------SkippingNow----------------------------------------");
+//			ltlDecompProd(model,expr,statesOfInterest);
 			return ltlDecomp(model, expr, statesOfInterest);
 		}
 		default:
@@ -870,7 +871,7 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	// when you're ready to make a castle from the sand (box)
 	@SuppressWarnings("unchecked")
-	protected StateValues ltlDecomp(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
+	protected StateValues ltlDecompProd(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
 
 		boolean dovaliter = true;
 		MDPRewardsSimple prodCosts = null;
@@ -889,7 +890,199 @@ public class MDPModelChecker extends ProbModelChecker {
 		// "/tests/decomp_tests/temp/";
 /////////////////////////////////////DECIDE NUM ROBOTS HERE///////////////////////////////////////
 		int numrobots = 2;
-		int example_number = 4; // 0 = not extended , 1 = extended, 2 = debugging on two_room_three_robot_blowup_reduced, 3 = three_robot_simple 
+		int example_number = 3; // 0 = not extended , 1 = extended, 2 = debugging on two_room_three_robot_blowup_reduced, 3 = three_robot_simple 
+			//4 = topo_map
+		if (example_number == 1 || example_number == 4)
+			numrobots = 4; //TODO: change robot init states here 
+		if (example_number == 2 || example_number == 3)
+			numrobots=3; 
+		BitSet initstates[] = new BitSet[numrobots];
+		BitSet essentialstates[] = new BitSet[numrobots];
+/////////////////////////////////////DECIDE NUM ROBOTS HERE///////////////////////////////////////
+
+		// Get LTL spec
+		// Number of Operands
+		int numOp = expr.getNumOperands();
+//		Expression ltls[] = new Expression[numOp];
+		Expression ltl ;
+		das = new DA[numOp];
+		// labelBSs = new Vector[numOp];
+		LTLModelChecker mcLtl = null;
+		BitSet safeltl = new BitSet(numOp);
+
+		//assumption the reward structure is the same for all of them because
+		//we're still focusing on one cost so it doesnt matter 
+		//so i'm just going to get the reward structure from the first exp
+		ExpressionReward exprRew = null;
+		ltl = ((ExpressionQuant) expr.getOperand(0)).getExpression();
+		for (int i = 1; i < numOp; i++) {
+			if (expr.getOperand(i) instanceof ExpressionQuant)
+				{
+				
+				ltl = Expression.And(ltl, ((ExpressionQuant) expr.getOperand(i)).getExpression());
+	
+				
+				}
+		}
+		boolean iscosafe = Expression.isCoSafeLTLSyntactic(ltl, true);
+	mcLtl = new LTLModelChecker(this);
+
+		System.out.println("--------------------------------------------------------------");
+		System.out.println("The flat MDP model has " + model.getNumStates() + " states");
+			System.out.println("The specification is " + ltl.toString());
+		System.out.println("Generating optimal policy...");
+		System.out.println(" ");
+
+		// build DFA
+		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+
+		DA<BitSet, ? extends AcceptanceOmega> da = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
+		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
+			mainLog.println("\nAutomaton is not a DFA. Breaking.");
+			// Dummy return vector
+			return new StateValues(TypeInt.getInstance(), model);
+		}
+		// build product
+		int numStates = model.getNumStates();
+		BitSet bsInit = new BitSet(numStates);
+		for (int i = 0; i < numStates; i++) {
+			bsInit.set(i, model.isInitialState(i));
+		}
+		product = mcLtl.constructProductModel(da, (MDP) model, labelBS, bsInit);
+		LTLProduct<Model> product2 = mcLtl.constructProductModel(product.productModel, model, statesOfInterest);
+//		Object resMdp[] = constructMdpDaProd(numrobots, numOp, (MDP) model, mcLtls, das, ltls, example_number,dovaliter);
+//		product = (LTLModelChecker.LTLProduct<MDP>) resMdp[0];
+//		allAccStates = (BitSet[]) resMdp[1];
+//		initstates = (BitSet[]) resMdp[2];
+//		safeltl = (BitSet) resMdp[3];
+//		essentialstates = (BitSet[]) resMdp[4];
+//		productMdp = product.getProductModel();
+		
+//		if (dovaliter) {
+//		//construct reward
+//		RewardStruct costStruct = exprRew.getRewardStructByIndexObject(modulesFile, modulesFile.getConstantValues());
+//		Rewards costsModel = constructRewards(model,costStruct);
+//		prodCosts = ((MDPRewardsSimple)costsModel);
+//
+//		//a super quick hack to get around this 
+//		//this is really TERRIBLE CODE 
+//		stateInfoFromStatesList  stateInfo = new stateInfoFromStatesList(model.getStatesList());
+//		mdpStatesMapping = stateInfo.getMDPStateMappingFromStates(null);
+//		}
+//		
+//		//constructing inital states 
+//		int[] robotInitStates = new int[initstates.length]; 
+//		for(int r = 0; r<robotInitStates.length; r++)
+//			robotInitStates[r]=initstates[r].nextSetBit(0);
+//		
+//		// TODO constructSumMdp()
+//		resMdp = constructSumMDP_new(numOp, numrobots, allAccStates, initstates, productMdp, safeltl, essentialstates,prodCosts,mdpStatesMapping);
+//		// ret sumprod and accStates
+//		MDPSimple sumprod = (MDPSimple) resMdp[0];
+//		
+//		accStatesF = (BitSet) resMdp[1];
+//		BitSet badStates = (BitSet) resMdp[2];
+//		badStates.flip(0, sumprod.numStates);
+//		BitSet allStates = new BitSet(sumprod.numStates); 
+//		allStates.set(0,sumprod.numStates);
+//		MDPSimple sumprod_noswitches = (MDPSimple) resMdp[3];
+//		BitSet switchStates[] = (BitSet[]) resMdp[4];
+//		MDPRewardsSimple rewards = null, noswitches_rewards = null; 
+//		if (dovaliter)
+//		{
+//			rewards = (MDPRewardsSimple) resMdp[5]; 
+//			noswitches_rewards = (MDPRewardsSimple) resMdp[6];
+//		}
+//		mainLog.println("Using compute until");
+//
+//		// TODO: what is the right way to do this
+//		genStrat = true;
+//		res = computeUntilProbs(sumprod, badStates, accStatesF, false);
+////BitSet progStates = new BitSet(sumprod.numStates); 
+////progStates.set(0,sumprod.numStates);
+//
+////MDP trimProdMdp, BitSet target,
+////BitSet progStates, BitSet remain,MDPRewards[] rewards, boolean[] mins,boolean doProb)
+////MDPRewards[] rewardsArr = new MDPRewards[1];
+////rewardsArr[0] = rewards;
+////boolean[] minArr = new boolean[2]; 
+////minArr[0]=false; //maximise prob
+////minArr[1] = true; //minimise cost
+//		ModelCheckerPartialSatResult res2 =  computeNestedValIterFailurePrint(sumprod, accStatesF,badStates,rewards);
+//		
+//		StateValues probsProduct = StateValues.createFromDoubleArray(res2.solnProb, sumprod);
+//
+//
+//		// Get final prob result
+//		double maxProb = probsProduct.getDoubleArray()[sumprod.getFirstInitialState()];
+//		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
+//
+//		if (getExportProductVector()) {
+//			mainLog.println("\nExporting success probabilites over product to file \""
+//					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1) + "\"...");
+//			PrismFileLog out = new PrismFileLog(
+//					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 1));
+//			probsProduct.print(out, false, false, false, false);
+//			out.close();
+//		}
+//
+//
+//
+//		StateValues costsProduct = StateValues.createFromDoubleArray(res2.solnCost, sumprod);
+//		double minCost = costsProduct.getDoubleArray()[sumprod.getFirstInitialState()];
+//		mainLog.println("\nFor p = " + maxProb + ",  the minimum expected  cummulative cost to satisfy specification is " + minCost);
+//		// System.out.println("Probability to find objects: " + maxProb);
+//		// System.out.println("Expected progression reward: " + maxRew);
+//		// System.out.println("Expected time to execute task: " + minCost);
+//		// System.out.println("--------------------------------------------------------------");
+//		if (getExportProductVector()) {
+//			mainLog.println("\nExporting expected times until no more progression over product to file \""
+//					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2) + "\"...");
+//			PrismFileLog out = new PrismFileLog(
+//					PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2));
+//			costsProduct.print(out, false, false, false, false);
+//			out.close();
+//		}
+//
+//		//computeNestedValIterVar(sumprod,accStatesF,null,badStates,rewardsArr,minArr,true);
+//				//(sumprod,accStatesF,rewards,
+//			//	rewards,progStates,badStates);
+//
+//		// unfoldPolicy(res, sumprod, accStatesF, numrobots, sumprod_noswitches,
+//		// switchStates);
+//		unfoldPolicyClean(res2.strat, sumprod, accStatesF, numrobots, 
+//				sumprod_noswitches, switchStates, badStates,robotInitStates,rewards,noswitches_rewards);
+////		unfoldPolicy_new_bits(res, sumprod, accStatesF, numrobots, sumprod_noswitches, 
+////				switchStates, badStates, initstates,true);
+////		sumprod.exportToDotFile(saveplace + "second_sumprod.dot");
+////		sumprod.exportToPrismExplicit(saveplace + "second_sumprod");
+////
+////		res = computeUntilProbs(sumprod, badStates, accStatesF, false);
+////
+
+		return null;//costsProduct;
+
+	}
+
+	// when you're ready to make a castle from the sand (box)
+	@SuppressWarnings("unchecked")
+	protected StateValues ltlDecomp(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
+
+		boolean dovaliter = true;
+		MDPRewardsSimple prodCosts = null;
+		int[] mdpStatesMapping = null;
+		LTLModelChecker mcLtls[];
+		LTLModelChecker.LTLProduct<MDP> product = null;
+		MDP productMdp;
+		DA<BitSet, ? extends AcceptanceOmega> das[];
+		ModelCheckerResult res = null;
+		BitSet accStatesF = null;
+		BitSet allAccStates[];
+
+/////////////////////////////////////DECIDE NUM ROBOTS HERE///////////////////////////////////////
+		int numrobots = 2;
+		int example_number = 3; // 0 = not extended , 1 = extended, 2 = debugging on two_room_three_robot_blowup_reduced, 3 = three_robot_simple 
 			//4 = topo_map
 		if (example_number == 1 || example_number == 4)
 			numrobots = 4; //TODO: change robot init states here 
@@ -979,18 +1172,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		// TODO: what is the right way to do this
 		genStrat = true;
 		res = computeUntilProbs(sumprod, badStates, accStatesF, false);
-//BitSet progStates = new BitSet(sumprod.numStates); 
-//progStates.set(0,sumprod.numStates);
-
-//MDP trimProdMdp, BitSet target,
-//BitSet progStates, BitSet remain,MDPRewards[] rewards, boolean[] mins,boolean doProb)
-//MDPRewards[] rewardsArr = new MDPRewards[1];
-//rewardsArr[0] = rewards;
-//boolean[] minArr = new boolean[2]; 
-//minArr[0]=false; //maximise prob
-//minArr[1] = true; //minimise cost
-		ModelCheckerPartialSatResult res2 =  computeNestedValIterFailurePrint(sumprod, accStatesF,badStates,rewards);
-		
+		ModelCheckerPartialSatResult res2 =  computeNestedValIterFailurePrint(sumprod, accStatesF,badStates,rewards);		
 		StateValues probsProduct = StateValues.createFromDoubleArray(res2.solnProb, sumprod);
 
 
@@ -1012,10 +1194,6 @@ public class MDPModelChecker extends ProbModelChecker {
 		StateValues costsProduct = StateValues.createFromDoubleArray(res2.solnCost, sumprod);
 		double minCost = costsProduct.getDoubleArray()[sumprod.getFirstInitialState()];
 		mainLog.println("\nFor p = " + maxProb + ",  the minimum expected  cummulative cost to satisfy specification is " + minCost);
-		// System.out.println("Probability to find objects: " + maxProb);
-		// System.out.println("Expected progression reward: " + maxRew);
-		// System.out.println("Expected time to execute task: " + minCost);
-		// System.out.println("--------------------------------------------------------------");
 		if (getExportProductVector()) {
 			mainLog.println("\nExporting expected times until no more progression over product to file \""
 					+ PrismUtils.addCounterSuffixToFilename(getExportProductVectorFilename(), 2) + "\"...");
@@ -1025,21 +1203,8 @@ public class MDPModelChecker extends ProbModelChecker {
 			out.close();
 		}
 
-		//computeNestedValIterVar(sumprod,accStatesF,null,badStates,rewardsArr,minArr,true);
-				//(sumprod,accStatesF,rewards,
-			//	rewards,progStates,badStates);
-
-		// unfoldPolicy(res, sumprod, accStatesF, numrobots, sumprod_noswitches,
-		// switchStates);
 		unfoldPolicyClean(res2.strat, sumprod, accStatesF, numrobots, 
 				sumprod_noswitches, switchStates, badStates,robotInitStates,rewards,noswitches_rewards);
-//		unfoldPolicy_new_bits(res, sumprod, accStatesF, numrobots, sumprod_noswitches, 
-//				switchStates, badStates, initstates,true);
-//		sumprod.exportToDotFile(saveplace + "second_sumprod.dot");
-//		sumprod.exportToPrismExplicit(saveplace + "second_sumprod");
-//
-//		res = computeUntilProbs(sumprod, badStates, accStatesF, false);
-//
 
 		return costsProduct;
 
@@ -1047,8 +1212,6 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	
 
-	//the clean version of updateTeamAutomatonForState 
-	//cuz that was just a misleading name okay 
 	protected Object[] addFailSwitchGetUpdatedInitialStates(probPolicyTest policy,MDPSimple teamAutomatonNoSwitches,MDPRewardsSimple rewards,
 			policyState current_robot_state, int combstates[][], int combNo,int numrobots)	//dont need the policy because already have that information in combstates
 	{
@@ -1084,10 +1247,8 @@ public class MDPModelChecker extends ProbModelChecker {
 		
 	}
 	
-	//the clean version of updateTeamAutomatonForState 
-	//cuz that was just a misleading name okay 
 	protected Object[] addFailSwitchGetUpdatedInitialStates(probPolicyTest policy,MDPSimple teamAutomatonNoSwitches, MDPRewardsSimple rewards,
-			policyState current_robot_state, int[] statesForRobots)	//dont need the policy because already have that information in combstates
+			policyState current_robot_state, int[] statesForRobots)	
 	{
 		int numres = 3;
 		int numrobots = policy.tAutomaton.numRobots; 
@@ -1218,7 +1379,6 @@ public class MDPModelChecker extends ProbModelChecker {
 		int newstates[] = policy.getStatesFromCombinations(combinations, currState.state); 
 		
 		policy.addLinkInPolicyMDP(newstates, combstatesProbs, currState.state, null,true,currState.state+"_"+currState.pstate+"_pid"+currState.associatedPolicyID);
-//		policy.addLinkInPolicyMDP(newstates, combstatesProbs, currState.state, null,true); ^ probability is 0 ? how come ? investigate 95,1857,1857
 
 		//updateTeamAutomatonForState
 		for(int s=0; s<newstates.length; s++)
@@ -1252,6 +1412,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		//Strategy strat = res.strat;	//save the strategy
 		probPolicyTest policy = new probPolicyTest(numrobots,accStatesF,badstates,
 				sumprod_noswitches,switches,mainLog,rewards_noswitches);	//initalize policy variables not the actual policy
+//		policy.probThreshold=probThreshold;
 		for(int i=0; i<robotInitStates.length; i++)
 		{
 			robotInitStates[i] = policy.getRobotStateFromMDPState(robotInitStates[i], i);
@@ -1270,7 +1431,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		{
 			
 			policyState computeForState = policy.stuckStatesQueue.remove(); 
-			if (computeForState.cumulativeProb > probThreshold) {
+			if (computeForState.cumulativeProb > policy.probThreshold) {
 			//set the current policy to be the one for this particular state 
 			//so we know where to get our information from 
 			//policy.setCurrentPolicyToPolicyFromAllPolicies(computeForState.associatedStartState);
