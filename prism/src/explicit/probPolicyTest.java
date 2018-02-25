@@ -5,12 +5,13 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
+import java.util.PriorityQueue;
 import java.util.Stack;
 import parser.State;
 import parser.VarList;
@@ -22,13 +23,13 @@ import prism.PrismLangException;
 import prism.PrismLog;
 import strat.Strategy;
 import explicit.stateInfoFromStatesList;
-import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 
 //class to store robot state  
-class policyState
+class policyState implements Comparable<policyState>
 {
 	int BADVALUE = -2;
+	
 	public int rnum;
 	public int time;
 	public int state;
@@ -37,7 +38,21 @@ class policyState
 	public int associatedStartState; 
 	public double probFromParent; 
 	public int associatedPolicyID; //add the id of the associated policy 
+	public double cumulativeProb; //the super lazy not great way to do this 
 
+	@Override
+	public int compareTo(policyState ps)
+	{
+		int toret = 0;
+		if(this.cumulativeProb==ps.cumulativeProb)
+			toret =0; 
+		else if (this.cumulativeProb < ps.cumulativeProb)
+			toret = 1; 
+		else
+			toret = -1;
+				
+		return toret; 
+	}
 	public policyState()
 	{
 		rnum = BADVALUE;
@@ -48,6 +63,7 @@ class policyState
 		action = null;
 		probFromParent = 1; //so there are no errors really but this isnt smart 
 		associatedPolicyID=BADVALUE;
+		cumulativeProb = BADVALUE;
 	}
 
 	/**
@@ -65,6 +81,7 @@ class policyState
 		action = null;
 		probFromParent = 1; 
 		associatedPolicyID=BADVALUE;
+		cumulativeProb = BADVALUE;
 	}
 
 	/**
@@ -83,6 +100,7 @@ class policyState
 		action = null;
 		probFromParent = 1; 
 		associatedPolicyID=BADVALUE;
+		cumulativeProb = BADVALUE;
 	}
 
 		/**
@@ -102,6 +120,7 @@ class policyState
 		associatedStartState = as; 
 		probFromParent = 1; 
 		associatedPolicyID=BADVALUE;
+		cumulativeProb = BADVALUE;
 	}
 	public policyState(policyState currState) {
 			// TODO Auto-generated constructor stub
@@ -113,6 +132,7 @@ class policyState
 		associatedStartState = currState.associatedStartState; 
 		probFromParent = currState.probFromParent; 
 		associatedPolicyID=currState.associatedPolicyID;
+		cumulativeProb = currState.cumulativeProb;
 		}
 
 	public String toStringSmall()
@@ -120,9 +140,10 @@ class policyState
 		String toret ="[t:" + time + ", s:" + state;
 		if (action != null)
 			toret = toret+", a:" + action ;
-	
 		if (probFromParent != 0)
 			toret=toret+" ->"+probFromParent;
+		if (cumulativeProb != BADVALUE)
+			toret=toret+"("+cumulativeProb+") ";
 		if (associatedPolicyID !=BADVALUE)
 			toret = toret+"="+associatedPolicyID;
 		toret = toret + "]";
@@ -142,6 +163,8 @@ class policyState
 			toret = toret + ", ss:"+associatedStartState; 
 		if (probFromParent != 0)
 			toret=toret+" ->"+probFromParent;
+		if (cumulativeProb != BADVALUE)
+			toret=toret+"("+cumulativeProb+") ";
 		if (associatedPolicyID !=BADVALUE)
 			toret = toret+"="+associatedPolicyID;
 		toret = toret + "]";
@@ -227,7 +250,16 @@ class policyState
 	
 };
 
-
+//class CumulativeProbCompare implements Comparator<policyState>
+//{
+// @Override
+//public int compare(policyState m1, policyState m2)
+// {
+//     if (m1.cumulativeProb < m2.cumulativeProb) return -1;
+//     if (m1.cumulativeProb > m2.cumulativeProb) return 1;
+//     else return 0;
+// }
+//}
 
 
 
@@ -361,7 +393,7 @@ public class probPolicyTest
 	String switchInFailureAction = "switch_er";
 	String simpleSwitchAction = "switch";
 
-	public Queue<policyState> stuckStatesQueue;
+	public PriorityQueue<policyState> stuckStatesQueue;
 	public ArrayList<Map.Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>>> allPoliciesList; //includes all the policies, the same information as policy mdp but just easier to parse (with time) 
 	public ArrayList<ArrayList<ArrayList<policyState>>> currentPolicy; //the policy that is currently being used / explored
 	private int currentPolicyState; 
@@ -860,6 +892,7 @@ public class probPolicyTest
 		{
 			addStateToPolicyMDP(states[s]); 
 			distr.add(policyStatesMap[states[s]],probs[s]/normalizer );
+			probs[s]=(probs[s]/normalizer);
 		}
 		//just to check if I have multiple branches because I'm going over the same stuff again 
 		int numChoices = policyMDP.getNumChoices(policyStatesMap[parentState]);
@@ -1000,14 +1033,14 @@ public class probPolicyTest
 
 	}
 
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState)
+	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState) throws PrismException
 	{
 		unfoldPolicy(sumprod,strat,timecount,currState,-1,null);
 		
 	}
 
 	
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState, int succState, int[] allRobotInitStates)
+	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState, int succState, int[] allRobotInitStates) throws PrismException
 	{
 		int parent_state = currState.pstate;
 		//is this the first time 
@@ -1018,7 +1051,7 @@ public class probPolicyTest
 			//initialiseCurrentPolicy();
 			initialiseAllPolicies();
 			initialisePolicyComputedFor();
-			stuckStatesQueue = new LinkedList<policyState>();
+			stuckStatesQueue = new PriorityQueue<policyState>();
 			firstUnfolding = true;
 			policyCounter = -1;
 		}
@@ -1058,13 +1091,10 @@ public class probPolicyTest
 		}
 		return res;
 	}
-	public void unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts, int nextSuccState, int[] allRobotInitStates)
+	public void unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts, int nextSuccState, int[] allRobotInitStates) throws PrismException
 	{
 		if (printHighlights)
 		mainLog.println("Unfolding Policy for State "+rts.toString());
-		//r:3, t:3, s:2713, ps:2713, ss:1832 ->1.0=5
-		if (rts.rnum==3 && rts.time==3 && rts.state==2713)
-			mainLog.println("The error starts here");
 		int state = rts.state; //current state 
 		int choices = -1;
 		int timecount = rts.time;
@@ -1119,14 +1149,14 @@ public class probPolicyTest
 
 					if(!allRobotsHaveFailed(allRobotInitStates)) {	
 						boolean addToStuckStates = true;
-						if(policyComputedForList.contains(currState))
-						{
-							mainLog.println("computing policy for a state thats already done");
-						}
-						if(arrayListContainsArray(policyComputedForListAllRobots,allRobotInitStates))
-						{
-							mainLog.println("computing policy for a state thats already done for all robots");
-						}
+//						if(policyComputedForList.contains(currState))
+//						{
+//							mainLog.println("computing policy for a state thats already done");
+//						}
+//						if(arrayListContainsArray(policyComputedForListAllRobots,allRobotInitStates))
+//						{
+//							mainLog.println("computing policy for a state thats already done for all robots");
+//						}
 						
 //					if(
 //							policyComputedFor[currState.rnum].get(currState.state)
@@ -1149,7 +1179,8 @@ public class probPolicyTest
 								createPolicyFromRobotInitStates(allRobotInitStates, currState);
 								}
 							nextState.associatedPolicyID = allPoliciesList.size(); //this works on the assumption that the current policy is empty ^
-							String textToAdd = currState.state+"_"+currState.pstate+"_"+rts.associatedStartState;//"abc";//currState.state+"_"+currState.associatedStartState; 
+							nextState.cumulativeProb=currState.cumulativeProb;
+							String textToAdd = currState.state+"_"+currState.pstate+"_"+rts.associatedPolicyID;//"abc";//currState.state+"_"+currState.associatedStartState; 
 							
 
 							addLinkInPolicyMDP(nextState.state,1.0,currState.state,"switch_er_"+currState.rnum+"_"+nextState.rnum,textToAdd);
@@ -1164,8 +1195,9 @@ public class probPolicyTest
 							
 						
 						else
-							mainLog.println("This state is interesting "+currState.toString());
-							
+							{mainLog.println("This state is interesting "+currState.toString());
+							throw new PrismException("Something unexpected happened while unrolling the policy for "+rts.toString()+" at "+currState.toString());
+							}
 					}
 					else
 					{	currState.associatedPolicyID = allPoliciesList.size();//policyCounter+1; 
@@ -1217,6 +1249,7 @@ public class probPolicyTest
 								succState = new policyState(tAutomaton.allStates.getRobotNum(stateProbPair.getKey()), currState.time + 1,
 										stateProbPair.getKey(), currState.state,null,rts.state);
 							succState.setProb(stateProbPair.getValue());
+							succState.cumulativeProb=currState.cumulativeProb*succState.probFromParent;
 							statesStack.push(succState);
 							states.add(succState.state); 
 							probs.add(succState.getProb());
@@ -1369,6 +1402,8 @@ public class probPolicyTest
 		currState.pstate = state.state; 
 		currState.associatedStartState = state.state; 
 		currState.time = state.time; 
+		currState.probFromParent = state.probFromParent; 
+		currState.cumulativeProb = state.cumulativeProb;
 		return currState;
 	}
 	private void addCurrentPolicyToAllPolicies(policyState startState)
@@ -1465,6 +1500,24 @@ public class probPolicyTest
 		}
 		currentPolicy.get(currState.rnum).get(newtime).add(currState);
 	}
-	
-
+	public static void main(String[] args){
+	 PriorityQueue<policyState> tq = new PriorityQueue<policyState>(); 
+	 for(int i = 2; i<5; i++) {
+	 policyState ps = new policyState(); 
+	 ps.cumulativeProb=(1.0)/(double)i; 
+	 tq.add(ps); 
+	 }
+	 for(int i = 10; i>=5; i--)
+	 {
+		 policyState ps = new policyState(); 
+		 ps.cumulativeProb=(1.0)/(double)i; 
+		 tq.add(ps); 
+	 }
+	 while(!tq.isEmpty())
+	 {
+		 policyState ps = tq.remove(); 
+		 System.out.println(ps);
+	 }
+	 
+	}
 };

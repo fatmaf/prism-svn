@@ -21,14 +21,15 @@ mdp
 
 
        //const double fail = 0.2;
-       const int failstate = 16;
+       const int laststate = 15;
+       const int failstate = -1;
        const double p = 0.8;
        const double ps = 1.0;
 
 
 module world
 
-       s:[0..failstate] init 6; 
+       s:[failstate..laststate] init 6; 
        //the last state is a fail state 
        [v0_v12] (s=0) -> ps:(s'=12);//+(1-p):(s'=failstate);
        [v0_v15] (s=0) -> ps:(s'=15);//+(1-p):(s'=failstate);
