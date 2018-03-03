@@ -39,7 +39,8 @@ class policyState implements Comparable<policyState>
 	public double probFromParent; 
 	public int associatedPolicyID; //add the id of the associated policy 
 	public double cumulativeProb; //the super lazy not great way to do this 
-
+	public int lazyMap=-1; //cuz i'm being lazy and I want to fix this later 
+	
 	@Override
 	public int compareTo(policyState ps)
 	{
@@ -133,6 +134,7 @@ class policyState implements Comparable<policyState>
 		probFromParent = currState.probFromParent; 
 		associatedPolicyID=currState.associatedPolicyID;
 		cumulativeProb = currState.cumulativeProb;
+		lazyMap = currState.lazyMap;
 		}
 
 	public String toStringSmall()
@@ -462,8 +464,10 @@ public class probPolicyTest
 			policyState currRobotState)
 	{
 		int currTime = currRobotState.time;
-		int currRobotNum = currRobotState.rnum;
 		
+		int currRobotNum = currRobotState.rnum;
+		int timeAtBeginning = policy.get(currRobotNum).get(0).get(0).time; 
+		currTime -=timeAtBeginning;
 		policyState currState;
 		policyState nextRobotBeginning = null;
 		ArrayList<ArrayList<Entry<policyState,ArrayList<Entry<Integer, Integer>>>>> allChangedStates = new ArrayList<ArrayList<Entry<policyState,ArrayList<Entry<Integer, Integer>>>>>();
@@ -571,14 +575,15 @@ public class probPolicyTest
 		combinedPolicyMDP = new MDPSimple();
 		VarList combVarlist = new VarList(); 
 	//	newVarList.addVar(0, new Declaration(daVar, new DeclarationIntUnbounded()), 1, null);
-		for(int i = 0; i<tAutomaton.numRobots; i++)
+		for(int i = tAutomaton.numRobots-1; i>=0; i--)
 		{
 			combVarlist.addVar(0, new Declaration("r"+i,new DeclarationIntUnbounded()), 1, null);
 		}
+		combVarlist.addVar(0, new Declaration("t",new DeclarationIntUnbounded()), 1, null);
+
 		combinedPolicyMDP.setVarList((VarList)combVarlist.clone());
 		
 		combinedPolicyMDP.statesList = new ArrayList<State>();
-		int maxStates = 17;
 		combinedPolicyMDP.statesList = new ArrayList<State>();
 		combinedPolicyStatesMap = new ArrayList<Map.Entry<tempState,Integer>>();
 		
@@ -620,48 +625,58 @@ public class probPolicyTest
 	}
 	private int[] getRobotStatesFromCombStates(int[] states)
 	{
-		for (int i =0; i<states.length; i++)
+		int statesToRet[] = states.clone();
+		for (int i =1; i<states.length; i++)
 		{
 			if(states[i]==tAutomaton.allStates.failState)
 			{
-				states[i]=0;
+				statesToRet[i]=0;
 			}
-			states[i] = tAutomaton.allStates.getMDPState(states[i]);
+			statesToRet[i] = tAutomaton.allStates.getMDPState(states[i]);
 		}
-		return states;
+		return statesToRet;
 	}
-	private int addStateToCombinedPolicyMDP(int[] states)
+	private Object[] addStateToCombinedPolicyMDP(int[] states)
 	{
-		states = getRobotStatesFromCombStates(states);
-		if (!checkCombinedPolicyStatesMap(states,combinedPolicyMDP.numStates)) {
+		Object toret[] = new Object[2];
+		int statesToRet[] = getRobotStatesFromCombStates(states).clone();
+//		for(int i=0; i<states.length; i++) {
+//			mainLog.println(combinedPolicyMDP.varList.getName(i));
+//		}
+		if (!checkCombinedPolicyStatesMap(statesToRet,combinedPolicyMDP.numStates)) {
 			
-			State toadd = new State(tAutomaton.numRobots); 
-			for(int i = 0; i<tAutomaton.numRobots; i++)
+			State toadd = new State(statesToRet.length); 
+			for(int i = 0; i<statesToRet.length; i++)
 			{
-				toadd.setValue(i, states[i]);
+				toadd.setValue(i, statesToRet[i]);
 			}
 			combinedPolicyMDP.statesList.add(toadd);
 			combinedPolicyMDP.addState();}
-		tempState temp = new tempState(states); 
+		tempState temp = new tempState(statesToRet); 
 		int index = findInCombinedPolicyStatesMap(temp);
-		return index;
+		toret[0]=statesToRet;
+		toret[1]=index;
+		return toret;
 		
 	}
 	public void addLinkInCombinedPolicyMDP(ArrayList<int[]> states, ArrayList<Double> probs, int[] parentState, Object action,String additionalText)
 	{
-	
-		int indexPS = addStateToCombinedPolicyMDP(parentState);
+	Object res[]=addStateToCombinedPolicyMDP(parentState);
+		int indexPS = (int)res[1];
+		int[] parentStateConverted =(int[]) res[0];
 		Distribution distr = new Distribution(); 
-		String actionText = Arrays.toString(parentState);
+		String actionText = Arrays.toString(parentStateConverted);
 				
 				
 		
 		for(int s=0; s<states.size(); s++)
 		{
 			
-			int index = addStateToCombinedPolicyMDP(states.get(s)); 
+			res = addStateToCombinedPolicyMDP(states.get(s)); 
+			int index = (int)res[1];
+			int[] succStatesConverted = (int[])res[0];
 			distr.add(combinedPolicyStatesMap.get(index).getValue(),probs.get(s) );
-			actionText+="->"+Arrays.toString(states.get(s));
+			actionText+="->"+Arrays.toString(succStatesConverted);
 		}
 		//just to check if I have multiple branches because I'm going over the same stuff again 
 		int numChoices = combinedPolicyMDP.getNumChoices(combinedPolicyStatesMap.get(indexPS).getValue());
@@ -673,6 +688,7 @@ public class probPolicyTest
 	}
 	public void addAllPoliciesListToCombinedPolicyMDP()
 	{
+		int[] statesInPolicies = new int[allPoliciesList.size()];
 		 for(int polNo = 0; polNo<allPoliciesList.size(); polNo++)
 		 {
 			 Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentPolPair = allPoliciesList.get(polNo); 
@@ -682,7 +698,7 @@ public class probPolicyTest
 			 int numSucc = 2;
 			 int t=1;
 			 int succt = 0;
-			 int ps[]= new int[tAutomaton.numRobots];
+			 int ps[]= new int[tAutomaton.numRobots+1];
 			 String psaction = ""; 
 			 String succaction = "";
 			 //int ss[]= new int[tAutomaton.numRobots];
@@ -690,23 +706,34 @@ public class probPolicyTest
 			 ArrayList<Double> probs = new ArrayList<Double>();
 			 //hardcoding this 
 			 for(int i =0; i<numSucc; i++ )
-			 { successors.add(new int[tAutomaton.numRobots]);
+			 { successors.add(new int[tAutomaton.numRobots+1]);
 			 	probs.add(1.0);
 			 }
-			 int maxT = 0; 
+			 int maxT = 0;
+			 
 			 for(int r = 0; r<tAutomaton.numRobots; r++)
 			 { if (maxT <currentPol.get(r).size())
 				 maxT = currentPol.get(r).size();
 			 if(currentPol.get(r).size() > 0) {
 				 if(currentPol.get(r).get(0).size() > 0) {
-			 	ps[r] = currentPol.get(r).get(0).get(0).state; 
+					 ps[0]=currentPol.get(r).get(0).get(0).time;
+			 	ps[r+1] = currentPol.get(r).get(0).get(0).state; 
 			 	if(currentPol.get(r).get(0).get(0).action != null)
 				 psaction+= "\n"+currentPol.get(r).get(0).get(0).action.toString();
 				 }
 			 }}
+			 if(t==maxT)
+			 {
+				 ArrayList<int[]> tsuccessors = new ArrayList<int[]>();
+				 tsuccessors.add(ps.clone());
+				 ArrayList<Double> tprobs = new ArrayList<Double>();
+				 tprobs.add(1.0);
+				 
+				 //no policy but lets still add these to the mdp 
+					addLinkInCombinedPolicyMDP(tsuccessors, probs, ps,psaction,"_rfailed");
+			 }
 			 while(t<maxT)
 			 {
-				 
 				 
 				 for(int r=0; r<tAutomaton.numRobots; r++)
 				 {
@@ -714,7 +741,8 @@ public class probPolicyTest
 					 int size = currentPol.get(r).get(t).size();
 					 for(int ns = 0; ns<size; ns++)
 					 {
-						 successors.get(ns)[r]=currentPol.get(r).get(t).get(ns).state;
+						 successors.get(ns)[r+1]=currentPol.get(r).get(t).get(ns).state;
+						 successors.get(ns)[0]=currentPol.get(r).get(t).get(ns).time;
 						 probs.set(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 						 //probs.add(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 						 if (currentPol.get(r).get(t).get(ns).action != null)
@@ -722,13 +750,13 @@ public class probPolicyTest
 					 }
 					 if (size < numSucc && size!= 0)
 					 {
-						 successors.get(1)[r]= currentPol.get(r).get(t).get(size-1).state;
+						 successors.get(1)[r+1]= currentPol.get(r).get(t).get(size-1).state;
 					 }
 					 else if (size == 0)
 					 {
 						 for(int ns = 0; ns<numSucc; ns++)
 						 {
-							 successors.get(ns)[r]=ps[r];
+							 successors.get(ns)[r+1]=ps[r+1];
 						 }
 					 }
 				 }
@@ -736,7 +764,7 @@ public class probPolicyTest
 					 {
 						 for(int ns = 0; ns<numSucc; ns++)
 						 {
-							 successors.get(ns)[r]=ps[r];
+							 successors.get(ns)[r+1]=ps[r+1];
 						 }
 					 }
 					 
@@ -749,29 +777,33 @@ public class probPolicyTest
 				psaction = succaction;
 				succaction = "";
 			 }
+			 statesInPolicies[polNo]= combinedPolicyMDP.numStates;
 		 }
+		 
 	}
-	public void printAllPoliciesList(PrismLog printLog)
+	public void printAllPoliciesList(PrismLog printLog,boolean doProb)
 	{
 		 for(int polNo = 0; polNo<allPoliciesList.size(); polNo++)
 		 {
-		printPolicyNo(polNo,printLog);
+			 printLog.println(polNo+"============================");
+		printPolicyNo(polNo,printLog,doProb);
+		 printLog.println(polNo+"============================");
 		 }
 	}
-	public void printPolicyNo(int polNo,PrismLog printLog)
+	public void printPolicyNo(int polNo,PrismLog printLog,boolean doProb)
 	{
 	
 			 Entry<policyState, ArrayList<ArrayList<ArrayList<policyState>>>> currentPolPair = allPoliciesList.get(polNo); 
 			 ArrayList<ArrayList<ArrayList<policyState>>> currentPol = currentPolPair.getValue();
-			 printPolicy(currentPol,printLog);
+			 printPolicy(currentPol,printLog,doProb);
 			
 		 
 	}
-	public void printCurrentPolicy(PrismLog printLog)
+	public void printCurrentPolicy(PrismLog printLog,boolean doProb)
 	{
-		printPolicy(currentPolicy,printLog);
+		printPolicy(currentPolicy,printLog,doProb);
 	}
-	public void printPolicy(ArrayList<ArrayList<ArrayList<policyState>>> currentPol,PrismLog printLog)
+	public void printPolicy(ArrayList<ArrayList<ArrayList<policyState>>> currentPol,PrismLog printLog,boolean doProb)
 	{
 		
 		 //size of arr = num of robots 
@@ -780,12 +812,17 @@ public class probPolicyTest
 		 int t=1;
 		 int succt = 0;
 		 int ps[]= new int[tAutomaton.numRobots];
+//		 double finalProbs[] = doProb? new double[tAutomaton.numRobots]: null; 
+//		 boolean doneProbs[]=doProb? new boolean[tAutomaton.numRobots]: null; 
+		 int actualRobotStates[] = doProb? new int[tAutomaton.numRobots]:null;
 		 String psaction = ""; 
 		 String succaction = "";
 		 //int ss[]= new int[tAutomaton.numRobots];
 		 ArrayList<int[]> successors = new ArrayList<int[]>();
 		 ArrayList<Double> probs = new ArrayList<Double>();
 		 //hardcoding this 
+		 double finalProb = 0;
+		 boolean doneProb = false; 
 		 for(int i =0; i<numSucc; i++ )
 		 { successors.add(new int[tAutomaton.numRobots]);
 		 	probs.add(1.0);
@@ -799,7 +836,20 @@ public class probPolicyTest
 			 if(currentPol.get(r).get(0).size() > 0) {
 		 	ps[r] = currentPol.get(r).get(0).get(0).state; 
 		 	toprint+=r+":"+ currentPol.get(r).get(0).get(0).toStringSmall()+",";
-		 
+		 	
+		 	if(doProb)
+		 	{
+		 	
+		 		actualRobotStates[r]=tAutomaton.allStates.getMDPState(ps[r]);
+		 		toprint+=" "+actualRobotStates[r]+" ";
+		 		if(tAutomaton.finalAccStates.get(ps[r]))
+		 		{
+		 			toprint+="**";
+		 		}
+		 	}
+		 	
+//		 	
+
 			 }
 		 }}
 		 printLog.println(toprint);
@@ -810,12 +860,25 @@ public class probPolicyTest
 			 toprint="";
 			 for(int r=0; r<tAutomaton.numRobots; r++)
 			 {
-				 if(currentPol.get(r).size()>t) {
+				 int psize = currentPol.get(r).size();
+				 if(psize>t) {
 				 int size = currentPol.get(r).get(t).size();
 				 for(int ns = 0; ns<size; ns++)
 				 {
 					 successors.get(ns)[r]=currentPol.get(r).get(t).get(ns).state;
-						toprint+=r+":"+ currentPol.get(r).get(t).get(ns).toStringSmall()+",";
+					 if(doProb && tAutomaton.finalAccStates.get(successors.get(ns)[r])&& !doneProb)
+					 {
+						 finalProb = currentPol.get(r).get(t).get(ns).cumulativeProb;
+						 doneProb = true; 
+					 }
+					 if (doProb)
+					 actualRobotStates[r]=tAutomaton.allStates.getMDPState(successors.get(ns)[r]);
+						toprint+=r+":"+ currentPol.get(r).get(t).get(ns).toStringSmall(); 
+						if (doProb)
+							{
+							toprint+="("+actualRobotStates[r]+")";
+							}
+						toprint+=", ";
 					 probs.set(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 					 //probs.add(ns, probs.get(ns)*currentPol.get(r).get(t).get(ns).getProb());
 					
@@ -838,7 +901,17 @@ public class probPolicyTest
 					 {
 						 successors.get(ns)[r]=ps[r];
 					 }
-				 }
+//					 if (doProb) {
+//						 if (!doneProbs[r]) {
+//							 for (int ns =0; ns<currentPol.get(r).get(psize-1).size(); ns++)
+//							 {
+//								 finalProbs[r]+= currentPol.get(r).get(psize-1).get(ns).cumulativeProb;
+//							 }
+//							 doneProbs[r]=true;
+//						 }
+//						 
+//				 }
+					 }
 				 
 			 }
 			 
@@ -847,6 +920,24 @@ public class probPolicyTest
 			printLog.println(toprint);
 			//addLinkInCombinedPolicyMDP(successors, probs, ps,psaction,"");
 			 }
+
+		 if (doProb)
+		 {
+//			 double finalProb = 1.0; 
+//			 for(int i =0; i<finalProbs.length; i++)
+//			 {
+//				 if (!doneProbs[i])
+//				 {
+//					 for(int j=0; j<currentPol.get(i).get(0).size();j++)
+//					 {
+//						 finalProbs[i]+=currentPol.get(i).get(0).get(j).cumulativeProb;
+//					 }
+//				 }
+//				 finalProb *= finalProbs[i]; 
+//			 }
+//			 printLog.println(Arrays.toString(finalProbs));
+			 printLog.println("Final Prob = "+finalProb);
+		 }
 		 printLog.println();
 	}
 
@@ -1033,14 +1124,14 @@ public class probPolicyTest
 
 	}
 
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState) throws PrismException
+	public ArrayList<Integer> unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState) throws PrismException
 	{
-		unfoldPolicy(sumprod,strat,timecount,currState,-1,null);
+		return unfoldPolicy(sumprod,strat,timecount,currState,-1,null);
 		
 	}
 
 	
-	public void unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState, int succState, int[] allRobotInitStates) throws PrismException
+	public ArrayList<Integer> unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState, int succState, int[] allRobotInitStates) throws PrismException
 	{
 		int parent_state = currState.pstate;
 		//is this the first time 
@@ -1059,6 +1150,7 @@ public class probPolicyTest
 		//policyState testState = new policyState(0,0,6,parent_state); 
 		//unfoldPolicyForState(sumprod,strat,testState);
 		Iterator<Integer> initialStatesIter = sumprod.getInitialStates().iterator();
+		ArrayList<Integer> res = new ArrayList<Integer>(); 
 		while (initialStatesIter.hasNext()) {
 			int state = initialStatesIter.next();
 			int rnum = tAutomaton.allStates.getRobotNum(state);
@@ -1066,9 +1158,11 @@ public class probPolicyTest
 			testState.state = state;
 			testState.rnum = rnum;
 			
-			unfoldPolicyForState(sumprod, strat, testState,succState, allRobotInitStates);
+			ArrayList<Integer> statesDiscovered = unfoldPolicyForState(sumprod, strat, testState,succState, allRobotInitStates);
+			res.addAll(statesDiscovered); 
 
 		}
+		return res; 
 
 	}
 
@@ -1091,8 +1185,10 @@ public class probPolicyTest
 		}
 		return res;
 	}
-	public void unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts, int nextSuccState, int[] allRobotInitStates) throws PrismException
+	public ArrayList<Integer> unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts, int nextSuccState, int[] allRobotInitStates) throws PrismException
 	{
+		ArrayList<Integer> statesDiscovered = new ArrayList<Integer>(); 
+		int statesForPolicy = 0; 
 		if (printHighlights)
 		mainLog.println("Unfolding Policy for State "+rts.toString());
 		int state = rts.state; //current state 
@@ -1130,7 +1226,7 @@ public class probPolicyTest
 			strat.initialise(currState.state);
 			action = strat.getChoiceAction();
 			currState.setAction(action);
-			
+			statesForPolicy++;
 			//just making sure we have enough elements in the array 
 			while (currentPolicy.get(currState.rnum).size() < ((timecount-rts.time) + 1)) {//+1 because we're adding successors 
 				currentPolicy.get(currState.rnum).add(new ArrayList<policyState>());
@@ -1147,7 +1243,7 @@ public class probPolicyTest
 					//only add to stuck states if all robots have not failed 
 			
 
-					if(!allRobotsHaveFailed(allRobotInitStates)) {	
+					if(!allRobotsHaveFailed(allRobotInitStates,currState)) {	
 						boolean addToStuckStates = true;
 //						if(policyComputedForList.contains(currState))
 //						{
@@ -1178,7 +1274,8 @@ public class probPolicyTest
 							//and update the initstate of the robot in question (so there are no repeats) 
 							if(allRobotInitStates!=null) {
 								allRobotInitStates[currState.rnum] = currState.state;
-								createPolicyFromRobotInitStates(allRobotInitStates, currState);
+								createPolicyFromRobotInitStates(allRobotInitStates, currState,true);
+								statesDiscovered.add(1);
 								}
 							nextState.associatedPolicyID = allPoliciesList.size(); //this works on the assumption that the current policy is empty ^
 						
@@ -1253,6 +1350,11 @@ public class probPolicyTest
 										stateProbPair.getKey(), currState.state,null,rts.state);
 							succState.setProb(stateProbPair.getValue());
 							succState.cumulativeProb=currState.cumulativeProb*succState.probFromParent;
+//							if (action.toString().contains(switchInFailureAction) || action.toString().contains(simpleSwitchAction))
+//							{
+//								succState.cumulativeProb=rts.cumulativeProb;
+//								succState.probFromParent=rts.probFromParent;
+//							}
 							statesStack.push(succState);
 							states.add(succState.state); 
 							probs.add(succState.getProb());
@@ -1280,6 +1382,8 @@ public class probPolicyTest
 //			checkCurrentPolicy(allRobotInitStates,rts);
 		checkCurrentPolicyHasPolicyForAllRobotsAndFix(allRobotInitStates,rts);
 		addCurrentPolicyToAllPolicies(rts);
+		statesDiscovered.add(statesForPolicy); 
+		return statesDiscovered; 
 
 	}
 	
@@ -1290,14 +1394,16 @@ public class probPolicyTest
 		policyMDP.exportToDotFile(out, null, true);
 		out.close();
 		policyMDP.exportToPrismExplicitTra(location+name+".tra");
-		
+		boolean docombpol = true;
+		if(docombpol) {
 		initialiseCombinedPolicyMDP();
-		printAllPoliciesList(mainLog);
+		printAllPoliciesList(mainLog,true);
 		out = new PrismFileLog(location+name+"_policies.txt");
-		printAllPoliciesList(out);
+		printAllPoliciesList(out,true);
 		out.close();
 		out = new PrismFileLog(location+name+"_policies_dump.txt");
 		out.println(allPoliciesList.toString());
+		
 		out.close();
 		addAllPoliciesListToCombinedPolicyMDP();
 		name = "comb"+name;
@@ -1308,6 +1414,7 @@ public class probPolicyTest
 		out.close();
 		combinedPolicyMDP.exportToPrismExplicitTra(location+name+".tra");
 		
+		}
 	}
 	
 	public void savePolicyMDPToFile(MDPSimple policyMDP,String location, String name) throws PrismException
@@ -1374,7 +1481,7 @@ public class probPolicyTest
 		robotInitStates[currRobot.rnum]=currRobot.state; 
 		return allRobotsHaveFailed(robotInitStates);
 	}
-	private void createPolicyFromRobotInitStates(int[] robotInitStates, policyState state)
+	private void createPolicyFromRobotInitStates(int[] robotInitStates, policyState state,boolean addAction)
 	{
 		//so basically add this policy to the current state for this state 
 		//we kind of know that this will only happen for when the currentState is null 
@@ -1382,6 +1489,10 @@ public class probPolicyTest
 		for(int r = 0; r<robotInitStates.length; r++)
 		{
 			policyState currState = createRobotState(robotInitStates[r],state); 
+			if (addAction && r == state.rnum)
+			{
+				currState.action = switchInFailureAction; 
+			}
 			addtoCurrentPolicy(currState,state.time);
 		}
 	}
@@ -1503,24 +1614,77 @@ public class probPolicyTest
 		}
 		currentPolicy.get(currState.rnum).get(newtime).add(currState);
 	}
+	
+	private static boolean allDone(int arr[],int start,int end,int[] is)
+	{
+		boolean allDone = true; 
+		for(int i =start; i<end; i++)
+		{
+			if(arr[is[i]]!=0)
+			{
+				allDone = false; 
+				break;
+			}
+		}
+		return allDone;
+	}
+	private static void doCrap(int arr[],int resetVals[],int[]is)
+	{
+		System.out.println(Arrays.toString(arr));
+		
+		if(!allDone(arr,0,is.length,is))
+		{
+			boolean do0 = true;
+			for(int i =is.length-1; i>=0; i--)
+			{
+				if (allDone(arr,0,i+1,is))
+				{
+					arr[is[i+1]]--; 
+					arr[is[i]]=resetVals[is[i]];
+					do0=false;
+					break;
+				}
+			}
+			if(do0) {
+				arr[is[0]]--;
+			}
+			doCrap(arr,resetVals,is);
+		}
+	}
+	
 	public static void main(String[] args){
-	 PriorityQueue<policyState> tq = new PriorityQueue<policyState>(); 
-	 for(int i = 2; i<5; i++) {
-	 policyState ps = new policyState(); 
-	 ps.cumulativeProb=(1.0)/(double)i; 
-	 tq.add(ps); 
-	 }
-	 for(int i = 10; i>=5; i--)
-	 {
-		 policyState ps = new policyState(); 
-		 ps.cumulativeProb=(1.0)/(double)i; 
-		 tq.add(ps); 
-	 }
-	 while(!tq.isEmpty())
-	 {
-		 policyState ps = tq.remove(); 
-		 System.out.println(ps);
-	 }
+		int arr[] = {3,4,1}; 
+		int resetVals[] = arr.clone();
+		int size = arr.length; 
+		int is[]=new int[size-1];
+		for(int i=0; i<size; i++) {
+			for(int j=0; j<size; j++) {
+				if(i!=j && i<j)
+				{is[0]=i; 
+				is[1]=j;
+				System.out.println("Doing Stuff"+Arrays.toString(is));
+				arr[0]=3;
+				arr[1]=4;
+				arr[2]=1;
+		doCrap(arr,resetVals,is);}
+		}}
+//	 PriorityQueue<policyState> tq = new PriorityQueue<policyState>(); 
+//	 for(int i = 2; i<5; i++) {
+//	 policyState ps = new policyState(); 
+//	 ps.cumulativeProb=(1.0)/(double)i; 
+//	 tq.add(ps); 
+//	 }
+//	 for(int i = 10; i>=5; i--)
+//	 {
+//		 policyState ps = new policyState(); 
+//		 ps.cumulativeProb=(1.0)/(double)i; 
+//		 tq.add(ps); 
+//	 }
+//	 while(!tq.isEmpty())
+//	 {
+//		 policyState ps = tq.remove(); 
+//		 System.out.println(ps);
+//	 }
 	 
 	}
 };
