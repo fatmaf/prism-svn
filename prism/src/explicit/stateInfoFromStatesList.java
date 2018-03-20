@@ -17,10 +17,11 @@ import parser.State;
  * @author fatma
  *
  */
-public class stateInfoFromStatesList//a class I can use to manipulate the states list because otherwise it gets so messy 
+//a class I can use to manipulate the states list because otherwise it gets so messy 
 
+public class stateInfoFromStatesList
 {
-int BADVALUE = -2;
+	int BADVALUE = -2;
 	List<State> states;
 	int numVar;
 	int robotState;
@@ -89,7 +90,8 @@ int BADVALUE = -2;
 		return x1vp;
 
 	}
-	private Object[] getNewStatePreservingRobotMDPOnlyAndChangedIndices(State s1,List<Entry<Integer, Integer>> changedIndices,boolean setAllOthersToZero) {
+	private Object[] getNewStatePreservingRobotMDPOnlyAndChangedIndices(State s1,
+			List<Entry<Integer, Integer>> changedIndices,boolean setAllOthersToZero) {
 		Object x1v[] = s1.varValues;
 		Object x1vp[] = x1v.clone();
 		if (setAllOthersToZero){
@@ -107,7 +109,8 @@ int BADVALUE = -2;
 
 	}
 	
-	public int[] getStatesFromCombinations(ArrayList<ArrayList<Entry<Integer, Integer>>> combinations, int cs) {
+	public int[] getStatesFromCombinations(ArrayList<ArrayList<Entry<Integer, Integer>>> combinations, 
+			int cs) {
 		int numcomb = combinations.size();
 		int newstates[] = new int[numcomb];
 		for (int comb = 0; comb < numcomb; comb++) {
@@ -119,7 +122,8 @@ int BADVALUE = -2;
 		return newstates;
 	}
 
-	public BitSet markIndicesInBitSetFromArrayList(ArrayList<Entry<Integer, Integer>> changedIndicesAndValues)
+	public BitSet markIndicesInBitSetFromArrayList(
+			ArrayList<Entry<Integer, Integer>> changedIndicesAndValues)
 	{
 		BitSet res = new BitSet(numVar);
 		if(changedIndicesAndValues != null) {
@@ -173,7 +177,6 @@ int BADVALUE = -2;
 		}
 		return res;
 	}
-
 	//gets the value of the index of a state 
 	public int getIndValFromState(int state, int ind)
 	{
@@ -196,6 +199,7 @@ int BADVALUE = -2;
 		//int robotState = 0; 
 		return getIndValFromState(state, mdpState);
 	}
+	
 	public boolean isFailState(int state)
 	{
 		if (getIndValFromState(state,mdpState) == failState)
@@ -246,6 +250,7 @@ int BADVALUE = -2;
 	}
 	
 
+	
 
 	//merge states s1 and s2 such that the robot num and mdp bit are the same as s2 but 
 	//the rest are the same as s1
@@ -253,6 +258,13 @@ int BADVALUE = -2;
 	{
 		int statesToKeeps2[] = { robotState, mdpState };
 		return getMergedState(states.get(s1), states.get(s2), statesToKeeps2);
+	}
+	//merge states s1 and s2 such that the robot num and mdp bit are the same as s2 but 
+	//the rest are the same as s1
+	public int getMergedStateRobotMDP(State s1, State s2)
+	{
+		int statesToKeeps2[] = { robotState, mdpState };
+		return getMergedState(s1, s2, statesToKeeps2);
 	}
 
 	public int getMergedState(State s1, State s2, int statesToKeeps2[])
@@ -292,7 +304,38 @@ int BADVALUE = -2;
 		}
 		return res;
 	}
-
+	public Object[] createRefStateObject()
+	{
+		// get the first state 
+		Object[] ref = states.get(0).varValues.clone(); 
+		for(int i = 0; i<ref.length; i++)
+		{
+			ref[i]=0; 
+		}
+		return ref; 
+	}
+	public Object[] XORStates(State s1, State s2,Object[] refState 
+			/* a state with the initial states of all DA*/)
+	{
+	//so we need to exclude the robot and the mdp states from this 
+		Object[] s1v = s1.varValues; 
+		Object[] s2v = s2.varValues; 
+		Object[] resS = new Object[s1v.length-2]; //hard coding this 
+		for(int i = robotState+1; i<mdpState; i++)
+		{
+			if(s1v[i] != s2v[i])
+				resS[i-1]=s2v[i];
+			else
+				resS[i-1]=refState[i];
+		}
+//		for (int s = 0; s < states.size(); s++) {
+//			if (statesAreEqual(resS, states.get(s))) {
+//				res = s;
+//				break;
+//			}
+//		}
+		return resS;
+	}
 	public boolean statesAreEqual(Object s1v[], State s2)
 	{
 		boolean res = true;
@@ -310,4 +353,56 @@ int BADVALUE = -2;
 	{
 		return statesAreEqual(s1.varValues, s2);
 	}
+	
+	//static functions I might need for some stuff 
+	//gets the value of the index of a state 
+	public static int getIndValFromState(int state, int ind,List<State> states,int BADVALUE)
+	{
+		State stateObj = states.get(state);
+		Object[] stateArr = stateObj.varValues;
+		int res = BADVALUE;
+		if (ind < stateArr.length) {
+			res = (int) stateArr[ind];
+		}
+		return res;
+	}
+	public int getMDPState(int state,List<State> states)
+	{
+		//int robotState = 0; 
+		return getIndValFromState(state, mdpState,states,BADVALUE);
+	}
+	
+	public static boolean isFailState(int state,int failState,List<State> states,int BADVALUE)
+	{
+		int ind = states.get(0).varValues.length;
+		if (getIndValFromState(state,ind-1,states,BADVALUE) == failState)
+			return true; 
+		else 
+			return false; 
+	}
+	public static Object[] getMergedState(State s1, State s2, int statesToKeeps2[],int BADVALUE)
+	{
+		//int res = BADVALUE;
+		Object s1v[] = s1.varValues.clone();
+		Object s2v[] = s2.varValues;
+		for (int i = 0; i < statesToKeeps2.length; i++) {
+			s1v[statesToKeeps2[i]] = s2v[statesToKeeps2[i]];
+		}
+		//res = getExactlyTheSameState(s1v);
+		return s1v;
+	}
+	public static boolean statesAreEqual(Object s1v[], State s2,int numVar)
+	{
+		boolean res = true;
+		Object s2v[] = s2.varValues;
+		for (int v = 0; v < numVar; v++) {
+			if ((int) s1v[v] != (int) s2v[v]) {
+				res = false;
+				break;
+			}
+		}
+		return res;
+	}
+
+	
 };

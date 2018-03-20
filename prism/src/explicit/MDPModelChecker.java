@@ -153,8 +153,8 @@ public class MDPModelChecker extends ProbModelChecker {
 	}
 
 	protected Object[] constructMdpDaProd(int numrobots, int numOp, MDP model, LTLModelChecker mcLtls[],
-			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[], int robot_model, boolean simplify)
-			throws Exception {
+			DA<BitSet, ? extends AcceptanceOmega> das[], Expression ltls[], int robot_model, boolean simplify) throws PrismException 
+			 {
 		// int robot_model = 1; //0 = two_room_robot_f, 1 = two_room_robot_f_extended
 
 		LTLModelChecker.LTLProduct<MDP> product = null;
@@ -641,7 +641,7 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	protected Object[] constructSumMDP_new(int numOp, int numrobots, BitSet allAccStates[], BitSet initstates[],
 			MDP productMdp, BitSet safeltl, BitSet essentialAccStates[], MDPRewardsSimple costsModel,
-			int prevStatesMapping[]) throws Exception {
+			int prevStatesMapping[]) throws PrismException  {
 
 		int numres = 5;
 		int[] mdpStatesMapping = null;
@@ -1084,13 +1084,14 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	}
 
-	void checktimedout(long time, String loc,probPolicyTest policy) throws Exception {
+	void checktimedout(long time, String loc,probPolicyTest policy)  {
+
 		if (System.currentTimeMillis() - time > timeout) {
 			mainLog.println("TIMEDOUT");
 			addToTestResults("Timed Out:" + loc, (double) (System.currentTimeMillis() - time), arrNum);
 			if (policy!=null)
 			policy.printAllPoliciesList(mainLog, true);
-			throw new Exception("Timed Out" + loc);
+//			throw new Exception("Timed Out" + loc);
 			// break;
 		}
 	}
@@ -1099,14 +1100,14 @@ public class MDPModelChecker extends ProbModelChecker {
 	@SuppressWarnings("unchecked")
 	protected StateValues ltlDecomp(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
 		int numrobots = 1;
-		int maxrobots = 30;
-		int robotJump = 5;
-		int maxoploop = 29;
-		int opjump = 2;
+//		int maxrobots = 30;
+//		int robotJump = 5;
+//		int maxoploop = 29;
+//		int opjump = 2;
 
 		///////////////////////////////////// DECIDE NUM ROBOTS
 		///////////////////////////////////// HERE///////////////////////////////////////
-		int example_number = 4; // 0 = not extended , 1 = extended, 2 = debugging on
+		int example_number = 3; // 0 = not extended , 1 = extended, 2 = debugging on
 								// two_room_three_robot_blowup_reduced, 3 = three_robot_simple
 		// 4 = topo_map
 		// for my tests i had this set to 3 running on 4 so yeah
@@ -1116,13 +1117,13 @@ public class MDPModelChecker extends ProbModelChecker {
 			numrobots = 3;
 		///////////////////////////////////// DECIDE NUM ROBOTS
 		///////////////////////////////////// HERE///////////////////////////////////////
-		numrobots=4;
+//		numrobots=4;
 
 		StateValues costsProduct = null;
 		int numOp = expr.getNumOperands();
-		numOp = 10;
-		for (numrobots = 2; numrobots < maxrobots; numrobots += robotJump) {
-			for (numOp = 3; numOp < maxoploop; numOp += opjump) {
+//		numOp = 10;
+//		for (numrobots = 2; numrobots < maxrobots; numrobots += robotJump) {
+//			for (numOp = 3; numOp < maxoploop; numOp += opjump) {
 
 				testResults = new ArrayList<ArrayList<Entry<String, Double>>>();
 				mainLog.println("==================================  NUMROBOTS=" + numrobots + "  = NUMOP=" + numOp
@@ -1130,7 +1131,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				// long
 				time = System.currentTimeMillis();
 				arrNum = 0;
-				try {
+//				try {
 					boolean dovaliter = true;
 					MDPRewardsSimple prodCosts = null;
 					int[] mdpStatesMapping = null;
@@ -1297,19 +1298,19 @@ public class MDPModelChecker extends ProbModelChecker {
 						tnow = System.currentTimeMillis();
 						getTime(tnow);
 					}
-				} catch (Exception e) {
-					arrNum++;
-					addToTestResults("Error" + e.toString(), getTime(time), arrNum);
-				} finally {
+//				} catch (Exception e) {
+//					arrNum++;
+//					addToTestResults("Error" + e.toString(), getTime(time), arrNum);
+//				} finally {
 					
 					addToTestResults("Super Total", getTime(time), arrNum);
 					printTestResults(mainLog);
 					mainLog.println("==================================  NUMROBOTS=" + numrobots
 							+ "  =====================================================");
 					printTestResults("r"+numrobots+"_t"+numOp+".txt");
-				}
-			}
-		}
+//				}
+//			}
+//		}
 		return costsProduct;
 
 	}
@@ -1393,6 +1394,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		int nextRobot = (current_robot_state.rnum + 1) % numrobots;
 		int nextRobotState = policy.getAllStates().getMergedStateRobotMDP(current_robot_state.state,
 				statesForRobots[nextRobot]);
+		if (policy.getAllStates().isFailState(nextRobotState))
+		{
+			mainLog.println("YOU'REOKAY");
+		}
+		
 		// if nextRobotState does not exist this means that the mdp state of next robot
 		// is an accepting state for one of the tasks
 		if (nextRobotState == BADVALUE) {
@@ -1488,8 +1494,10 @@ public class MDPModelChecker extends ProbModelChecker {
 		addToTestResults("States Discovered", statesDisc, arrNum);
 
 	}
+	
+	
 
-	protected void updateTeamAutomatonForStatesClean(probPolicyTest policy, policyState currState) throws Exception {
+	protected void updateTeamAutomatonForStatesClean(probPolicyTest policy, policyState currState) throws PrismException  {
 		// long
 		long tnow = System.currentTimeMillis();
 		// given a policy (which has a team automaton with no switches and other info)
@@ -1579,7 +1587,7 @@ public class MDPModelChecker extends ProbModelChecker {
 	}
 	protected void unfoldPolicyClean(Strategy strat, MDPSimple sumprod, BitSet accStatesF, int numrobots,
 			MDPSimple sumprod_noswitches, BitSet[] switches, BitSet badstates, int[] robotInitStates,
-			MDPRewardsSimple rewards, MDPRewardsSimple rewards_noswitches) throws Exception {
+			MDPRewardsSimple rewards, MDPRewardsSimple rewards_noswitches) throws PrismException  {
 		long tnow = System.currentTimeMillis();
 
 		double probThreshold = 1e-7;
