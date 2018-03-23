@@ -35,10 +35,12 @@ import explicit.rewards.MDPRewardsSimple;
 public class MMDPSimple {
 
 	MDPSimple mdp;
-//	ArrayList<Map.Entry<State, Integer>> 
-	HashMap<State,Integer> statesMap;
+	// ArrayList<Map.Entry<State, Integer>>
+	HashMap<State, Integer> statesMap;
 	int nRobots;
 	int BADVALUE = -2;
+	int FAILSTATEVALUE = -1;
+	Queue<Integer> stuckStatesQ;
 
 	/*
 	 * creates a joint policy MDP
@@ -47,6 +49,7 @@ public class MMDPSimple {
 	 * 
 	 */
 	public MMDPSimple(int numrobots) {
+		stuckStatesQ = new LinkedList<Integer>();
 		mdp = new MDPSimple();
 		VarList varlist = new VarList();
 		try {
@@ -66,90 +69,84 @@ public class MMDPSimple {
 		nRobots = numrobots;
 
 	}
-	
-	public boolean stateInStatesList(State s)
-	{
+
+	public boolean stateInStatesList(State s) {
 		if (mdp.statesList.contains(s))
-			return true; 
-		else 
-			return false; 
+			return true;
+		else
+			return false;
 	}
-	public int findStateIndex(State s)
-	{
+
+	public int findStateIndex(State s) {
 		int indexInt = BADVALUE;
-		Object index = statesMap.get(s); 
-		if (index != null)
-		{
-			indexInt = (int)index;
+		Object index = statesMap.get(s);
+		if (index != null) {
+			indexInt = (int) index;
 		}
 		return indexInt;
 	}
-	private int addStateToMDP(State s)
-	{
-		int index = findStateIndex(s); 
-		if(index == BADVALUE)
-		{
-			mdp.statesList.add(s); 
+
+	private int addStateToMDP(State s) {
+		int index = findStateIndex(s);
+		if (index == BADVALUE) {
+			mdp.statesList.add(s);
 			index = mdp.getNumStates();
-			statesMap.put(s, index); 
+			statesMap.put(s, index);
 			mdp.addState();
-			
+
 		}
-		return index; 
+		return index;
 	}
 
-	private void addTranstionToMDP(State parentStates, ArrayList<State> states, ArrayList<Double> probs,
-			String action, double norm) {
+	private void addTranstionToMDP(State parentStates, ArrayList<State> states, ArrayList<Double> probs, String action,
+			double norm) {
 		int parentIndex = addStateToMDP(parentStates);
 		int index;
 		Distribution distr = new Distribution();
 
 		for (int succ = 0; succ < states.size(); succ++) {
 			index = addStateToMDP(states.get(succ));
-			distr.add(index, probs.get(succ)/norm);
+			distr.add(index, probs.get(succ) / norm);
 
 		}
 		int actionNo = mdp.getNumChoices(parentIndex);
 		mdp.addActionLabelledChoice(parentIndex, distr, action);
 
 	}
-	public int getLastState(MDPSimple pol,BitSet acceptingStates) {
-		int state = getLastState(pol,acceptingStates,0); 
-		for(int kindOfState=1; (state == BADVALUE)&&(kindOfState < 3); kindOfState++)
-		{
-			state = getLastState(pol,acceptingStates,kindOfState);
+
+	public int getLastState(MDPSimple pol, BitSet acceptingStates) {
+		int state = getLastState(pol, acceptingStates, 0);
+		for (int kindOfState = 1; (state == BADVALUE) && (kindOfState < 3); kindOfState++) {
+			state = getLastState(pol, acceptingStates, kindOfState);
 		}
 		return state;
 	}
-	//kindOfState - 0 - accepting state 
-	//			  - 2 - fail state 
-	//			  - 1 - switch 
-	public int getLastState(MDPSimple pol,BitSet acceptingStates,int kindOfState) {
+
+	// kindOfState - 0 - accepting state
+	// - 2 - fail state
+	// - 1 - switch
+	public int getLastState(MDPSimple pol, BitSet acceptingStates, int kindOfState) {
 		int state = pol.getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
 		// INITIAL STATES
-		int lastState = BADVALUE; 
+		int lastState = BADVALUE;
 		LinkedList<Integer> statesQ = new LinkedList<Integer>();
 
 		statesQ.add(state);
 		while (!statesQ.isEmpty()) {
 			state = (int) statesQ.remove();
-			if(kindOfState == 0)
-			{
-				if(acceptingStates.get(state))
-					lastState = state; 
+			if (kindOfState == 0) {
+				if (acceptingStates.get(state))
+					lastState = state;
 			}
-			if(kindOfState == 2)
-			{
-				if(stateInfoFromStatesList.isFailState(state,-1,pol.statesList,-2))
+			if (kindOfState == 2) {
+				if (stateInfoFromStatesList.isFailState(state, FAILSTATEVALUE, pol.statesList, -2))
 					lastState = state;
 			}
 			int choices = pol.getNumChoices(state);
 			for (int i = 0; i < choices; i++) {
-				if(kindOfState == 1)
-				{
-					if(pol.getAction(state, i) != null)
-					{
-						if(pol.getAction(state, i).toString().contains("switch"))
+				if (kindOfState == 1) {
+					if (pol.getAction(state, i) != null) {
+						if (pol.getAction(state, i).toString().contains("switch"))
 							lastState = state;
 					}
 				}
@@ -164,7 +161,7 @@ public class MMDPSimple {
 		}
 		return lastState; // so basically this is the last state we tried to explore
 	}
-	
+
 	public int getLastState(MDPSimple pol) {
 		int state = pol.getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
 		// INITIAL STATES
@@ -186,8 +183,6 @@ public class MMDPSimple {
 		}
 		return state; // so basically this is the last state we tried to explore
 	}
-
-	
 
 	public int findStateWithSwitch(MDPSimple pol) {
 		int switchState = BADVALUE;
@@ -235,9 +230,8 @@ public class MMDPSimple {
 
 	}
 
-	public void updateInitialStates(MDPSimple[] pols, int[][] mdpMaps,
-			int firstRobot,BitSet[] acceptingStates,
-			//I am being lazy now 
+	public void updateInitialStates(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
+			// I am being lazy now
 			probPolicyTest policyVar) {
 		// basically sometimes a robot might not be used at all
 		// so what we want to be able to do is like update it's possible state
@@ -245,285 +239,358 @@ public class MMDPSimple {
 		// that means it has just one state and no action
 		boolean doneOnce = false;
 		for (int i = 0; i < nRobots; i++) {
-			if ((pols[i].getNumStates() == 1)
-					&& (pols[i].getNumChoices(pols[i].getFirstInitialState()) ==0)
+			if ((pols[i].getNumStates() == 1) && (pols[i].getNumChoices(pols[i].getFirstInitialState()) == 0)
 					&& (i != firstRobot)) {
-					int currentRobotState = pols[i].getFirstInitialState();
-					//get the last state of the i-1 thing 
-					//unless you're at 0 in which case you need to go to nRobots-1
-					int prevRobot = i-1; 
-					if(prevRobot == -1)
-					{
-						prevRobot = nRobots-1; 
-					}
-					if (!doneOnce)
-						doneOnce = true; 
-					else
-					{
-						System.out.println("Something Unexpected is happening");
-					}
-					//now I get the last state 
-					int prevRobotLastState = getLastState(pols[prevRobot],
-							acceptingStates[prevRobot]);
-					
-					//now make a new state from the last state of the previous 
-					//robot and this state 
-					//more maslay!!! like how do I know this is the real state 
-					//what if we have more than one last state ?? 
-					//which one do we choose ? how ? 
-					//we choose the accepting state 
-					//because thats the only reason this robot does not have a thing 
-					//or well it failed in all cases in which case we choose the fail state 
-					//I have fixed these maslay - we do a priority thing where we care about 
-					//the last accepting state and if we find no accepting state the last switch
-					//and if we find no switch we care about the last fail state 
-					//so we're really chilling 
-					//so now that we have this what do we do ? 
-					//we make that state 
-					//have to make sure this new state is part of the team automaton btw 
-					
-					int newState = policyVar.tAutomaton.allStates.getMergedStateRobotMDP(
-							pols[prevRobot].getStatesList().get(prevRobotLastState),
-							pols[i].getStatesList().get(currentRobotState));
-					policyVar.addStateMDP(pols[i],mdpMaps[i],newState,acceptingStates[i]);
-					pols[i].clearInitialStates();
-					pols[i].addInitialState(mdpMaps[i][newState]);
-					
-					
+				int currentRobotState = pols[i].getFirstInitialState();
+				// get the last state of the i-1 thing
+				// unless you're at 0 in which case you need to go to nRobots-1
+				int prevRobot = i - 1;
+				if (prevRobot == -1) {
+					prevRobot = nRobots - 1;
+				}
+				if (!doneOnce)
+					doneOnce = true;
+				else {
+					System.out.println("Something Unexpected is happening");
+				}
+				// now I get the last state
+				int prevRobotLastState = getLastState(pols[prevRobot], acceptingStates[prevRobot]);
+
+				// now make a new state from the last state of the previous
+				// robot and this state
+				// more maslay!!! like how do I know this is the real state
+				// what if we have more than one last state ??
+				// which one do we choose ? how ?
+				// we choose the accepting state
+				// because thats the only reason this robot does not have a thing
+				// or well it failed in all cases in which case we choose the fail state
+				// I have fixed these maslay - we do a priority thing where we care about
+				// the last accepting state and if we find no accepting state the last switch
+				// and if we find no switch we care about the last fail state
+				// so we're really chilling
+				// so now that we have this what do we do ?
+				// we make that state
+				// have to make sure this new state is part of the team automaton btw
+
+				int newState = policyVar.tAutomaton.allStates.getMergedStateRobotMDP(
+						pols[prevRobot].getStatesList().get(prevRobotLastState),
+						pols[i].getStatesList().get(currentRobotState));
+				policyVar.addStateMDP(pols[i], mdpMaps[i], newState, acceptingStates[i]);
+				pols[i].clearInitialStates();
+				pols[i].addInitialState(mdpMaps[i][newState]);
+
 			}
 		}
 	}
-	public Object[] ORObjectArrays(Object[] a1, Object[] a2)
-	{
-		for(int i = 0; i<a1.length; i++)
-		{
-			if((int)a1[i]<(int)a2[i])
-				a1[i]=a2[i];
+
+	public Object[] ORObjectArrays(Object[] a1, Object[] a2) {
+		for (int i = 0; i < a1.length; i++) {
+			if ((int) a1[i] < (int) a2[i])
+				a1[i] = a2[i];
 		}
 		return a1;
 	}
-	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int[][] mdpMaps,
-			int firstRobot,BitSet[] acceptingStates,
-			int[] currentStates, int[] lastStates,
-			//I am being lazy now 
+
+	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int[][] mdpMaps, int firstRobot,
+			BitSet[] acceptingStates, int[] currentStates, int[] lastStates,
+			// I am being lazy now
 			probPolicyTest policyVar) {
 
-		
-		// Ref State ??? 
-		// We need to make one 
+		// Ref State ???
+		// We need to make one
 		// TODO: NEED TO CHANGE THIS I AM HARDCODING IT FOR NOW
-		
-		//I need two things - the current progress of the the thing which starts from the first robot 
-		//this is our base, then we need the progress of the next robot excluding anything done by the first
+
+		// I need two things - the current progress of the the thing which starts from
+		// the first robot
+		// this is our base, then we need the progress of the next robot excluding
+		// anything done by the first
 		Object[] refState = policyVar.tAutomaton.allStates.createRefStateObject();
-		Object[] teamProgress = new Object[refState.length-2]; //hard coding this too 
-		//initialize team Progress
-		int firstRobotState = currentStates[firstRobot]; 
+		Object[] teamProgress = new Object[refState.length - 2]; // hard coding this too
+		// initialize team Progress
+		int firstRobotState = currentStates[firstRobot];
 		State firstRobotStateObj = pols[firstRobot].statesList.get(firstRobotState);
-		for(int i = 0; i<teamProgress.length; i++)
-		{
-			teamProgress[i]= firstRobotStateObj.varValues[i+1];
+		for (int i = 0; i < teamProgress.length; i++) {
+			teamProgress[i] = firstRobotStateObj.varValues[i + 1];
 		}
 		for (int i = 0; i < nRobots; i++) {
-			if(i != firstRobot) {
+			if (i != firstRobot) {
 				int currentRobotState = currentStates[i];
 
-					//get the last state of the i-1 thing 
-					//unless you're at 0 in which case you need to go to nRobots-1
-					int prevRobot = i-1; 
-					if(prevRobot == -1)
-					{
-						prevRobot = nRobots-1; 
-					}
-					
-					//now I get the last state 
-					int prevRobotLastState = lastStates[prevRobot];
-					
-					State currentRobotStateObj = pols[i].statesList.get(currentRobotState); 
-					State prevRobotStateObj = pols[prevRobot].statesList.get(prevRobotLastState);
-					
-					
-					Object[] robotProgress = policyVar.tAutomaton.allStates.XORStates(
-							prevRobotStateObj,currentRobotStateObj,refState);
-					System.out.println(Arrays.toString(robotProgress));
-					teamProgress = ORObjectArrays(teamProgress,robotProgress);
-					System.out.println(Arrays.toString(teamProgress));
-//					policyVar.addStateMDP(pols[i],mdpMaps[i],newState,acceptingStates[i]);
-//					pols[i].clearInitialStates();
-//					pols[i].addInitialState(mdpMaps[i][newState]);
-					
-					
+				// get the last state of the i-1 thing
+				// unless you're at 0 in which case you need to go to nRobots-1
+				int prevRobot = i - 1;
+				if (prevRobot == -1) {
+					prevRobot = nRobots - 1;
+				}
+
+				// now I get the last state
+				int prevRobotLastState = lastStates[prevRobot];
+
+				State currentRobotStateObj = pols[i].statesList.get(currentRobotState);
+				State prevRobotStateObj = pols[prevRobot].statesList.get(prevRobotLastState);
+
+				Object[] robotProgress = policyVar.tAutomaton.allStates.XORStates(prevRobotStateObj,
+						currentRobotStateObj, refState);
+				System.out.println(Arrays.toString(robotProgress));
+				teamProgress = ORObjectArrays(teamProgress, robotProgress);
+				System.out.println(Arrays.toString(teamProgress));
+				// policyVar.addStateMDP(pols[i],mdpMaps[i],newState,acceptingStates[i]);
+				// pols[i].clearInitialStates();
+				// pols[i].addInitialState(mdpMaps[i][newState]);
+
 			}
 		}
 		return teamProgress;
 	}
-	
-	public State createJointState(Object[] DFAProgress,int[] currentRobotStates)
-	{
-		State currentJointState = new State(DFAProgress.length+currentRobotStates.length);
+
+	public State createJointState(Object[] DFAProgress, int[] currentRobotStates) {
+		State currentJointState = new State(DFAProgress.length + currentRobotStates.length);
 		int offset = 0;
-		for(int i=0; i<DFAProgress.length; i++)
-		{
-			currentJointState.setValue(i+offset,DFAProgress[i] );
+		for (int i = 0; i < DFAProgress.length; i++) {
+			currentJointState.setValue(i + offset, DFAProgress[i]);
 		}
-		offset = DFAProgress.length; 
-		for(int i = 0; i<currentRobotStates.length; i++)
-		{
-			currentJointState.setValue(i+offset, currentRobotStates[i]);
+		offset = DFAProgress.length;
+		for (int i = 0; i < currentRobotStates.length; i++) {
+			currentJointState.setValue(i + offset, currentRobotStates[i]);
 		}
-		return currentJointState; 
+		return currentJointState;
 	}
-public ArrayList<Entry<Integer, Double>> getSuccessorStatesFromMDP(MDPSimple pol, int state, int choice)
-{
-	ArrayList<Entry<Integer, Double>> successorStates = new ArrayList<Entry<Integer, Double>>(); 
-	Iterator<Entry<Integer, Double>> tIter = pol.getTransitionsIterator(state, choice);
-	while(tIter.hasNext())
-	{
-		Entry<Integer, Double> currIter = tIter.next(); 
-		successorStates.add(currIter);
+
+	public ArrayList<Entry<Integer, Double>> getSuccessorStatesFromMDP(MDPSimple pol, int state, int choice) {
+		ArrayList<Entry<Integer, Double>> successorStates = new ArrayList<Entry<Integer, Double>>();
+		Iterator<Entry<Integer, Double>> tIter = pol.getTransitionsIterator(state, choice);
+		while (tIter.hasNext()) {
+			Entry<Integer, Double> currIter = tIter.next();
+			successorStates.add(currIter);
+		}
+
+		return successorStates;
 	}
-	
-	return successorStates; 
-}
-	public void addPolicy(MDPSimple[] pols, int[][] mdpMaps,
-			int firstRobot,BitSet[] acceptingStates,probPolicyTest policyVar) {
+
+	public int hasFailState(int[] mdpStates) {
+		int sum = 0;
+		for (int i = 0; i < mdpStates.length; i++) {
+			if (mdpStates[i] == FAILSTATEVALUE)
+				sum++;
+		}
+		return sum;
+	}
+
+	public int hasFailState(Object[] mdpStates, int start, int end) {
+		int sum = 0;
+		for (int i = start; i < end; i++) {
+			if ((int) mdpStates[i] == FAILSTATEVALUE)
+				sum++;
+		}
+		return sum;
+	}
+
+	public int[] getRobotStates(State jointState) {
+
+		Object[] mdpStates = jointState.varValues;
+		int start = mdpStates.length - nRobots;
+		int end = mdpStates.length;
+		int[] robotStates = new int[nRobots];
+		for (int i = start; i < end; i++) {
+			robotStates[i - start] = (int) mdpStates[i];
+		}
+		return robotStates;
+	}
+
+	public int firstFailedRobot(State jointState) {
+		Object[] mdpStates = jointState.varValues;
+		int start = mdpStates.length - nRobots;
+		int end = mdpStates.length;
+		return firstFailedRobot(mdpStates, start, end);
+
+	}
+
+	public Object[] createSingleRobotState(State jointState, int rNum) {
+		// pick the robot num
+		Object[] mdpStates = jointState.varValues;
+		int dfaStart = 0;
+		int dfaEnd = mdpStates.length - nRobots;
+		int robotIndex = dfaEnd + rNum;
+		Object[] singleRobotState = new Object[dfaEnd + 2];
+		singleRobotState[0] = rNum;
+		for (int i = 1; i < dfaEnd + 1; i++) {
+			singleRobotState[i] = mdpStates[i - 1];
+		}
+		singleRobotState[dfaEnd + 1] = mdpStates[robotIndex];
+		return singleRobotState;
+	}
+
+	public int firstFailedRobot(Object[] mdpStates, int start, int end) {
+		int failedRobot = BADVALUE; // no one
+		for (int i = start; i < end; i++) {
+			if ((int) mdpStates[i] == FAILSTATEVALUE) {
+				failedRobot = i - start;
+				break;
+			}
+		}
+		return failedRobot;
+	}
+
+	public int hasFailState(State jointState) {
+		Object[] mdpStates = jointState.varValues;
+		int start = mdpStates.length - nRobots;
+		int end = mdpStates.length;
+		return hasFailState(mdpStates, start, end);
+	}
+
+	public void addPolicy(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
+			probPolicyTest policyVar) {
 		int initialStates[] = new int[nRobots];
 		int lastStates[] = new int[nRobots];
-	//	int switchStates[] = new int[nRobots];
+		// int switchStates[] = new int[nRobots];
 		int maxSteps[] = new int[nRobots];
 		int currentSteps[] = new int[nRobots];
 		int nextStates[] = new int[nRobots];
 		int currentStates[] = new int[nRobots];
 		int mdpStates[] = new int[nRobots];
 		String actions[] = new String[nRobots];
-		Queue<State> statesQ = new LinkedList<State>(); 
+		Queue<State> statesQ = new LinkedList<State>();
 		Queue<int[]> polStatesQ = new LinkedList<int[]>();
+
 		ArrayList<Double> probabilities = null;
 		ArrayList<State> nextJointStates = null;
-		 double sumProb = 0;
-		updateInitialStates(pols, mdpMaps,
-				firstRobot, acceptingStates,policyVar);
-		
+		double sumProb = 0;
+		updateInitialStates(pols, mdpMaps, firstRobot, acceptingStates, policyVar);
+
 		// for the first step get the states for all the robots
 		for (int r = 0; r < nRobots; r++) {
 			// for each robot get initial state
 			initialStates[r] = pols[r].getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
 																// INITIAL STATES
-			mdpStates[r]= policyVar.tAutomaton.allStates.getMDPState(initialStates[r], pols[r].statesList);
-			lastStates[r] =  getLastState(pols[r],
-					acceptingStates[r]);//findStateWithSwitch(pols[r]);
+			mdpStates[r] = policyVar.tAutomaton.allStates.getMDPState(initialStates[r], pols[r].statesList);
+			lastStates[r] = getLastState(pols[r], acceptingStates[r]);// findStateWithSwitch(pols[r]);
 			// get the DFA for the first state - its basically the changes from the initial
 			// state
-			//now lets get the state such that we keep the DFA progress for the initial state 
-			
+			// now lets get the state such that we keep the DFA progress for the initial
+			// state
+
 		}
-		Object[] teamProgress = getTeamProgressAtCurrentStates( pols,  mdpMaps,
-				 firstRobot,acceptingStates,
+		Object[] teamProgress = getTeamProgressAtCurrentStates(pols, mdpMaps, firstRobot, acceptingStates,
 				initialStates, lastStates,
-				//I am being lazy now 
-				 policyVar);
+				// I am being lazy now
+				policyVar);
 		currentStates = initialStates.clone();
-		State currentJointState = createJointState(teamProgress,mdpStates);
-		statesQ.add(currentJointState); 
+		State currentJointState = createJointState(teamProgress, mdpStates);
+		statesQ.add(currentJointState);
 		polStatesQ.add(currentStates.clone());
 		double prob;
-		while(!polStatesQ.isEmpty())
-		{
-			currentJointState = statesQ.remove(); 
+		while (!polStatesQ.isEmpty()) {
+			currentJointState = statesQ.remove();
+			int hasfailed = hasFailState(currentJointState);
+
 			currentStates = polStatesQ.remove();
+
+			// is this an accepting state ?
+			boolean hasAcceptingState = false;
+			//check if this is an accepting state 
+		
+			int[] robotStates = policyVar.getRobotStatesIndexFromJointState(currentJointState);
 			
-			//now get the successor states
+			// now get the successor states
 			int[] numSuccessorStates = new int[nRobots];
-			ArrayList<ArrayList<Entry<Integer, Double>>> successorStates =
-					new ArrayList<ArrayList<Entry<Integer, Double>>>(nRobots);
+			ArrayList<ArrayList<Entry<Integer, Double>>> successorStates = new ArrayList<ArrayList<Entry<Integer, Double>>>(
+					nRobots);
 			int sumNumChoices = 0;
 			String action = "";
-			for(int r=0; r<nRobots; r++)
-			{
+			for (int r = 0; r < nRobots; r++) {
+
+				if(policyVar.tAutomaton.finalAccStates.get(robotStates[r]))
+					hasAcceptingState = true; 
+
 				int numChoices = pols[r].getNumChoices(currentStates[r]);
-				if(numChoices > 0)
-				{
-					Object actionhere = pols[r].getAction(currentStates[r], 0); 
-					if(actionhere != null)
-					{
-						//is there a better way to do this ??? 
-						if (actionhere.toString().contains("switch"))
-						{
-							numChoices = 0; 
+				if (numChoices > 0) {
+					Object actionhere = pols[r].getAction(currentStates[r], 0);
+					if (actionhere != null) {
+						// is there a better way to do this ???
+						if (actionhere.toString().contains("switch")) {
+							numChoices = 0;
 						}
 					}
 				}
-				sumNumChoices +=numChoices;
-				if( numChoices== 1) {
-				numSuccessorStates[r]= pols[r].getNumTransitions(currentStates[r], 0); 
-				action += pols[r].getAction(currentStates[r], 0); 
-				//hardcoding the 0 because we know there is only one choice always. 
-				ArrayList<Entry<Integer, Double>> succStates =
-						getSuccessorStatesFromMDP(pols[r],currentStates[r],0);
-				successorStates.add(succStates);
-				
-				}
-				else
-				{
-					//has more than 1 ? 
-					if(numChoices == 0)
-					{
-						numSuccessorStates[r]=1;
-						ArrayList<Entry<Integer, Double>> succStates = new ArrayList<Entry<Integer, Double>>(); 
+				sumNumChoices += numChoices;
+				if (numChoices == 1) {
+					numSuccessorStates[r] = pols[r].getNumTransitions(currentStates[r], 0);
+					action += pols[r].getAction(currentStates[r], 0);
+					// hardcoding the 0 because we know there is only one choice always.
+					ArrayList<Entry<Integer, Double>> succStates = getSuccessorStatesFromMDP(pols[r], currentStates[r],
+							0);
+					successorStates.add(succStates);
+
+				} else {
+					// has more than 1 ?
+					if (numChoices == 0) {
+						numSuccessorStates[r] = 1;
+						ArrayList<Entry<Integer, Double>> succStates = new ArrayList<Entry<Integer, Double>>();
 						succStates.add(new AbstractMap.SimpleEntry(currentStates[r], 1.0));
 						successorStates.add(succStates);
-						
-						//link back to the same state really - this can be useful later too 
-						//right ??? 
-					}
-					else
-					{
+
+						// link back to the same state really - this can be useful later too
+						// right ???
+					} else {
 						System.out.println("KUCH HOGIYA HAI YAAR");
 					}
 				}
+			}
+			// if all the choices are 0 we've reached a terminal state and it should be a
+			// fail state
+			// we also need to avoid cases where a state may have stuff in the joint policy
+			// too
+			// so if its a state that has an action in the joint policy that means we dont
+			// care
+			if (sumNumChoices == 0) {
+				if (hasfailed > 0 && hasfailed != nRobots) {
+					int stateNumInMDP = statesMap.get(currentJointState);
+					if (mdp.getNumChoices(stateNumInMDP) == 0) {
+						if (!hasAcceptingState) {
+							if (!stuckStatesQ.contains(stateNumInMDP))
+								stuckStatesQ.add(stateNumInMDP);
+						}
+					}
 				}
-			if(sumNumChoices == 0)
 				continue;
-			
-				ArrayList<int[]> combinations = new ArrayList<int[]>(); 
-				 probabilities = new ArrayList<Double>();
-				 nextJointStates = new ArrayList<State>();
-				 sumProb = 0;
-				generateCombinations(numSuccessorStates.clone(),numSuccessorStates.clone(),combinations);
-				for(int[] combination: combinations) {
-					prob = 1.0;
-				for(int r=0; r<nRobots; r++)
-				{
-					nextStates[r]=successorStates.get(r).get(combination[r]-1).getKey();
-					prob = prob* successorStates.get(r).get(combination[r]-1).getValue();
-					mdpStates[r]=policyVar.tAutomaton.allStates.getMDPState(
-							nextStates[r], pols[r].statesList);
-
+			}
+			ArrayList<int[]> combinations = new ArrayList<int[]>();
+			probabilities = new ArrayList<Double>();
+			nextJointStates = new ArrayList<State>();
+			sumProb = 0;
+			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations);
+			for (int[] combination : combinations) {
+				prob = 1.0;
+				for (int r = 0; r < nRobots; r++) {
+					nextStates[r] = successorStates.get(r).get(combination[r] - 1).getKey();
+					prob = prob * successorStates.get(r).get(combination[r] - 1).getValue();
+					mdpStates[r] = policyVar.tAutomaton.allStates.getMDPState(nextStates[r], pols[r].statesList);
 
 				}
 
-				teamProgress = getTeamProgressAtCurrentStates(pols,mdpMaps,firstRobot,acceptingStates,
-						nextStates,lastStates,policyVar);
-				State nextJointState = createJointState(teamProgress,mdpStates); 
+				teamProgress = getTeamProgressAtCurrentStates(pols, mdpMaps, firstRobot, acceptingStates, nextStates,
+						lastStates, policyVar);
+				State nextJointState = createJointState(teamProgress, mdpStates);
 				probabilities.add(prob);
-				sumProb+=prob;
+				sumProb += prob;
 				nextJointStates.add(nextJointState);
 				statesQ.add(nextJointState);
 				polStatesQ.add(nextStates.clone());
-				
-				}
-				addTranstionToMDP(currentJointState,nextJointStates,probabilities,action,sumProb);
-				
-				
-			
-			
+
+			}
+			addTranstionToMDP(currentJointState, nextJointStates, probabilities, action, sumProb);
+
 		}
+		saveJointPolicy();
+
+	}
+
+	public void saveJointPolicy() {
 		String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
 
-		PrismLog log = new PrismFileLog(saveplace+"jointPolicy.dot");
+		PrismLog log = new PrismFileLog(saveplace + "jointPolicy.dot");
 		mdp.exportToDotFile(log, null, true);
 		log.close();
-
 
 	}
 
