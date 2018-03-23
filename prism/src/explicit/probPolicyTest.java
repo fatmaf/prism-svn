@@ -448,6 +448,19 @@ public class probPolicyTest {
 		return getChangedIndicesAcrossPolicyAtTime(currentPolicy, currRobotState);
 	}
 
+	public int getRobotStateIndexFromJointState (State currState, int rNum) {
+	Object[] robotState = jointPolicy.createSingleRobotState(currState, rNum); 
+	int robotStateId =getAllStates().getExactlyTheSameState(robotState); 
+	return robotStateId; 
+	}
+	public int[] getRobotStatesIndexFromJointState (State currState) {
+		int[] toRet = new int[tAutomaton.numRobots]; 
+		for(int rNum = 0; rNum < tAutomaton.numRobots; rNum++) {
+	toRet[rNum] = getRobotStateIndexFromJointState(currState,rNum);
+		}
+	return toRet; 
+	}
+	
 	private ArrayList<Entry<Integer, Integer>> combineTwoArrayLists(ArrayList<Entry<Integer, Integer>> one,
 			ArrayList<Entry<Integer, Integer>> two) {
 		if (one != null || two != null) {
@@ -1162,6 +1175,41 @@ public class probPolicyTest {
 
 	}
 
+	public ArrayList<Integer> unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, int currState,
+			int succState, int[] allRobotInitStates)
+
+	{
+//		int parent_state = currState.pstate;
+		// is this the first time
+		boolean firstUnfolding = false;
+		if (stuckStatesQueue == null) {
+			// initialise everything
+			initialisePolicyMDP();
+			// initialiseCurrentPolicy();
+			initialiseAllPolicies();
+			initialisePolicyComputedFor();
+			stuckStatesQueue = new PriorityQueue<policyState>();
+			firstUnfolding = true;
+			policyCounter = -1;
+		}
+		// just testing
+		// policyState testState = new policyState(0,0,6,parent_state);
+		// unfoldPolicyForState(sumprod,strat,testState);
+		Iterator<Integer> initialStatesIter = sumprod.getInitialStates().iterator();
+		ArrayList<Integer> res = new ArrayList<Integer>();
+		while (initialStatesIter.hasNext()) {
+			int state = initialStatesIter.next();
+		
+			ArrayList<Integer> statesDiscovered = unfoldPolicyForState(sumprod, strat, state, succState,
+					allRobotInitStates);
+			res.addAll(statesDiscovered);
+
+		}
+		return res;
+
+	}
+
+	
 	public ArrayList<Integer> unfoldPolicy(MDPSimple sumprod, Strategy strat, int timecount, policyState currState,
 			int succState, int[] allRobotInitStates)
 
@@ -1218,6 +1266,122 @@ public class probPolicyTest {
 			}
 		}
 		return res;
+	}
+	
+	public ArrayList<Integer> unfoldPolicyForState(MDPSimple sumprod, Strategy strat, int initialState, 
+			int nextSuccState, int[] allRobotInitStates) {
+		
+		//n MDP stuff 
+		MDPSimple mdps[]= new MDPSimple[tAutomaton.numRobots];
+		int mdpMaps[][] = new int[tAutomaton.numRobots][sumprod.numStates];
+		BitSet accStates[] = new BitSet[tAutomaton.numRobots];
+		for(int i=0; i<tAutomaton.numRobots; i++)
+		{	mdps[i]= new MDPSimple();
+			mdps[i].setVarList((VarList)sumprod.varList.clone());
+			Arrays.fill(mdpMaps[i], BADVALUE);
+			mdps[i].setStatesList(new ArrayList<State>());	
+			accStates[i] = new BitSet();
+		}
+		
+		//n MDP stuff done
+		ArrayList<Integer> statesDiscovered = new ArrayList<Integer>();
+		int statesForPolicy = 0;
+
+		int choices = -1;
+
+		Object action = null;
+
+		// this shouldnt matter
+		List<Integer> discoveredStates = new LinkedList<Integer>();
+		// on second thought this does not matter (the thing below) because we might
+		// visit the same state again but it may be a child of another state
+		// and so the inital state of the robot would have changed (though maybe no new
+		// task would be acheived)
+		// BitSet addedToStuckQ = new BitSet(tAutomaton.numStates); //for each policy
+		// unfolding we don't need to add the same state over and over again to the
+		// stuck stack
+
+		Stack<Integer> statesStack = new Stack<Integer>(); // to store all the states we need to explore, so dfs
+																	// to the goal , well its not dfs but yeah
+		int currState = initialState;
+		int firstRobot = getAllStates().getRobotNum(initialState);
+		statesStack.push(currState);
+		// TODO: what do you do when the policy has been computed before and we're just
+		// here again ?
+		// Do we care about this here or later ?
+	
+		// forget any of the other policies
+		initialiseCurrentPolicy();
+		currentPolicyState = initialState;
+		String prevTextToAdd = "";
+		int timecount =0;
+		while (!statesStack.isEmpty()) // the main bit - go to the next state, get the action go to the next state and
+										// so on
+		{
+			// TODO: addstatetopolmdp(currState.state)
+			// TODO: distribution
+			currState = statesStack.pop();
+
+
+			strat.initialise(currState);
+			action = strat.getChoiceAction();
+			
+			statesForPolicy++;
+			// just making sure we have enough elements in the array
+	
+			if (!discoveredStates.contains(currState)
+					// !discovered.get(currState.state)
+					& !tAutomaton.finalAccStates.get(currState)) // if it is not an accepting state and not
+																		// discovered explore
+			{
+	
+				// mainLog.println(currState.toString());
+				// discovered.set(currState.state);
+				discoveredStates.add(currState);
+				choices = sumprod.getNumChoices(currState);
+				for (int c = 0; c < choices; c++) {
+					if (action.equals(sumprod.getAction(currState, c))) {
+						// TODO: the prodDistr stuff
+						ArrayList<Integer> states = new ArrayList<Integer>();
+						ArrayList<Double> probs = new ArrayList<Double>();
+						// TODO: adding to the MDP policy
+						Iterator<Entry<Integer, Double>> iter = sumprod.getTransitionsIterator(currState, c);
+						while (iter.hasNext()) {
+							Entry<Integer, Double> stateProbPair = iter.next();
+							// get which robot
+							int nextState = stateProbPair.getKey(); 
+							double nextStateProb = stateProbPair.getValue();
+						
+							statesStack.push(nextState);
+							states.add(nextState);
+							probs.add(nextStateProb);
+						}
+						int currentRobot = getAllStates().getRobotNum(currState);
+						accStates[currentRobot] = addLinkInMDP(mdps[currentRobot],mdpMaps[currentRobot],
+								sumprod.getStatesList(),
+								states, probs, currState, action,
+								"",accStates[currentRobot]);
+						if(mdps[currentRobot].getNumInitialStates()==0)
+							mdps[currentRobot].addInitialState(0);
+						// addLinkInPolicyMDP(states,probs, currState.state, action);
+						break;
+						// don't go over all choices - actions are unique
+					}
+				}
+
+			}
+
+		}
+		// once we're done add the current policy to the big policy
+		// and also check if the policy has at least init values for all robots
+		// if(allRobotInitStates != null)
+		// checkCurrentPolicy(allRobotInitStates,rts);
+
+		checkMDPs(mdps,mdpMaps,sumprod.getStatesList(),allRobotInitStates,initialState,accStates);
+		jointPolicy.addPolicy(mdps,mdpMaps,firstRobot,accStates,this);
+		statesDiscovered.add(statesForPolicy);
+		return statesDiscovered;
+
 	}
 
 	public ArrayList<Integer> unfoldPolicyForState(MDPSimple sumprod, Strategy strat, policyState rts,
@@ -1452,7 +1616,6 @@ public class probPolicyTest {
 		// checkCurrentPolicy(allRobotInitStates,rts);
 		checkCurrentPolicyHasPolicyForAllRobotsAndFix(allRobotInitStates, rts);
 		addCurrentPolicyToAllPolicies(rts);
-		jointPolicy.addPolicy(currentPolicy);
 		checkMDPs(mdps,mdpMaps,sumprod.getStatesList(),allRobotInitStates,rts,accStates);
 		jointPolicy.addPolicy(mdps,mdpMaps,rts.rnum,accStates,this);
 		statesDiscovered.add(statesForPolicy);
@@ -1537,6 +1700,24 @@ public class probPolicyTest {
 				} else {
 					policyState currState = createRobotState(robotInitStates[r], state);
 					accStates[r] = addStateMDP(mdps[r],mdpMaps[r],states,BADVALUE,currState.state,accStates[r]);
+					mdps[r].addInitialState(0);
+				}
+			}
+		}
+		if (!res)
+			mainLog.println("ERROR HERE!!!");
+		return res;
+	}
+	private boolean checkMDPs(MDPSimple mdps[], int[][] mdpMaps,List<State> states,int[] robotInitStates, int state,BitSet[] accStates) {
+		boolean res = true;
+		for (int r = 0; r < tAutomaton.numRobots; r++) {
+			if (mdps[r].getNumStates()==0) {
+				if (robotInitStates == null) {
+					res = false;
+					break;
+				} else {
+					int currState = robotInitStates[r];
+					accStates[r] = addStateMDP(mdps[r],mdpMaps[r],states,BADVALUE,currState,accStates[r]);
 					mdps[r].addInitialState(0);
 				}
 			}
