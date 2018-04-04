@@ -971,7 +971,8 @@ public class MultiObjModelChecker extends PrismComponent
 			if (settings.getChoice(PrismSettings.PRISM_EXPORT_ADV) != Prism.EXPORT_ADV_NONE) {
 				PrismNative.setExportAdvFilename(PrismUtils.addCounterSuffixToFilename(advFileName, iters));
 			}
-
+                        
+                        mainLog.println("=====================================================================");
 			mainLog.println("Optimising weighted sum of objectives: weights " + direction);
 			double[] result;
 			if (useGS) {
@@ -998,6 +999,7 @@ public class MultiObjModelChecker extends PrismComponent
 			
 			//collect the numbers obtained from methods executed above.
 			Point newPoint = new Point(result);
+			mainLog.println("Computed point: " + newPoint);
 
 			if (verbose) {
 				mainLog.println("\n" + numberOfPoints + ": New point is " + newPoint + ".");

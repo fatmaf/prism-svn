@@ -414,12 +414,14 @@ public class ProductModelGenerator implements ModelGenerator
 		int daTarget = (int)target.varValues[numVars - 1];
 		double prog = 100*(da.getDistsToAcc().get(daSource) - da.getDistsToAcc().get(daTarget));
 		//if (prog < 0.0) 	System.out.println(prog);
-		double res = da.getDistsToAcc().get(daTarget);
-		if (res < 0.3) {
-			System.out.println(res);
-		}
 		//return Math.max(prog, 0);
-		//return prog;
+		return prog;
+	}
+	
+	public double getDaDistanceCost(State state) {
+		int daVal = (int)state.varValues[numVars - 1];
+		double res = da.getDistsToAcc().get(daVal);
 		return res;
 	}
+	
 }

@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dv.DoubleVector;
+import explicit.BRTDPModelChecker;
 import explicit.CTMC;
 import explicit.CTMCModelChecker;
 import explicit.ConstructModel;
@@ -2928,6 +2929,12 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			MCTSModelChecker mctsMC;
 			mctsMC = new MCTSModelChecker(this, currentModulesFile, propertiesFile);
 			return mctsMC.check(prop.getExpression());
+		}
+		// For BRTDP
+		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("BRTDP")) {
+			BRTDPModelChecker brtdpMC;
+			brtdpMC = new BRTDPModelChecker(this, currentModulesFile, propertiesFile);
+			return brtdpMC.check(prop.getExpression());
 		}
 		// Auto-switch engine if required
 		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {

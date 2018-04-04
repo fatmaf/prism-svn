@@ -1,0 +1,82 @@
+mdp
+
+module robot
+
+rob00:[0..1] init 1;
+rob01:[0..1] init 0;
+rob02:[0..1] init 0;
+rob03:[0..1] init 0;
+rob10:[0..1] init 0;
+rob11:[0..1] init 0;
+rob12:[0..1] init 0;
+rob20:[0..1] init 0;
+rob21:[0..1] init 0;
+rob30:[0..1] init 0;
+
+[se] (rob00=1) -> 1.0:(rob00'=0) & (rob10'=1);
+[s] (rob00=1) -> 1.0:(rob00'=0) & (rob01'=1);
+[n] (rob01=1) -> 1.0:(rob01'=0) & (rob00'=1);
+[ne] (rob01=1) -> 1.0:(rob01'=0) & (rob10'=1);
+[se] (rob01=1) -> 1.0:(rob01'=0) & (rob11'=1);
+[s] (rob01=1) -> 1.0:(rob01'=0) & (rob02'=1);
+[n] (rob02=1) -> 1.0:(rob02'=0) & (rob01'=1);
+[ne] (rob02=1) -> 1.0:(rob02'=0) & (rob11'=1);
+[se] (rob02=1) -> 1.0:(rob02'=0) & (rob12'=1);
+[s] (rob02=1) -> 1.0:(rob02'=0) & (rob03'=1);
+[n] (rob03=1) -> 1.0:(rob03'=0) & (rob02'=1);
+[ne] (rob03=1) -> 1.0:(rob03'=0) & (rob12'=1);
+[nw] (rob10=1) -> 1.0:(rob10'=0) & (rob00'=1);
+[sw] (rob10=1) -> 1.0:(rob10'=0) & (rob01'=1);
+[se] (rob10=1) -> 1.0:(rob10'=0) & (rob20'=1);
+[ne] (rob11=1) -> 1.0:(rob11'=0) & (rob20'=1);
+[nw] (rob11=1) -> 1.0:(rob11'=0) & (rob01'=1);
+[sw] (rob11=1) -> 1.0:(rob11'=0) & (rob02'=1);
+[se] (rob11=1) -> 1.0:(rob11'=0) & (rob21'=1);
+[ne] (rob12=1) -> 1.0:(rob12'=0) & (rob21'=1);
+[nw] (rob12=1) -> 1.0:(rob12'=0) & (rob02'=1);
+[sw] (rob12=1) -> 1.0:(rob12'=0) & (rob03'=1);
+[nw] (rob20=1) -> 1.0:(rob20'=0) & (rob10'=1);
+[sw] (rob20=1) -> 1.0:(rob20'=0) & (rob11'=1);
+[se] (rob20=1) -> 1.0:(rob20'=0) & (rob30'=1);
+[s] (rob20=1) -> 1.0:(rob20'=0) & (rob21'=1);
+[n] (rob21=1) -> 1.0:(rob21'=0) & (rob20'=1);
+[ne] (rob21=1) -> 1.0:(rob21'=0) & (rob30'=1);
+[nw] (rob21=1) -> 1.0:(rob21'=0) & (rob11'=1);
+[sw] (rob21=1) -> 1.0:(rob21'=0) & (rob12'=1);
+[nw] (rob30=1) -> 1.0:(rob30'=0) & (rob20'=1);
+[sw] (rob30=1) -> 1.0:(rob30'=0) & (rob21'=1);
+
+endmodule
+
+module tyre
+
+flat:[0..1] init 0;
+tyre00:[0..1] init 1;
+tyre01:[0..1] init 0;
+tyre02:[0..1] init 0;
+tyre03:[0..1] init 1;
+tyre10:[0..1] init 1;
+tyre11:[0..1] init 1;
+tyre12:[0..1] init 1;
+tyre20:[0..1] init 1;
+tyre21:[0..1] init 1;
+tyre30:[0..1] init 1;
+
+[n] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[ne] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[nw] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[sw] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[se] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[s] (flat=0) -> 0.5:(flat'=1) + 0.5:(flat'=0);
+[replace_flat] (rob00=1) & (flat=1) & (tyre00=1) -> 1.0:(flat'=0) & (tyre00'=0);
+[replace_flat] (rob01=1) & (flat=1) & (tyre01=1) -> 1.0:(flat'=0) & (tyre01'=0);
+[replace_flat] (rob02=1) & (flat=1) & (tyre02=1) -> 1.0:(flat'=0) & (tyre02'=0);
+[replace_flat] (rob03=1) & (flat=1) & (tyre03=1) -> 1.0:(flat'=0) & (tyre03'=0);
+[replace_flat] (rob10=1) & (flat=1) & (tyre10=1) -> 1.0:(flat'=0) & (tyre10'=0);
+[replace_flat] (rob11=1) & (flat=1) & (tyre11=1) -> 1.0:(flat'=0) & (tyre11'=0);
+[replace_flat] (rob12=1) & (flat=1) & (tyre12=1) -> 1.0:(flat'=0) & (tyre12'=0);
+[replace_flat] (rob20=1) & (flat=1) & (tyre20=1) -> 1.0:(flat'=0) & (tyre20'=0);
+[replace_flat] (rob21=1) & (flat=1) & (tyre21=1) -> 1.0:(flat'=0) & (tyre21'=0);
+[replace_flat] (rob30=1) & (flat=1) & (tyre30=1) -> 1.0:(flat'=0) & (tyre30'=0);
+
+endmodule

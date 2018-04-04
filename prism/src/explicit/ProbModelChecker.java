@@ -822,7 +822,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		default:
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
-		result.setStrategy(res.strat);
+		//result.setStrategy(res.strat);
 		return StateValues.createFromDoubleArray(res.soln, model);
 	}
 

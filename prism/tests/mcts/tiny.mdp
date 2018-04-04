@@ -1,0 +1,25 @@
+mdp
+ 
+module M 
+ 
+waypoint:[-1..6] init 1;
+
+[suicide] true -> 1:(waypoint'=-1);
+[wp0_wp1] (waypoint=0) -> 1:(waypoint'=1);
+[wp1_wp0] (waypoint=1) -> 1:(waypoint'=0) + 0.0:(waypoint'=-1);
+[wp1_wp2] (waypoint=1) -> 1:(waypoint'=2) + 0.0:(waypoint'=-1);
+[wp1_wp4] (waypoint=1) -> 0.9:(waypoint'=4) + 0.1:(waypoint'=-1);
+[wp2_wp1] (waypoint=2) -> 1:(waypoint'=1);
+[wp2_wp3] (waypoint=2) -> 1:(waypoint'=3);
+[wp3_wp2] (waypoint=3) -> 1:(waypoint'=2);
+[wp4_wp1] (waypoint=4) -> 1:(waypoint'=1);
+[wp4_wp5] (waypoint=4) -> 0.9:(waypoint'=5) + 0.1:(waypoint'=-1);
+[wp5_wp4] (waypoint=5) -> 1:(waypoint'=4);
+[wp5_wp6] (waypoint=5) -> 1:(waypoint'=6);
+[wp6_wp5] (waypoint=6) -> 1:(waypoint'=5);
+[wp6_wp6] (waypoint=6) -> 1:(waypoint'=6);
+
+
+
+endmodule
+

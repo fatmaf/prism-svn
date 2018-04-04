@@ -1,0 +1,141 @@
+mdp
+
+module robot
+
+rob_x:[1..4] init 4;
+rob_y:[1..4] init 4;
+
+[up] (rob_y<4) ->  1.0:(rob_y' = rob_y + 1);
+[down] (rob_y>1) -> 1.0:(rob_y' = rob_y - 1);
+[right] (rob_x<4) -> 1.0:(rob_x' = rob_x + 1);
+[left] (rob_x>1) -> 1.0:(rob_x' = rob_x - 1);
+[noop] true -> true;
+
+endmodule
+
+module x4y2
+
+x4y2:[0..1] init 0;
+
+[up] true -> 0.7:(x4y2'=0) + 0.3:(x4y2'=1);
+[down] true -> 0.7:(x4y2'=0) + 0.3:(x4y2'=1);
+[right] true -> 0.7:(x4y2'=0) + 0.3:(x4y2'=1);
+[left] true -> 0.7:(x4y2'=0) + 0.3:(x4y2'=1);
+[noop] true -> 0.7:(x4y2'=0) + 0.3:(x4y2'=1);
+
+endmodule
+
+module x4y3
+
+x4y3:[0..1] init 0;
+
+[up] true -> 0.7:(x4y3'=0) + 0.3:(x4y3'=1);
+[down] true -> 0.7:(x4y3'=0) + 0.3:(x4y3'=1);
+[right] true -> 0.7:(x4y3'=0) + 0.3:(x4y3'=1);
+[left] true -> 0.7:(x4y3'=0) + 0.3:(x4y3'=1);
+[noop] true -> 0.7:(x4y3'=0) + 0.3:(x4y3'=1);
+
+endmodule
+
+module x1y2
+
+x1y2:[0..1] init 0;
+
+[up] (x2y2=1) -> 1:(x1y2'=1);
+[up] (x2y2=0) -> 1:(x1y2'=0);
+[down] (x2y2=1) -> 1:(x1y2'=1);
+[down] (x2y2=0) -> 1:(x1y2'=0);
+[right] (x2y2=1) -> 1:(x1y2'=1);
+[right] (x2y2=0) -> 1:(x1y2'=0);
+[left] (x2y2=1) -> 1:(x1y2'=1);
+[left] (x2y2=0) -> 1:(x1y2'=0);
+[noop] (x2y2=1) -> 1:(x1y2'=1);
+[noop] (x2y2=0) -> 1:(x1y2'=0);
+
+endmodule
+
+module x1y3
+
+x1y3:[0..1] init 0;
+
+[up] (x2y3=1) -> 1:(x1y3'=1);
+[up] (x2y3=0) -> 1:(x1y3'=0);
+[down] (x2y3=1) -> 1:(x1y3'=1);
+[down] (x2y3=0) -> 1:(x1y3'=0);
+[right] (x2y3=1) -> 1:(x1y3'=1);
+[right] (x2y3=0) -> 1:(x1y3'=0);
+[left] (x2y3=1) -> 1:(x1y3'=1);
+[left] (x2y3=0) -> 1:(x1y3'=0);
+[noop] (x2y3=1) -> 1:(x1y3'=1);
+[noop] (x2y3=0) -> 1:(x1y3'=0);
+
+endmodule
+
+module x2y2
+
+x2y2:[0..1] init 0;
+
+[up] (x3y2=1) -> 1:(x2y2'=1);
+[up] (x3y2=0) -> 1:(x2y2'=0);
+[down] (x3y2=1) -> 1:(x2y2'=1);
+[down] (x3y2=0) -> 1:(x2y2'=0);
+[right] (x3y2=1) -> 1:(x2y2'=1);
+[right] (x3y2=0) -> 1:(x2y2'=0);
+[left] (x3y2=1) -> 1:(x2y2'=1);
+[left] (x3y2=0) -> 1:(x2y2'=0);
+[noop] (x3y2=1) -> 1:(x2y2'=1);
+[noop] (x3y2=0) -> 1:(x2y2'=0);
+
+endmodule
+
+module x2y3
+
+x2y3:[0..1] init 0;
+
+[up] (x3y3=1) -> 1:(x2y3'=1);
+[up] (x3y3=0) -> 1:(x2y3'=0);
+[down] (x3y3=1) -> 1:(x2y3'=1);
+[down] (x3y3=0) -> 1:(x2y3'=0);
+[right] (x3y3=1) -> 1:(x2y3'=1);
+[right] (x3y3=0) -> 1:(x2y3'=0);
+[left] (x3y3=1) -> 1:(x2y3'=1);
+[left] (x3y3=0) -> 1:(x2y3'=0);
+[noop] (x3y3=1) -> 1:(x2y3'=1);
+[noop] (x3y3=0) -> 1:(x2y3'=0);
+
+endmodule
+
+module x3y2
+
+x3y2:[0..1] init 0;
+
+[up] (x4y2=1) -> 1:(x3y2'=1);
+[up] (x4y2=0) -> 1:(x3y2'=0);
+[down] (x4y2=1) -> 1:(x3y2'=1);
+[down] (x4y2=0) -> 1:(x3y2'=0);
+[right] (x4y2=1) -> 1:(x3y2'=1);
+[right] (x4y2=0) -> 1:(x3y2'=0);
+[left] (x4y2=1) -> 1:(x3y2'=1);
+[left] (x4y2=0) -> 1:(x3y2'=0);
+[noop] (x4y2=1) -> 1:(x3y2'=1);
+[noop] (x4y2=0) -> 1:(x3y2'=0);
+
+endmodule
+
+module x3y3
+
+x3y3:[0..1] init 0;
+
+[up] (x4y3=1) -> 1:(x3y3'=1);
+[up] (x4y3=0) -> 1:(x3y3'=0);
+[down] (x4y3=1) -> 1:(x3y3'=1);
+[down] (x4y3=0) -> 1:(x3y3'=0);
+[right] (x4y3=1) -> 1:(x3y3'=1);
+[right] (x4y3=0) -> 1:(x3y3'=0);
+[left] (x4y3=1) -> 1:(x3y3'=1);
+[left] (x4y3=0) -> 1:(x3y3'=0);
+[noop] (x4y3=1) -> 1:(x3y3'=1);
+[noop] (x4y3=0) -> 1:(x3y3'=0);
+
+endmodule
+

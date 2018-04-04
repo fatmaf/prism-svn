@@ -1,0 +1,18 @@
+mdp
+ 
+module M 
+ 
+waypoint:[-1..4] init 3;
+
+[wp1_wp1] (waypoint=1) -> 0.9:(waypoint'=1) + 0.1:(waypoint'=-1);
+[wp1_wp2] (waypoint=1) -> 0.9:(waypoint'=2) + 0.1:(waypoint'=-1);
+[wp2_wp1] (waypoint=2) -> 1:(waypoint'=1);
+[wp1_wp3] (waypoint=1) -> 1:(waypoint'=3);
+[wp3_wp1] (waypoint=3) -> 1:(waypoint'=1);
+[wp3_wp4] (waypoint=3) -> 1:(waypoint'=4);
+[wp4_wp4] (waypoint=4) -> 1:(waypoint'=4);
+
+
+
+endmodule
+

@@ -1,0 +1,2 @@
+//Pmax=? [ F rob03=1]
+Pmax=? [ (G (F rob03=1)) & (G (F rob30=1))]

@@ -1,5 +1,5 @@
-//Pmax=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")]  //0.729
+Pmax=? [ ((!(waypoint=14) U (waypoint=0)) & ((!(waypoint=14)) U (waypoint=19))  & ((!(waypoint=14)) U (waypoint=13)))]  //0.729
 
-partial(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])
+//partial(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])
 
-approx(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])
+//approx(R{"time"}min=? [ ((!"WayPoint22") U "WayPoint1") & ((!"WayPoint22") U "WayPoint7")  & ((!"WayPoint22") U "WayPoint21")])

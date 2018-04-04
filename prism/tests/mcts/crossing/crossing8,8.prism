@@ -1,0 +1,801 @@
+mdp
+
+module robot
+
+rob_x:[1..8] init 8;
+rob_y:[1..8] init 8;
+
+[up] (rob_y<8) ->  1.0:(rob_y' = rob_y + 1);
+[down] (rob_y>1) -> 1.0:(rob_y' = rob_y - 1);
+[right] (rob_x<8) -> 1.0:(rob_x' = rob_x + 1);
+[left] (rob_x>1) -> 1.0:(rob_x' = rob_x - 1);
+[noop] true -> true;
+
+endmodule
+
+module x8y2
+
+x8y2:[0..1] init 0;
+
+[up] true -> 0.7:(x8y2'=0) + 0.3:(x8y2'=1);
+[down] true -> 0.7:(x8y2'=0) + 0.3:(x8y2'=1);
+[right] true -> 0.7:(x8y2'=0) + 0.3:(x8y2'=1);
+[left] true -> 0.7:(x8y2'=0) + 0.3:(x8y2'=1);
+[noop] true -> 0.7:(x8y2'=0) + 0.3:(x8y2'=1);
+
+endmodule
+
+module x8y3
+
+x8y3:[0..1] init 0;
+
+[up] true -> 0.7:(x8y3'=0) + 0.3:(x8y3'=1);
+[down] true -> 0.7:(x8y3'=0) + 0.3:(x8y3'=1);
+[right] true -> 0.7:(x8y3'=0) + 0.3:(x8y3'=1);
+[left] true -> 0.7:(x8y3'=0) + 0.3:(x8y3'=1);
+[noop] true -> 0.7:(x8y3'=0) + 0.3:(x8y3'=1);
+
+endmodule
+
+module x8y4
+
+x8y4:[0..1] init 0;
+
+[up] true -> 0.7:(x8y4'=0) + 0.3:(x8y4'=1);
+[down] true -> 0.7:(x8y4'=0) + 0.3:(x8y4'=1);
+[right] true -> 0.7:(x8y4'=0) + 0.3:(x8y4'=1);
+[left] true -> 0.7:(x8y4'=0) + 0.3:(x8y4'=1);
+[noop] true -> 0.7:(x8y4'=0) + 0.3:(x8y4'=1);
+
+endmodule
+
+module x8y5
+
+x8y5:[0..1] init 0;
+
+[up] true -> 0.7:(x8y5'=0) + 0.3:(x8y5'=1);
+[down] true -> 0.7:(x8y5'=0) + 0.3:(x8y5'=1);
+[right] true -> 0.7:(x8y5'=0) + 0.3:(x8y5'=1);
+[left] true -> 0.7:(x8y5'=0) + 0.3:(x8y5'=1);
+[noop] true -> 0.7:(x8y5'=0) + 0.3:(x8y5'=1);
+
+endmodule
+
+module x8y6
+
+x8y6:[0..1] init 0;
+
+[up] true -> 0.7:(x8y6'=0) + 0.3:(x8y6'=1);
+[down] true -> 0.7:(x8y6'=0) + 0.3:(x8y6'=1);
+[right] true -> 0.7:(x8y6'=0) + 0.3:(x8y6'=1);
+[left] true -> 0.7:(x8y6'=0) + 0.3:(x8y6'=1);
+[noop] true -> 0.7:(x8y6'=0) + 0.3:(x8y6'=1);
+
+endmodule
+
+module x8y7
+
+x8y7:[0..1] init 0;
+
+[up] true -> 0.7:(x8y7'=0) + 0.3:(x8y7'=1);
+[down] true -> 0.7:(x8y7'=0) + 0.3:(x8y7'=1);
+[right] true -> 0.7:(x8y7'=0) + 0.3:(x8y7'=1);
+[left] true -> 0.7:(x8y7'=0) + 0.3:(x8y7'=1);
+[noop] true -> 0.7:(x8y7'=0) + 0.3:(x8y7'=1);
+
+endmodule
+
+module x1y2
+
+x1y2:[0..1] init 0;
+
+[up] (x2y2=1) -> 1:(x1y2'=1);
+[up] (x2y2=0) -> 1:(x1y2'=0);
+[down] (x2y2=1) -> 1:(x1y2'=1);
+[down] (x2y2=0) -> 1:(x1y2'=0);
+[right] (x2y2=1) -> 1:(x1y2'=1);
+[right] (x2y2=0) -> 1:(x1y2'=0);
+[left] (x2y2=1) -> 1:(x1y2'=1);
+[left] (x2y2=0) -> 1:(x1y2'=0);
+[noop] (x2y2=1) -> 1:(x1y2'=1);
+[noop] (x2y2=0) -> 1:(x1y2'=0);
+
+endmodule
+
+module x1y3
+
+x1y3:[0..1] init 0;
+
+[up] (x2y3=1) -> 1:(x1y3'=1);
+[up] (x2y3=0) -> 1:(x1y3'=0);
+[down] (x2y3=1) -> 1:(x1y3'=1);
+[down] (x2y3=0) -> 1:(x1y3'=0);
+[right] (x2y3=1) -> 1:(x1y3'=1);
+[right] (x2y3=0) -> 1:(x1y3'=0);
+[left] (x2y3=1) -> 1:(x1y3'=1);
+[left] (x2y3=0) -> 1:(x1y3'=0);
+[noop] (x2y3=1) -> 1:(x1y3'=1);
+[noop] (x2y3=0) -> 1:(x1y3'=0);
+
+endmodule
+
+module x1y4
+
+x1y4:[0..1] init 0;
+
+[up] (x2y4=1) -> 1:(x1y4'=1);
+[up] (x2y4=0) -> 1:(x1y4'=0);
+[down] (x2y4=1) -> 1:(x1y4'=1);
+[down] (x2y4=0) -> 1:(x1y4'=0);
+[right] (x2y4=1) -> 1:(x1y4'=1);
+[right] (x2y4=0) -> 1:(x1y4'=0);
+[left] (x2y4=1) -> 1:(x1y4'=1);
+[left] (x2y4=0) -> 1:(x1y4'=0);
+[noop] (x2y4=1) -> 1:(x1y4'=1);
+[noop] (x2y4=0) -> 1:(x1y4'=0);
+
+endmodule
+
+module x1y5
+
+x1y5:[0..1] init 0;
+
+[up] (x2y5=1) -> 1:(x1y5'=1);
+[up] (x2y5=0) -> 1:(x1y5'=0);
+[down] (x2y5=1) -> 1:(x1y5'=1);
+[down] (x2y5=0) -> 1:(x1y5'=0);
+[right] (x2y5=1) -> 1:(x1y5'=1);
+[right] (x2y5=0) -> 1:(x1y5'=0);
+[left] (x2y5=1) -> 1:(x1y5'=1);
+[left] (x2y5=0) -> 1:(x1y5'=0);
+[noop] (x2y5=1) -> 1:(x1y5'=1);
+[noop] (x2y5=0) -> 1:(x1y5'=0);
+
+endmodule
+
+module x1y6
+
+x1y6:[0..1] init 0;
+
+[up] (x2y6=1) -> 1:(x1y6'=1);
+[up] (x2y6=0) -> 1:(x1y6'=0);
+[down] (x2y6=1) -> 1:(x1y6'=1);
+[down] (x2y6=0) -> 1:(x1y6'=0);
+[right] (x2y6=1) -> 1:(x1y6'=1);
+[right] (x2y6=0) -> 1:(x1y6'=0);
+[left] (x2y6=1) -> 1:(x1y6'=1);
+[left] (x2y6=0) -> 1:(x1y6'=0);
+[noop] (x2y6=1) -> 1:(x1y6'=1);
+[noop] (x2y6=0) -> 1:(x1y6'=0);
+
+endmodule
+
+module x1y7
+
+x1y7:[0..1] init 0;
+
+[up] (x2y7=1) -> 1:(x1y7'=1);
+[up] (x2y7=0) -> 1:(x1y7'=0);
+[down] (x2y7=1) -> 1:(x1y7'=1);
+[down] (x2y7=0) -> 1:(x1y7'=0);
+[right] (x2y7=1) -> 1:(x1y7'=1);
+[right] (x2y7=0) -> 1:(x1y7'=0);
+[left] (x2y7=1) -> 1:(x1y7'=1);
+[left] (x2y7=0) -> 1:(x1y7'=0);
+[noop] (x2y7=1) -> 1:(x1y7'=1);
+[noop] (x2y7=0) -> 1:(x1y7'=0);
+
+endmodule
+
+module x2y2
+
+x2y2:[0..1] init 0;
+
+[up] (x3y2=1) -> 1:(x2y2'=1);
+[up] (x3y2=0) -> 1:(x2y2'=0);
+[down] (x3y2=1) -> 1:(x2y2'=1);
+[down] (x3y2=0) -> 1:(x2y2'=0);
+[right] (x3y2=1) -> 1:(x2y2'=1);
+[right] (x3y2=0) -> 1:(x2y2'=0);
+[left] (x3y2=1) -> 1:(x2y2'=1);
+[left] (x3y2=0) -> 1:(x2y2'=0);
+[noop] (x3y2=1) -> 1:(x2y2'=1);
+[noop] (x3y2=0) -> 1:(x2y2'=0);
+
+endmodule
+
+module x2y3
+
+x2y3:[0..1] init 0;
+
+[up] (x3y3=1) -> 1:(x2y3'=1);
+[up] (x3y3=0) -> 1:(x2y3'=0);
+[down] (x3y3=1) -> 1:(x2y3'=1);
+[down] (x3y3=0) -> 1:(x2y3'=0);
+[right] (x3y3=1) -> 1:(x2y3'=1);
+[right] (x3y3=0) -> 1:(x2y3'=0);
+[left] (x3y3=1) -> 1:(x2y3'=1);
+[left] (x3y3=0) -> 1:(x2y3'=0);
+[noop] (x3y3=1) -> 1:(x2y3'=1);
+[noop] (x3y3=0) -> 1:(x2y3'=0);
+
+endmodule
+
+module x2y4
+
+x2y4:[0..1] init 0;
+
+[up] (x3y4=1) -> 1:(x2y4'=1);
+[up] (x3y4=0) -> 1:(x2y4'=0);
+[down] (x3y4=1) -> 1:(x2y4'=1);
+[down] (x3y4=0) -> 1:(x2y4'=0);
+[right] (x3y4=1) -> 1:(x2y4'=1);
+[right] (x3y4=0) -> 1:(x2y4'=0);
+[left] (x3y4=1) -> 1:(x2y4'=1);
+[left] (x3y4=0) -> 1:(x2y4'=0);
+[noop] (x3y4=1) -> 1:(x2y4'=1);
+[noop] (x3y4=0) -> 1:(x2y4'=0);
+
+endmodule
+
+module x2y5
+
+x2y5:[0..1] init 0;
+
+[up] (x3y5=1) -> 1:(x2y5'=1);
+[up] (x3y5=0) -> 1:(x2y5'=0);
+[down] (x3y5=1) -> 1:(x2y5'=1);
+[down] (x3y5=0) -> 1:(x2y5'=0);
+[right] (x3y5=1) -> 1:(x2y5'=1);
+[right] (x3y5=0) -> 1:(x2y5'=0);
+[left] (x3y5=1) -> 1:(x2y5'=1);
+[left] (x3y5=0) -> 1:(x2y5'=0);
+[noop] (x3y5=1) -> 1:(x2y5'=1);
+[noop] (x3y5=0) -> 1:(x2y5'=0);
+
+endmodule
+
+module x2y6
+
+x2y6:[0..1] init 0;
+
+[up] (x3y6=1) -> 1:(x2y6'=1);
+[up] (x3y6=0) -> 1:(x2y6'=0);
+[down] (x3y6=1) -> 1:(x2y6'=1);
+[down] (x3y6=0) -> 1:(x2y6'=0);
+[right] (x3y6=1) -> 1:(x2y6'=1);
+[right] (x3y6=0) -> 1:(x2y6'=0);
+[left] (x3y6=1) -> 1:(x2y6'=1);
+[left] (x3y6=0) -> 1:(x2y6'=0);
+[noop] (x3y6=1) -> 1:(x2y6'=1);
+[noop] (x3y6=0) -> 1:(x2y6'=0);
+
+endmodule
+
+module x2y7
+
+x2y7:[0..1] init 0;
+
+[up] (x3y7=1) -> 1:(x2y7'=1);
+[up] (x3y7=0) -> 1:(x2y7'=0);
+[down] (x3y7=1) -> 1:(x2y7'=1);
+[down] (x3y7=0) -> 1:(x2y7'=0);
+[right] (x3y7=1) -> 1:(x2y7'=1);
+[right] (x3y7=0) -> 1:(x2y7'=0);
+[left] (x3y7=1) -> 1:(x2y7'=1);
+[left] (x3y7=0) -> 1:(x2y7'=0);
+[noop] (x3y7=1) -> 1:(x2y7'=1);
+[noop] (x3y7=0) -> 1:(x2y7'=0);
+
+endmodule
+
+module x3y2
+
+x3y2:[0..1] init 0;
+
+[up] (x4y2=1) -> 1:(x3y2'=1);
+[up] (x4y2=0) -> 1:(x3y2'=0);
+[down] (x4y2=1) -> 1:(x3y2'=1);
+[down] (x4y2=0) -> 1:(x3y2'=0);
+[right] (x4y2=1) -> 1:(x3y2'=1);
+[right] (x4y2=0) -> 1:(x3y2'=0);
+[left] (x4y2=1) -> 1:(x3y2'=1);
+[left] (x4y2=0) -> 1:(x3y2'=0);
+[noop] (x4y2=1) -> 1:(x3y2'=1);
+[noop] (x4y2=0) -> 1:(x3y2'=0);
+
+endmodule
+
+module x3y3
+
+x3y3:[0..1] init 0;
+
+[up] (x4y3=1) -> 1:(x3y3'=1);
+[up] (x4y3=0) -> 1:(x3y3'=0);
+[down] (x4y3=1) -> 1:(x3y3'=1);
+[down] (x4y3=0) -> 1:(x3y3'=0);
+[right] (x4y3=1) -> 1:(x3y3'=1);
+[right] (x4y3=0) -> 1:(x3y3'=0);
+[left] (x4y3=1) -> 1:(x3y3'=1);
+[left] (x4y3=0) -> 1:(x3y3'=0);
+[noop] (x4y3=1) -> 1:(x3y3'=1);
+[noop] (x4y3=0) -> 1:(x3y3'=0);
+
+endmodule
+
+module x3y4
+
+x3y4:[0..1] init 0;
+
+[up] (x4y4=1) -> 1:(x3y4'=1);
+[up] (x4y4=0) -> 1:(x3y4'=0);
+[down] (x4y4=1) -> 1:(x3y4'=1);
+[down] (x4y4=0) -> 1:(x3y4'=0);
+[right] (x4y4=1) -> 1:(x3y4'=1);
+[right] (x4y4=0) -> 1:(x3y4'=0);
+[left] (x4y4=1) -> 1:(x3y4'=1);
+[left] (x4y4=0) -> 1:(x3y4'=0);
+[noop] (x4y4=1) -> 1:(x3y4'=1);
+[noop] (x4y4=0) -> 1:(x3y4'=0);
+
+endmodule
+
+module x3y5
+
+x3y5:[0..1] init 0;
+
+[up] (x4y5=1) -> 1:(x3y5'=1);
+[up] (x4y5=0) -> 1:(x3y5'=0);
+[down] (x4y5=1) -> 1:(x3y5'=1);
+[down] (x4y5=0) -> 1:(x3y5'=0);
+[right] (x4y5=1) -> 1:(x3y5'=1);
+[right] (x4y5=0) -> 1:(x3y5'=0);
+[left] (x4y5=1) -> 1:(x3y5'=1);
+[left] (x4y5=0) -> 1:(x3y5'=0);
+[noop] (x4y5=1) -> 1:(x3y5'=1);
+[noop] (x4y5=0) -> 1:(x3y5'=0);
+
+endmodule
+
+module x3y6
+
+x3y6:[0..1] init 0;
+
+[up] (x4y6=1) -> 1:(x3y6'=1);
+[up] (x4y6=0) -> 1:(x3y6'=0);
+[down] (x4y6=1) -> 1:(x3y6'=1);
+[down] (x4y6=0) -> 1:(x3y6'=0);
+[right] (x4y6=1) -> 1:(x3y6'=1);
+[right] (x4y6=0) -> 1:(x3y6'=0);
+[left] (x4y6=1) -> 1:(x3y6'=1);
+[left] (x4y6=0) -> 1:(x3y6'=0);
+[noop] (x4y6=1) -> 1:(x3y6'=1);
+[noop] (x4y6=0) -> 1:(x3y6'=0);
+
+endmodule
+
+module x3y7
+
+x3y7:[0..1] init 0;
+
+[up] (x4y7=1) -> 1:(x3y7'=1);
+[up] (x4y7=0) -> 1:(x3y7'=0);
+[down] (x4y7=1) -> 1:(x3y7'=1);
+[down] (x4y7=0) -> 1:(x3y7'=0);
+[right] (x4y7=1) -> 1:(x3y7'=1);
+[right] (x4y7=0) -> 1:(x3y7'=0);
+[left] (x4y7=1) -> 1:(x3y7'=1);
+[left] (x4y7=0) -> 1:(x3y7'=0);
+[noop] (x4y7=1) -> 1:(x3y7'=1);
+[noop] (x4y7=0) -> 1:(x3y7'=0);
+
+endmodule
+
+module x4y2
+
+x4y2:[0..1] init 0;
+
+[up] (x5y2=1) -> 1:(x4y2'=1);
+[up] (x5y2=0) -> 1:(x4y2'=0);
+[down] (x5y2=1) -> 1:(x4y2'=1);
+[down] (x5y2=0) -> 1:(x4y2'=0);
+[right] (x5y2=1) -> 1:(x4y2'=1);
+[right] (x5y2=0) -> 1:(x4y2'=0);
+[left] (x5y2=1) -> 1:(x4y2'=1);
+[left] (x5y2=0) -> 1:(x4y2'=0);
+[noop] (x5y2=1) -> 1:(x4y2'=1);
+[noop] (x5y2=0) -> 1:(x4y2'=0);
+
+endmodule
+
+module x4y3
+
+x4y3:[0..1] init 0;
+
+[up] (x5y3=1) -> 1:(x4y3'=1);
+[up] (x5y3=0) -> 1:(x4y3'=0);
+[down] (x5y3=1) -> 1:(x4y3'=1);
+[down] (x5y3=0) -> 1:(x4y3'=0);
+[right] (x5y3=1) -> 1:(x4y3'=1);
+[right] (x5y3=0) -> 1:(x4y3'=0);
+[left] (x5y3=1) -> 1:(x4y3'=1);
+[left] (x5y3=0) -> 1:(x4y3'=0);
+[noop] (x5y3=1) -> 1:(x4y3'=1);
+[noop] (x5y3=0) -> 1:(x4y3'=0);
+
+endmodule
+
+module x4y4
+
+x4y4:[0..1] init 0;
+
+[up] (x5y4=1) -> 1:(x4y4'=1);
+[up] (x5y4=0) -> 1:(x4y4'=0);
+[down] (x5y4=1) -> 1:(x4y4'=1);
+[down] (x5y4=0) -> 1:(x4y4'=0);
+[right] (x5y4=1) -> 1:(x4y4'=1);
+[right] (x5y4=0) -> 1:(x4y4'=0);
+[left] (x5y4=1) -> 1:(x4y4'=1);
+[left] (x5y4=0) -> 1:(x4y4'=0);
+[noop] (x5y4=1) -> 1:(x4y4'=1);
+[noop] (x5y4=0) -> 1:(x4y4'=0);
+
+endmodule
+
+module x4y5
+
+x4y5:[0..1] init 0;
+
+[up] (x5y5=1) -> 1:(x4y5'=1);
+[up] (x5y5=0) -> 1:(x4y5'=0);
+[down] (x5y5=1) -> 1:(x4y5'=1);
+[down] (x5y5=0) -> 1:(x4y5'=0);
+[right] (x5y5=1) -> 1:(x4y5'=1);
+[right] (x5y5=0) -> 1:(x4y5'=0);
+[left] (x5y5=1) -> 1:(x4y5'=1);
+[left] (x5y5=0) -> 1:(x4y5'=0);
+[noop] (x5y5=1) -> 1:(x4y5'=1);
+[noop] (x5y5=0) -> 1:(x4y5'=0);
+
+endmodule
+
+module x4y6
+
+x4y6:[0..1] init 0;
+
+[up] (x5y6=1) -> 1:(x4y6'=1);
+[up] (x5y6=0) -> 1:(x4y6'=0);
+[down] (x5y6=1) -> 1:(x4y6'=1);
+[down] (x5y6=0) -> 1:(x4y6'=0);
+[right] (x5y6=1) -> 1:(x4y6'=1);
+[right] (x5y6=0) -> 1:(x4y6'=0);
+[left] (x5y6=1) -> 1:(x4y6'=1);
+[left] (x5y6=0) -> 1:(x4y6'=0);
+[noop] (x5y6=1) -> 1:(x4y6'=1);
+[noop] (x5y6=0) -> 1:(x4y6'=0);
+
+endmodule
+
+module x4y7
+
+x4y7:[0..1] init 0;
+
+[up] (x5y7=1) -> 1:(x4y7'=1);
+[up] (x5y7=0) -> 1:(x4y7'=0);
+[down] (x5y7=1) -> 1:(x4y7'=1);
+[down] (x5y7=0) -> 1:(x4y7'=0);
+[right] (x5y7=1) -> 1:(x4y7'=1);
+[right] (x5y7=0) -> 1:(x4y7'=0);
+[left] (x5y7=1) -> 1:(x4y7'=1);
+[left] (x5y7=0) -> 1:(x4y7'=0);
+[noop] (x5y7=1) -> 1:(x4y7'=1);
+[noop] (x5y7=0) -> 1:(x4y7'=0);
+
+endmodule
+
+module x5y2
+
+x5y2:[0..1] init 0;
+
+[up] (x6y2=1) -> 1:(x5y2'=1);
+[up] (x6y2=0) -> 1:(x5y2'=0);
+[down] (x6y2=1) -> 1:(x5y2'=1);
+[down] (x6y2=0) -> 1:(x5y2'=0);
+[right] (x6y2=1) -> 1:(x5y2'=1);
+[right] (x6y2=0) -> 1:(x5y2'=0);
+[left] (x6y2=1) -> 1:(x5y2'=1);
+[left] (x6y2=0) -> 1:(x5y2'=0);
+[noop] (x6y2=1) -> 1:(x5y2'=1);
+[noop] (x6y2=0) -> 1:(x5y2'=0);
+
+endmodule
+
+module x5y3
+
+x5y3:[0..1] init 0;
+
+[up] (x6y3=1) -> 1:(x5y3'=1);
+[up] (x6y3=0) -> 1:(x5y3'=0);
+[down] (x6y3=1) -> 1:(x5y3'=1);
+[down] (x6y3=0) -> 1:(x5y3'=0);
+[right] (x6y3=1) -> 1:(x5y3'=1);
+[right] (x6y3=0) -> 1:(x5y3'=0);
+[left] (x6y3=1) -> 1:(x5y3'=1);
+[left] (x6y3=0) -> 1:(x5y3'=0);
+[noop] (x6y3=1) -> 1:(x5y3'=1);
+[noop] (x6y3=0) -> 1:(x5y3'=0);
+
+endmodule
+
+module x5y4
+
+x5y4:[0..1] init 0;
+
+[up] (x6y4=1) -> 1:(x5y4'=1);
+[up] (x6y4=0) -> 1:(x5y4'=0);
+[down] (x6y4=1) -> 1:(x5y4'=1);
+[down] (x6y4=0) -> 1:(x5y4'=0);
+[right] (x6y4=1) -> 1:(x5y4'=1);
+[right] (x6y4=0) -> 1:(x5y4'=0);
+[left] (x6y4=1) -> 1:(x5y4'=1);
+[left] (x6y4=0) -> 1:(x5y4'=0);
+[noop] (x6y4=1) -> 1:(x5y4'=1);
+[noop] (x6y4=0) -> 1:(x5y4'=0);
+
+endmodule
+
+module x5y5
+
+x5y5:[0..1] init 0;
+
+[up] (x6y5=1) -> 1:(x5y5'=1);
+[up] (x6y5=0) -> 1:(x5y5'=0);
+[down] (x6y5=1) -> 1:(x5y5'=1);
+[down] (x6y5=0) -> 1:(x5y5'=0);
+[right] (x6y5=1) -> 1:(x5y5'=1);
+[right] (x6y5=0) -> 1:(x5y5'=0);
+[left] (x6y5=1) -> 1:(x5y5'=1);
+[left] (x6y5=0) -> 1:(x5y5'=0);
+[noop] (x6y5=1) -> 1:(x5y5'=1);
+[noop] (x6y5=0) -> 1:(x5y5'=0);
+
+endmodule
+
+module x5y6
+
+x5y6:[0..1] init 0;
+
+[up] (x6y6=1) -> 1:(x5y6'=1);
+[up] (x6y6=0) -> 1:(x5y6'=0);
+[down] (x6y6=1) -> 1:(x5y6'=1);
+[down] (x6y6=0) -> 1:(x5y6'=0);
+[right] (x6y6=1) -> 1:(x5y6'=1);
+[right] (x6y6=0) -> 1:(x5y6'=0);
+[left] (x6y6=1) -> 1:(x5y6'=1);
+[left] (x6y6=0) -> 1:(x5y6'=0);
+[noop] (x6y6=1) -> 1:(x5y6'=1);
+[noop] (x6y6=0) -> 1:(x5y6'=0);
+
+endmodule
+
+module x5y7
+
+x5y7:[0..1] init 0;
+
+[up] (x6y7=1) -> 1:(x5y7'=1);
+[up] (x6y7=0) -> 1:(x5y7'=0);
+[down] (x6y7=1) -> 1:(x5y7'=1);
+[down] (x6y7=0) -> 1:(x5y7'=0);
+[right] (x6y7=1) -> 1:(x5y7'=1);
+[right] (x6y7=0) -> 1:(x5y7'=0);
+[left] (x6y7=1) -> 1:(x5y7'=1);
+[left] (x6y7=0) -> 1:(x5y7'=0);
+[noop] (x6y7=1) -> 1:(x5y7'=1);
+[noop] (x6y7=0) -> 1:(x5y7'=0);
+
+endmodule
+
+module x6y2
+
+x6y2:[0..1] init 0;
+
+[up] (x7y2=1) -> 1:(x6y2'=1);
+[up] (x7y2=0) -> 1:(x6y2'=0);
+[down] (x7y2=1) -> 1:(x6y2'=1);
+[down] (x7y2=0) -> 1:(x6y2'=0);
+[right] (x7y2=1) -> 1:(x6y2'=1);
+[right] (x7y2=0) -> 1:(x6y2'=0);
+[left] (x7y2=1) -> 1:(x6y2'=1);
+[left] (x7y2=0) -> 1:(x6y2'=0);
+[noop] (x7y2=1) -> 1:(x6y2'=1);
+[noop] (x7y2=0) -> 1:(x6y2'=0);
+
+endmodule
+
+module x6y3
+
+x6y3:[0..1] init 0;
+
+[up] (x7y3=1) -> 1:(x6y3'=1);
+[up] (x7y3=0) -> 1:(x6y3'=0);
+[down] (x7y3=1) -> 1:(x6y3'=1);
+[down] (x7y3=0) -> 1:(x6y3'=0);
+[right] (x7y3=1) -> 1:(x6y3'=1);
+[right] (x7y3=0) -> 1:(x6y3'=0);
+[left] (x7y3=1) -> 1:(x6y3'=1);
+[left] (x7y3=0) -> 1:(x6y3'=0);
+[noop] (x7y3=1) -> 1:(x6y3'=1);
+[noop] (x7y3=0) -> 1:(x6y3'=0);
+
+endmodule
+
+module x6y4
+
+x6y4:[0..1] init 0;
+
+[up] (x7y4=1) -> 1:(x6y4'=1);
+[up] (x7y4=0) -> 1:(x6y4'=0);
+[down] (x7y4=1) -> 1:(x6y4'=1);
+[down] (x7y4=0) -> 1:(x6y4'=0);
+[right] (x7y4=1) -> 1:(x6y4'=1);
+[right] (x7y4=0) -> 1:(x6y4'=0);
+[left] (x7y4=1) -> 1:(x6y4'=1);
+[left] (x7y4=0) -> 1:(x6y4'=0);
+[noop] (x7y4=1) -> 1:(x6y4'=1);
+[noop] (x7y4=0) -> 1:(x6y4'=0);
+
+endmodule
+
+module x6y5
+
+x6y5:[0..1] init 0;
+
+[up] (x7y5=1) -> 1:(x6y5'=1);
+[up] (x7y5=0) -> 1:(x6y5'=0);
+[down] (x7y5=1) -> 1:(x6y5'=1);
+[down] (x7y5=0) -> 1:(x6y5'=0);
+[right] (x7y5=1) -> 1:(x6y5'=1);
+[right] (x7y5=0) -> 1:(x6y5'=0);
+[left] (x7y5=1) -> 1:(x6y5'=1);
+[left] (x7y5=0) -> 1:(x6y5'=0);
+[noop] (x7y5=1) -> 1:(x6y5'=1);
+[noop] (x7y5=0) -> 1:(x6y5'=0);
+
+endmodule
+
+module x6y6
+
+x6y6:[0..1] init 0;
+
+[up] (x7y6=1) -> 1:(x6y6'=1);
+[up] (x7y6=0) -> 1:(x6y6'=0);
+[down] (x7y6=1) -> 1:(x6y6'=1);
+[down] (x7y6=0) -> 1:(x6y6'=0);
+[right] (x7y6=1) -> 1:(x6y6'=1);
+[right] (x7y6=0) -> 1:(x6y6'=0);
+[left] (x7y6=1) -> 1:(x6y6'=1);
+[left] (x7y6=0) -> 1:(x6y6'=0);
+[noop] (x7y6=1) -> 1:(x6y6'=1);
+[noop] (x7y6=0) -> 1:(x6y6'=0);
+
+endmodule
+
+module x6y7
+
+x6y7:[0..1] init 0;
+
+[up] (x7y7=1) -> 1:(x6y7'=1);
+[up] (x7y7=0) -> 1:(x6y7'=0);
+[down] (x7y7=1) -> 1:(x6y7'=1);
+[down] (x7y7=0) -> 1:(x6y7'=0);
+[right] (x7y7=1) -> 1:(x6y7'=1);
+[right] (x7y7=0) -> 1:(x6y7'=0);
+[left] (x7y7=1) -> 1:(x6y7'=1);
+[left] (x7y7=0) -> 1:(x6y7'=0);
+[noop] (x7y7=1) -> 1:(x6y7'=1);
+[noop] (x7y7=0) -> 1:(x6y7'=0);
+
+endmodule
+
+module x7y2
+
+x7y2:[0..1] init 0;
+
+[up] (x8y2=1) -> 1:(x7y2'=1);
+[up] (x8y2=0) -> 1:(x7y2'=0);
+[down] (x8y2=1) -> 1:(x7y2'=1);
+[down] (x8y2=0) -> 1:(x7y2'=0);
+[right] (x8y2=1) -> 1:(x7y2'=1);
+[right] (x8y2=0) -> 1:(x7y2'=0);
+[left] (x8y2=1) -> 1:(x7y2'=1);
+[left] (x8y2=0) -> 1:(x7y2'=0);
+[noop] (x8y2=1) -> 1:(x7y2'=1);
+[noop] (x8y2=0) -> 1:(x7y2'=0);
+
+endmodule
+
+module x7y3
+
+x7y3:[0..1] init 0;
+
+[up] (x8y3=1) -> 1:(x7y3'=1);
+[up] (x8y3=0) -> 1:(x7y3'=0);
+[down] (x8y3=1) -> 1:(x7y3'=1);
+[down] (x8y3=0) -> 1:(x7y3'=0);
+[right] (x8y3=1) -> 1:(x7y3'=1);
+[right] (x8y3=0) -> 1:(x7y3'=0);
+[left] (x8y3=1) -> 1:(x7y3'=1);
+[left] (x8y3=0) -> 1:(x7y3'=0);
+[noop] (x8y3=1) -> 1:(x7y3'=1);
+[noop] (x8y3=0) -> 1:(x7y3'=0);
+
+endmodule
+
+module x7y4
+
+x7y4:[0..1] init 0;
+
+[up] (x8y4=1) -> 1:(x7y4'=1);
+[up] (x8y4=0) -> 1:(x7y4'=0);
+[down] (x8y4=1) -> 1:(x7y4'=1);
+[down] (x8y4=0) -> 1:(x7y4'=0);
+[right] (x8y4=1) -> 1:(x7y4'=1);
+[right] (x8y4=0) -> 1:(x7y4'=0);
+[left] (x8y4=1) -> 1:(x7y4'=1);
+[left] (x8y4=0) -> 1:(x7y4'=0);
+[noop] (x8y4=1) -> 1:(x7y4'=1);
+[noop] (x8y4=0) -> 1:(x7y4'=0);
+
+endmodule
+
+module x7y5
+
+x7y5:[0..1] init 0;
+
+[up] (x8y5=1) -> 1:(x7y5'=1);
+[up] (x8y5=0) -> 1:(x7y5'=0);
+[down] (x8y5=1) -> 1:(x7y5'=1);
+[down] (x8y5=0) -> 1:(x7y5'=0);
+[right] (x8y5=1) -> 1:(x7y5'=1);
+[right] (x8y5=0) -> 1:(x7y5'=0);
+[left] (x8y5=1) -> 1:(x7y5'=1);
+[left] (x8y5=0) -> 1:(x7y5'=0);
+[noop] (x8y5=1) -> 1:(x7y5'=1);
+[noop] (x8y5=0) -> 1:(x7y5'=0);
+
+endmodule
+
+module x7y6
+
+x7y6:[0..1] init 0;
+
+[up] (x8y6=1) -> 1:(x7y6'=1);
+[up] (x8y6=0) -> 1:(x7y6'=0);
+[down] (x8y6=1) -> 1:(x7y6'=1);
+[down] (x8y6=0) -> 1:(x7y6'=0);
+[right] (x8y6=1) -> 1:(x7y6'=1);
+[right] (x8y6=0) -> 1:(x7y6'=0);
+[left] (x8y6=1) -> 1:(x7y6'=1);
+[left] (x8y6=0) -> 1:(x7y6'=0);
+[noop] (x8y6=1) -> 1:(x7y6'=1);
+[noop] (x8y6=0) -> 1:(x7y6'=0);
+
+endmodule
+
+module x7y7
+
+x7y7:[0..1] init 0;
+
+[up] (x8y7=1) -> 1:(x7y7'=1);
+[up] (x8y7=0) -> 1:(x7y7'=0);
+[down] (x8y7=1) -> 1:(x7y7'=1);
+[down] (x8y7=0) -> 1:(x7y7'=0);
+[right] (x8y7=1) -> 1:(x7y7'=1);
+[right] (x8y7=0) -> 1:(x7y7'=0);
+[left] (x8y7=1) -> 1:(x7y7'=1);
+[left] (x8y7=0) -> 1:(x7y7'=0);
+[noop] (x8y7=1) -> 1:(x7y7'=1);
+[noop] (x8y7=0) -> 1:(x7y7'=0);
+
+endmodule
+

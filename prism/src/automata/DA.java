@@ -68,6 +68,8 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	private Acceptance acceptance;
 	/** The distances of each state to an accepting state*/
 	private List<Double> distsToAcc; 
+	/** The sink states */
+	private BitSet sinkStates;
 
 	/** Local class to represent DRA edge */
 	class Edge
@@ -105,6 +107,7 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 			invertedEdges.add(new ArrayList<Edge>());
 		}
 	}
+	
 
 	public void setAcceptance(Acceptance acceptance)
 	{
@@ -477,21 +480,82 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		// We are fine with an empty apList or an apList that lacks some of the expected Li.
 	}
 
+	public List<Double> calculateDistsToState(int target) {
+		List<Double> dists = new ArrayList<Double>(size);
+		Deque<Integer> queue = new ArrayDeque<Integer>();
+
+		
+		for(int i = 0; i < size; i++) {
+			if(i == target) {
+				dists.add(0.0);
+				queue.add(i);
+			}
+			else {
+				dists.add(new Double(size*apList.size()));
+			}
+		}
+		
+		//Calculate distances
+		int currentState;
+		int numEdges;
+		Double newDist;
+		Double minDist=Double.MAX_VALUE;
+		while(!queue.isEmpty()) {
+			currentState=queue.poll();
+			for (int i = 0; i < size; i++) {
+				numEdges = getNumEdges(i,currentState);
+				if (numEdges > 0) {
+					double a =(double)Math.pow(2, apList.size())/(double)numEdges;
+					newDist=dists.get(currentState) + Math.log(a)/Math.log(2);
+					if (newDist < dists.get(i)) {
+						queue.add(i);
+						dists.set(i,newDist);
+						minDist=Math.min(minDist, newDist);
+					}
+				}
+			}
+		}
+		
+		
+		//Make distance from initial state 1
+		double normalisedDist, maxDist = 0.0;
+		double initDist = dists.get(getStartState());
+		for(int i = 0; i < size; i++) {
+			if (dists.get(i) == size*apList.size()) {
+				sinkStates.set(i);
+			} else {
+				normalisedDist = dists.get(i)/initDist;
+				dists.set(i, normalisedDist);
+				if (normalisedDist > maxDist) {
+					maxDist = normalisedDist;
+				}
+			}
+		}
+		
+		for(int i = 0; i < size; i++) {
+			if (sinkStates.get(i)) {
+				dists.set(i, maxDist);
+			}
+		}
+
+		return dists;
+	}
 	/**
 	 * Sets the list of distances (weighed by number of transitions) to an accepting state (if the acceptance type is AcceptanceReach)
 	 */
 	public void setDistancesToAcc()
-	{		
+	{		//TODO METER ISTO EM FUNCAO DO SET ACIMA
 		BitSet acc = null;
 		//Check if its a DFA
 		if (!(acceptance instanceof AcceptanceReach)) {
-			acc = ((AcceptanceRabin)acceptance).get(0).getK();
+			acc = ((AcceptanceRabin)acceptance).get(0).getK(); //TODO - iterar for todoas as componentes
 		} else {
 			acc = ((AcceptanceReach)acceptance).getGoalStates();
 		}
 		
 		//initialise distances list
-		distsToAcc = new ArrayList<Double>(size);				
+		sinkStates = new BitSet(size);
+		distsToAcc = new ArrayList<Double>(size);
 		int i, j;
 		Deque<Integer> queue = new ArrayDeque<Integer>();
 		for(i = 0; i < size; i++) {
@@ -500,7 +564,7 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 				queue.add(i);
 			}
 			else {
-				distsToAcc.add(new Double(size));
+				distsToAcc.add(new Double(size*apList.size()));
 			}
 		}
 		
@@ -524,23 +588,39 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 				}
 			}
 		}
-                                        
-/*        BitSet reachableStates;
-        for (i=0; i < size; i++) {
-                reachableStates=getReachableStates(i);
-                for (j=0; j < size; j++) {
-                        if (reachableStates.get(j)) {
-                                distsToAcc.set(i, Math.max(distsToAcc.get(i), distsToAcc.get(j)));
-                        }
-                }
-        }*/
-                        
 		
-		//Make distance between states 1
-		double maxDist = Collections.max(distsToAcc);
+		/*
+		BitSet reachableStates;
+		for (i=0; i < size; i++) {
+			reachableStates=getReachableStates(i);
+			for (j=0; j < size; j++) {
+				if (reachableStates.get(j)) {
+					distsToAcc.set(i, Math.max(distsToAcc.get(i), distsToAcc.get(j)));
+				}
+			}
+		}*/
+		
+		//Make distance from initial state 1
+		double initDist = distsToAcc.get(getStartState());
 		for(i = 0; i < size; i++) {
-			distsToAcc.set(i, distsToAcc.get(i)/maxDist);
-        }
+			if (distsToAcc.get(i) == size*apList.size()) {
+				sinkStates.set(i);
+			}
+			distsToAcc.set(i, distsToAcc.get(i)/initDist);
+		}
+	}
+	
+	public BitSet getAccStates() {
+		BitSet daAcc = new BitSet(size);
+		if (getAcceptance() instanceof AcceptanceReach) {
+			daAcc = ((AcceptanceReach)getAcceptance()).getGoalStates();
+		} else {
+			AcceptanceRabin acceptance = (AcceptanceRabin)getAcceptance();
+			for (int accComponentIndex = 0; accComponentIndex < acceptance.size(); accComponentIndex++) {
+				daAcc.or(acceptance.get(accComponentIndex).getK());
+			}
+		}
+		return daAcc;
 	}
 
 	/**
@@ -566,6 +646,10 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 			}
 		}
 		return reachableStates;
+	}
+	
+	public BitSet getSinkStates() {
+		return sinkStates;
 	}
 
 }
