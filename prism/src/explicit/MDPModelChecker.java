@@ -117,6 +117,9 @@ public class MDPModelChecker extends ProbModelChecker {
 			// return ltlDecompProd(model,expr,statesOfInterest);
 			return ltlDecomp(model, expr, statesOfInterest);
 		}
+		case ExpressionFunc.STAPU:{
+			return (new STAPU(this).checkExpressionFunc(model, expr, statesOfInterest));
+		}
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
@@ -319,7 +322,8 @@ public class MDPModelChecker extends ProbModelChecker {
 
 			// product = mcLtls[danum].constructProductModel(das[danum], productMdp,
 			// labelBSs[danum], null);
-			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum], null, !simplify);
+			product = mcLtls[danum].constructProductModel(das[danum], productMdp, labelBSs[danum],
+					null, !simplify);
 			checktimedout(time, "MDPDAProd",null);
 
 			numStates = product.getProductModel().getNumStates();
