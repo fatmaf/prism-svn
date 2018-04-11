@@ -542,8 +542,22 @@ public class LTLModelChecker extends PrismComponent {
 		}
 			else
 			{
+				boolean setInitialState = false;
+				int q_i = -1;
+				if(model.isInitialState(s_0))
+				{
+					for (int k = 0; k < numAPs; k++) {
+						s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
+					}
+					
+					q_i  = da.getEdgeDestByLabel(da.getStartState(), s_labels);
+					setInitialState = true; 
+					
+				}
+				
 				//get all the states in the da 
 				for (q_0 = 0; q_0<da.size(); q_0++) {
+			
 //					
 //					// Add (initial) state to product
 					queue.add(new Point(s_0, q_0));
@@ -555,7 +569,13 @@ public class LTLModelChecker extends PrismComponent {
 						prodModel.addState();
 						break;
 					}
-					prodModel.addInitialState(prodModel.getNumStates() - 1);
+//					prodModel.addInitialState(prodModel.getNumStates() - 1);
+					if(q_i == q_0 && setInitialState)
+					{
+						prodModel.addInitialState(prodModel.getNumStates() - 1);
+					}
+					//all the states are not initial states 
+				
 					map[s_0 * daSize + q_0] = prodModel.getNumStates() - 1;
 					if (prodStatesList != null) {
 						// Store state information for the product

@@ -1495,7 +1495,7 @@ public class MDPModelChecker extends ProbModelChecker {
 
 	}
 	
-	protected void computeProbAndUpdateTeamAutomatonForState(probPolicyTest policy, int currState,
+	protected void MD(probPolicyTest policy, int currState,
 			int[] statesForRobots,int firstRobot) throws PrismException {
 
 		MDPSimple newTeamAutomaton = policy.tAutomaton.getNewTeamAutomatonWithSwitches(currState);
@@ -1738,6 +1738,12 @@ public class MDPModelChecker extends ProbModelChecker {
 					addToTestResults("UpdateAndComputePolTime", getTime(tnow), arrNum);
 					checktimedout(time, "InnerPolCalc",policy);
 			}
+		
+	}
+
+	private void computeProbAndUpdateTeamAutomatonForState(probPolicyTest policy, int robotStateId, int[] robotStates,
+			int rNum) {
+		// TODO Auto-generated method stub
 		
 	}
 
