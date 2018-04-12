@@ -8,7 +8,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Stack;
 import parser.State;
@@ -28,11 +30,85 @@ import explicit.stateInfoFromStatesList;
  */
 public class MMDPSimple {
 
+	class StateProb implements Comparable<StateProb>
+	{
+		private double prob; 
+		private int state; 
+		
+		public StateProb(int state, double prob)
+		{
+			this.prob = prob; 
+			
+			this.state = state; 
+		}
+		
+		public StateProb (StateProb other)
+		{
+			this.prob = other.prob; 
+			this.state = other.state;
+		}
+		public StateProb copy()
+		{
+			return new StateProb(this);
+		}
+		public int compareTo(StateProb other)
+		{
+			double comp = this.prob-other.prob; 
+			int res = 0; 
+			if(comp > 0 )
+				res = -1; 
+			else 
+			{	if(comp < 0)
+					res = 1; 
+			}
+			return res; 
+		}
+		
+		public double getProb() {return this.prob; }
+		public int getState() {return this.state; }
+
+		@Override
+		public String toString() {
+			return "[s=" + state + ", p=" + prob + "]";
+		}
+		 
+	}
+
 	MDPSimple mdp;
 	// ArrayList<Map.Entry<State, Integer>>
 	HashMap<State, Integer> statesMap;
 	int nRobots;
-	Queue<Integer> stuckStatesQ;
+	PriorityQueue<StateProb> stuckStatesQ; 
+	BitSet deadendStates; 
+	BitSet allTasksCompletedStates; 
+	BitSet allFailStatesSeen;
+	
+	
+	public boolean stuckStatesQContainsState(int state)
+	{
+		for (StateProb stateprob: stuckStatesQ)
+		{
+			if (stateprob.getState() == state)
+				return true; 
+		}
+		return false; 
+		
+	}
+	
+	public void testQ() {
+		PriorityQueue<StateProb> testQ = new PriorityQueue<StateProb>(); 
+		double qvals[] = {0.5,0.1,0.2,1.4, 0.02};
+		for(int i = 0; i<qvals.length; i++)
+		{
+			testQ.add(new StateProb(i,qvals[i])); 
+			System.out.println("Added "+testQ.peek().toString());
+		}
+		while(!testQ.isEmpty())
+		{
+			StateProb meh = testQ.remove(); 
+			System.out.println("Removed "+ meh.toString());
+		}
+	}
 
 	/*
 	 * creates a joint policy MDP
@@ -41,7 +117,7 @@ public class MMDPSimple {
 	 * 
 	 */
 	public MMDPSimple(int numrobots) {
-		stuckStatesQ = new LinkedList<Integer>();
+		stuckStatesQ = new PriorityQueue<StateProb>();
 		mdp = new MDPSimple();
 		VarList varlist = new VarList();
 		try {
@@ -59,6 +135,9 @@ public class MMDPSimple {
 		mdp.statesList = new ArrayList<State>();
 		statesMap = new HashMap<State, Integer>();
 		nRobots = numrobots;
+		deadendStates = new BitSet(); 
+		allTasksCompletedStates = new BitSet(); 
+		allFailStatesSeen = new BitSet();
 
 	}
 
@@ -216,9 +295,33 @@ public class MMDPSimple {
 					int stateNumInMDP = statesMap.get(currentJointState);
 					if (mdp.getNumChoices(stateNumInMDP) == 0) {
 						if (!hasAcceptingState) {
-							if (!stuckStatesQ.contains(stateNumInMDP))
-								stuckStatesQ.add(stateNumInMDP);
+							if (!stuckStatesQContainsState(stateNumInMDP))
+								{
+								if(!allFailStatesSeen.get(stateNumInMDP)) {
+									double failprob = getProbability(0,stateNumInMDP,1.0);
+								stuckStatesQ.add(new StateProb(stateNumInMDP,failprob));
+								allFailStatesSeen.set(stateNumInMDP);
+								}}
+							
 						}
+						else
+						{
+							allTasksCompletedStates.set(stateNumInMDP);	
+						}
+					}
+				}
+				else
+				{
+					int stateNumInMDP = statesMap.get(currentJointState);
+					//all robots failed 
+					if(hasfailed == nRobots)
+					{
+						deadendStates.set(stateNumInMDP);
+					}
+					//an accepting state ? 
+					if(hasAcceptingState)
+					{
+						allTasksCompletedStates.set(stateNumInMDP);
 					}
 				}
 				continue;
@@ -305,17 +408,7 @@ public class MMDPSimple {
 		return allDone;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#clone()
-	 */
-	@Override
-	protected Object clone() throws CloneNotSupportedException {
-		// TODO Auto-generated method stub
-		return super.clone();
-	}
-
+	
 	public State createJointState(Object[] DFAProgress, int[] currentRobotStates) {
 		State currentJointState = new State(DFAProgress.length + currentRobotStates.length);
 		int offset = 0;
@@ -344,28 +437,6 @@ public class MMDPSimple {
 		return singleRobotState;
 	}
 	
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		// TODO Auto-generated method stub
-		return super.equals(obj);
-	}
-	
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#finalize()
-	 */
-	@Override
-	protected void finalize() throws Throwable {
-		// TODO Auto-generated method stub
-		super.finalize();
-	}
 
 	public int findStateIndex(State s) {
 		int indexInt = StatesHelper.BADVALUE;
@@ -1080,8 +1151,9 @@ public class MMDPSimple {
 					int stateNumInMDP = statesMap.get(currentJointState);
 					if (mdp.getNumChoices(stateNumInMDP) == 0) {
 						if (!hasAcceptingState) {
-							if (!stuckStatesQ.contains(stateNumInMDP))
-								stuckStatesQ.add(stateNumInMDP);
+							if (!stuckStatesQContainsState(stateNumInMDP))
+							{double failprob = getProbability(0,stateNumInMDP,1.0);
+							stuckStatesQ.add(new StateProb(stateNumInMDP,failprob));}
 						}
 					}
 				}
@@ -1224,6 +1296,65 @@ public class MMDPSimple {
 		return teamProgress;
 	}
 
+	public double getProbabilityAcceptingStateOnly(int startState, double probHere)
+	{
+		int choice = 0; 
+		double probSum = 0; 
+		if(!allTasksCompletedStates.get(startState))
+		{
+
+			int numChoice = mdp.getNumChoices(startState); 
+			
+			if(numChoice == 1)
+			{
+				Object action = mdp.getAction(startState, choice); 
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(startState, choice); 
+				while(tranIter.hasNext())
+				{
+					Entry<Integer, Double> stateProbPair = tranIter.next(); 
+					int nextState = stateProbPair.getKey(); 
+					double nextStateProb = stateProbPair.getValue(); 
+					probSum+=getProbabilityAcceptingStateOnly(nextState,nextStateProb*probHere);
+				}
+				probHere = probSum; 
+			}
+			else
+				probHere = 0; //no chance of getting to an accepting state
+		}
+		return probHere;
+	}
+
+	
+	public double getProbability(int startState, int stopState,double probHere)
+	{
+		int choice = 0; 
+		double probSum = 0; 
+		if(startState != stopState)
+		{
+
+			int numChoice = mdp.getNumChoices(startState); 
+			
+			if(numChoice == 1)
+			{
+				Object action = mdp.getAction(startState, choice); 
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(startState, choice); 
+				while(tranIter.hasNext())
+				{
+					Entry<Integer, Double> stateProbPair = tranIter.next(); 
+					int nextState = stateProbPair.getKey(); 
+					double nextStateProb = stateProbPair.getValue(); 
+					//stop at the first failstate 
+					
+					probSum+=getProbability(nextState,stopState,nextStateProb*probHere);
+				}
+				probHere = probSum; 
+			}
+			else
+				probHere = 0; //because we dont care if you can get to any other state
+		}
+		return probHere;
+	}
+	
 }
 
 

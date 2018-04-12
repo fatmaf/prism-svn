@@ -11,9 +11,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import acceptance.AcceptanceType;
 import explicit.LTLModelChecker.LTLProduct;
+import explicit.MMDPSimple.StateProb;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
@@ -390,8 +392,12 @@ public class STAPU extends ProbModelChecker {
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		jointPolicy.unfoldPolicyForState(seqTeamMDP, res.strat, initialState, true);
 		saveMDP(jointPolicy.mdp, null, "jointPolicy", true);
+		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
 		while (!jointPolicy.stuckStatesQ.isEmpty()) {
-			initialState = jointPolicy.stuckStatesQ.remove();
+			 StateProb stuckState = jointPolicy.stuckStatesQ.remove();
+			initialState = stuckState.getState();
+			orderOfFailStates.add(stuckState.copy());
+			mainLog.println("Exploring "+stuckState.toString());
 			List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
 			State currState = states.get(initialState);
 			int rNum = jointPolicy.firstFailedRobot(currState);
@@ -408,8 +414,27 @@ public class STAPU extends ProbModelChecker {
 			res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 					seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
 			 jointPolicy.unfoldPolicyForState(seqTeamMDP, res.strat, initialState,false);
-
 		}
+	//	int setbit = jointPolicy.allTasksCompletedStates.nextSetBit(0);
+//		int fsetbit = jointPolicy.allFailStatesSeen.nextSetBit(0);
+//		 initState = 0;
+//		while(initState!=-1) {
+		for(int fs = 0; fs<orderOfFailStates.size(); fs++) {
+			StateProb failState = orderOfFailStates.get(fs); 
+			initState = failState.getState(); 
+			double probTo = jointPolicy.getProbability(0, initState, 1.0);
+			if(probTo == failState.getProb())
+			{
+				mainLog.println("probs equal");
+			}
+		 double prob = jointPolicy.getProbabilityAcceptingStateOnly(initState, 1.0);
+		 prob = prob*probTo;
+		 mainLog.println(failState.toString()+" Prob "+prob);
+		// setbit = jointPolicy.allTasksCompletedStates.nextSetBit(setbit+1);
+//		 initState = fsetbit; 
+//		 fsetbit = jointPolicy.allFailStatesSeen.nextSetBit(fsetbit+1);
+		}
+	
 
 		return null;
 	}
@@ -421,7 +446,7 @@ public class STAPU extends ProbModelChecker {
 // 4 = topo_map
 		// 5= chain example 
 		
-		return 5;
+		return 3;
 	}
 	private int getNumRobots(int exampleNumber)
 	{
