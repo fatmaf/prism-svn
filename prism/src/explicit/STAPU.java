@@ -223,7 +223,8 @@ public class STAPU extends ProbModelChecker {
 						distr.add(indexInTeamNextState, nextStateProb);
 
 					}
-					teamMDP.addActionLabelledChoice(indexInTeamState, distr, agentMDP.getAction(s, j));
+					Object action = agentMDP.getAction(s, j);
+					teamMDP.addActionLabelledChoice(indexInTeamState, distr,action );
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
@@ -344,10 +345,11 @@ public class STAPU extends ProbModelChecker {
 	protected StateValues doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
 
 		// process ltl expressions
-		int numRobots = 3;
+		int numRobots = getNumRobots(exampleNumber());
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
+		saveMDP((MDP)model,null,"mdp",true);
 		int initState = model.getFirstInitialState();
 		for (int i = 0; i < numRobots; i++) {
 			if (i != 0) {
@@ -356,6 +358,7 @@ public class STAPU extends ProbModelChecker {
 				((MDPSparse) model).addInitialState(initState);
 
 			}
+			
 			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP(model, daList,
 					statesOfInterest);
 
@@ -413,7 +416,33 @@ public class STAPU extends ProbModelChecker {
 
 	private int exampleNumber() {
 		// SET the EXAMPLE NUMBER HERE
-		return 3;
+		// 0 = two room three robot not extended , 1 = two room three robot extended, 2 = debugging on
+		// two_room_three_robot_blowup_reduced, 3 = three_robot_simple
+// 4 = topo_map
+		// 5= chain example 
+		
+		return 5;
+	}
+	private int getNumRobots(int exampleNumber)
+	{
+		int toret = -1;
+		switch(exampleNumber) {
+//		case 0:
+//			toret =1; 
+//			break; 
+		case 0:
+		case 1:
+			toret = 4; 
+			break; 
+		case 2: 
+		case 3:
+		case 4:
+		case 5:
+			toret = 3; 
+			break; 
+			
+		}
+		return toret; 
 	}
 
 	private int getInitState(int robotNum, int robotModel) {
@@ -462,6 +491,15 @@ public class STAPU extends ProbModelChecker {
 			// 18-24
 			// 21-26
 
+		}	else if (robotModel == 5)
+		{
+			if(robotNum == 0)
+				initState = 1; 
+			if(robotNum == 1)
+				initState = 4; 
+			if(robotNum == 2)
+				initState = 7; 
+			
 		}
 		///////////////////////////////////// DECIDE Robot init states
 		///////////////////////////////////// HERE///////////////////////////////////////
