@@ -415,26 +415,18 @@ public class STAPU extends ProbModelChecker {
 					seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
 			 jointPolicy.unfoldPolicyForState(seqTeamMDP, res.strat, initialState,false);
 		}
-	//	int setbit = jointPolicy.allTasksCompletedStates.nextSetBit(0);
-//		int fsetbit = jointPolicy.allFailStatesSeen.nextSetBit(0);
-//		 initState = 0;
-//		while(initState!=-1) {
-		for(int fs = 0; fs<orderOfFailStates.size(); fs++) {
-			StateProb failState = orderOfFailStates.get(fs); 
-			initState = failState.getState(); 
-			double probTo = jointPolicy.getProbability(0, initState, 1.0);
-			if(probTo == failState.getProb())
-			{
-				mainLog.println("probs equal");
-			}
-		 double prob = jointPolicy.getProbabilityAcceptingStateOnly(initState, 1.0);
-		 prob = prob*probTo;
-		 mainLog.println(failState.toString()+" Prob "+prob);
-		// setbit = jointPolicy.allTasksCompletedStates.nextSetBit(setbit+1);
-//		 initState = fsetbit; 
-//		 fsetbit = jointPolicy.allFailStatesSeen.nextSetBit(fsetbit+1);
+		
+		mainLog.println("Completed STAPU for full policy"); 
+		mainLog.println("DeadEnd States "+jointPolicy.deadendStates.toString()); 
+		mainLog.println("Accepting States "+ jointPolicy.allTasksCompletedStates.toString()); 
+		mainLog.println("Information about fail states ");
+		
+		for( StateProb fs: orderOfFailStates)
+		{
+			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0); 
+			mainLog.println("Explored state "+ fs.toString()+" with prob "+ prob+ "= "+prob*fs.getProb());
 		}
-	
+
 
 		return null;
 	}
@@ -446,7 +438,7 @@ public class STAPU extends ProbModelChecker {
 // 4 = topo_map
 		// 5= chain example 
 		
-		return 3;
+		return 5;
 	}
 	private int getNumRobots(int exampleNumber)
 	{
