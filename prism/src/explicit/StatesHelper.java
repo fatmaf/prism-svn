@@ -27,9 +27,9 @@ public class StatesHelper {
 		int numChoices = mdp.getNumChoices(mdpMap[parentState]);
 		if (action == null)
 			mdp.addActionLabelledChoice(mdpMap[parentState], distr, additionalText + "." + numChoices);
-		else
+		else {
 			mdp.addActionLabelledChoice(mdpMap[parentState], distr,
-					additionalText + "_" + action.toString() + "." + numChoices);
+					additionalText + "_" + action.toString() + "." + numChoices);}
 		return accStates;
 	}
 

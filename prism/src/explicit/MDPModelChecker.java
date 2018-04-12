@@ -1741,11 +1741,64 @@ public class MDPModelChecker extends ProbModelChecker {
 		
 	}
 
-	private void computeProbAndUpdateTeamAutomatonForState(probPolicyTest policy, int robotStateId, int[] robotStates,
-			int rNum) {
-		// TODO Auto-generated method stub
-		
+	protected void computeProbAndUpdateTeamAutomatonForState(probPolicyTest policy, int currState,
+			int[] statesForRobots,int firstRobot) throws PrismException {
+
+		MDPSimple newTeamAutomaton = policy.tAutomaton.getNewTeamAutomatonWithSwitches(currState);
+		MDPRewardsSimple newTeamAutomatonRewards = new MDPRewardsSimple(policy.tAutomaton.teamAutomatonRewards);
+		// add the links
+		BitSet updatedInitStates[] = addFailSwitchGetUpdatedInitialStates(policy, newTeamAutomaton,
+				newTeamAutomatonRewards, currState, statesForRobots,firstRobot);
+
+		BitSet updatedPossibleInitStatesForSwitches[] = updatedInitStates;
+		int updatedInitStatesRobot[] = statesForRobots.clone();
+		int nextRobot = (firstRobot+1)% policy.tAutomaton.numRobots;
+		int nextRobotstate = updatedInitStatesRobot[nextRobot] ;
+		// update switchStates 
+		BitSet[] switches = policy.tAutomaton.switchstatesRobots;
+		for(int r = 0; r<policy.tAutomaton.numRobots; r++)
+		{
+			if(policy.getAllStates().isFailState(statesForRobots[r]))
+			{
+				switches[r] = new BitSet(); 
+				switches[r].set(statesForRobots[r]);
+			}
+		}
+		// update switches using this information
+		int totalswitches = updateSwitchesU(switches, policy.tAutomaton.numRobots,
+				policy.tAutomaton.allStates.states, policy.tAutomaton.allStates.numVar,
+				updatedPossibleInitStatesForSwitches, newTeamAutomaton, newTeamAutomatonRewards,firstRobot);
+		// now we have the updated automaton
+
+		newTeamAutomaton.findDeadlocks(true);
+		// save stuff just for debugging
+		//saveIntermediates=true;
+		if (saveIntermediates) {
+			newTeamAutomaton.exportToDotFile(saveplace + "sumprod_new" + currState + ".dot");
+			newTeamAutomaton.exportToPrismExplicitTra(saveplace + "sumprod_new" + currState + ".tra");
+		}
+		arrNum++;
+		addToTestResults("Transitions", (double) newTeamAutomaton.getNumTransitions(), arrNum);
+		addToTestResults("States", (double) newTeamAutomaton.getNumStates(), arrNum);
+		// //compute the probabilities again
+		// ModelCheckerResult res = computeUntilProbs(newTeamAutomaton,
+		// policy.tAutomaton.statesToAvoid,
+		// policy.tAutomaton.finalAccStates,false);
+		ModelCheckerPartialSatResult res2 = computeNestedValIterFailurePrint(currState,newTeamAutomaton,
+				policy.tAutomaton.finalAccStates, policy.tAutomaton.statesToAvoid, newTeamAutomatonRewards);
+
+		// add the result to the policy
+		// policy.unfoldPolicy(newTeamAutomaton, res.strat, 0, currState,
+		// nextRobotstate,updatedInitStatesRobot);
+		ArrayList<Integer> statesDisc = policy.unfoldPolicy(newTeamAutomaton, res2.strat, 0, currState,
+				nextRobotstate, updatedInitStatesRobot);
+		// mainLog.println("Total Switches: "+totalswitches);
+		addToTestResults("States Discovered", statesDisc, arrNum);
+
 	}
+
+	
+	
 
 	protected double getTime(long tnow)
 	{
