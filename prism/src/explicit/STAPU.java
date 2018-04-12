@@ -47,7 +47,7 @@ public class STAPU extends ProbModelChecker {
 	int arrNum = 0;
 	long timeout = 1000 * 3 * 60;
 	long time = 0;
-	public PrismLog mainLogRef; 
+	public PrismLog mainLogRef;
 
 	public STAPU(MDPModelChecker parent) throws PrismException {
 		super(parent);
@@ -226,7 +226,7 @@ public class STAPU extends ProbModelChecker {
 
 					}
 					Object action = agentMDP.getAction(s, j);
-					teamMDP.addActionLabelledChoice(indexInTeamState, distr,action );
+					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
@@ -324,11 +324,12 @@ public class STAPU extends ProbModelChecker {
 	protected ModelCheckerPartialSatResult computeNestedValIterFailurePrint(MDP sumprod, BitSet accStatesF,
 			BitSet badStates, MDPRewards rewards) throws PrismException {
 
-		BitSet statesToRemainIn =(BitSet) badStates.clone(); 
+		BitSet statesToRemainIn = (BitSet) badStates.clone();
 		statesToRemainIn.flip(0, sumprod.getNumStates());
 		MDPModelChecker mc = new MDPModelChecker(this);
 		mc.genStrat = true;
-		ModelCheckerPartialSatResult res2 = mc.computeNestedValIterFailure(sumprod, accStatesF, statesToRemainIn, rewards);
+		ModelCheckerPartialSatResult res2 = mc.computeNestedValIterFailure(sumprod, accStatesF, statesToRemainIn,
+				rewards);
 
 		StateValues probsProduct = StateValues.createFromDoubleArray(res2.solnProb, sumprod);
 
@@ -348,11 +349,15 @@ public class STAPU extends ProbModelChecker {
 
 		// process ltl expressions
 		int numRobots = getNumRobots(exampleNumber());
+		
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
-		saveMDP((MDP)model,null,"mdp",true);
+		
+		saveMDP((MDP) model, null, "mdp", true);
+		
 		int initState = model.getFirstInitialState();
+		
 		for (int i = 0; i < numRobots; i++) {
 			if (i != 0) {
 				initState = getInitState(i, exampleNumber());
@@ -360,106 +365,116 @@ public class STAPU extends ProbModelChecker {
 				((MDPSparse) model).addInitialState(initState);
 
 			}
-			
+
 			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP(model, daList,
 					statesOfInterest);
 
 			singleAgentProductMDPs.add(nestedProduct);
 
 		}
-		
 
 		// create team automaton from a set of MDP DA stuff
-
 		SequentialTeamMDP seqTeamMDP = buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+
 		int firstRobot = 0; // fix this
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 1);
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
+		
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
 		saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "teamMDPWithSwitches", true);
 		saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "teamMDPWithSwitchesAvoid", true);
-		// seqTeamMDP.addSwitchTransitions(firstRobot);
-
+		
 		// solve
 		ModelCheckerPartialSatResult res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
+		
+		
 		// add to joint policy
-
 		MMDPSimple jointPolicy = new MMDPSimple(seqTeamMDP.numRobots);
-		// jointPolicy.stuckStatesQ.add(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState());
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
-		jointPolicy.unfoldPolicyForState(seqTeamMDP, res.strat, initialState, true);
+		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, res.strat, initialState, true);
+
 		saveMDP(jointPolicy.mdp, null, "jointPolicy", true);
+		
 		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
+		
+		//start the loop 
 		while (!jointPolicy.stuckStatesQ.isEmpty()) {
-			 StateProb stuckState = jointPolicy.stuckStatesQ.remove();
+
+			//get the state with the highest probability, given the current joint policy 
+			StateProb stuckState = jointPolicy.stuckStatesQ.remove();
 			initialState = stuckState.getState();
 			orderOfFailStates.add(stuckState.copy());
-			mainLog.println("Exploring "+stuckState.toString());
+			mainLog.println("Exploring " + stuckState.toString());
+
+			//update the teammdp 
 			List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
 			State currState = states.get(initialState);
 			int rNum = jointPolicy.firstFailedRobot(currState);
 			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
 					seqTeamMDP.teamMDPWithSwitches.getStatesList());
-			int robotStateId = robotStates[rNum];
-			int nextRobot = (rNum + 1) % jointPolicy.nRobots;
-			int nextRobotstate = robotStates[nextRobot];
-			//
-			seqTeamMDP.setInitialStates(robotStates);	
-			//we need to change the switches to the initial states 
+			seqTeamMDP.setInitialStates(robotStates);
+			// we need to change the switches to the initial states
+			// so we will just add switches from all failed robots 
+			// we really dont care who failed first because 
+			// the switches will take care of that 
 			seqTeamMDP.addSwitchesAndSetInitialState(rNum);
-			saveMDP(seqTeamMDP.teamMDPWithSwitches,combinedEssentialStates,"teamMDPWithSwitches"+currState.toString(),true);
-			res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-					seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
-			 jointPolicy.unfoldPolicyForState(seqTeamMDP, res.strat, initialState,false);
-		}
-		
-		mainLog.println("Completed STAPU for full policy"); 
-		mainLog.println("DeadEnd States "+jointPolicy.deadendStates.toString()); 
-		mainLog.println("Accepting States "+ jointPolicy.allTasksCompletedStates.toString()); 
-		mainLog.println("Information about fail states ");
-		
-		for( StateProb fs: orderOfFailStates)
-		{
-			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0); 
-			mainLog.println("Explored state "+ fs.toString()+" with prob "+ prob+ "= "+prob*fs.getProb());
+			
+			saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,
+					"teamMDPWithSwitches" + currState.toString(), true);
+			
+			res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
+					seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
+			
+			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, res.strat, initialState, false);
+			
 		}
 
+		mainLog.println("Completed STAPU for full policy");
+		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
+		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
+		mainLog.println("Information about fail states ");
+
+		for (StateProb fs : orderOfFailStates) {
+			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0);
+			mainLog.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
+		}
 
 		return null;
 	}
 
 	private int exampleNumber() {
 		// SET the EXAMPLE NUMBER HERE
-		// 0 = two room three robot not extended , 1 = two room three robot extended, 2 = debugging on
+		// 0 = two room three robot not extended , 1 = two room three robot extended, 2
+		// = debugging on
 		// two_room_three_robot_blowup_reduced, 3 = three_robot_simple
-// 4 = topo_map
-		// 5= chain example 
-		
+		// 4 = topo_map
+		// 5= chain example
+
 		return 5;
 	}
-	private int getNumRobots(int exampleNumber)
-	{
+
+	private int getNumRobots(int exampleNumber) {
 		int toret = -1;
-		switch(exampleNumber) {
-//		case 0:
-//			toret =1; 
-//			break; 
+		switch (exampleNumber) {
+		// case 0:
+		// toret =1;
+		// break;
 		case 0:
 		case 1:
-			toret = 4; 
-			break; 
-		case 2: 
+			toret = 4;
+			break;
+		case 2:
 		case 3:
 		case 4:
 		case 5:
-			toret = 3; 
-			break; 
-			
+			toret = 3;
+			break;
+
 		}
-		return toret; 
+		return toret;
 	}
 
 	private int getInitState(int robotNum, int robotModel) {
@@ -508,15 +523,14 @@ public class STAPU extends ProbModelChecker {
 			// 18-24
 			// 21-26
 
-		}	else if (robotModel == 5)
-		{
-			if(robotNum == 0)
-				initState = 1; 
-			if(robotNum == 1)
-				initState = 4; 
-			if(robotNum == 2)
-				initState = 7; 
-			
+		} else if (robotModel == 5) {
+			if (robotNum == 0)
+				initState = 1;
+			if (robotNum == 1)
+				initState = 4;
+			if (robotNum == 2)
+				initState = 7;
+
 		}
 		///////////////////////////////////// DECIDE Robot init states
 		///////////////////////////////////// HERE///////////////////////////////////////

@@ -183,7 +183,7 @@ public class MMDPSimple {
 
 	}
 
-	public void addPolicy(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
+	public void constructJointPolicyFromMDPsAndAddToCurrentPolicy(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
 			SequentialTeamMDP seqTeamMDP) {
 		int initialStates[] = new int[nRobots];
 		int lastStates[] = new int[nRobots];
@@ -811,7 +811,7 @@ public class MMDPSimple {
 		return super.toString();
 	}
 
-	public ArrayList<Integer> unfoldPolicyForState(SequentialTeamMDP seqTeamMDP,
+	public ArrayList<Integer> addSeqPolicyToJointPolicy(SequentialTeamMDP seqTeamMDP,
 			Strategy strat, int initialState, boolean noJointState) throws PrismException
 	{
 		int nextRobotstate =  StatesHelper.BADVALUE;
@@ -864,13 +864,13 @@ public class MMDPSimple {
 		initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		State s1  = seqTeamMDP.teamMDPTemplate.getStatesList().get(initialState);
 		System.out.println(s1.toString());
-		return unfoldPolicyForState(seqTeamMDP,strat,initialState,nextRobotstate,robotStates);
+		return addSeqPolicy(seqTeamMDP,strat,initialState,nextRobotstate,robotStates);
 		
 		
 		
 	}
 
-	public ArrayList<Integer> unfoldPolicyForState(SequentialTeamMDP seqTeamMDP,
+	public ArrayList<Integer> addSeqPolicy(SequentialTeamMDP seqTeamMDP,
 			Strategy strat, int initialState, 
 			int nextSuccState, int[] allRobotInitStates)
 	{
@@ -981,7 +981,7 @@ public class MMDPSimple {
 
 		StatesHelper.checkMDPs(mdps,mdpMaps,sumprod.getStatesList(),allRobotInitStates,
 				initialState,accStates,seqTeamMDP.acceptingStates);
-		addPolicy(mdps,mdpMaps,firstRobot,accStates,seqTeamMDP);
+		constructJointPolicyFromMDPsAndAddToCurrentPolicy(mdps,mdpMaps,firstRobot,accStates,seqTeamMDP);
 		statesDiscovered.add(statesForPolicy);
 		return statesDiscovered;
 
