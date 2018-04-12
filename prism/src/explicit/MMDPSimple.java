@@ -26,7 +26,6 @@ import explicit.stateInfoFromStatesList;
 
 /*
  * A class that stores the joint policy for multiple agents 
- * really I dont need this but this is just making it clean for me
  */
 public class MMDPSimple {
 
@@ -301,7 +300,10 @@ public class MMDPSimple {
 									double failprob = getProbability(0,stateNumInMDP,1.0);
 								stuckStatesQ.add(new StateProb(stateNumInMDP,failprob));
 								allFailStatesSeen.set(stateNumInMDP);
-								}}
+								}
+								else 
+									deadendStates.set(stateNumInMDP);
+								}
 							
 						}
 						else
