@@ -52,6 +52,7 @@ import acceptance.AcceptanceType;
 import automata.DA;
 import common.IterableBitSet;
 import explicit.LTLModelChecker.LTLProduct;
+import explicit.MMDPSimple.StateProb;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MCRewardsFromMDPRewards;
 import explicit.rewards.MDPRewards;
@@ -1859,7 +1860,9 @@ public class MDPModelChecker extends ProbModelChecker {
 					// policy.setCurrentPolicyToPolicyFromAllPolicies(computeForState.associatedStartState);
 //					policy.setCurrentPolicyToPolicyFromAllPoliciesPolicyID(computeForState.associatedPolicyID);
 					// mainLog.println("SS:Exploring "+computeForState.toString());
-				 int jointStateId = (int)(policy.jointPolicy.stuckStatesQ.remove()); 
+				StateProb stateProb = policy.jointPolicy.stuckStatesQ.remove(); 
+				
+				 int jointStateId = stateProb.getState(); 
 				State jointState = policy.jointPolicy.mdp.statesList.get(jointStateId);
 					updateTeamAutomatonForStatesClean(policy, jointState);
 //				}
