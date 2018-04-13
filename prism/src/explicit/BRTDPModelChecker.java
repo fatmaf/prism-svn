@@ -242,7 +242,9 @@ public class BRTDPModelChecker extends PrismComponent
 			}
 			MDP mdp = brtdp.getMdp();
 			System.out.println("MDP num states: " + mdp.getNumStates());
-			mdp.exportToDotFile("/home/bruno/Desktop/policy_brtdp.dot");
+			mdp.exportToDotFile("/home/bruno/Desktop/mdp.dot");
+			mdp = brtdp.getPolicies();
+			mdp.exportToDotFile("/home/bruno/Desktop/policy.dot");
 			StateValues res = checkResult(mdp, expr);
 			System.out.println("PROB:" + res.valuesD[0]);
 		}
