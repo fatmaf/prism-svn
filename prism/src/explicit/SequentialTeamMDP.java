@@ -1,11 +1,20 @@
 package explicit;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Vector;
+import java.util.Map.Entry;
 
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
+import parser.VarList;
+import parser.ast.Declaration;
+import parser.ast.DeclarationInt;
+import parser.ast.Expression;
 import prism.PrismException;
 
 class SequentialTeamMDP {
@@ -23,6 +32,9 @@ class SequentialTeamMDP {
 	ArrayList<MDPRewardsSimple> teamRewardsTemplate;
 	MDPSimple teamMDPWithSwitches;
 	ArrayList<MDPRewardsSimple> rewardsWithSwitches;
+	MDPRewardsSimple progressionRewards; 
+	//basically its just the essential states that have progressionRewad 
+	
 	int numRobots;
 
 	public SequentialTeamMDP(STAPU stapu, int nRobots) {
@@ -32,7 +44,215 @@ class SequentialTeamMDP {
 		numRobots = nRobots;
 	}
 
-	
+	protected SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs)
+			throws PrismException {
+
+//		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this, agentMDPs.size());
+		this.agentMDPs = agentMDPs;
+		this.agentMDPsToSeqTeamMDPStateMapping = new ArrayList<int[]>(agentMDPs.size());
+
+		int numRobots = agentMDPs.size();
+		int numTeamStates = 0; // do I have an extra state somewhere ??
+		// TODO: something seems to be off with the numbering of states and number of
+		// states!
+		MDPSimple teamMDP = null;
+		// I dont know how many rewards there are
+		// so lets just set like this unique rewards model thing ? yes okay
+		// its still an arraylist though
+		// woot
+		ArrayList<MDPRewardsSimple> teamRewardsList = null;
+		// number of states in team = sum of number of states in each mdp
+		for (int r = 0; r < numRobots; r++) {
+			numTeamStates += agentMDPs.get(r).finalProduct.getProductModel().getNumStates();
+		}
+
+		VarList teamMDPVarList = null;
+
+		// the variable list - r,da0,da1...mdp
+		// so we can just take the varlist for r1 and do the "needful" rukhsana :P
+
+		MDP productMDP = agentMDPs.get(0).finalProduct.getProductModel();
+		if (productMDP.getVarList() != null) {
+			teamMDPVarList = (VarList) (productMDP.getVarList()).clone();
+
+			String daVar = "r";// "_da"; // TODO: come back to fix this
+			// while (teamMDPVarList.getIndex(daVar) != -1) {
+			// daVar = "_" + daVar;
+			// }
+			// NB: if DA only has one state, we add an extra dummy state
+			DeclarationInt daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
+			Declaration decl = new Declaration(daVar, daint);
+			teamMDPVarList.addVar(0, decl, 1, productMDP.getConstantValues());
+			// //lets rename all the other ones
+			// //so from 1 all the way to the end minus s
+			// //we want to do stuff like dan, dan-1, dan-2
+			// int numVar = teamMDPVarList.getNumVars();
+			// for(int i = 1; i< numVar; i++)
+			// {
+			// decl = teamMDPVarList.getDeclaration(i);
+			// decl.setName("da"+(numVar-(i-1)));
+			// teamMDPVarList.addVar(i, decl, teamMDPVarList.getModule(i), constantValues);
+			// }
+
+		}
+
+		teamMDP = new MDPSimple();
+		teamRewardsList = new ArrayList<MDPRewardsSimple>();
+		this.progressionRewards = new MDPRewardsSimple(numTeamStates);
+
+		teamMDP.setVarList(teamMDPVarList);
+
+		ArrayList<State> teamMDPStatesList = null, robotNumList = null;
+
+		// again making assumption that what works for r1 works for all of them
+		if (productMDP.getStatesList() != null) {
+			teamMDPStatesList = new ArrayList<State>();
+			robotNumList = new ArrayList<State>(numRobots);
+
+			for (int i = 0; i < numRobots; i++) {
+				robotNumList.add(new State(1).setValue(0, i));
+			}
+		}
+
+		HashMap<Integer, Integer> rewardNumToCorrespondingDA = new HashMap<Integer, Integer>();
+		// setting the rewards
+		// basically we'll have the same number of rewards as in the mdp for any of the
+		// robots
+		for (int rew = 0; rew < agentMDPs.get(0).daList.size(); rew++) {
+			if (agentMDPs.get(0).daList.get(rew).costsModel != null) {
+				teamRewardsList.add(new MDPRewardsSimple(numTeamStates));
+				rewardNumToCorrespondingDA.put(teamRewardsList.size() - 1, rew);
+			}
+		}
+
+		ArrayList<int[]> maps = new ArrayList<int[]>();
+		BitSet acceptingStates = new BitSet(numTeamStates); // for the team mdp they are acc for r1 || acc for r2 || acc
+															// for r3 ...
+		BitSet statesToAvoid = new BitSet(numTeamStates); // for the team mdp they are bad for r1 || bad for r2 || bad
+															// for r3
+
+		ArrayList<BitSet> initialStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
+		ArrayList<BitSet> switchStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
+
+		int numStates = 0;
+		int numChoices;
+
+		for (int r = 0; r < agentMDPs.size(); r++) {
+
+			// check for self
+			if (numStates * (r) != teamMDP.getNumStates())
+				this.stapu.mainLogRef.println("Something is wrong here cuz the number of states isnt what you expected");
+			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
+			BitSet essentialStates = new BitSet(numTeamStates);
+			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates();
+			BitSet agentInitialStatesInTeam = new BitSet(numTeamStates);
+			MDP agentMDP = agentMDPs.get(r).finalProduct.getProductModel();
+			numStates = agentMDP.getNumStates();
+			int[] map = new int[numStates];
+			Arrays.fill(map, StatesHelper.BADVALUE);
+			int indexInTeamState;
+			for (int s = 0; s < numStates; s++) {
+
+				// so we will not repeat any states cuz well we cant at all cuz we're adding
+				// them as we find them
+				// at least here
+
+				indexInTeamState = map[s];
+				if (indexInTeamState == StatesHelper.BADVALUE) {
+					teamMDP.addState();
+					if (teamMDPStatesList != null) {
+						teamMDPStatesList.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(s)));
+					}
+					indexInTeamState = teamMDP.getNumStates() - 1;
+					// map it
+					map[s] = indexInTeamState; // do I need this ??
+				}
+				// set the states
+				if (singleAgentNestedMDP.combinedAcceptingStates.get(s)) {
+					acceptingStates.set(indexInTeamState);
+				//	singleAgentNestedMDP.daList.get(0).productAcceptingStates.get(s);
+					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
+				}
+				if (singleAgentNestedMDP.combinedStatesToAvoid.get(s)) {
+					statesToAvoid.set(indexInTeamState);
+				}
+
+				if (singleAgentNestedMDP.combinedEssentialStates.get(s)) {
+					essentialStates.set(indexInTeamState);
+					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
+				}
+				if (agentInitialStates.get(s)) {
+					agentInitialStatesInTeam.set(indexInTeamState);
+				}
+
+				numChoices = agentMDP.getNumChoices(s);
+
+				Iterator<Map.Entry<Integer, Double>> iter;
+
+				for (int j = 0; j < numChoices; j++) {
+					iter = agentMDP.getTransitionsIterator(s, j);
+					Distribution distr = new Distribution();
+					while (iter.hasNext()) {
+						Entry<Integer, Double> nextStatePair = iter.next();
+						int nextState = nextStatePair.getKey();
+						double nextStateProb = nextStatePair.getValue();
+						int indexInTeamNextState = map[nextState];
+						if (indexInTeamNextState == StatesHelper.BADVALUE) {
+							indexInTeamNextState = teamMDP.getNumStates();
+
+							teamMDP.addState();
+							if (teamMDPStatesList != null) {
+								teamMDPStatesList
+										.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(nextState)));
+							}
+
+							map[nextState] = indexInTeamNextState;
+
+						}
+						distr.add(indexInTeamNextState, nextStateProb);
+
+					}
+					Object action = agentMDP.getAction(s, j);
+					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
+					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
+						int daNum = rewardNumToCorrespondingDA.get(rew);
+						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
+						double rewardHere = rewardStruct
+								.getTransitionReward(singleAgentNestedMDP.productStateToMDPState.get(s), j);
+						int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
+						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
+					}
+
+				}
+				for (int rew = 0; rew < teamRewardsList.size(); rew++) {
+					int daNum = rewardNumToCorrespondingDA.get(rew);
+					double rewardHere = singleAgentNestedMDP.daList.get(daNum).costsModel
+							.getStateReward(singleAgentNestedMDP.productStateToMDPState.get(s));
+					teamRewardsList.get(rew).addToStateReward(indexInTeamState, rewardHere);
+				}
+
+			}
+
+			this.essentialStates.add((BitSet) essentialStates.clone());
+			this.initialStates.add((BitSet) agentInitialStatesInTeam.clone());
+			this.agentMDPsToSeqTeamMDPStateMapping.add(map.clone());
+
+		}
+		teamMDP.setStatesList(teamMDPStatesList);
+		this.acceptingStates = acceptingStates;
+		this.statesToAvoid = statesToAvoid;
+		this.teamMDPTemplate = teamMDP;
+		this.teamRewardsTemplate = teamRewardsList;
+
+		this.stapu.saveMDP(teamMDP, acceptingStates, "teamMDPTemplate", true);
+
+		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
+		// just return this
+		// add switch states after
+		return this;
+
+	}
+
 	public void addSwitchesAndSetInitialState(int firstRobot) throws PrismException {
 		int[] robotStates = new int[numRobots]; 
 		for(int i = 0; i<numRobots; i++)
