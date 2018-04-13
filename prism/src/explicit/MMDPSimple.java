@@ -109,7 +109,7 @@ public class MMDPSimple {
 		}
 	}
 
-	/*
+	/**
 	 * creates a joint policy MDP
 	 * 
 	 * @numrobots the number of robots

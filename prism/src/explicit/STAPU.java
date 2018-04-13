@@ -36,17 +36,8 @@ import prism.PrismLog;
  */
 public class STAPU extends ProbModelChecker {
 
-	boolean run_tests = false;
 	String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
-	// System.getProperty("user.dir") + "/tests/decomp_tests/temp/";
-	boolean printHighlights = false;
-	boolean printDetails = false;
-	private boolean saveIntermediates = false;
-	boolean printTestRelated = true;
-	ArrayList<ArrayList<Entry<String, Double>>> testResults;
-	int arrNum = 0;
 	long timeout = 1000 * 3 * 60;
-	long time = 0;
 	public PrismLog mainLogRef;
 
 	public STAPU(MDPModelChecker parent) throws PrismException {
@@ -60,213 +51,31 @@ public class STAPU extends ProbModelChecker {
 		// currentModelGenerator);
 
 	}
-
-	protected SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs)
-			throws PrismException {
-
-		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this, agentMDPs.size());
-		seqTeamMDP.agentMDPs = agentMDPs;
-		seqTeamMDP.agentMDPsToSeqTeamMDPStateMapping = new ArrayList<int[]>(agentMDPs.size());
-
-		int numRobots = agentMDPs.size();
-		int numTeamStates = 0; // do I have an extra state somewhere ??
-		// TODO: something seems to be off with the numbering of states and number of
-		// states!
-		MDPSimple teamMDP = null;
-		// I dont know how many rewards there are
-		// so lets just set like this unique rewards model thing ? yes okay
-		// its still an arraylist though
-		// woot
-		ArrayList<MDPRewardsSimple> teamRewardsList = null;
-		// number of states in team = sum of number of states in each mdp
-		for (int r = 0; r < numRobots; r++) {
-			numTeamStates += agentMDPs.get(r).finalProduct.getProductModel().getNumStates();
-		}
-
-		VarList teamMDPVarList = null;
-
-		// the variable list - r,da0,da1...mdp
-		// so we can just take the varlist for r1 and do the "needful" rukhsana :P
-
-		MDP productMDP = agentMDPs.get(0).finalProduct.getProductModel();
-		if (productMDP.getVarList() != null) {
-			teamMDPVarList = (VarList) (productMDP.getVarList()).clone();
-
-			String daVar = "r";// "_da"; // TODO: come back to fix this
-			// while (teamMDPVarList.getIndex(daVar) != -1) {
-			// daVar = "_" + daVar;
-			// }
-			// NB: if DA only has one state, we add an extra dummy state
-			DeclarationInt daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
-			Declaration decl = new Declaration(daVar, daint);
-			teamMDPVarList.addVar(0, decl, 1, productMDP.getConstantValues());
-			// //lets rename all the other ones
-			// //so from 1 all the way to the end minus s
-			// //we want to do stuff like dan, dan-1, dan-2
-			// int numVar = teamMDPVarList.getNumVars();
-			// for(int i = 1; i< numVar; i++)
-			// {
-			// decl = teamMDPVarList.getDeclaration(i);
-			// decl.setName("da"+(numVar-(i-1)));
-			// teamMDPVarList.addVar(i, decl, teamMDPVarList.getModule(i), constantValues);
-			// }
-
-		}
-
-		teamMDP = new MDPSimple();
-		teamRewardsList = new ArrayList<MDPRewardsSimple>();
-
-		teamMDP.setVarList(teamMDPVarList);
-
-		ArrayList<State> teamMDPStatesList = null, robotNumList = null;
-
-		// again making assumption that what works for r1 works for all of them
-		if (productMDP.getStatesList() != null) {
-			teamMDPStatesList = new ArrayList<State>();
-			robotNumList = new ArrayList<State>(numRobots);
-
-			for (int i = 0; i < numRobots; i++) {
-				robotNumList.add(new State(1).setValue(0, i));
-			}
-		}
-
-		HashMap<Integer, Integer> rewardNumToCorrespondingDA = new HashMap<Integer, Integer>();
-		// setting the rewards
-		// basically we'll have the same number of rewards as in the mdp for any of the
-		// robots
-		for (int rew = 0; rew < agentMDPs.get(0).daList.size(); rew++) {
-			if (agentMDPs.get(0).daList.get(rew).costsModel != null) {
-				teamRewardsList.add(new MDPRewardsSimple(numTeamStates));
-				rewardNumToCorrespondingDA.put(teamRewardsList.size() - 1, rew);
-			}
-		}
-
-		ArrayList<int[]> maps = new ArrayList<int[]>();
-		BitSet acceptingStates = new BitSet(numTeamStates); // for the team mdp they are acc for r1 || acc for r2 || acc
-															// for r3 ...
-		BitSet statesToAvoid = new BitSet(numTeamStates); // for the team mdp they are bad for r1 || bad for r2 || bad
-															// for r3
-
-		ArrayList<BitSet> initialStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
-		ArrayList<BitSet> switchStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
-
-		int numStates = 0;
-		int numChoices;
-
-		for (int r = 0; r < agentMDPs.size(); r++) {
-
-			// check for self
-			if (numStates * (r) != teamMDP.getNumStates())
-				mainLog.println("Something is wrong here cuz the number of states isnt what you expected");
-			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
-			BitSet essentialStates = new BitSet(numTeamStates);
-			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates();
-			BitSet agentInitialStatesInTeam = new BitSet(numTeamStates);
-			MDP agentMDP = agentMDPs.get(r).finalProduct.getProductModel();
-			numStates = agentMDP.getNumStates();
-			int[] map = new int[numStates];
-			Arrays.fill(map, StatesHelper.BADVALUE);
-			int indexInTeamState;
-			for (int s = 0; s < numStates; s++) {
-
-				// so we will not repeat any states cuz well we cant at all cuz we're adding
-				// them as we find them
-				// at least here
-
-				indexInTeamState = map[s];
-				if (indexInTeamState == StatesHelper.BADVALUE) {
-					teamMDP.addState();
-					if (teamMDPStatesList != null) {
-						teamMDPStatesList.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(s)));
-					}
-					indexInTeamState = teamMDP.getNumStates() - 1;
-					// map it
-					map[s] = indexInTeamState; // do I need this ??
-				}
-				// set the states
-				if (singleAgentNestedMDP.combinedAcceptingStates.get(s)) {
-					acceptingStates.set(indexInTeamState);
-				}
-				if (singleAgentNestedMDP.combinedStatesToAvoid.get(s)) {
-					statesToAvoid.set(indexInTeamState);
-				}
-
-				if (singleAgentNestedMDP.combinedEssentialStates.get(s)) {
-					essentialStates.set(indexInTeamState);
-				}
-				if (agentInitialStates.get(s)) {
-					agentInitialStatesInTeam.set(indexInTeamState);
-				}
-
-				numChoices = agentMDP.getNumChoices(s);
-
-				Iterator<Map.Entry<Integer, Double>> iter;
-
-				for (int j = 0; j < numChoices; j++) {
-					iter = agentMDP.getTransitionsIterator(s, j);
-					Distribution distr = new Distribution();
-					while (iter.hasNext()) {
-						Entry<Integer, Double> nextStatePair = iter.next();
-						int nextState = nextStatePair.getKey();
-						double nextStateProb = nextStatePair.getValue();
-						int indexInTeamNextState = map[nextState];
-						if (indexInTeamNextState == StatesHelper.BADVALUE) {
-							indexInTeamNextState = teamMDP.getNumStates();
-
-							teamMDP.addState();
-							if (teamMDPStatesList != null) {
-								teamMDPStatesList
-										.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(nextState)));
-							}
-
-							map[nextState] = indexInTeamNextState;
-
-						}
-						distr.add(indexInTeamNextState, nextStateProb);
-
-					}
-					Object action = agentMDP.getAction(s, j);
-					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
-					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
-						int daNum = rewardNumToCorrespondingDA.get(rew);
-						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
-						double rewardHere = rewardStruct
-								.getTransitionReward(singleAgentNestedMDP.productStateToMDPState.get(s), j);
-						int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
-						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
-					}
-
-				}
-				for (int rew = 0; rew < teamRewardsList.size(); rew++) {
-					int daNum = rewardNumToCorrespondingDA.get(rew);
-					double rewardHere = singleAgentNestedMDP.daList.get(daNum).costsModel
-							.getStateReward(singleAgentNestedMDP.productStateToMDPState.get(s));
-					teamRewardsList.get(rew).addToStateReward(indexInTeamState, rewardHere);
-				}
-
-			}
-
-			seqTeamMDP.essentialStates.add((BitSet) essentialStates.clone());
-			seqTeamMDP.initialStates.add((BitSet) agentInitialStatesInTeam.clone());
-			seqTeamMDP.agentMDPsToSeqTeamMDPStateMapping.add(map.clone());
-
-		}
-		teamMDP.setStatesList(teamMDPStatesList);
-		seqTeamMDP.acceptingStates = acceptingStates;
-		seqTeamMDP.statesToAvoid = statesToAvoid;
-		seqTeamMDP.teamMDPTemplate = teamMDP;
-		seqTeamMDP.teamRewardsTemplate = teamRewardsList;
-
-		saveMDP(teamMDP, acceptingStates, "teamMDPTemplate", true);
-
-		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
-		// just return this
-		// add switch states after
-		return seqTeamMDP;
-
+	private boolean hasTimedOut(long startTime, long endTime)
+	{
+		long time = endTime-startTime; 
+		printTime(time);
+		if(time > timeout)
+			{System.out.println("Timed Out");
+			return true; }
+		else
+			return false; 
 	}
+	private boolean hasTimedOut(long startTime)
+	{
+		long endTime = System.currentTimeMillis(); 
+		return hasTimedOut(startTime,endTime);
+		
+	}
+	
+	private void printTime(long time)
+	{
+		System.out.println("Time: "+time/1000.0+" seconds");
+	}
+	
+	
 
-	/*
+	/**
 	 * @param model - the mdp model
 	 * 
 	 * @param exprs - array list of expressions
@@ -347,15 +156,38 @@ public class STAPU extends ProbModelChecker {
 
 	protected StateValues doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
 
+		StateValues res = null;
+		long startTime = System.currentTimeMillis();
+		
+		//do we want to use an executorservice ? 
+		//lets do this when we separate this stuff from prism 
+		//then it would make more sense 
+		//for now we'll just check over and over 
+		
+//		class MyTask implements Runnable
+//		{
+//		    public void run() { 
+//		        // add your code here
+//		    }
+//		}
+//
+////		Then we can use ExecutorService like this,
+//
+//		ExecutorService executor = Executors.newSingleThreadExecutor();
+//		executor.invokeAll(Arrays.asList(new MyTask()), 10, TimeUnit.SECONDS); // Timeout of 10 seconds.
+//		executor.shutdown();
+		
 		// process ltl expressions
 		int numRobots = getNumRobots(exampleNumber());
 		
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
-		
+		if (hasTimedOut(startTime))
+			return res;
 		saveMDP((MDP) model, null, "mdp", true);
-		
+		if (hasTimedOut(startTime))
+			return res;
 		int initState = model.getFirstInitialState();
 		
 		for (int i = 0; i < numRobots; i++) {
@@ -370,15 +202,24 @@ public class STAPU extends ProbModelChecker {
 					statesOfInterest);
 
 			singleAgentProductMDPs.add(nestedProduct);
+			if (hasTimedOut(startTime))
+				return res;
 
 		}
 
 		// create team automaton from a set of MDP DA stuff
-		SequentialTeamMDP seqTeamMDP = buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 
+		if (hasTimedOut(startTime))
+			return res;
+		
 		int firstRobot = 0; // fix this
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 1);
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
+		
+		if (hasTimedOut(startTime))
+			return res;
 		
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
@@ -387,15 +228,21 @@ public class STAPU extends ProbModelChecker {
 		saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "teamMDPWithSwitchesAvoid", true);
 		
 		// solve
-		ModelCheckerPartialSatResult res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+		ModelCheckerPartialSatResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
+		
+		if (hasTimedOut(startTime))
+			return res;
 		
 		
 		// add to joint policy
 		MMDPSimple jointPolicy = new MMDPSimple(seqTeamMDP.numRobots);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
-		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, res.strat, initialState, true);
+		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true);
 
+		if (hasTimedOut(startTime))
+			return res;
+		
 		saveMDP(jointPolicy.mdp, null, "jointPolicy", true);
 		
 		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
@@ -416,19 +263,36 @@ public class STAPU extends ProbModelChecker {
 			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
 					seqTeamMDP.teamMDPWithSwitches.getStatesList());
 			seqTeamMDP.setInitialStates(robotStates);
+			
+			if (hasTimedOut(startTime))
+				return res;
+			
+			
 			// we need to change the switches to the initial states
 			// so we will just add switches from all failed robots 
 			// we really dont care who failed first because 
 			// the switches will take care of that 
 			seqTeamMDP.addSwitchesAndSetInitialState(rNum);
 			
+			if (hasTimedOut(startTime))
+				return res;
+			
+			
 			saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,
 					"teamMDPWithSwitches" + currState.toString(), true);
 			
-			res = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
+			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 					seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
 			
-			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, res.strat, initialState, false);
+			
+			if (hasTimedOut(startTime))
+				return res;
+			
+			
+			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false);
+			
+			if (hasTimedOut(startTime))
+				return res;
 			
 		}
 
@@ -442,7 +306,9 @@ public class STAPU extends ProbModelChecker {
 			mainLog.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
 		}
 
-		return null;
+		hasTimedOut(startTime);
+		
+		return res;
 	}
 
 	private int exampleNumber() {
@@ -537,7 +403,7 @@ public class STAPU extends ProbModelChecker {
 		return initState;
 	}
 
-	/*
+	/**
 	 * Return a list of expressions
 	 */
 	protected ArrayList<Expression> getLTLExpressions(ExpressionFunc expr) throws PrismException {
@@ -573,7 +439,7 @@ public class STAPU extends ProbModelChecker {
 		return daInfoList;
 	}
 
-	/*
+	/**
 	 * @param mdp The mdp
 	 * 
 	 * @param statesToMark a bitset for states you'd like to highlight in the mdp
