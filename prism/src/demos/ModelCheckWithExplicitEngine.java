@@ -62,7 +62,7 @@ public class ModelCheckWithExplicitEngine
 	{
 		try {
 			String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename = "chain_example";
+			String filename = "robot";
 			// Create a log for PRISM output (hidden or stdout)
 			PrismLog mainLog = new PrismDevNullLog();
 			//PrismLog mainLog = new PrismFileLog("stdout");
