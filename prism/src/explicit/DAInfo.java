@@ -12,16 +12,19 @@ import explicit.rewards.MDPRewardsSimple;
 import parser.ast.Expression;
 import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
+import parser.ast.ModulesFile;
 import parser.ast.RewardStruct;
+import prism.ModelInfo;
 import prism.PrismException;
+import prism.PrismLog;
 
-class DAInfo {
+public class DAInfo {
 	/**
 	 * 
 	 */
-	private final STAPU stapu;
+//	private final STAPU stapu;
 	// BitSet acceptingStates;
-	BitSet productAcceptingStates;
+	public BitSet productAcceptingStates;
 	BitSet essentialStates;
 	boolean isSafeExpr;
 	DA<BitSet, ? extends AcceptanceOmega> da;
@@ -29,15 +32,18 @@ class DAInfo {
 	ExpressionReward daExprRew = null;
 	Vector<BitSet> labelBS;
 	MDPRewardsSimple costsModel = null;
+	PrismLog mainLog; 
 
-	public DAInfo(STAPU stapu, Expression expr) {
-		this.stapu = stapu;
+	public DAInfo(PrismLog log, Expression expr) {
+//		this.stapu = stapu;
 		initializeDAInfo(expr);
+		mainLog = log;
 
 	}
 
-	public DAInfo(STAPU stapu, Expression expr, boolean hasReward) {
-		this.stapu = stapu;
+	public DAInfo(PrismLog log, Expression expr, boolean hasReward) {
+//		this.stapu = stapu;
+		mainLog = log;
 		if (hasReward) {
 			initializeDAInfoReward(expr);
 		} else
@@ -50,7 +56,7 @@ class DAInfo {
 		labelBS = new Vector<BitSet>();
 		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
-			this.stapu.mainLogRef.println("\nAutomaton is not a DFA... ");
+			mainLog.println("\nAutomaton is not a DFA... ");
 		} else {
 			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
 		}
@@ -66,17 +72,54 @@ class DAInfo {
 		// rewards
 		if (daExprRew != null) {
 
-			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(this.stapu.modulesFile,
-					this.stapu.modulesFile.getConstantValues());
+			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(mcProb.modulesFile,
+					mcProb.modulesFile.getConstantValues());
 			// commenting this out because its giving the error Error: Could not evaluate
 			// constant ("failstate", line 166, column 20).
 			// we know this is because I'm not intializing this properly cuz i'm lazy and
 			// prism code is confusing
 			// but its okay we can do this later
-			costsModel = (MDPRewardsSimple) this.stapu.constructRewards(model, costStruct);
+			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
 		}
 		return product;
 	}
+	
+	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL,
+			ProbModelChecker mcProb, ModulesFile modulesFile, AcceptanceType[] accType, M model, BitSet statesOfInterest,
+			boolean allStatesInDFA) throws PrismException {
+		labelBS = new Vector<BitSet>();
+		mcProb.modulesFile = modulesFile; 
+		mcProb.constantValues = modulesFile.getConstantValues();
+		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
+		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
+			mainLog.println("\nAutomaton is not a DFA... ");
+		} else {
+			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
+		}
+
+		LTLProduct<M> product = mcLTL.constructProductModel(da, model, labelBS, statesOfInterest, allStatesInDFA);
+
+		// update labelBS
+		Vector<BitSet> newLabelBS = new Vector<BitSet>();
+		for (int bs = 0; bs < labelBS.size(); bs++)
+			newLabelBS.add(product.liftFromAutomaton(labelBS.get(bs)));
+		productAcceptingStates = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
+
+		// rewards
+		if (daExprRew != null) {
+
+			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(modulesFile,
+					modulesFile.getConstantValues());
+			// commenting this out because its giving the error Error: Could not evaluate
+			// constant ("failstate", line 166, column 20).
+			// we know this is because I'm not intializing this properly cuz i'm lazy and
+			// prism code is confusing
+			// but its okay we can do this later
+			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
+		}
+		return product;
+	}
+
 
 	public BitSet getEssentialStates(MDP prod) {
 		// check if an accepting state is connected to a non accepting state

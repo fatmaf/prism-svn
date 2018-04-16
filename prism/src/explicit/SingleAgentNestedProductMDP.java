@@ -7,30 +7,33 @@ import java.util.Set;
 
 import explicit.LTLModelChecker.LTLProduct;
 import parser.State;
+import prism.PrismLog;
 
-class SingleAgentNestedProductMDP {
+public class SingleAgentNestedProductMDP {
 	/**
 	 * 
 	 */
-	private final STAPU stapu;
+//	private final STAPU stapu;
 	ArrayList<DAInfo> daList;
 	LTLProduct<MDP> finalProduct;
 	HashMap<Integer, Integer> productStateToMDPState;
 	BitSet combinedAcceptingStates;
 	BitSet combinedStatesToAvoid;
 	BitSet combinedEssentialStates;
+	PrismLog mainLog; 
 
-	public SingleAgentNestedProductMDP(STAPU stapu) {
-		this.stapu = stapu;
+	public SingleAgentNestedProductMDP(PrismLog log) {
+//		this.stapu = stapu;
+		mainLog = log; 
 		productStateToMDPState = new HashMap<Integer, Integer>();
 	}
 
-	public SingleAgentNestedProductMDP(STAPU stapu, ArrayList<DAInfo> list, LTLProduct<MDP> product) {
-		this.stapu = stapu;
+	public SingleAgentNestedProductMDP(PrismLog log, ArrayList<DAInfo> list, LTLProduct<MDP> product) {
+		mainLog = log; 
 		productStateToMDPState = new HashMap<Integer, Integer>();
 		daList = list;
 		finalProduct = product;
-		this.stapu.mainLogRef.println(
+		mainLog.println(
 				"Initializing Single Agent Nested Product MDP. " + "Make sure to update the state mappings");
 		setBitSetsForAccEssentialBadStates();
 	}
@@ -53,8 +56,8 @@ class SingleAgentNestedProductMDP {
 				
 							}
 		}
-		this.stapu.mainLogRef.println("Initial States: " + initialStates.toString());
-		this.stapu.mainLogRef.println("States To Avoid : " + combinedStatesToAvoid.toString());
+		mainLog.println("Initial States: " + initialStates.toString());
+		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
 
 		return initialStates;
 	}
@@ -116,9 +119,9 @@ class SingleAgentNestedProductMDP {
 
 		// make sure no accepting state is a switch state
 		combinedEssentialStates.andNot(combinedAcceptingStates);
-		this.stapu.mainLogRef.println("Accepting States: " + combinedAcceptingStates.toString());
-		this.stapu.mainLogRef.println("Essential States: " + combinedEssentialStates.toString());
-		this.stapu.mainLogRef.println("States To Avoid : " + combinedStatesToAvoid.toString());
+		mainLog.println("Accepting States: " + combinedAcceptingStates.toString());
+		mainLog.println("Essential States: " + combinedEssentialStates.toString());
+		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
 	}
 
 	public void setDAListAndFinalProduct(ArrayList<DAInfo> list, LTLProduct<MDP> product) {
