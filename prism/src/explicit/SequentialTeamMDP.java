@@ -16,35 +16,38 @@ import parser.ast.Declaration;
 import parser.ast.DeclarationInt;
 import parser.ast.Expression;
 import prism.PrismException;
+import prism.PrismLog;
 
-class SequentialTeamMDP {
+public class SequentialTeamMDP {
 	/**
 	 * 
 	 */
-	private final STAPU stapu;
-	ArrayList<SingleAgentNestedProductMDP> agentMDPs;
-	ArrayList<int[]> agentMDPsToSeqTeamMDPStateMapping;
-	BitSet acceptingStates;
-	BitSet statesToAvoid;
-	Vector<BitSet> essentialStates;
-	Vector<BitSet> initialStates;
-	MDPSimple teamMDPTemplate;
-	ArrayList<MDPRewardsSimple> teamRewardsTemplate;
-	MDPSimple teamMDPWithSwitches;
-	ArrayList<MDPRewardsSimple> rewardsWithSwitches;
-	MDPRewardsSimple progressionRewards; 
+//	private final STAPU stapu;
+	public ArrayList<SingleAgentNestedProductMDP> agentMDPs;
+	public ArrayList<int[]> agentMDPsToSeqTeamMDPStateMapping;
+	public BitSet acceptingStates;
+	public BitSet statesToAvoid;
+	public Vector<BitSet> essentialStates;
+	public Vector<BitSet> initialStates;
+	public MDPSimple teamMDPTemplate;
+	public ArrayList<MDPRewardsSimple> teamRewardsTemplate;
+	public MDPSimple teamMDPWithSwitches;
+	public ArrayList<MDPRewardsSimple> rewardsWithSwitches;
+	public MDPRewardsSimple progressionRewards; 
+	PrismLog mainLog; 
 	//basically its just the essential states that have progressionRewad 
 	
-	int numRobots;
+	public int numRobots;
 
-	public SequentialTeamMDP(STAPU stapu, int nRobots) {
-		this.stapu = stapu;
+	public SequentialTeamMDP(PrismLog mainLogRef, int nRobots) {
+//		this.stapu = stapu;
 		essentialStates = new Vector<BitSet>();
 		initialStates = new Vector<BitSet>();
 		numRobots = nRobots;
+		mainLog = mainLogRef;
 	}
 
-	protected SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs)
+	public SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs)
 			throws PrismException {
 
 //		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this, agentMDPs.size());
@@ -141,7 +144,7 @@ class SequentialTeamMDP {
 
 			// check for self
 			if (numStates * (r) != teamMDP.getNumStates())
-				this.stapu.mainLogRef.println("Something is wrong here cuz the number of states isnt what you expected");
+				mainLog.println("Something is wrong here cuz the number of states isnt what you expected");
 			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
 			BitSet essentialStates = new BitSet(numTeamStates);
 			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates();
@@ -190,6 +193,7 @@ class SequentialTeamMDP {
 				Iterator<Map.Entry<Integer, Double>> iter;
 
 				for (int j = 0; j < numChoices; j++) {
+					boolean addProgReward = false;
 					iter = agentMDP.getTransitionsIterator(s, j);
 					Distribution distr = new Distribution();
 					while (iter.hasNext()) {
@@ -209,18 +213,27 @@ class SequentialTeamMDP {
 							map[nextState] = indexInTeamNextState;
 
 						}
+						if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)||singleAgentNestedMDP.combinedEssentialStates.get(nextState)) {
+							addProgReward = true;
+						}
 						distr.add(indexInTeamNextState, nextStateProb);
 
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
+					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
 						double rewardHere = rewardStruct
 								.getTransitionReward(singleAgentNestedMDP.productStateToMDPState.get(s), j);
-						int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
+						
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
+						
+					}
+					if(addProgReward)
+					{
+						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,1.0);
 					}
 
 				}
@@ -244,7 +257,7 @@ class SequentialTeamMDP {
 		this.teamMDPTemplate = teamMDP;
 		this.teamRewardsTemplate = teamRewardsList;
 
-		this.stapu.saveMDP(teamMDP, acceptingStates, "teamMDPTemplate", true);
+		StatesHelper.saveMDP(teamMDP, acceptingStates,"", "teamMDPTemplate", true);
 
 		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
 		// just return this
@@ -352,7 +365,9 @@ class SequentialTeamMDP {
 			}
 			fromRobotState = fromRobotEssentialStates.nextSetBit(fromRobotState + 1);
 		}
-		this.stapu.mainLogRef.println(totalSwitches == fromRobotEssentialStates.cardinality());
+//		mainLog.println(totalSwitches == fromRobotEssentialStates.cardinality());
+		if(!(totalSwitches == fromRobotEssentialStates.cardinality()))
+			mainLog.println("Number of switches doesnt match expected number");
 		return totalSwitches;
 	}
 

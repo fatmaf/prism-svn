@@ -1,80 +1,88 @@
-/**
- * 
- */
-package explicit;
+package demos;
 
+
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Vector;
 
 import acceptance.AcceptanceType;
+import explicit.DAInfo;
+import explicit.LTLModelChecker;
+import explicit.MDP;
+import explicit.MDPModelChecker;
+import explicit.MDPSparse;
+import explicit.MMDPSimple;
+import explicit.Model;
+import explicit.ModelCheckerMultipleResult;
+import explicit.ModelCheckerPartialSatResult;
+import explicit.ProbModelChecker;
+import explicit.SequentialTeamMDP;
+import explicit.SingleAgentNestedProductMDP;
+import explicit.StateValues;
+import explicit.StatesHelper;
 import explicit.LTLModelChecker.LTLProduct;
 import explicit.MMDPSimple.StateProb;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
-import parser.VarList;
-import parser.ast.Declaration;
-import parser.ast.DeclarationInt;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
+import parser.ast.ModulesFile;
+import parser.ast.PropertiesFile;
+import prism.Prism;
+import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import prism.Result;
 
-/**
- * @author fatma
- *
- */
-public class STAPU extends ProbModelChecker {
 
+public class STAPU {
+	
+	
 	String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
 	long timeout = 1000 *60*1000;
 	public PrismLog mainLogRef;
+	Prism prismC; 
 
-	public STAPU(MDPModelChecker parent) throws PrismException {
-		super(parent);
-		this.modulesFile = parent.modulesFile;
-		this.propertiesFile = parent.propertiesFile;
-		this.constantValues = parent.constantValues;
-		mainLogRef = mainLog;
-
-		// mc.setModulesFileAndPropertiesFile(currentModelInfo, propertiesFile,
-		// currentModelGenerator);
-
+	
+	public static void main(String[] args)
+	{
+		STAPU stapu = new STAPU(); 
+		stapu.run();
 	}
-	private boolean hasTimedOut(long startTime, long endTime)
+	
+	private boolean hasTimedOut(long startTime, long endTime,String text)
 	{
 		long time = endTime-startTime; 
-		printTime(time);
+		printTime(time,text);
 		if(time > timeout)
 			{System.out.println("Timed Out");
 			return true; }
 		else
 			return false; 
 	}
-	private boolean hasTimedOut(long startTime)
+	private boolean hasTimedOut(long startTime,String text)
 	{
 		long endTime = System.currentTimeMillis(); 
-		return hasTimedOut(startTime,endTime);
+		return hasTimedOut(startTime,endTime,text);
 		
 	}
 	
-	private void printTime(long time)
+
+	private void printTime(long time, String text)
 	{
-		System.out.println("Time: "+time/1000.0+" seconds");
+		if (text == "")
+			text = "Time";
+		System.out.println(text+": "+time/1000.0+" seconds");
 	}
 	
-	
-
 	/**
 	 * @param model - the mdp model
 	 * 
@@ -85,13 +93,13 @@ public class STAPU extends ProbModelChecker {
 	 * 
 	 */
 	protected SingleAgentNestedProductMDP buildSingleAgentNestedProductMDP(Model model, ArrayList<DAInfo> daList,
-			BitSet statesOfInterest) throws PrismException {
+			BitSet statesOfInterest,ProbModelChecker mcProb,ModulesFile modulesFile) throws PrismException {
 		// return the list of daInfo and the product mdp
-		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(this.mainLog);
+		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLogRef);
 		res.initializeProductToMDPStateMapping((MDP) model);
 		LTLProduct<MDP> product = null;
 		MDP productMDP = null;
-		LTLModelChecker mcLTL = new LTLModelChecker(this); // is this okay ?
+		LTLModelChecker mcLTL = new LTLModelChecker(mcProb); // is this okay ?
 		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
 
 		int numStates = model.getNumStates();
@@ -101,10 +109,10 @@ public class STAPU extends ProbModelChecker {
 		productMDP = (MDP) model;
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
 			DAInfo daInfo = daList.get(daNum);
-			product = daInfo.constructDAandProductModel(mcLTL, this, allowedAcceptance, productMDP, null, true);
+			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
-			saveMDP(productMDP, daInfo.productAcceptingStates, "pda_" + daNum, true);
+			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "","pda_" + daNum, true);
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
 				daList.get(otherDAs).updateStateNumbers(product);
@@ -114,28 +122,14 @@ public class STAPU extends ProbModelChecker {
 		res.setDAListAndFinalProduct(daList, product);
 		return res;
 	}
-
-	@Override
-	protected StateValues checkExpressionFunc(Model model, ExpressionFunc expr, BitSet statesOfInterest)
-			throws PrismException {
-		switch (expr.getNameCode()) {
-		case ExpressionFunc.STAPU: {
-			mainLog.println("Calling doSTAPU");
-
-			return doSTAPU(model, expr, statesOfInterest); // return function name;
-
-		}
-		default:
-			return super.checkExpressionFunc(model, expr, statesOfInterest);
-		}
-	}
+	
 	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
 			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards) throws PrismException {
 
 		BitSet statesToRemainIn = (BitSet) statesToAvoid.clone();
 		statesToRemainIn.flip(0, mdp.getNumStates());
-		MDPModelChecker mc = new MDPModelChecker(this);
-		mc.genStrat = true;
+		MDPModelChecker mc = new MDPModelChecker(prismC);
+//		mc.genStrat = true;
 		//lets set them all to true 
 		
 		
@@ -158,7 +152,7 @@ public class STAPU extends ProbModelChecker {
 		resString+=i+":"+minCost+" ";
 		
 		}
-		mainLog.println("\nFor p = " + maxProb + ", rewards "
+		mainLogRef.println("\nFor p = " + maxProb + ", rewards "
 				+ resString);
 		return res2;
 	}
@@ -178,8 +172,8 @@ public class STAPU extends ProbModelChecker {
 
 		BitSet statesToRemainIn = (BitSet) statesToAvoid.clone();
 		statesToRemainIn.flip(0, mdp.getNumStates());
-		MDPModelChecker mc = new MDPModelChecker(this);
-		mc.genStrat = true;
+		MDPModelChecker mc = new MDPModelChecker(prismC);
+		
 		ModelCheckerPartialSatResult res2 = mc.computeNestedValIterFailure(mdp, target, statesToRemainIn,
 				rewards);
 
@@ -192,12 +186,12 @@ public class STAPU extends ProbModelChecker {
 
 		double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
 
-		mainLog.println("\nFor p = " + maxProb + ", the minimum expected cummulative cost to satisfy specification is "
+		mainLogRef.println("\nFor p = " + maxProb + ", the minimum expected cummulative cost to satisfy specification is "
 				+ minCost);
 		return res2;
 	}
 
-	protected StateValues doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException {
+	protected StateValues doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ModulesFile modulesFile) throws PrismException {
 
 		StateValues res = null;
 		long startTime = System.currentTimeMillis();
@@ -226,10 +220,10 @@ public class STAPU extends ProbModelChecker {
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
-		if (hasTimedOut(startTime))
+		if (hasTimedOut(startTime,"Initialized DA from LTL Expressions"))
 			return res;
-		saveMDP((MDP) model, null, "mdp", true);
-		if (hasTimedOut(startTime))
+		StatesHelper.saveMDP((MDP) model, null, "","mdp", true);
+		if (hasTimedOut(startTime,"Saved original MDP"))
 			return res;
 		int initState = model.getFirstInitialState();
 		
@@ -240,35 +234,35 @@ public class STAPU extends ProbModelChecker {
 				((MDPSparse) model).addInitialState(initState);
 
 			}
-
+			
 			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP(model, daList,
-					statesOfInterest);
+					statesOfInterest,mcProb,modulesFile);
 
 			singleAgentProductMDPs.add(nestedProduct);
-			if (hasTimedOut(startTime))
+			if (hasTimedOut(startTime,"Created Nested Product "+i))
 				return res;
 
 		}
 
 		// create team automaton from a set of MDP DA stuff
-		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLog,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 
-		if (hasTimedOut(startTime))
+		if (hasTimedOut(startTime,"Created Sequential MDP Template"))
 			return res;
 		
 		int firstRobot = 0; // fix this
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 1);
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
 		
-		if (hasTimedOut(startTime))
+		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
 			return res;
 		
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
-		saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "teamMDPWithSwitches", true);
-		saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "teamMDPWithSwitchesAvoid", true);
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"", "teamMDPWithSwitches", true);
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "","teamMDPWithSwitchesAvoid", true);
 		
 		// solve
 //		ModelCheckerPartialSatResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
@@ -286,7 +280,7 @@ public class STAPU extends ProbModelChecker {
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards);
 		
-		if (hasTimedOut(startTime))
+		if (hasTimedOut(startTime,"Solved Initial Sequential MDP"))
 			return res;
 		
 		
@@ -295,10 +289,10 @@ public class STAPU extends ProbModelChecker {
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true);
 
-		if (hasTimedOut(startTime))
+		if (hasTimedOut(startTime,"Added Initial Solution to Joint Policy"))
 			return res;
 		
-		saveMDP(jointPolicy.mdp, null, "jointPolicy", true);
+		StatesHelper.saveMDP(jointPolicy.mdp, null, "","jointPolicy", true);
 		
 		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
 		
@@ -309,7 +303,7 @@ public class STAPU extends ProbModelChecker {
 			StateProb stuckState = jointPolicy.stuckStatesQ.remove();
 			initialState = stuckState.getState();
 			orderOfFailStates.add(stuckState.copy());
-			mainLog.println("Exploring " + stuckState.toString());
+			mainLogRef.println("Exploring " + stuckState.toString());
 
 			//update the teammdp 
 			List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
@@ -319,7 +313,7 @@ public class STAPU extends ProbModelChecker {
 					seqTeamMDP.teamMDPWithSwitches.getStatesList());
 			seqTeamMDP.setInitialStates(robotStates);
 			
-			if (hasTimedOut(startTime))
+			if (hasTimedOut(startTime,"Set Initial States for Fail State"))
 				return res;
 			
 			
@@ -329,11 +323,11 @@ public class STAPU extends ProbModelChecker {
 			// the switches will take care of that 
 			seqTeamMDP.addSwitchesAndSetInitialState(rNum);
 			
-			if (hasTimedOut(startTime))
+			if (hasTimedOut(startTime,"Added Switches"))
 				return res;
 			
 			
-			saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,
+			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"",
 					"teamMDPWithSwitches" + currState.toString(), true);
 			
 			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
@@ -342,28 +336,28 @@ public class STAPU extends ProbModelChecker {
 //					seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
 			
 			
-			if (hasTimedOut(startTime))
+			if (hasTimedOut(startTime,"Solved for Fail State"))
 				return res;
 			
 			
 			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false);
 			
-			if (hasTimedOut(startTime))
+			if (hasTimedOut(startTime,"Added Solution to Joint Policy"))
 				return res;
 			
 		}
 
-		mainLog.println("Completed STAPU for full policy");
-		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
-		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
-		mainLog.println("Information about fail states ");
+		mainLogRef.println("Completed STAPU for full policy");
+		mainLogRef.println("DeadEnd States " + jointPolicy.deadendStates.toString());
+		mainLogRef.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
+		mainLogRef.println("Information about fail states ");
 
 		for (StateProb fs : orderOfFailStates) {
 			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0);
-			mainLog.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
+			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
 		}
 
-		hasTimedOut(startTime);
+		hasTimedOut(startTime,"All Done");
 		
 		return res;
 	}
@@ -474,7 +468,7 @@ public class STAPU extends ProbModelChecker {
 			}
 		}
 
-		mainLog.println("LTL Mission: " + exprString);
+		mainLogRef.println("LTL Mission: " + exprString);
 		return ltlExpressions;
 	}
 
@@ -489,37 +483,74 @@ public class STAPU extends ProbModelChecker {
 				thisExpr = exprs.get(daNum);
 			else
 				thisExpr = ((ExpressionQuant) exprs.get(daNum)).getExpression();
-			DAInfo daInfo = new DAInfo(this.mainLog, thisExpr, hasReward);
+			DAInfo daInfo = new DAInfo(mainLogRef, thisExpr, hasReward);
 			daInfoList.add(daInfo);
 		}
 
 		return daInfoList;
 	}
 
-	/**
-	 * @param mdp The mdp
-	 * 
-	 * @param statesToMark a bitset for states you'd like to highlight in the mdp
-	 * 
-	 * @param name filename
-	 * 
-	 * @param saveinsaveplace save in predefined save location (set to true) if
-	 * false saves in same location as adversary
-	 */
-	protected void saveMDP(MDP mdp, BitSet statesToMark, String name, boolean saveinsaveplace) {
-		String temp = exportAdvFilename;
-		temp = temp.replace("adv", "");
-		temp = temp.replaceAll(".tra", "");
-		String location = temp;
-		if (saveinsaveplace) {
-			location = saveplace;
-			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
-			location += temp;
-		}
-		name = name.replace(" ", "_");
-		PrismLog out = new PrismFileLog(location + name + ".dot");
-		mdp.exportToDotFile(out, statesToMark, true);
-		out.close();
 
+	
+	public void run()
+	{
+		try {
+			String modelLocation= "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
+			String filename = "chain_example";
+			// Create a log for PRISM output (hidden or stdout)
+//			PrismLog mainLog = new PrismDevNullLog();
+			PrismLog mainLog = new PrismFileLog("stdout");
+			this.mainLogRef = mainLog; 
+
+			// Initialise PRISM engine 
+			Prism prism = new Prism(mainLog);
+			prismC = prism;
+			prism.initialise();
+
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(modelLocation+filename+".prism"));
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation+filename+".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
+			
+			// Build an MDP model checker
+			MDPModelChecker mc = new MDPModelChecker(prism);
+			
+			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
+			
+			// Model check the first property from the file using the model checker
+			System.out.println(propertiesFile.getPropertyObject(0));
+			Expression expr = propertiesFile.getProperty(0);
+			ProbModelChecker mcProb = new ProbModelChecker(prism);
+			doSTAPU(mdp,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFile);
+//			Result result = mc.check(mdp, propertiesFile.getProperty(0));
+			// mc.computeReachProbs(mdp, target, min)
+//			System.out.println(result.getResult());
+			
+			// Perform probabilistic model checking directly, using a model label as a target
+//			Expression labelGoal = prism.parsePropertiesString(modulesFile, "\"goal1\"").getProperty(0);
+//			BitSet statesGoal = mc.checkExpression(mdp, labelGoal, null).getBitSet();
+//			double probsGoal[] = mc.computeReachProbs(mdp, statesGoal, false).soln;
+//			System.out.println(Arrays.toString(probsGoal));
+			
+			// Close down PRISM
+			prism.closeDown();
+
+			
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
 	}
+
 }

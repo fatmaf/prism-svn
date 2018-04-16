@@ -29,7 +29,7 @@ import explicit.stateInfoFromStatesList;
  */
 public class MMDPSimple {
 
-	class StateProb implements Comparable<StateProb>
+	public class StateProb implements Comparable<StateProb>
 	{
 		private double prob; 
 		private int state; 
@@ -73,14 +73,14 @@ public class MMDPSimple {
 		 
 	}
 
-	MDPSimple mdp;
+	public MDPSimple mdp;
 	// ArrayList<Map.Entry<State, Integer>>
 	HashMap<State, Integer> statesMap;
 	int nRobots;
-	PriorityQueue<StateProb> stuckStatesQ; 
-	BitSet deadendStates; 
-	BitSet allTasksCompletedStates; 
-	BitSet allFailStatesSeen;
+	public PriorityQueue<StateProb> stuckStatesQ; 
+	public BitSet deadendStates; 
+	public BitSet allTasksCompletedStates; 
+	public BitSet allFailStatesSeen;
 	
 	
 	public boolean stuckStatesQContainsState(int state)
@@ -137,49 +137,6 @@ public class MMDPSimple {
 		deadendStates = new BitSet(); 
 		allTasksCompletedStates = new BitSet(); 
 		allFailStatesSeen = new BitSet();
-
-	}
-
-	public void addPolicy(ArrayList<ArrayList<ArrayList<policyState>>> pol) {
-		int initialStates[] = new int[nRobots];
-		int maxSteps[] = new int[nRobots];
-		int currentSteps[] = new int[nRobots];
-		int prevStates[] = new int[nRobots];
-		int currentStates[] = new int[nRobots];
-		String actions[] = new String[nRobots];
-
-		// for the first step get the states for all the robots
-		for (int r = 0; r < nRobots; r++) {
-			maxSteps[r] = pol.get(r).size();
-			if (pol.get(r).get(0).size() > 1) {
-				System.out.println("Error");
-			} else {
-				initialStates[r] = pol.get(r).get(0).get(0).state;
-				if (pol.get(r).get(0).get(0).action != null)
-					actions[r] = pol.get(r).get(0).get(0).action.toString();
-				prevStates[r] = initialStates[r];
-				currentSteps[r] = 0;
-			}
-		}
-		double prob;
-		while (!allDone(currentSteps, maxSteps)) {
-
-			// TODO
-			int[] numStatesAtT = getNumStatesForRobotsAtT(pol, currentSteps, maxSteps);
-			ArrayList<int[]> combinations = new ArrayList<int[]>();
-			generateCombinations(numStatesAtT.clone(), numStatesAtT.clone(), combinations);
-			for (int[] currCombination : combinations) {
-				policyState[] statesArr = getStatesForRobotsWithCombinationAtT(pol, currentSteps, currCombination);
-				currentStates = getStatesFromPolicyStateArray(statesArr);
-				prob = getProbFromPolicyStateArray(statesArr);
-				System.out.println(prob);
-
-			}
-
-			incrementSteps(currentSteps, maxSteps);
-			// TODO how do we progress otherwise ?
-			prevStates = currentStates.clone();
-		}
 
 	}
 
@@ -998,7 +955,7 @@ public class MMDPSimple {
 		// so what we want to be able to do is like update it's possible state
 		// how can we figure this out - if we don't have a policy for this robot
 		// that means it has just one state and no action
-		boolean doneOnce = false;
+//		boolean doneOnce = false;
 		for (int i = 0; i < nRobots; i++) {
 			if ((pols[i].getNumStates() == 1) && (pols[i].getNumChoices(pols[i].getFirstInitialState()) == 0)
 					&& (i != firstRobot)) {
@@ -1009,11 +966,11 @@ public class MMDPSimple {
 				if (prevRobot == -1) {
 					prevRobot = nRobots - 1;
 				}
-				if (!doneOnce)
-					doneOnce = true;
-				else {
-					System.out.println("Something Unexpected is happening");
-				}
+//				if (!doneOnce)
+//					doneOnce = true;
+//				else {
+//					System.out.println("Something Unexpected is happening");
+//				}
 				// now I get the last state
 				int prevRobotLastState = getLastState(pols[prevRobot], acceptingStates[prevRobot]);
 
@@ -1032,6 +989,7 @@ public class MMDPSimple {
 				// so now that we have this what do we do ?
 				// we make that state
 				// have to make sure this new state is part of the team automaton btw
+				
 
 				int newState = StatesHelper.getMergedStateRobotMDP(
 						pols[prevRobot].getStatesList().get(prevRobotLastState),

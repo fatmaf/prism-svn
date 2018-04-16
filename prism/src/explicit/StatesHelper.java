@@ -6,12 +6,25 @@ import java.util.List;
 import java.util.Vector;
 
 import parser.State;
+import prism.PrismFileLog;
+import prism.PrismLog;
 
 public class StatesHelper {
 	static int robotVar = 0;
 	static int mdpVar;
 	public static int failState = -1; 
 	public static int BADVALUE = -2; 
+	public static String savePlace="/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/"; 
+	
+	public static void setSavePlace(String saveplace)
+	{
+		savePlace = saveplace; 
+	}
+	public static String getSaveplace()
+	{
+		return savePlace;
+	}
+	
 
 	public static BitSet addLinkInMDP(MDPSimple mdp, int[] mdpMap, List<State> statesList,
 			ArrayList<Integer> states, ArrayList<Double> probs, int parentState, Object action,
@@ -194,5 +207,42 @@ public class StatesHelper {
 		}
 		return resS;
 	}
+	
+	/**
+	 * @param folder
+	 * 	the location of the tile to save 
+	 * 
+	 * @param saveplace 
+	 * 	alternate location 
+	 * @param mdp 
+	 * 	The mdp
+	 * 
+	 * @param statesToMark 
+	 * 	a bitset for states you'd like to highlight in the mdp
+	 * 
+	 * @param name 
+	 * 	filename
+	 * 
+	 * @param saveinsaveplace 
+	 * 	save in predefined save location (set to true) if
+	 * false saves in same location as adversary
+	 */
+	public static void saveMDP(MDP mdp, BitSet statesToMark,String folder, String name,boolean saveinsaveplace) {
+		String temp = folder;
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location + name + ".dot");
+		mdp.exportToDotFile(out, statesToMark, true);
+		out.close();
+
+	}
+
 
 }
