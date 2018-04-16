@@ -8,6 +8,12 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import acceptance.AcceptanceType;
 import explicit.DAInfo;
@@ -50,6 +56,7 @@ public class STAPU {
 	long timeout = 1000 *60*1000;
 	public PrismLog mainLogRef;
 	Prism prismC; 
+	MMDPSimple jointPolicy; 
 
 	
 	public static void main(String[] args)
@@ -191,9 +198,8 @@ public class STAPU {
 		return res2;
 	}
 
-	protected StateValues doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ModulesFile modulesFile) throws PrismException {
+	protected void doSTAPU(Model model, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ModulesFile modulesFile) throws PrismException {
 
-		StateValues res = null;
 		long startTime = System.currentTimeMillis();
 		
 		//do we want to use an executorservice ? 
@@ -221,10 +227,10 @@ public class STAPU {
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
 		if (hasTimedOut(startTime,"Initialized DA from LTL Expressions"))
-			return res;
+			return;
 		StatesHelper.saveMDP((MDP) model, null, "","mdp", true);
 		if (hasTimedOut(startTime,"Saved original MDP"))
-			return res;
+			return;
 		int initState = model.getFirstInitialState();
 		
 		for (int i = 0; i < numRobots; i++) {
@@ -240,7 +246,7 @@ public class STAPU {
 
 			singleAgentProductMDPs.add(nestedProduct);
 			if (hasTimedOut(startTime,"Created Nested Product "+i))
-				return res;
+				return;
 
 		}
 
@@ -249,14 +255,14 @@ public class STAPU {
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 
 		if (hasTimedOut(startTime,"Created Sequential MDP Template"))
-			return res;
+			return;
 		
 		int firstRobot = 0; // fix this
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 1);
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
 		
 		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
-			return res;
+			return;
 		
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
@@ -281,16 +287,17 @@ public class STAPU {
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards);
 		
 		if (hasTimedOut(startTime,"Solved Initial Sequential MDP"))
-			return res;
+			return;
 		
 		
 		// add to joint policy
-		MMDPSimple jointPolicy = new MMDPSimple(seqTeamMDP.numRobots);
+		//MMDPSimple
+		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true);
 
 		if (hasTimedOut(startTime,"Added Initial Solution to Joint Policy"))
-			return res;
+			return;
 		
 		StatesHelper.saveMDP(jointPolicy.mdp, null, "","jointPolicy", true);
 		
@@ -314,7 +321,7 @@ public class STAPU {
 			seqTeamMDP.setInitialStates(robotStates);
 			
 			if (hasTimedOut(startTime,"Set Initial States for Fail State"))
-				return res;
+				return;
 			
 			
 			// we need to change the switches to the initial states
@@ -324,7 +331,7 @@ public class STAPU {
 			seqTeamMDP.addSwitchesAndSetInitialState(rNum);
 			
 			if (hasTimedOut(startTime,"Added Switches"))
-				return res;
+				return;
 			
 			
 			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"",
@@ -337,13 +344,13 @@ public class STAPU {
 			
 			
 			if (hasTimedOut(startTime,"Solved for Fail State"))
-				return res;
+				return;
 			
 			
 			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false);
 			
 			if (hasTimedOut(startTime,"Added Solution to Joint Policy"))
-				return res;
+				return;
 			
 		}
 
@@ -359,7 +366,6 @@ public class STAPU {
 
 		hasTimedOut(startTime,"All Done");
 		
-		return res;
 	}
 
 	private int exampleNumber() {
@@ -528,16 +534,45 @@ public class STAPU {
 			System.out.println(propertiesFile.getPropertyObject(0));
 			Expression expr = propertiesFile.getProperty(0);
 			ProbModelChecker mcProb = new ProbModelChecker(prism);
-			doSTAPU(mdp,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFile);
-//			Result result = mc.check(mdp, propertiesFile.getProperty(0));
-			// mc.computeReachProbs(mdp, target, min)
-//			System.out.println(result.getResult());
 			
-			// Perform probabilistic model checking directly, using a model label as a target
-//			Expression labelGoal = prism.parsePropertiesString(modulesFile, "\"goal1\"").getProperty(0);
-//			BitSet statesGoal = mc.checkExpression(mdp, labelGoal, null).getBitSet();
-//			double probsGoal[] = mc.computeReachProbs(mdp, statesGoal, false).soln;
-//			System.out.println(Arrays.toString(probsGoal));
+			
+			// I dont know if this is the best way to do this 
+			// Doesnt look like this works 
+			// But yeah, maybe move this bit in the while loop in doSTAPU 
+
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+
+		    Runnable task = new Runnable() {
+		        @Override
+		        public void run() {
+		            //do your task
+		        	try {
+						doSTAPU(mdp,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFile);
+					} catch (PrismException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+		        }
+		    };
+
+		    Future<?> future = executor.submit(task);
+
+		    try {
+				future.get(timeout, TimeUnit.MILLISECONDS);
+				
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TimeoutException e) {
+				// TODO Auto-generated catch block
+				if(jointPolicy!=null)
+				mainLog.println("States "+jointPolicy.allFailStatesSeen.toString());
+				e.printStackTrace();
+			} // awaits termination 
+			
 			
 			// Close down PRISM
 			prism.closeDown();
