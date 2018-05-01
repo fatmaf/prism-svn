@@ -25,7 +25,7 @@ import strat.Strategy;
 import explicit.Distribution;
 import explicit.MDPSimple;
 
-import explicit.stateInfoFromStatesList;
+//import explicit.stateInfoFromStatesList;
 
 /*
  * A class that stores the joint policy for multiple agents 
@@ -557,7 +557,7 @@ public class MMDPSimple {
 					lastState = state;
 			}
 			if (kindOfState == 2) {
-				if (stateInfoFromStatesList.isFailState(state, StatesHelper.failState, pol.getStatesList(), -2))
+				if (StatesHelper.isFailState(pol.getStatesList().get(state)))
 					lastState = state;
 			}
 			int choices = pol.getNumChoices(state);
