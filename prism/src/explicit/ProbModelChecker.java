@@ -559,7 +559,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
 		// Get info from P operator
-		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
+		OpRelOpBound opInfo = expr.getRelopBoundInfo(getConstantValues());
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
 
 		// Compute probabilities
@@ -699,7 +699,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		int i;
 
 		// get and check bounds information
-		bounds = IntegerBound.fromExpressionTemporal(expr, constantValues, true);
+		bounds = IntegerBound.fromExpressionTemporal(expr, getConstantValues(), true);
 
 		// Model check operands for all states
 		BitSet remain = checkExpression(model, expr.getOperand1(), null).getBitSet();
@@ -845,11 +845,11 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionReward(Model model, ExpressionReward expr, boolean forAll, Coalition coalition, BitSet statesOfInterest) throws PrismException
 	{
 		// Get info from R operator
-		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
+		OpRelOpBound opInfo = expr.getRelopBoundInfo(getConstantValues());
 		MinMax minMax = opInfo.getMinMax(model.getModelType(), forAll);
 
 		// Build rewards
-		int r = expr.getRewardStructIndexByIndexObject(modelInfo, constantValues);
+		int r = expr.getRewardStructIndexByIndexObject(modelInfo, getConstantValues());
 		mainLog.println("Building reward structure...");
 		Rewards rewards = constructRewards(model, r);
 
@@ -907,7 +907,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	 * to allow construction from model generators.
 	 */
 	@Deprecated
-	protected Rewards constructRewards(Model model, RewardStruct rewStruct) throws PrismException
+	public Rewards constructRewards(Model model, RewardStruct rewStruct) throws PrismException
 	{
 		return constructRewards(model, rewStruct, false);
 	}
@@ -932,10 +932,10 @@ public class ProbModelChecker extends NonProbModelChecker
 		switch (model.getModelType()) {
 		case CTMC:
 		case DTMC:
-			rewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, constantValues);
+			rewards = constructRewards.buildMCRewardStructure((DTMC) model, rewStruct, getConstantValues());
 			break;
 		case MDP:
-			rewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, constantValues);
+			rewards = constructRewards.buildMDPRewardStructure((MDP) model, rewStruct, getConstantValues());
 			break;
 		default:
 			throw new PrismNotSupportedException("Cannot build rewards for " + model.getModelType() + "s");
@@ -985,17 +985,17 @@ public class ProbModelChecker extends NonProbModelChecker
 		ModelCheckerResult res = null;
 		switch (model.getModelType()) {
 		case DTMC: {
-			int k = expr.getUpperBound().evaluateInt(constantValues);
+			int k = expr.getUpperBound().evaluateInt(getConstantValues());
 			res = ((DTMCModelChecker) this).computeInstantaneousRewards((DTMC) model, (MCRewards) modelRewards, k, statesOfInterest);
 			break;
 		}
 		case CTMC: {
-			double t = expr.getUpperBound().evaluateDouble(constantValues);
+			double t = expr.getUpperBound().evaluateDouble(getConstantValues());
 			res = ((CTMCModelChecker) this).computeInstantaneousRewards((CTMC) model, (MCRewards) modelRewards, t);
 			break;
 		}
 		case MDP: {
-			int k = expr.getUpperBound().evaluateInt(constantValues);
+			int k = expr.getUpperBound().evaluateInt(getConstantValues());
 			res = ((MDPModelChecker) this).computeInstantaneousRewards((MDP) model, (MDPRewards) modelRewards, k, minMax.isMin());
 			break;
 		}
@@ -1022,12 +1022,12 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Get time bound
 		if (model.getModelType().continuousTime()) {
-			timeDouble = expr.getUpperBound().evaluateDouble(constantValues);
+			timeDouble = expr.getUpperBound().evaluateDouble(getConstantValues());
 			if (timeDouble < 0) {
 				throw new PrismException("Invalid time bound " + timeDouble + " in cumulative reward formula");
 			}
 		} else {
-			timeInt = expr.getUpperBound().evaluateInt(constantValues);
+			timeInt = expr.getUpperBound().evaluateInt(getConstantValues());
 			if (timeInt < 0) {
 				throw new PrismException("Invalid time bound " + timeInt + " in cumulative reward formula");
 			}
@@ -1151,7 +1151,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkExpressionSteadyState(Model model, ExpressionSS expr) throws PrismException
 	{
 		// Get info from S operator
-		OpRelOpBound opInfo = expr.getRelopBoundInfo(constantValues);
+		OpRelOpBound opInfo = expr.getRelopBoundInfo(getConstantValues());
 		MinMax minMax = opInfo.getMinMax(model.getModelType());
 
 		// Compute probabilities

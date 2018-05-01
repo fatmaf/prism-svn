@@ -1,4 +1,4 @@
-package explicit;
+package demos;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import explicit.Distribution;
+import explicit.MDP;
+import explicit.MDPSimple;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import parser.VarList;
@@ -139,6 +142,8 @@ public class SequentialTeamMDP {
 
 		int numStates = 0;
 		int numChoices;
+		double expectedProgRewardValue = 1.0; 
+		double progRewardFixedValue = 1.0;
 
 		for (int r = 0; r < agentMDPs.size(); r++) {
 
@@ -174,7 +179,7 @@ public class SequentialTeamMDP {
 				if (singleAgentNestedMDP.combinedAcceptingStates.get(s)) {
 					acceptingStates.set(indexInTeamState);
 				//	singleAgentNestedMDP.daList.get(0).productAcceptingStates.get(s);
-					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
+//					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
 				}
 				if (singleAgentNestedMDP.combinedStatesToAvoid.get(s)) {
 					statesToAvoid.set(indexInTeamState);
@@ -182,7 +187,7 @@ public class SequentialTeamMDP {
 
 				if (singleAgentNestedMDP.combinedEssentialStates.get(s)) {
 					essentialStates.set(indexInTeamState);
-					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
+//					this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
 				}
 				if (agentInitialStates.get(s)) {
 					agentInitialStatesInTeam.set(indexInTeamState);
@@ -215,6 +220,7 @@ public class SequentialTeamMDP {
 						}
 						if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)||singleAgentNestedMDP.combinedEssentialStates.get(nextState)) {
 							addProgReward = true;
+							expectedProgRewardValue = nextStateProb*progRewardFixedValue; 
 						}
 						distr.add(indexInTeamNextState, nextStateProb);
 
@@ -233,7 +239,7 @@ public class SequentialTeamMDP {
 					}
 					if(addProgReward)
 					{
-						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,1.0);
+						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,expectedProgRewardValue);
 					}
 
 				}

@@ -51,8 +51,8 @@ import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import common.IterableBitSet;
+import demos.MMDPSimple.StateProb;
 import explicit.LTLModelChecker.LTLProduct;
-import explicit.MMDPSimple.StateProb;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MCRewardsFromMDPRewards;
 import explicit.rewards.MDPRewards;
@@ -101,9 +101,6 @@ public class MDPModelChecker extends ProbModelChecker {
 
 			return checkPartialSat(model, expr, statesOfInterest);
 		}
-		case ExpressionFunc.STAPU:{
-			return (new STAPU(this).checkExpressionFunc(model, expr, statesOfInterest));
-		}
 		default:
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
@@ -136,7 +133,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		// System.out.println(" ");
 
 		// Build model costs
-		RewardStruct costStruct = exprRew.getRewardStructByIndexObject(modulesFile, modulesFile.getConstantValues());
+		RewardStruct costStruct = exprRew.getRewardStructByIndexObject(getModulesFile(), getModulesFile().getConstantValues());
 		mainLog.println("Building cost structure...");
 		Rewards costsModel = constructRewards(model, costStruct);
 
@@ -203,7 +200,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			VarList newVarList = (VarList) getModulesFile().createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
 				daVar = "_" + daVar;
@@ -372,7 +369,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			VarList newVarList = (VarList) getModulesFile().createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
 				daVar = "_" + daVar;
@@ -451,7 +448,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			VarList newVarList = (VarList) getModulesFile().createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
 				daVar = "_" + daVar;
@@ -1002,7 +999,6 @@ public class MDPModelChecker extends ProbModelChecker {
 	 * Compute reachability probabilities using value iteration - arrays Optionally, store
 	 * optimal (memoryless) strategy info.
 	 * 
-	 * @param progStates
 	 * @param mdp
 	 *            The MDP
 	 * @param target 
@@ -1018,8 +1014,8 @@ public class MDPModelChecker extends ProbModelChecker {
 	 * @param probPriority
 	 * 			the priority of the probability (0 = highest, rewards.size() = lowest)
 	 */
-	protected ModelCheckerMultipleResult computeNestedValIterArray(MDP mdp, BitSet target, BitSet remain,
-			ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean> minRewards, int probPreference) throws PrismException {
+	public ModelCheckerMultipleResult computeNestedValIterArray(MDP mdp, BitSet target, BitSet remain,
+			ArrayList<MDPRewardsSimple> rewards, ArrayList<double[]> rewardsInitVal, ArrayList<Boolean> minRewards, BitSet statesToIgnoreForVI, int probPreference, double[] probInitVal) throws PrismException {
 		ModelCheckerMultipleResult res;
 		int i, n, iters, numYes, numNo;
 		double initValProb, initValRew, initValCost;
@@ -1111,7 +1107,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		// soln2Prog = new double[n];
 		solnReward = new ArrayList<double[]>();
 		for(int rew = 0; rew<numRewards;rew++)
-		{solnReward.add(new double[n]);
+		{
+			if(rewardsInitVal == null || rewardsInitVal.get(rew)==null)
+			solnReward.add(new double[n]);
+			else
+				solnReward.add(rewardsInitVal.get(rew).clone());
 		}
 		// soln2Cost = new double[n];
 
@@ -1133,12 +1133,39 @@ public class MDPModelChecker extends ProbModelChecker {
 			// initValProb;
 			// solnProg[i] = soln2Prog[i] = initValRew;
 			// solnCost[i] = soln2Cost[i] = initValCost;
-			solnProb[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
+			if(probInitVal == null)
+			solnProb[i] = target.get(i)?1.0:0.0; //yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
+			else 
+				solnProb[i] = probInitVal[i];
+//			if (probPreference != 0)
+//			{
+//				//then we care about the reward first 
+//				if(minRewards.get(0))
+//				{
+//					solnReward.get(0)[i] = target.get(i) ? 0.0 : 0.0;//no.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+////					solnProg[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY : 0.0;
+//				}
+//				else
+//				{
+//					solnReward.get(0)[i] = target.get(i) ? 1.0 : 0.0;//no.get(i) ? 0.0 : 0.0;
+//				}
+//			}
+			
 			
 		}
-		for(int rew = 0; rew<numRewards;rew++) {
-		//	if(minRewards.get(rew))	//if minimizing its okay 
+		int startRew = 0; 
+//		if (probPreference != 0)
+//			startRew = 1;
+		for(int rew = startRew; rew<numRewards;rew++) {
+			if(rewardsInitVal == null)
 			Arrays.fill(solnReward.get(rew),initValCost);
+			else {
+				if(rewardsInitVal.get(rew) == null)
+				{
+					Arrays.fill(solnReward.get(rew),initValCost);
+				}
+			
+			}
 			}
 
 		// Start iterations
@@ -1154,13 +1181,30 @@ public class MDPModelChecker extends ProbModelChecker {
 		boolean sameCostVal; 
 		ArrayList<Boolean> sameCost = new ArrayList<Boolean>();
 
+		if (statesToIgnoreForVI == null) //set it to unkown 
+		{
+			statesToIgnoreForVI = (BitSet)unknown.clone(); 
+			statesToIgnoreForVI.flip(0, unknown.size());
+		}
+		
 		while (!done && iters < maxIters) {
+//			System.out.println("Iter "+iters);
+//			System.out.println("Prob Values: "+Arrays.toString(solnProb));
+//			for(int rews = 0; rews<numRewards; rews++)
+//			{
+//				System.out.println("Rew "+rews+" Values: "+Arrays.toString(solnReward.get(rews)));
+//			}
+			int pvar1 = 273;
+			int pvar2 = 284; 
+			int pvar3 = 232;
+//			System.out.println(iters+":"+solnProb[pvar1]+","+solnProb[pvar2]+","+solnProb[pvar3]);
+//			System.out.println("S:"+strat[pvar1]+","+strat[pvar2]+","+strat[pvar3]);
 			iters++;
 			done = true;
 			for (i = 0; i < n; i++) {
-				if (unknown.get(i)) {
-					if(i==16 || i == 18 || i == 284)
-						mainLog.println("test");
+				if (!statesToIgnoreForVI.get(i)){//(unknown.get(i)) {
+//					if(i == pvar1 || i == pvar2 || i == pvar3)
+//						mainLog.print("");
 					numChoices = mdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 						currentProbVal = mdp.mvMultJacSingle(i, j, solnProb);
@@ -1181,6 +1225,7 @@ public class MDPModelChecker extends ProbModelChecker {
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam,
 								termCrit == TermCrit.ABSOLUTE);
 						
+						if(probPreference == 0) {
 						if (!sameProb && currentProbVal > solnProb[i]) {
 							done = false;
 							solnProb[i] = currentProbVal;
@@ -1210,6 +1255,9 @@ public class MDPModelChecker extends ProbModelChecker {
 										{
 											solnReward.get(rews)[i]=currentCostVal.get(rews);
 										}
+										if (genStrat || exportAdv) {
+											strat[i] = j;
+										}
 										break;
 									}
 									else {
@@ -1220,6 +1268,79 @@ public class MDPModelChecker extends ProbModelChecker {
 									}
 									
 								}
+							}
+							else // i'm adding this for the bits when the probability has been set to one beforehand and we need to choose something
+							{
+								if(currentProbVal == solnProb[i])
+								{
+									for(int rews = 0; rews<numRewards; rews++)
+									{
+										solnReward.get(rews)[i]=currentCostVal.get(rews);
+									}
+									if (genStrat || exportAdv) {
+										strat[i] = j;
+									}
+									break;
+								}
+							}
+						}
+						}
+						else
+						{
+							boolean keepChecking = true; 
+							//if its not pref 0 
+							
+							boolean firstCheck; 
+							boolean secondCheck; 
+							for(int rew = 0; rew<numRewards; rew++)
+							{
+								if(rew == probPreference)
+								{
+									if (!sameProb && currentProbVal > solnProb[i]) {
+										done = false;
+										solnProb[i] = currentProbVal;
+										for(int rews = 0; rews<numRewards; rews++) {
+										solnReward.get(rews)[i] = currentCostVal.get(rews);
+										}
+										if (genStrat || exportAdv) {
+											strat[i] = j;
+										}
+										break;
+									}
+									else
+									{
+										if(!sameProb)
+										{
+											keepChecking = false; 
+											break;
+										}
+									}
+								}
+								secondCheck = sameCost.get(rew);
+								if(minRewards.get(rew))
+								firstCheck = (!secondCheck) && currentCostVal.get(rew) < solnReward.get(rew)[i]; 
+								else
+									firstCheck = (!secondCheck) && currentCostVal.get(rew) > solnReward.get(rew)[i]; 
+								if(firstCheck)
+								{
+									done = false;
+									//update 
+									solnProb[i] = currentProbVal; 
+									for(int rews = 0; rews<numRewards; rews++)
+									{
+										solnReward.get(rews)[i]=currentCostVal.get(rews);
+									}
+									if (genStrat || exportAdv) {
+										strat[i] = j;
+									}
+									break;
+								}
+								else {
+									if(secondCheck)
+										continue; 
+									else
+										break;
+								}	
 							}
 						}
 					}
