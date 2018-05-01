@@ -576,6 +576,7 @@ public class STAPU {
 			prism.buildModel();
 			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
 			int numVars = mdp.getVarList().getNumVars();
+			
 			models.add(mdp);
 			propFiles.add(propertiesFile);
 			}
