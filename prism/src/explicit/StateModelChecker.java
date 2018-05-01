@@ -117,7 +117,7 @@ public class StateModelChecker extends PrismComponent
 	protected boolean doBisim = false;
 
 	// Model info (for reward structures, etc.)
-	protected ModulesFile modulesFile = null;
+	private ModulesFile modulesFile = null;
 	protected ModelInfo modelInfo = null;
 	protected ModelGenerator modelGen = null;
 
@@ -125,7 +125,7 @@ public class StateModelChecker extends PrismComponent
 	protected PropertiesFile propertiesFile = null;
 
 	// Constants (extracted from model/properties)
-	protected Values constantValues;
+	private Values constantValues;
 
 	// The filter to be applied to the current property
 	protected Filter currentFilter;
@@ -380,8 +380,8 @@ public class StateModelChecker extends PrismComponent
 	{
 		if (propertiesFile != null) {
 			return propertiesFile.getCombinedLabelList(); // combined list from properties and modules file
-		} else if (modulesFile != null) {
-			return modulesFile.getLabelList();
+		} else if (getModulesFile() != null) {
+			return getModulesFile().getLabelList();
 		} else {
 			return null;
 		}
@@ -420,16 +420,16 @@ public class StateModelChecker extends PrismComponent
 	{
 		this.modelInfo = modelInfo;
 		if (modelInfo instanceof ModulesFile) {
-			this.modulesFile = (ModulesFile) modelInfo;
+			this.setModulesFile((ModulesFile) modelInfo);
 		}
 		this.propertiesFile = propertiesFile;
 		this.modelGen = modelGen;
 		// Get combined constant values from model/properties
-		constantValues = new Values();
+		setConstantValues(new Values());
 		if (modelInfo != null)
-			constantValues.addValues(modelInfo.getConstantValues());
+			getConstantValues().addValues(modelInfo.getConstantValues());
 		if (propertiesFile != null)
-			constantValues.addValues(propertiesFile.getConstantValues());
+			getConstantValues().addValues(propertiesFile.getConstantValues());
 	}
 
 	// Model checking functions
@@ -774,7 +774,7 @@ public class StateModelChecker extends PrismComponent
 	 */
 	protected StateValues checkExpressionConstant(Model model, ExpressionConstant expr) throws PrismException
 	{
-		return new StateValues(expr.getType(), expr.evaluate(constantValues), model);
+		return new StateValues(expr.getType(), expr.evaluate(getConstantValues()), model);
 	}
 
 	/**
@@ -1488,5 +1488,17 @@ public class StateModelChecker extends PrismComponent
 				out.println();
 			}
 		}
+	}
+
+	public ModulesFile getModulesFile() {
+		return modulesFile;
+	}
+
+	public void setModulesFile(ModulesFile modulesFile) {
+		this.modulesFile = modulesFile;
+	}
+
+	public void setConstantValues(Values constantValues) {
+		this.constantValues = constantValues;
 	}
 }

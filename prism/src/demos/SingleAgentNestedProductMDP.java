@@ -1,10 +1,13 @@
-package explicit;
+package demos;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Set;
 
+import explicit.LTLModelChecker;
+import explicit.MDP;
+import explicit.MDPSimple;
 import explicit.LTLModelChecker.LTLProduct;
 import parser.State;
 import prism.PrismLog;

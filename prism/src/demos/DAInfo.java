@@ -1,4 +1,4 @@
-package explicit;
+package demos;
 
 import java.util.BitSet;
 import java.util.Vector;
@@ -7,6 +7,10 @@ import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
+import explicit.LTLModelChecker;
+import explicit.MDP;
+import explicit.Model;
+import explicit.ProbModelChecker;
 import explicit.LTLModelChecker.LTLProduct;
 import explicit.rewards.MDPRewardsSimple;
 import parser.ast.Expression;
@@ -25,13 +29,13 @@ public class DAInfo {
 //	private final STAPU stapu;
 	// BitSet acceptingStates;
 	public BitSet productAcceptingStates;
-	BitSet essentialStates;
+	public BitSet essentialStates;
 	boolean isSafeExpr;
 	DA<BitSet, ? extends AcceptanceOmega> da;
 	Expression daExpr;
 	ExpressionReward daExprRew = null;
 	Vector<BitSet> labelBS;
-	MDPRewardsSimple costsModel = null;
+	public MDPRewardsSimple costsModel = null;
 	PrismLog mainLog; 
 
 	public DAInfo(PrismLog log, Expression expr) {
@@ -72,8 +76,8 @@ public class DAInfo {
 		// rewards
 		if (daExprRew != null) {
 
-			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(mcProb.modulesFile,
-					mcProb.modulesFile.getConstantValues());
+			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(mcProb.getModulesFile(),
+					mcProb.getModulesFile().getConstantValues());
 			// commenting this out because its giving the error Error: Could not evaluate
 			// constant ("failstate", line 166, column 20).
 			// we know this is because I'm not intializing this properly cuz i'm lazy and
@@ -88,8 +92,8 @@ public class DAInfo {
 			ProbModelChecker mcProb, ModulesFile modulesFile, AcceptanceType[] accType, M model, BitSet statesOfInterest,
 			boolean allStatesInDFA) throws PrismException {
 		labelBS = new Vector<BitSet>();
-		mcProb.modulesFile = modulesFile; 
-		mcProb.constantValues = modulesFile.getConstantValues();
+		mcProb.setModulesFile(modulesFile); 
+		mcProb.setConstantValues(modulesFile.getConstantValues());
 		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
 			mainLog.println("\nAutomaton is not a DFA... ");

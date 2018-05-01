@@ -59,7 +59,7 @@ public class CTMDPModelChecker extends ProbModelChecker
 		ModelCheckerResult res = null;
 
 		// get info from bounded until
-		uTime = expr.getUpperBound().evaluateDouble(constantValues);
+		uTime = expr.getUpperBound().evaluateDouble(getConstantValues());
 		if (uTime < 0 || (uTime == 0 && expr.upperBoundIsStrict())) {
 			String bound = (expr.upperBoundIsStrict() ? "<" : "<=") + uTime;
 			throw new PrismException("Invalid upper bound " + bound + " in time-bounded until formula");

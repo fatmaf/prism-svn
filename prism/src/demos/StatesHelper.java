@@ -1,13 +1,19 @@
-package explicit;
+package demos;
 
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Vector;
 
+import explicit.Distribution;
+import explicit.MDP;
+import explicit.MDPSimple;
 import parser.State;
+import prism.Prism;
+import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import strat.Strategy;
 
 public class StatesHelper {
 	static int robotVar = 0;
@@ -15,7 +21,13 @@ public class StatesHelper {
 	public static int failState = -1; 
 	public static int BADVALUE = -2; 
 	public static String savePlace="/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/"; 
+	public static String folder; 
+	public static int mdpVars; 
 	
+	public static void setMDPVars(int mdpvars)
+	{
+		mdpVars = mdpvars;
+	}
 	public static void setSavePlace(String saveplace)
 	{
 		savePlace = saveplace; 
@@ -51,7 +63,7 @@ public class StatesHelper {
 		if (mdpMap[state] == stateNotAdded) {
 			// add to states list
 			mdpMap[state] = mdp.getNumStates();
-			mdp.statesList.add(states.get(state)); // should work
+			mdp.getStatesList().add(states.get(state)); // should work
 			mdp.addState();
 			if (finalAcceptingStates.get(state)) {
 				accStates.set(mdpMap[state]);
@@ -208,8 +220,12 @@ public class StatesHelper {
 		return resS;
 	}
 	
+	public static void setFolder(String folderVal)
+	{
+		folder = folderVal;
+	}
 	/**
-	 * @param folder
+	 * @param anotherfolder
 	 * 	the location of the tile to save 
 	 * 
 	 * @param saveplace 
@@ -227,8 +243,10 @@ public class StatesHelper {
 	 * 	save in predefined save location (set to true) if
 	 * false saves in same location as adversary
 	 */
-	public static void saveMDP(MDP mdp, BitSet statesToMark,String folder, String name,boolean saveinsaveplace) {
-		String temp = folder;
+	public static void saveMDP(MDP mdp, BitSet statesToMark,String anotherfolder, String name,boolean saveinsaveplace) {
+		String temp = anotherfolder;
+		if(temp == "")
+			temp = folder; 
 		temp = temp.replace("adv", "");
 		temp = temp.replaceAll(".tra", "");
 		String location = temp;
@@ -238,11 +256,98 @@ public class StatesHelper {
 			location += temp;
 		}
 		name = name.replace(" ", "_");
-		PrismLog out = new PrismFileLog(location + name + ".dot");
+		PrismLog out = new PrismFileLog(location+"_" + name + ".dot");
 		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();
 
 	}
+	/**
+	 * @param anotherfolder
+	 * 	the location of the tile to save 
+	 * 
+	 * @param saveplace 
+	 * 	alternate location 
+	 * @param mdp 
+	 * 	The mdp
+	 * 
+	 * @param statesToMark 
+	 * 	a bitset for states you'd like to highlight in the mdp
+	 * 
+	 * @param name 
+	 * 	filename
+	 * 
+	 * @param saveinsaveplace 
+	 * 	save in predefined save location (set to true) if
+	 * false saves in same location as adversary
+	 */
+	public static void saveMDPstatra(MDP mdp, String anotherfolder, String name,boolean saveinsaveplace) {
+		String temp = anotherfolder;
+		if(temp == "")
+			temp = folder; 
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location+"_" + name + ".tra");
+		mdp.exportToPrismExplicitTra(out);
+		out.close();
+		out = new PrismFileLog(location+"_" + name + ".sta");
+		try {
+			mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
+		} catch (PrismException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		out.close();
 
+	}
+	/**
+	 * @param anotherfolder
+	 * 	the location of the tile to save 
+	 * 
+	 * @param saveplace 
+	 * 	alternate location 
+	 * @param strat 
+	 * 	The strategy
+	 * 
+	 * @param statesToMark 
+	 * 	a bitset for states you'd like to highlight in the mdp
+	 * 
+	 * @param name 
+	 * 	filename
+	 * 
+	 * @param saveinsaveplace 
+	 * 	save in predefined save location (set to true) if
+	 * false saves in same location as adversary
+	 */
+	public static void saveStrategy(Strategy strat, BitSet statesToMark,String anotherfolder, String name,boolean saveinsaveplace) {
+		String temp = anotherfolder;
+		if(temp == "")
+			temp = folder; 
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location +"_"+ name + ".dot");
+		strat.exportDotFile(out);
+		out.close();
+		out = new PrismFileLog(location +"_"+ name + ".actions");
+		strat.exportActions(out);
+		out.close();
+		out = new PrismFileLog(location +"_"+ name + ".tra");
+		strat.exportInducedModel(out);
+		out.close();
+
+	}
 
 }
