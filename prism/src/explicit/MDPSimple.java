@@ -963,6 +963,7 @@ public class MDPSimple extends MDPExplicit implements NondetModelSimple
 			d += prob * vect[k];
 		}
 		d += mdpRewards.getTransitionReward(s, i);
+
 		
 		return d;
 	}

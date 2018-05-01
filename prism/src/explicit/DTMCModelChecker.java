@@ -89,7 +89,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			VarList newVarList = (VarList) getModulesFile().createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
 				daVar = "_" + daVar;
@@ -161,7 +161,7 @@ public class DTMCModelChecker extends ProbModelChecker
 		if (getExportProductStates()) {
 			mainLog.println("\nExporting product state space to file \"" + getExportProductStatesFilename() + "\"...");
 			PrismFileLog out = new PrismFileLog(getExportProductStatesFilename());
-			VarList newVarList = (VarList) modulesFile.createVarList().clone();
+			VarList newVarList = (VarList) getModulesFile().createVarList().clone();
 			String daVar = "_da";
 			while (newVarList.getIndex(daVar) != -1) {
 				daVar = "_" + daVar;
