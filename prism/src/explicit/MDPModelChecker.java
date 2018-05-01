@@ -26,12 +26,6 @@
 
 package explicit;
 
-import java.io.File;
-import explicit.stateInfoFromStatesList;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,31 +35,23 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import common.IterableBitSet;
-import demos.MMDPSimple.StateProb;
-import explicit.LTLModelChecker.LTLProduct;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MCRewardsFromMDPRewards;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.Rewards;
-import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
-import parser.ast.DeclarationInt;
 import parser.ast.DeclarationIntUnbounded;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
-import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
 import parser.ast.RewardStruct;
 import parser.type.TypeInt;
@@ -78,7 +64,6 @@ import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategy;
 import strat.MDStrategyArray;
-import strat.Strategy;
 
 /**
  * Explicit-state model checker for Markov decision processes (MDPs).
