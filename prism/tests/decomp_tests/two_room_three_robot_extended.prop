@@ -1,1 +1,2 @@
-partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v1" ] ,Pmax=? [F "v7"], Pmax=? [F "v8"], Pmax=? [G (!"v5")],Pmax=?[G (!"v3")]  )
+//partial(R{"time"}min=? [ F "v0"], Pmax=? [ F "v1" ] ,Pmax=? [F "v7"], Pmax=? [F "v8"], Pmax=? [G (!"v5")],Pmax=?[G (!"v3")]  )
+stapu(R{"time"}min=? [ F "v0"], Pmax=? [ F "v1" ] ,Pmax=? [F "v7"], Pmax=? [F "v8"], Pmax=? [G (!"v5")],Pmax=?[G (!"v3")]  )
