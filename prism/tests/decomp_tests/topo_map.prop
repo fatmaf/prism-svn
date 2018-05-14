@@ -1,3 +1,3 @@
 //partial(R{"time"}min=? [ F "WayPoint"],Pmax=? [F "v5"], Pmax=? [F "v6"], Pmax=?[G (!"v4")]  )
 
-partial(R{"time"}min=? [ F "WayPoint2"], Pmax=? [ F "WayPoint7"], Pmax=? [ F "WayPoint21"], Pmax=?[G (!"WayPoint16")])
+partial(R{"time"}min=? [ F "WayPoint2"], Pmax=? [ F "WayPoint7"], Pmax=? [ F "WayPoint21"], Pmax=?[G (!"WayPoint15")])
