@@ -143,14 +143,16 @@ public class SequentialTeamMDP {
 		int numStates = 0;
 		int numChoices;
 		double expectedProgRewardValue = 1.0; 
+		double acceptingStateRewardValue = agentMDPs.get(0).daList.size();
 		double progRewardFixedValue = 1.0;
 
 		for (int r = 0; r < agentMDPs.size(); r++) {
 
 			// check for self
-			if (numStates * (r) != teamMDP.getNumStates())
-				mainLog.println("Something is wrong here cuz the number of states isnt what you expected");
+//			if (numStates * (r) != teamMDP.getNumStates())
+//				mainLog.println("Something is wrong here cuz the number of states isnt what you expected");
 			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
+			BitSet allAcceptingStates = singleAgentNestedMDP.getAllAcceptingStates();
 			BitSet essentialStates = new BitSet(numTeamStates);
 			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates();
 			BitSet agentInitialStatesInTeam = new BitSet(numTeamStates);
@@ -218,10 +220,28 @@ public class SequentialTeamMDP {
 							map[nextState] = indexInTeamNextState;
 
 						}
-						if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)||singleAgentNestedMDP.combinedEssentialStates.get(nextState)) {
+						if(indexInTeamNextState == 76 )
+							mainLog.println();
+						if (singleAgentNestedMDP.addRewardForTaskCompletion(nextState,s))
+						{
+							if(addProgReward)
+							{
+								expectedProgRewardValue += nextStateProb*progRewardFixedValue;
+							}
+							else {
 							addProgReward = true;
-							expectedProgRewardValue = nextStateProb*progRewardFixedValue; 
+							expectedProgRewardValue = nextStateProb*progRewardFixedValue;
+							}
 						}
+//						if (singleAgentNestedMDP.combinedEssentialStates.get(nextState) ) {
+//							if(!allAcceptingStates.get(s)) {
+//							addProgReward = true;
+//							expectedProgRewardValue = nextStateProb*progRewardFixedValue; }
+//						}
+//						if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)) {
+//							addProgReward = true;
+//							expectedProgRewardValue = nextStateProb*acceptingStateRewardValue; 
+//						}
 						distr.add(indexInTeamNextState, nextStateProb);
 
 					}
@@ -231,6 +251,9 @@ public class SequentialTeamMDP {
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
+//						mainLog.println(s+" "+j+" "+singleAgentNestedMDP.productStateToMDPState.get(s));
+//						if(s == 32)
+//							mainLog.print("");
 						double rewardHere = rewardStruct
 								.getTransitionReward(singleAgentNestedMDP.productStateToMDPState.get(s), j);
 						
@@ -357,6 +380,7 @@ public class SequentialTeamMDP {
 					for (int i = 0; i < rewardsWithSwitches.size(); i++) {
 						int numChoice = teamMDPWithSwitches.getNumChoices(fromRobotState) - 1;
 						rewardsWithSwitches.get(i).addToTransitionReward(fromRobotState, numChoice, 0.0);
+						
 					}
 					totalSwitches++;
 					// making the assumption that since the to and from states are actually states

@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import acceptance.AcceptanceType;
+import cern.colt.Arrays;
 import demos.MMDPSimple.StateProb;
 import explicit.LTLModelChecker;
 import explicit.MDP;
@@ -23,6 +24,7 @@ import explicit.MDPSparse;
 import explicit.Model;
 import explicit.ModelCheckerMultipleResult;
 import explicit.ModelCheckerPartialSatResult;
+import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
 import explicit.StateValues;
 import explicit.LTLModelChecker.LTLProduct;
@@ -94,7 +96,8 @@ public class STAPU {
 	protected SingleAgentNestedProductMDP buildSingleAgentNestedProductMDP(String name,Model model, ArrayList<DAInfo> daList,
 			BitSet statesOfInterest,ProbModelChecker mcProb,ModulesFile modulesFile) throws PrismException {
 		// return the list of daInfo and the product mdp
-		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLogRef);
+ 		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLogRef);
+		res.setNumMDPVars(model.getVarList().getNumVars());
 		res.initializeProductToMDPStateMapping((MDP) model);
 		LTLProduct<MDP> product = null;
 		MDP productMDP = null;
@@ -106,19 +109,22 @@ public class STAPU {
 		// all the states are states of interest
 		bsInit.set(0, numStates);
 		productMDP = (MDP) model;
+		res.daList = new ArrayList<DAInfo>();
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
-			DAInfo daInfo = daList.get(daNum);
+			DAInfo daInfo = new DAInfo(daList.get(daNum));
 			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
 			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "",name+"pda_" + daNum, true);
+			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "",name+"pda_" + daNum+"switchStates", true);
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
-				daList.get(otherDAs).updateStateNumbers(product);
+				res.daList.get(otherDAs).updateStateNumbers(product);
 			}
 			res.updateProductToMDPStateMapping(product);
+			res.daList.add(daInfo);
 		}
-		res.setDAListAndFinalProduct(daList, product);
+		res.setDAListAndFinalProduct(product);
 		return res;
 	}
 	
@@ -131,7 +137,11 @@ public class STAPU {
 		mc.setGenStrat(true);
 //		mc.genStrat = true;
 		//lets set them all to true 
-		
+		ModelCheckerResult anotherSol = mc.computeUntilProbs(mdp, statesToRemainIn, target, false);
+		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat"+mdp.getFirstInitialState(), true);
+		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp); 
+		mainLogRef.println("Compute Until Probs Vals\n "+Arrays.toString(testValues.getDoubleArray())); 
+		mainLogRef.println("Prob in init"+testValues.getDoubleArray()[mdp.getFirstInitialState()]);
 		
 		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn,
 				rewards,null,minRewards,target,probPreference,probInitVal);
@@ -154,7 +164,8 @@ public class STAPU {
 		}
 		mainLogRef.println("\nFor p = " + maxProb + ", rewards "
 				+ resString);
-		return res2;
+		
+				return res2;
 	}
 	
 	
@@ -251,6 +262,8 @@ public class STAPU {
 //		}
 		
 		}
+		
+		
 		// create team automaton from a set of MDP DA stuff
 		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
@@ -259,10 +272,10 @@ public class STAPU {
 			return;
 		
 		int firstRobot = 0; // fix this
-		if (hasDoor)
-		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 2); //cuz there is door too 
-		else
-		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 1); //cuz there is door too 
+//		if (hasDoor)
+//		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 2); //cuz there is door too 
+//		else
+		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - StatesHelper.numMdpVars); //cuz there is door too 
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
 		
 		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
@@ -270,7 +283,12 @@ public class STAPU {
 		
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
-			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
+			{combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
+			mainLogRef.println("Essential States "+seqTeamMDP.essentialStates.get(i)); 
+			
+			}
+		mainLogRef.println("Accepting States "+seqTeamMDP.acceptingStates); 
+		
 		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"", "teamMDPWithSwitches", true);
 		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "","teamMDPWithSwitchesAvoid", true);
 		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
@@ -288,6 +306,13 @@ public class STAPU {
 
 		minRewards.add(0,false);
 		
+		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
+		for(int rew = 0; rew<rewards.size(); rew++)
+		{
+			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew),combinedEssentialStates ,
+					"", "rew"+rew, true);
+		}
+		
 //		double[] probInitVals = new double[seqTeamMDP.teamMDPWithSwitches.getNumStates()]; 
 //		for(int i = 0; i<probInitVals.length; i++)
 //		{
@@ -299,6 +324,7 @@ public class STAPU {
 		
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards,minRewards,probPreference);//,probInitVals);
+	
 		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
 //		solution.strat.exportInducedModel(mainLogRef);
 //		solution.strat.exportActions(mainLogRef);
@@ -309,7 +335,7 @@ public class STAPU {
 		
 		// add to joint policy
 		//MMDPSimple
-		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots);
+		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size());
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLogRef.println("InitState = "+initialState);
 		
@@ -319,7 +345,7 @@ public class STAPU {
 			return;
 		
 		StatesHelper.saveMDP(jointPolicy.mdp, null, "","jointPolicy", true);
-		boolean stopHere = false; 
+		boolean stopHere =false;// true; 
 		if (stopHere)
 		return;
 		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
@@ -538,15 +564,15 @@ public class STAPU {
 	{
 		try {
 			String modelLocation= "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename = "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String filename ="two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
 			ArrayList<String> filenames = new ArrayList<String>(); 
 			filenames.add(filename); 
 			filenames.add(filename+1);
-			filenames.add(filename+2);
+//			filenames.add(filename+2);
 //			filenames.add("chain_example_simple_mod");
 			StatesHelper.setFolder(modelLocation+filename);
 			hasDoor = false;
-
+			int maxMDPVars = 0;
 			
 			ArrayList<Model> models = new ArrayList<Model>(); 
 			ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
@@ -576,6 +602,8 @@ public class STAPU {
 			prism.buildModel();
 			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
 			int numVars = mdp.getVarList().getNumVars();
+			if(numVars > maxMDPVars)
+				maxMDPVars = numVars;
 			
 			models.add(mdp);
 			propFiles.add(propertiesFile);
@@ -598,7 +626,7 @@ public class STAPU {
 			// But yeah, maybe move this bit in the while loop in doSTAPU 
 //			models.add(mdp);
 			ExecutorService executor = Executors.newSingleThreadExecutor();
-
+			StatesHelper.setNumMDPVars(maxMDPVars);
 		    Runnable task = new Runnable() {
 		        @Override
 		        public void run() {
