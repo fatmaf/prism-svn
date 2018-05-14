@@ -3,6 +3,7 @@ package demos;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 import explicit.LTLModelChecker;
@@ -24,7 +25,17 @@ public class SingleAgentNestedProductMDP {
 	BitSet combinedStatesToAvoid;
 	BitSet combinedEssentialStates;
 	PrismLog mainLog; 
-
+	BitSet allAcceptingStatesCombined; //includes everything even the essential states 
+	int numMDPVars; 
+	
+	public void setNumMDPVars(int n)
+	{
+		numMDPVars = n; 
+	}
+	public int getNumMDPVars()
+	{
+		return numMDPVars;
+	}
 	public SingleAgentNestedProductMDP(PrismLog log) {
 //		this.stapu = stapu;
 		mainLog = log; 
@@ -65,6 +76,57 @@ public class SingleAgentNestedProductMDP {
 		return initialStates;
 	}
 
+	public boolean addRewardForTaskCompletion(int childState, int parentState)
+	{
+		boolean toreturn = false;
+		if(allAcceptingStatesCombined == null)
+		allAcceptingStatesCombined = getAllAcceptingStates() ;
+		if (combinedEssentialStates.get(childState) /*|| combinedAcceptingStates.get(childState)*/)
+		{
+			//you could remove all this and just check if the two da bits are unequal 
+			if(allAcceptingStatesCombined.get(parentState))
+			{
+				if(childState != parentState)
+				{
+				
+				
+				List<State> statesList = this.finalProduct.getProductModel().getStatesList();
+				if(!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),statesList.get(parentState),numMDPVars))
+				{
+					toreturn = true; 
+				}
+				}
+//				if (acceptingStatesFromSeparateDAs(childState,parentState))
+//				{
+//					toreturn = true;
+//				}
+			}
+			else
+			{
+				toreturn = true; 
+			}
+
+			
+		}
+		return toreturn; 
+	}
+	
+	/**
+	 * 
+	 * @return bitset - all possible accepting states including essential states 
+	 */
+	public BitSet getAllAcceptingStates() {
+		int numStates = finalProduct.getProductModel().getNumStates();
+		BitSet acceptingStates = new BitSet(numStates);
+//		acceptingStates.set(0, numStates);
+		for (int i = 0; i < daList.size(); i++) {
+			if (!(daList.get(i).isSafeExpr)) {
+				acceptingStates.or(daList.get(i).productAcceptingStates);
+			}
+		}
+		return acceptingStates;
+	}
+	
 	private BitSet getFinalAcceptingStates() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet acceptingStates = new BitSet(numStates);
@@ -88,7 +150,9 @@ public class SingleAgentNestedProductMDP {
 		}
 		return finalEssentialStates;
 	}
+	
 
+	
 	private BitSet getFinalStatesToAvoid() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet statesToAvoid = new BitSet(numStates);
@@ -127,8 +191,8 @@ public class SingleAgentNestedProductMDP {
 		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
 	}
 
-	public void setDAListAndFinalProduct(ArrayList<DAInfo> list, LTLProduct<MDP> product) {
-		daList = list;
+	public void setDAListAndFinalProduct(LTLProduct<MDP> product) {
+//		daList = list;
 		finalProduct = product;
 		setBitSetsForAccEssentialBadStates();
 	}

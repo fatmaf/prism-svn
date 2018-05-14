@@ -84,6 +84,17 @@ public class MMDPSimple {
 	public BitSet deadendStates; 
 	public BitSet allTasksCompletedStates; 
 	public BitSet allFailStatesSeen;
+	int numDA; 
+	
+	public void setNumDA(int n)
+	{
+		numDA = n; 
+	}
+	
+	public int getNumDA()
+	{
+		return numDA;
+	}
 	
 	
 	public boolean stuckStatesQContainsState(int state)
@@ -118,7 +129,7 @@ public class MMDPSimple {
 	 * @numrobots the number of robots
 	 * 
 	 */
-	public MMDPSimple(int numrobots) {
+	public MMDPSimple(int numrobots, int numDAs) {
 		stuckStatesQ = new PriorityQueue<StateProb>();
 		mdp = new MDPSimple();
 		VarList varlist = new VarList();
@@ -140,6 +151,7 @@ public class MMDPSimple {
 		deadendStates = new BitSet(); 
 		allTasksCompletedStates = new BitSet(); 
 		allFailStatesSeen = new BitSet();
+		setNumDA(numDAs);
 
 	}
 
@@ -630,7 +642,8 @@ public class MMDPSimple {
 
 		return successorStates;
 	}
-
+	
+	
 	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int[][] mdpMaps, int firstRobot,
 			BitSet[] acceptingStates, int[] currentStates, int[] lastStates) {
 
@@ -642,8 +655,8 @@ public class MMDPSimple {
 		// the first robot
 		// this is our base, then we need the progress of the next robot excluding
 		// anything done by the first
-		Object[] refState = StatesHelper.createRefStateObject();
-		Object[] teamProgress = new Object[refState.length - 2]; // hard coding this too
+		Object[] refState = StatesHelper.createRefStateObject();//refstate size = len(numDAs - we could just save this) 
+		Object[] teamProgress = new Object[refState.length - (1+StatesHelper.numMdpVars)]; // hard coding this too
 		// initialize team Progress
 		int firstRobotState = currentStates[firstRobot];
 		State firstRobotStateObj = pols[firstRobot].getStatesList().get(firstRobotState);
@@ -947,6 +960,7 @@ public class MMDPSimple {
 		// and also check if the policy has at least init values for all robots
 		// if(allRobotInitStates != null)
 		// checkCurrentPolicy(allRobotInitStates,rts);
+		if (debugStuff)
 		StatesHelper.saveMDP(tempMDP, tempAccStates, "", "tempStrat"+initialState, true);
 		StatesHelper.checkMDPs(mdps,mdpMaps,sumprod.getStatesList(),allRobotInitStates,
 				initialState,accStates,seqTeamMDP.acceptingStates);
@@ -1096,6 +1110,8 @@ public class MMDPSimple {
 	public int getRobotStateIndexFromJointState (State currState, int rNum,List<State> states) {
 		Object[] robotState = createSingleRobotState(currState, rNum); 
 		int robotStateId =StatesHelper.getExactlyTheSameState(robotState,states); 
+		if(robotStateId == StatesHelper.BADVALUE)
+			System.out.println("Bad value for "+rNum+":"+currState.toString()+" "+Arrays.toString(robotState));
 		return robotStateId; 
 	}
 

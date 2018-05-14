@@ -1,32 +1,38 @@
 package demos;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Vector;
 
 import explicit.Distribution;
 import explicit.MDP;
 import explicit.MDPSimple;
+import explicit.rewards.MDPRewards;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import strat.Strategy;
+import userinterface.simulator.SimulationView.RewardStructureValue;
 
 public class StatesHelper {
 	static int robotVar = 0;
-	static int mdpVar;
+	static int mdpVarStart;
 	public static int failState = -1; 
 	public static int BADVALUE = -2; 
 	public static String savePlace="/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/"; 
 	public static String folder; 
-	public static int mdpVars; 
+	public static int numMdpVars; 
 	
-	public static void setMDPVars(int mdpvars)
+	public static void setNumMDPVars(int mdpvars)
 	{
-		mdpVars = mdpvars;
+		numMdpVars = mdpvars;
 	}
 	public static void setSavePlace(String saveplace)
 	{
@@ -40,13 +46,17 @@ public class StatesHelper {
 
 	public static BitSet addLinkInMDP(MDPSimple mdp, int[] mdpMap, List<State> statesList,
 			ArrayList<Integer> states, ArrayList<Double> probs, int parentState, Object action,
-			String additionalText, BitSet accStates, BitSet finalAcceptingStates) {
-		accStates = addStateMDP(mdp, mdpMap, statesList, BADVALUE, parentState, accStates, finalAcceptingStates);
+			String additionalText, BitSet updatedBitSet, BitSet statesToUpdate) {
+		updatedBitSet = addStateMDP(mdp, mdpMap, statesList, BADVALUE, parentState, updatedBitSet, statesToUpdate);
 		Distribution distr = new Distribution();
 
 		for (int s = 0; s < states.size(); s++) {
-			accStates = addStateMDP(mdp, mdpMap, statesList, BADVALUE, states.get(s), accStates,
-					finalAcceptingStates);
+			if (statesToUpdate !=null)
+			updatedBitSet = addStateMDP(mdp, mdpMap, statesList, BADVALUE, states.get(s), updatedBitSet,
+					statesToUpdate);
+			else 
+				addStateMDP(mdp, mdpMap, statesList, BADVALUE, states.get(s), updatedBitSet,
+						statesToUpdate);
 			distr.add(mdpMap[states.get(s)], probs.get(s));
 		}
 		int numChoices = mdp.getNumChoices(mdpMap[parentState]);
@@ -55,22 +65,24 @@ public class StatesHelper {
 		else {
 			mdp.addActionLabelledChoice(mdpMap[parentState], distr,
 					additionalText + "_" + action.toString() + "." + numChoices);}
-		return accStates;
+		return updatedBitSet;
 	}
 
 	public static BitSet addStateMDP(MDPSimple mdp, int[] mdpMap, List<State> states, int stateNotAdded, int state,
-			BitSet accStates, BitSet finalAcceptingStates) {
+			BitSet updatedBitSet, BitSet statesToUpdate) {
 		if (mdpMap[state] == stateNotAdded) {
 			// add to states list
 			mdpMap[state] = mdp.getNumStates();
 			mdp.getStatesList().add(states.get(state)); // should work
 			mdp.addState();
-			if (finalAcceptingStates.get(state)) {
-				accStates.set(mdpMap[state]);
+			if (statesToUpdate != null) {
+			if (statesToUpdate.get(state)) {
+				updatedBitSet.set(mdpMap[state]);
+			}
 			}
 
 		}
-		return accStates;
+		return updatedBitSet;
 	}
 	
 	public static boolean areEqual(State s1, State s2, Vector<Integer> indicesToMatch) {
@@ -113,7 +125,7 @@ public class StatesHelper {
 
 	public static Object[] createRefStateObject() {
 		// get the first state
-		Object[] ref = new Object[mdpVar + 1];
+		Object[] ref = new Object[mdpVarStart + numMdpVars];
 		for (int i = 0; i < ref.length; i++) {
 			ref[i] = 0;
 		}
@@ -137,7 +149,7 @@ public class StatesHelper {
 
 	public static int getMDPStateFromState(State s1) {
 		Object[] stateVar = s1.varValues;
-		return (int) stateVar[mdpVar];
+		return (int) stateVar[mdpVarStart];
 
 	}
 
@@ -151,9 +163,10 @@ public class StatesHelper {
 		// res = getExactlyTheSameState(s1v);
 		return s1v;
 	}
-
+	
+	
 	public static int getMergedStateRobotMDP(State s1, State s2, List<State> states) {
-		int statesToKeeps2[] = { robotVar, mdpVar };
+		int statesToKeeps2[] = { robotVar, mdpVarStart };
 		Object[] mergedState = getMergedState(s1, s2, statesToKeeps2);
 		return getExactlyTheSameState(mergedState, states);
 
@@ -167,7 +180,7 @@ public class StatesHelper {
 
 
 	public static boolean isFailState(State s1) {
-		int ind = mdpVar;
+		int ind = mdpVarStart;
 		if (getIndexValueFromState(s1, ind) == failState)
 			return true;
 		else
@@ -175,7 +188,7 @@ public class StatesHelper {
 	}
 
 	public static void setMDPVar(int var) {
-		mdpVar = var;
+		mdpVarStart = var;
 	}
 
 	public static boolean statesAreEqual(Object s1v[], State s2) {
@@ -190,16 +203,37 @@ public class StatesHelper {
 		}
 		return res;
 	}
-
-	public static boolean statesHaveTheSameAutomataProgress(State s1, State s2) {
+ /*
+  * written to check for the same automata state for a non seq team mdp 
+  * assuming the automata states start at 0 and end at length -mdpIndex 
+  */
+	public static boolean statesHaveTheSameAutomataProgress(State s1, State s2, int mdpIndex) {
 		// hardcoding this here
 		Vector<Integer> indicesToMatch = new Vector<Integer>();
-		int numVar = s1.varValues.length;
+		int numVar =s1.varValues.length- mdpIndex;
 
 		// we know that the ones at the end are robot num and mdp state so we can skip
 		// those
 
-		for (int i = 1; i < numVar - 1; i++) {
+		for (int i = 0; i < numVar ; i++) {
+			indicesToMatch.add(i);
+		}
+		return areEqual(s1, s2, indicesToMatch);
+	}
+	
+	 /*
+	  * written to check for the same automata state for a seq team mdp 
+	  * assuming the automata states start at 1 and end at mdpVarStart 
+	  */
+	public static boolean statesHaveTheSameAutomataProgress(State s1, State s2) {
+		// hardcoding this here
+		Vector<Integer> indicesToMatch = new Vector<Integer>();
+		int numVar = mdpVarStart;//s1.varValues.length;
+
+		// we know that the ones at the end are robot num and mdp state so we can skip
+		// those
+
+		for (int i = 1; i < numVar ; i++) {
 			indicesToMatch.add(i);
 		}
 		return areEqual(s1, s2, indicesToMatch);
@@ -210,8 +244,8 @@ public class StatesHelper {
 		// so we need to exclude the robot and the mdp states from this
 		Object[] s1v = s1.varValues;
 		Object[] s2v = s2.varValues;
-		Object[] resS = new Object[s1v.length - 2]; // hard coding this
-		for (int i = robotVar + 1; i < mdpVar; i++) {
+		Object[] resS = new Object[s1v.length - (1+numMdpVars)]; // hard coding this
+		for (int i = robotVar + 1; i < mdpVarStart; i++) {
 			if (s1v[i] != s2v[i])
 				resS[i - 1] = s2v[i];
 			else
@@ -348,6 +382,47 @@ public class StatesHelper {
 		strat.exportInducedModel(out);
 		out.close();
 
+	}
+	public static MDPSimple mapRewardToMDP(MDPSimple mdp, MDPRewards rew,BitSet setToMark,BitSet updatedBitSet)
+	{
+		MDPSimple rewMDP = new MDPSimple(); 
+		rewMDP.setStatesList(new ArrayList<State>());
+		rewMDP.setVarList(mdp.getVarList());
+		int[] mdpMap = new int[mdp.getNumStates()]; 
+		Arrays.fill(mdpMap, BADVALUE);
+	
+		//for each state and action in the MDP 
+		//add a new state and action and annotate with a reward 
+		
+		for(int i = 0; i< mdp.getNumStates(); i++)
+		{
+			int numChoices = mdp.getNumChoices(i); 
+			for(int j = 0; j<numChoices; j++)
+			{
+			
+				ArrayList<Integer> nextStates = new ArrayList(); 
+				ArrayList<Double> nextStatesProbs = new ArrayList();
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(i, j); 
+				while(tranIter.hasNext())
+				{
+					Entry<Integer, Double> stateprob = tranIter.next();
+					nextStates.add(stateprob.getKey()); 
+					nextStatesProbs.add(stateprob.getValue()); 
+				}
+				double rewval = rew.getTransitionReward(i, j); 
+				double staterewval = rew.getStateReward(i); 
+				updatedBitSet=addLinkInMDP(rewMDP,mdpMap,mdp.getStatesList(),nextStates,nextStatesProbs,i,mdp.getAction(i, j),"rt:"+rewval+"rs:"+staterewval,updatedBitSet,setToMark);
+			}
+			
+		}
+		
+		return rewMDP;
+	}
+	public static void saveReward(MDPSimple mdp, MDPRewardsSimple rew, BitSet statesToMark, String anotherfolder, String name, boolean saveinsaveplace) {
+		BitSet updatedStatesToMark = new BitSet();
+		MDPSimple rewMDP = mapRewardToMDP(mdp,rew,statesToMark,updatedStatesToMark); 
+		saveMDP(rewMDP,updatedStatesToMark,anotherfolder,name,saveinsaveplace);
+		saveMDPstatra(rewMDP,anotherfolder,name,saveinsaveplace);
 	}
 
 }

@@ -42,6 +42,7 @@ import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import common.IterableBitSet;
+import demos.StatesHelper;
 import explicit.rewards.MCRewards;
 import explicit.rewards.MCRewardsFromMDPRewards;
 import explicit.rewards.MDPRewards;
@@ -1012,7 +1013,11 @@ public class MDPModelChecker extends ProbModelChecker {
 		int strat[] = null;
 		boolean min = false;
 		int numRewards = rewards.size(); 
-
+		
+		
+		boolean debugDetails = true; 
+		int debugGranularity = 2; //1 = fine, 2 okay, 3 coarse  
+		
 		timerGlobal = System.currentTimeMillis();
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
@@ -1173,27 +1178,39 @@ public class MDPModelChecker extends ProbModelChecker {
 		}
 		
 		while (!done && iters < maxIters) {
-//			System.out.println("Iter "+iters);
-//			System.out.println("Prob Values: "+Arrays.toString(solnProb));
-//			for(int rews = 0; rews<numRewards; rews++)
-//			{
-//				System.out.println("Rew "+rews+" Values: "+Arrays.toString(solnReward.get(rews)));
-//			}
-			int pvar1 = 273;
-			int pvar2 = 284; 
-			int pvar3 = 232;
-//			System.out.println(iters+":"+solnProb[pvar1]+","+solnProb[pvar2]+","+solnProb[pvar3]);
-//			System.out.println("S:"+strat[pvar1]+","+strat[pvar2]+","+strat[pvar3]);
+			if(debugDetails && debugGranularity > 0) {
+			System.out.println("Iter "+iters);
+			String str = "Index Number: [";
+			for(int num = 0; num < solnProb.length; num++)
+			{
+			str+=num+"  , ";
+			}
+			System.out.println(str+"]");
+			System.out.println("Prob Values: "+Arrays.toString(solnProb));
+			for(int rews = 0; rews<numRewards; rews++)
+			{
+				System.out.println("Rew "+rews+" Values: "+Arrays.toString(solnReward.get(rews)));
+			}
+			}
+			int pvar1 = 25;
+			int pvar2 = 36; 
+			int pvar3 = 44;
+////			System.out.println(iters+":"+solnProb[pvar1]+","+solnProb[pvar2]+","+solnProb[pvar3]);
+////			System.out.println("S:"+strat[pvar1]+","+strat[pvar2]+","+strat[pvar3]);
 			iters++;
 			done = true;
 			for (i = 0; i < n; i++) {
 				if (!statesToIgnoreForVI.get(i)){//(unknown.get(i)) {
-//					if(i == pvar1 || i == pvar2 || i == pvar3)
-//						mainLog.print("");
+					
+					
+					if(i == pvar1 || i == pvar2 || i == pvar3)
+						mainLog.print("");
 					numChoices = mdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 						currentProbVal = mdp.mvMultJacSingle(i, j, solnProb);
 						for(int rew = 0; rew<numRewards; rew++) {
+//							if(iters > 1000 && rew == 0 && i == 25)
+//								mainLog.print("");
 							currentCost = mdp.mvMultRewSingle(i, j, solnReward.get(rew), rewards.get(rew));
 							if(currentCostVal.size() > rew)
 								currentCostVal.set(rew, currentCost); 
@@ -1234,6 +1251,11 @@ public class MDPModelChecker extends ProbModelChecker {
 									if(firstCheck)
 									{
 										done = false;
+//										if(iters > 1000)
+//										{
+										if(debugDetails && debugGranularity <3)
+											mainLog.println("Changing rew"+rew+":s"+i+"."+j);
+//										}
 										//update 
 										solnProb[i] = currentProbVal; 
 										for(int rews = 0; rews<numRewards; rews++)
@@ -1254,20 +1276,20 @@ public class MDPModelChecker extends ProbModelChecker {
 									
 								}
 							}
-							else // i'm adding this for the bits when the probability has been set to one beforehand and we need to choose something
-							{
-								if(currentProbVal == solnProb[i])
-								{
-									for(int rews = 0; rews<numRewards; rews++)
-									{
-										solnReward.get(rews)[i]=currentCostVal.get(rews);
-									}
-									if (genStrat || exportAdv) {
-										strat[i] = j;
-									}
-									break;
-								}
-							}
+//							else // i'm adding this for the bits when the probability has been set to one beforehand and we need to choose something
+//							{
+//								if(currentProbVal == solnProb[i])
+//								{
+//									for(int rews = 0; rews<numRewards; rews++)
+//									{
+//										solnReward.get(rews)[i]=currentCostVal.get(rews);
+//									}
+//									if (genStrat || exportAdv) {
+//										strat[i] = j;
+//									}
+//									break;
+//								}
+//							}
 						}
 						}
 						else
@@ -1331,6 +1353,18 @@ public class MDPModelChecker extends ProbModelChecker {
 					}
 				}
 			}
+			
+			if (iters == 10000) {
+				mainLog.print("");
+			}
+			
+			if(debugDetails) {
+				if ((debugGranularity == 2 && (iters)%1000==1) || (debugGranularity == 1) || (debugGranularity < 3 && iters == maxIters-1)) {
+//			//print this strategy so we can debug 
+			 MDStrategyArray tempStrat = new MDStrategyArray(mdp, strat);
+			 StatesHelper.saveStrategy(tempStrat, target, "", "strat"+iters, true);
+			}
+			}
 		}
 
 		// Finished value iteration
@@ -1344,7 +1378,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		// Non-convergence is an error (usually)
 		if (!done && errorOnNonConverge) {
 			String msg = "Iterative method did not converge within " + iters + " iterations.";
-			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+ 			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
 			throw new PrismException(msg);
 		}
 

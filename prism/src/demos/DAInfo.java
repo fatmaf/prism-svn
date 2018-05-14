@@ -1,5 +1,6 @@
 package demos;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Vector;
 
@@ -38,6 +39,39 @@ public class DAInfo {
 	public MDPRewardsSimple costsModel = null;
 	PrismLog mainLog; 
 
+
+	public DAInfo(DAInfo other)
+	{
+		if(other.productAcceptingStates!=null)
+		{
+			this.productAcceptingStates=(BitSet)other.productAcceptingStates.clone();
+		}
+		if(other.essentialStates!=null)
+		{
+			this.essentialStates=(BitSet)other.essentialStates.clone();
+		}
+		this.isSafeExpr = other.isSafeExpr; 
+		if(other.da!=null)
+		{
+			this.da = other.da;
+		}
+		this.daExpr = other.daExpr; 
+		this.daExprRew = other.daExprRew; 
+		if(other.labelBS!=null)
+		{
+			this.labelBS = new Vector<BitSet>(); 
+			for(int labels = 0; labels < other.labelBS.size(); labels++)
+			{
+				this.labelBS.add((BitSet)other.labelBS.get(labels).clone()); 
+			}
+		}
+		if(other.costsModel != null)
+		{
+			this.costsModel = new MDPRewardsSimple(other.costsModel);
+		}
+		this.mainLog = other.mainLog;
+	}
+	
 	public DAInfo(PrismLog log, Expression expr) {
 //		this.stapu = stapu;
 		initializeDAInfo(expr);
@@ -53,6 +87,8 @@ public class DAInfo {
 		} else
 			initializeDAInfo(expr);
 	}
+	
+
 
 	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL,
 			ProbModelChecker mcProb, AcceptanceType[] accType, M model, BitSet statesOfInterest,
@@ -121,6 +157,8 @@ public class DAInfo {
 			// but its okay we can do this later
 			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
 		}
+		mainLog.println("Product Model Initial States "+product.getProductModel().getFirstInitialState()+
+				" "+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
 		return product;
 	}
 
@@ -129,23 +167,23 @@ public class DAInfo {
 		// check if an accepting state is connected to a non accepting state
 		// basically I want a bitset of all the edges and and it with !(accepting
 		// states), if its not null I know
-		BitSet accs = productAcceptingStates;
-		int numstates = prod.getNumStates();
 
-		BitSet accsCopy = (BitSet) accs.clone();
-		essentialStates = new BitSet(numstates);
+		BitSet accs = productAcceptingStates;			//the accepting states for this da only 
+		int numstates = prod.getNumStates();			//get the number of states
+
+		BitSet accsCopy = (BitSet) accs.clone();		//make a copy 
+		essentialStates = new BitSet(numstates);		//new essential states
 		int setbit = -1;
-		for (int s = 0; s < numstates; s++) {
-			if (!accs.get(s)) // if not an accepting state
+		for (int s = 0; s < numstates; s++) {			//loop over all states 
+			if (!accs.get(s)) 							// if not an accepting state
 			{
-				// if(prod.someSuccessorsInSet(s, accs)) //check if any accepting state is in
-				// the succ set
-				setbit = accsCopy.nextSetBit(0);
+				setbit = accsCopy.nextSetBit(0);		//get the first accepting state
 
-				while (setbit != -1) {
-					if (prod.isSuccessor(s, setbit)) {
-						essentialStates.set(setbit);
-						accsCopy.clear(setbit);
+				while (setbit != -1) {					//loop over all accepting states
+					if (prod.isSuccessor(s, setbit)) {	//check if this accepting state is a successor of s (which is a non accepting state)
+						essentialStates.set(setbit);	//if so then its an essential state 
+						accsCopy.clear(setbit);			//remove this accepting state from copy [do we need to do this ??? - yes cuz its checked ? 
+						
 					}
 
 					setbit = accsCopy.nextSetBit(setbit + 1);

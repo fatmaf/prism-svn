@@ -1,0 +1,55 @@
+//unsatisfiable specification 
+
+
+mdp 
+
+    const int failstate = -1; 
+
+    const double p = 0.8; 
+
+    const int maxstate = 7;
+
+module world 
+
+       s:[failstate .. maxstate] init 0;
+
+       [v0_12] (s=0) -> 0.5:(s'=1)+0.5:(s'=2); 
+       [v0_16] (s=0) -> 0.5:(s'=1)+0.5:(s'=6); 
+       [v1_5] (s=1) -> (s'=5);
+       [v5_3] (s=5) -> p:(s'=3)+(1-p):(s'=failstate); 
+       [v2_3] (s=2) -> (s'=3); 
+       [v3_4] (s=3) -> (s'=4); 
+       [v4_7] (s=4) -> (s'=7); 
+       [v6_4] (s=6) -> p:(s'=4)+(1-p):(s'=failstate);
+       [v7_0] (s=7) -> p:(s'=failstate)+(1-p):(s'=0); 
+
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+label "v4" = s=4; 
+label "v5" = s=5; 
+label "v6" = s=6; 
+label "v7" = s=7; 
+
+label "fail" = s=failstate;  
+
+rewards "unitCost"
+
+
+       [v0_12] (s=0) : 1.0;//0.5:(s'=1)+0.5:(s'=2); 
+       [v0_16] (s=0) : 1.0;//0.5:(s'=1)+0.5:(s'=6); 
+       [v1_5] (s=1) : 1.0;//(s'=5);
+       [v5_3] (s=5) : 1.0;//p:(s'=3)+(1-p):(s'=failstate); 
+       [v2_3] (s=2) : 1.0;//(s'=3); 
+       [v3_4] (s=3) : 1.0;//(s'=4); 
+       [v4_7] (s=4) : 1.0;//(s'=7); 
+       [v6_4] (s=6) : 1.0;//p:(s'=4)+(1-p):(s'=failstate);
+       [v7_0] (s=7) : 1.0;//p:(s'=failstate)+(1-p):(s'=0); 
+
+
+
+endrewards
