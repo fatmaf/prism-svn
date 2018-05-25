@@ -1,0 +1,147 @@
+mdp
+ 
+module M 
+ 
+location:[0..21] init 0;
+holding_n_coffees:[0..2] init 0;
+checked_if_coffee6:[0..1] init 0;
+want_coffee6:[0..1] init 0;
+delivered_coffee6:[0..1] init 0;
+checked_if_coffee7:[0..1] init 0;
+want_coffee7:[0..1] init 0;
+delivered_coffee7:[0..1] init 0;
+checked_if_coffee11:[0..1] init 0;
+want_coffee11:[0..1] init 0;
+delivered_coffee11:[0..1] init 0;
+checked_for_info6:[0..1] init 0;
+checked_for_info10:[0..1] init 0;
+checked_for_info7:[0..1] init 0;
+checked_for_info11:[0..1] init 0;
+clock_time:[0..2340] init 0;
+
+[get1coffee] (location=1) & (holding_n_coffees=0) & (clock_time < 1800) -> 0.4:(holding_n_coffees'=1) & (clock_time' = clock_time + 60) + 0.3:(holding_n_coffees'=1) & (clock_time' = clock_time + 180) + 0.3:(holding_n_coffees'=1) & (clock_time' = clock_time + 360);
+[get1coffee] (location=1) & (holding_n_coffees=1) & (clock_time < 1800) -> 0.4:(holding_n_coffees'=2) & (clock_time' = clock_time + 60) + 0.3:(holding_n_coffees'=2) & (clock_time' = clock_time + 180) + 0.3:(holding_n_coffees'=2) & (clock_time' = clock_time + 360);
+[get2coffees] (location=1) & (holding_n_coffees=0) & (clock_time < 1800) -> 0.4:(holding_n_coffees'=2) & (clock_time' = clock_time + 90) + 0.3:(holding_n_coffees'=2) & (clock_time' = clock_time + 270) + 0.3:(holding_n_coffees'=2) & (clock_time' = clock_time + 540);
+[move01] (location=0) & (clock_time < 1800) -> 0.8:(location'=1) & (clock_time' = clock_time + 15) + 0.2:(location'=1) & (clock_time' = clock_time + 90);
+[move02] (location=0) & (clock_time < 1800) -> 0.8:(location'=2) & (clock_time' = clock_time + 15) + 0.2:(location'=2) & (clock_time' = clock_time + 90);
+[move10] (location=1) & (clock_time < 1800) -> 0.8:(location'=0) & (clock_time' = clock_time + 15) + 0.2:(location'=0) & (clock_time' = clock_time + 90);
+[move20] (location=2) & (clock_time < 1800) -> 0.8:(location'=0) & (clock_time' = clock_time + 15) + 0.2:(location'=0) & (clock_time' = clock_time + 90);
+[move03] (location=0) & (clock_time < 1800) -> 0.8:(location'=3) & (clock_time' = clock_time + 15) + 0.2:(location'=3) & (clock_time' = clock_time + 90);
+[move30] (location=3) & (clock_time < 1800) -> 0.8:(location'=0) & (clock_time' = clock_time + 15) + 0.2:(location'=0) & (clock_time' = clock_time + 90);
+[move012] (location=0) & (clock_time < 1800) -> 0.8:(location'=12) & (clock_time' = clock_time + 15) + 0.2:(location'=12) & (clock_time' = clock_time + 90);
+[move120] (location=12) & (clock_time < 1800) -> 0.8:(location'=0) & (clock_time' = clock_time + 15) + 0.2:(location'=0) & (clock_time' = clock_time + 90);
+[move34] (location=3) & (clock_time < 1800) -> 1.0:(location'=4) & (clock_time' = clock_time + 20);
+[move37] (location=3) & (clock_time < 1800) -> 1.0:(location'=7) & (clock_time' = clock_time + 20);
+[move73] (location=7) & (clock_time < 1800) -> 1.0:(location'=3) & (clock_time' = clock_time + 20);
+[move36] (location=3) & (clock_time < 1800) -> 1.0:(location'=6) & (clock_time' = clock_time + 20);
+[move63] (location=6) & (clock_time < 1800) -> 1.0:(location'=3) & (clock_time' = clock_time + 20);
+[move43] (location=4) & (clock_time < 1800) -> 1.0:(location'=3) & (clock_time' = clock_time + 20);
+[move45] (location=4) & (clock_time < 1800) -> 1.0:(location'=5) & (clock_time' = clock_time + 20);
+[move49] (location=4) & (clock_time < 1800) -> 1.0:(location'=9) & (clock_time' = clock_time + 20);
+[move94] (location=9) & (clock_time < 1800) -> 1.0:(location'=4) & (clock_time' = clock_time + 20);
+[move48] (location=4) & (clock_time < 1800) -> 1.0:(location'=8) & (clock_time' = clock_time + 20);
+[move84] (location=8) & (clock_time < 1800) -> 1.0:(location'=4) & (clock_time' = clock_time + 20);
+[move54] (location=5) & (clock_time < 1800) -> 1.0:(location'=4) & (clock_time' = clock_time + 20);
+[move511] (location=5) & (clock_time < 1800) -> 1.0:(location'=11) & (clock_time' = clock_time + 20);
+[move115] (location=11) & (clock_time < 1800) -> 1.0:(location'=5) & (clock_time' = clock_time + 20);
+[move510] (location=5) & (clock_time < 1800) -> 1.0:(location'=10) & (clock_time' = clock_time + 20);
+[move105] (location=10) & (clock_time < 1800) -> 1.0:(location'=5) & (clock_time' = clock_time + 20);
+[move1213] (location=12) & (clock_time < 1800) -> 1.0:(location'=13) & (clock_time' = clock_time + 20);
+[move1216] (location=12) & (clock_time < 1800) -> 1.0:(location'=16) & (clock_time' = clock_time + 20);
+[move1612] (location=16) & (clock_time < 1800) -> 1.0:(location'=12) & (clock_time' = clock_time + 20);
+[move1215] (location=12) & (clock_time < 1800) -> 1.0:(location'=15) & (clock_time' = clock_time + 20);
+[move1512] (location=15) & (clock_time < 1800) -> 1.0:(location'=12) & (clock_time' = clock_time + 20);
+[move1312] (location=13) & (clock_time < 1800) -> 1.0:(location'=12) & (clock_time' = clock_time + 20);
+[move1314] (location=13) & (clock_time < 1800) -> 1.0:(location'=14) & (clock_time' = clock_time + 20);
+[move1318] (location=13) & (clock_time < 1800) -> 1.0:(location'=18) & (clock_time' = clock_time + 20);
+[move1813] (location=18) & (clock_time < 1800) -> 1.0:(location'=13) & (clock_time' = clock_time + 20);
+[move1317] (location=13) & (clock_time < 1800) -> 1.0:(location'=17) & (clock_time' = clock_time + 20);
+[move1713] (location=17) & (clock_time < 1800) -> 1.0:(location'=13) & (clock_time' = clock_time + 20);
+[move1413] (location=14) & (clock_time < 1800) -> 1.0:(location'=13) & (clock_time' = clock_time + 20);
+[move1420] (location=14) & (clock_time < 1800) -> 1.0:(location'=20) & (clock_time' = clock_time + 20);
+[move2014] (location=20) & (clock_time < 1800) -> 1.0:(location'=14) & (clock_time' = clock_time + 20);
+[move1419] (location=14) & (clock_time < 1800) -> 1.0:(location'=19) & (clock_time' = clock_time + 20);
+[move1914] (location=19) & (clock_time < 1800) -> 1.0:(location'=14) & (clock_time' = clock_time + 20);
+[ask_if_coffee6] (location=6) & (checked_if_coffee6=0) & (clock_time < 1800) -> 0.8:(want_coffee6'=1) & (checked_if_coffee6'=1) & (clock_time' = clock_time + 20) + 0.2:(want_coffee6'=0) & (checked_if_coffee6'=1) & (clock_time' = clock_time + 20);
+[deliver_coffee26] (want_coffee6=1) & (location=6) & (delivered_coffee6=0) & (holding_n_coffees=2) & (clock_time < 1800) -> 0.8:(holding_n_coffees'=1) & (delivered_coffee6'=1) & (clock_time' = clock_time + 20) + 0.2:(holding_n_coffees'=1) & (delivered_coffee6'=1) & (clock_time' = clock_time + 60);
+[deliver_coffee16] (want_coffee6=1) & (location=6) & (delivered_coffee6=0) & (holding_n_coffees=1) & (clock_time < 1800) -> 0.8:(holding_n_coffees'=0) & (delivered_coffee6'=1) & (clock_time' = clock_time + 20) + 0.2:(holding_n_coffees'=0) & (delivered_coffee6'=1) & (clock_time' = clock_time + 60);
+[ask_if_coffee7] (location=7) & (checked_if_coffee7=0) & (clock_time < 1800) -> 0.8:(want_coffee7'=1) & (checked_if_coffee7'=1) & (clock_time' = clock_time + 20) + 0.2:(want_coffee7'=0) & (checked_if_coffee7'=1) & (clock_time' = clock_time + 20);
+[deliver_coffee27] (delivered_coffee7=0) & (want_coffee7=1) & (location=7) & (holding_n_coffees=2) & (clock_time < 1800) -> 0.8:(holding_n_coffees'=1) & (delivered_coffee7'=1) & (clock_time' = clock_time + 20) + 0.2:(holding_n_coffees'=1) & (delivered_coffee7'=1) & (clock_time' = clock_time + 60);
+[deliver_coffee17] (delivered_coffee7=0) & (want_coffee7=1) & (location=7) & (holding_n_coffees=1) & (clock_time < 1800) -> 0.8:(holding_n_coffees'=0) & (delivered_coffee7'=1) & (clock_time' = clock_time + 20) + 0.2:(holding_n_coffees'=0) & (delivered_coffee7'=1) & (clock_time' = clock_time + 60);
+[ask_if_coffee11] (checked_if_coffee11=0) & (location=11) & (clock_time < 1800) -> 0.8:(checked_if_coffee11'=1) & (want_coffee11'=1) & (clock_time' = clock_time + 20) + 0.2:(checked_if_coffee11'=1) & (want_coffee11'=0) & (clock_time' = clock_time + 20);
+[deliver_coffee211] (delivered_coffee11=0) & (location=11) & (want_coffee11=1) & (holding_n_coffees=2) & (clock_time < 1800) -> 0.8:(delivered_coffee11'=1) & (holding_n_coffees'=1) & (clock_time' = clock_time + 20) + 0.2:(delivered_coffee11'=1) & (holding_n_coffees'=1) & (clock_time' = clock_time + 60);
+[deliver_coffee111] (delivered_coffee11=0) & (location=11) & (want_coffee11=1) & (holding_n_coffees=1) & (clock_time < 1800) -> 0.8:(delivered_coffee11'=1) & (holding_n_coffees'=0) & (clock_time' = clock_time + 20) + 0.2:(delivered_coffee11'=1) & (holding_n_coffees'=0) & (clock_time' = clock_time + 60);
+[check_info6] (location=6) & (checked_for_info6=0) & (clock_time < 1800) -> 0.8:(checked_for_info6'=1) & (clock_time' = clock_time + 20) + 0.2:(checked_for_info6'=1) & (clock_time' = clock_time + 60);
+[check_info10] (checked_for_info10=0) & (location=10) & (clock_time < 1800) -> 0.8:(checked_for_info10'=1) & (clock_time' = clock_time + 20) + 0.2:(checked_for_info10'=1) & (clock_time' = clock_time + 60);
+[check_info7] (checked_for_info7=0) & (location=7) & (clock_time < 1800) -> 0.8:(checked_for_info7'=1) & (clock_time' = clock_time + 20) + 0.2:(checked_for_info7'=1) & (clock_time' = clock_time + 60);
+[check_info11] (checked_for_info11=0) & (location=11) & (clock_time < 1800) -> 0.8:(checked_for_info11'=1) & (clock_time' = clock_time + 20) + 0.2:(checked_for_info11'=1) & (clock_time' = clock_time + 60);
+
+endmodule
+
+label "in_time" = clock_time < 1800;
+
+rewards "info"
+   [check_info6] (location=6) & (checked_for_info6=0) & (clock_time < 1800):10;
+   [check_info10] (checked_for_info10=0) & (location=10) & (clock_time < 1800):10;
+   [check_info7] (checked_for_info7=0) & (location=7) & (clock_time < 1800):10;
+   [check_info11] (checked_for_info11=0) & (location=11) & (clock_time < 1800):10;
+endrewards
+
+rewards "time"
+   [get1coffee] (location=1) & (holding_n_coffees=0) & (clock_time < 1800):186.0;
+   [get1coffee] (location=1) & (holding_n_coffees=1) & (clock_time < 1800):186.0;
+   [get2coffees] (location=1) & (holding_n_coffees=0) & (clock_time < 1800):279.0;
+   [move01] (location=0) & (clock_time < 1800):30.0;
+   [move02] (location=0) & (clock_time < 1800):30.0;
+   [move10] (location=1) & (clock_time < 1800):30.0;
+   [move20] (location=2) & (clock_time < 1800):30.0;
+   [move03] (location=0) & (clock_time < 1800):30.0;
+   [move30] (location=3) & (clock_time < 1800):30.0;
+   [move012] (location=0) & (clock_time < 1800):30.0;
+   [move120] (location=12) & (clock_time < 1800):30.0;
+   [move34] (location=3) & (clock_time < 1800):20.0;
+   [move37] (location=3) & (clock_time < 1800):20.0;
+   [move73] (location=7) & (clock_time < 1800):20.0;
+   [move36] (location=3) & (clock_time < 1800):20.0;
+   [move63] (location=6) & (clock_time < 1800):20.0;
+   [move43] (location=4) & (clock_time < 1800):20.0;
+   [move45] (location=4) & (clock_time < 1800):20.0;
+   [move49] (location=4) & (clock_time < 1800):20.0;
+   [move94] (location=9) & (clock_time < 1800):20.0;
+   [move48] (location=4) & (clock_time < 1800):20.0;
+   [move84] (location=8) & (clock_time < 1800):20.0;
+   [move54] (location=5) & (clock_time < 1800):20.0;
+   [move511] (location=5) & (clock_time < 1800):20.0;
+   [move115] (location=11) & (clock_time < 1800):20.0;
+   [move510] (location=5) & (clock_time < 1800):20.0;
+   [move105] (location=10) & (clock_time < 1800):20.0;
+   [move1213] (location=12) & (clock_time < 1800):20.0;
+   [move1216] (location=12) & (clock_time < 1800):20.0;
+   [move1612] (location=16) & (clock_time < 1800):20.0;
+   [move1215] (location=12) & (clock_time < 1800):20.0;
+   [move1512] (location=15) & (clock_time < 1800):20.0;
+   [move1312] (location=13) & (clock_time < 1800):20.0;
+   [move1314] (location=13) & (clock_time < 1800):20.0;
+   [move1318] (location=13) & (clock_time < 1800):20.0;
+   [move1813] (location=18) & (clock_time < 1800):20.0;
+   [move1317] (location=13) & (clock_time < 1800):20.0;
+   [move1713] (location=17) & (clock_time < 1800):20.0;
+   [move1413] (location=14) & (clock_time < 1800):20.0;
+   [move1420] (location=14) & (clock_time < 1800):20.0;
+   [move2014] (location=20) & (clock_time < 1800):20.0;
+   [move1419] (location=14) & (clock_time < 1800):20.0;
+   [move1914] (location=19) & (clock_time < 1800):20.0;
+   [ask_if_coffee6] (location=6) & (checked_if_coffee6=0) & (clock_time < 1800):20.0;
+   [deliver_coffee26] (want_coffee6=1) & (location=6) & (delivered_coffee6=0) & (holding_n_coffees=2) & (clock_time < 1800):28.0;
+   [deliver_coffee16] (want_coffee6=1) & (location=6) & (delivered_coffee6=0) & (holding_n_coffees=1) & (clock_time < 1800):28.0;
+   [ask_if_coffee7] (location=7) & (checked_if_coffee7=0) & (clock_time < 1800):20.0;
+   [deliver_coffee27] (delivered_coffee7=0) & (want_coffee7=1) & (location=7) & (holding_n_coffees=2) & (clock_time < 1800):28.0;
+   [deliver_coffee17] (delivered_coffee7=0) & (want_coffee7=1) & (location=7) & (holding_n_coffees=1) & (clock_time < 1800):28.0;
+   [ask_if_coffee11] (checked_if_coffee11=0) & (location=11) & (clock_time < 1800):20.0;
+   [deliver_coffee211] (delivered_coffee11=0) & (location=11) & (want_coffee11=1) & (holding_n_coffees=2) & (clock_time < 1800):28.0;
+   [deliver_coffee111] (delivered_coffee11=0) & (location=11) & (want_coffee11=1) & (holding_n_coffees=1) & (clock_time < 1800):28.0;
+   [check_info6] (location=6) & (checked_for_info6=0) & (clock_time < 1800):28.0;
+   [check_info10] (checked_for_info10=0) & (location=10) & (clock_time < 1800):28.0;
+   [check_info7] (checked_for_info7=0) & (location=7) & (clock_time < 1800):28.0;
+   [check_info11] (checked_for_info11=0) & (location=11) & (clock_time < 1800):28.0;
+endrewards

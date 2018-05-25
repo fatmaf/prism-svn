@@ -1,1 +1,2 @@
-multi(Pmax=?[ F loc=4 ], R{"human_cost"}min=? [ C ])
+//multi(Pmax=?[ F loc=4 ], R{"human_cost"}min=? [ C ])
+Pmax=?[ F loc=4 ]
