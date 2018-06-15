@@ -473,7 +473,7 @@ public final class BRTDP extends PrismComponent
 				return succs.get(i);
 			}
 		}
-		System.out.println("FODA_SE");
+		//System.out.println("FODA_SE");
 		return null;
 	}
 	
@@ -599,22 +599,24 @@ public final class BRTDP extends PrismComponent
 
 		List<String> boundNames = new ArrayList<String>();
 		boundNames.add("acc");
-		//boundNames.add("acc");
-		//boundNames.add("prog");
-		//boundNames.add("prog");
+		boundNames.add("acc");
+		boundNames.add("prog");
+		boundNames.add("prog");
 		List<Boolean> useUb = new ArrayList<Boolean>();
 		useUb.add(true);
-	//	useUb.add(false);
-		//useUb.add(true);
-		//useUb.add(false);
+		useUb.add(false);
+		useUb.add(true);
+		useUb.add(false);
 		// Explore...
 		nOuterIters = 0;
 		while (!stop) {
 			nOuterIters++;
-			System.out.println(nOuterIters);
+			if (nOuterIters % 100 == 1) {
+				System.out.println(nOuterIters);
+			}
 			sstate = startSstate;
 			nInnerIters = 0;
-			while ((!sstate.isSolved() && nInnerIters < 1000) || (nInnerIters < 1)) {
+			while ((!sstate.isSolved() && nInnerIters < 100000) || (nInnerIters < 1)) {
 				//System.out.println(sstate);
 				if(!sstate.isExpanded()) {
 					expand(sstate);
@@ -626,7 +628,7 @@ public final class BRTDP extends PrismComponent
 					bestActionIndex = bestActionIndices.get(randomGen.nextInt(bestActionIndices.size()));
 					stateActionIndexPair = new Pair<SearchState, Integer>(sstate, bestActionIndex);
 					toBackupStack.addFirst(stateActionIndexPair);
-					//doBellmanBackup(sstate, action);
+					//doBellmanBackup(sstate, bestActionIndex);
 					if (!sstate.isSolved() || nInnerIters < 1) {
 						sstate = sampleSucc(sstate, bestActionIndex);
 						if (sstate == null) {
@@ -668,8 +670,8 @@ public final class BRTDP extends PrismComponent
 		
 		
 		List<String> boundNames = new ArrayList<String>();
-		//boundNames.add("acc");
-		boundNames.add("prog");
+		boundNames.add("acc");
+		//boundNames.add("prog");
 		List<Boolean> useUb = new ArrayList<Boolean>();
 		//useUb.add(false);
 		useUb.add(false);

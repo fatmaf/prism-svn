@@ -1,0 +1,3 @@
+Pmax=? [ (F ((checked_if_coffee6=1) & (checked_if_coffee7=1) & (checked_if_coffee11=1) & ((want_coffee6=1) => (F (delivered_coffee6=1))) & ((want_coffee7=1) => (F (delivered_coffee7=1))) & ((want_coffee11=1) => (F (delivered_coffee11=1))))) ]
+
+//(holding_n_coffees=0) & 

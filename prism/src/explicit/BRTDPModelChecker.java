@@ -228,10 +228,15 @@ public class BRTDPModelChecker extends PrismComponent
 			BRTDP brtdp = new BRTDP(this, prodModelGen, da.calculateDistsToState(i), sinkStates, 10, 10, false, null);
 			for (State initState : prodModelGen.getInitialStates()) {
 				brtdp.doSearch(initState);
+				//MDP mdp = brtdp.getGreedyPolicy(false);
 				MDP mdp = brtdp.getMdp();
+				State aux = mdp.getStatesList().get(mdp.getFirstInitialState());
 				BitSet accModel = findAccStates(mdp, da);
 				ModelCheckerResult checkRes = checkReachability(mdp, accModel);
 				double reachProb = checkRes.soln[0];
+				System.out.println("CONVERGED");
+				System.out.println(reachProb);
+				/*
 				for (int j = accModel.nextSetBit(0); j >= 0; j = accModel.nextSetBit(j + 1)) {
 					SearchState state = (SearchState)mdp.getStatesList().get(j);
 					state.configureAccForSearch();
@@ -239,11 +244,16 @@ public class BRTDPModelChecker extends PrismComponent
 					int daVal = (int)state.varValues[state.varValues.length-1];
 					brtdp.doSearch(state);
 				}
+				*/
 			}
 			MDP mdp = brtdp.getMdp();
+			MDP policy = brtdp.getGreedyPolicy(false);
 			System.out.println("MDP num states: " + mdp.getNumStates());
-			mdp.exportToDotFile("/home/bruno/Desktop/policy_brtdp.dot");
+			mdp.exportToDotFile("/home/bruno/Desktop/mdp_brtdp.dot");
+			policy.exportToDotFile("/home/bruno/Desktop/policy_brtdp.dot");
 			StateValues res = checkResult(mdp, expr);
+			System.out.println("PROB:" + res.valuesD[0]);
+			res = checkResult(policy, expr);
 			System.out.println("PROB:" + res.valuesD[0]);
 		}
 		
