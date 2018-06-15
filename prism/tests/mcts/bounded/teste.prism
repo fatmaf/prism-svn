@@ -1,0 +1,33 @@
+mdp
+ 
+const int h=10;
+const double p=0.0;
+ 
+module M 
+ 
+location:[-1..10] init 1;
+t:[0..h] init 0;
+
+[move01] (location=0) & (t < h) -> 0.8:(location'=1) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move10] (location=1) & (t < h) -> 0.8:(location'=0) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move12] (location=1) & (t < h) -> 0.8:(location'=2) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move21] (location=2) & (t < h) -> 0.8:(location'=1) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move23] (location=2) & (t < h) -> 0.8:(location'=3) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move32] (location=3) & (t < h) -> 0.8:(location'=2) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move34] (location=3) & (t < h) -> 0.8:(location'=4) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move43] (location=4) & (t < h) -> 0.8:(location'=3) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move45] (location=4) & (t < h) -> 0.8:(location'=5) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move54] (location=5) & (t < h) -> 0.8:(location'=4) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move56] (location=5) & (t < h) -> 0.8:(location'=6) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move65] (location=6) & (t < h) -> 0.8:(location'=5) & (t' = t + 1) + 0.2:(location'=-1) & (t' = t + 1);
+[move17] (location=1) & (t < h) -> (1.0-p):(location'=7) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move71] (location=7) & (t < h) -> (1.0-p):(location'=1) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move78] (location=7) & (t < h) -> (1.0-p):(location'=8) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move87] (location=8) & (t < h) -> (1.0-p):(location'=7) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move89] (location=8) & (t < h) -> (1.0-p):(location'=9) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move98] (location=9) & (t < h) -> (1.0-p):(location'=8) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move910] (location=9) & (t < h) -> (1.0-p):(location'=10) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+[move109] (location=10) & (t < h) -> (1.0-p):(location'=9) & (t' = t + 1) + p:(location'=-1) & (t' = t + 1);
+
+endmodule
+

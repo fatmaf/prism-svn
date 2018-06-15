@@ -18,80 +18,57 @@ rob_con:[0..1] init 1;
 [give_control] (rob_con=1) -> 1.0:(rob_con'=0);
 
 [hmove01] (loc = 0) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=1) + 0.4:(loc'=-1);
+[hmove10] (loc = 1) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=0) + 0.4:(loc'=-1);
 [hmove12] (loc = 1) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=2) + 0.4:(loc'=-1);
+[hmove21] (loc = 2) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=1) + 0.4:(loc'=-1);
 [hmove23] (loc = 2) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=3) + 0.4:(loc'=-1);
+[hmove32] (loc = 3) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=2) + 0.4:(loc'=-1);
 [hmove34] (loc = 3) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=4) + 0.4:(loc'=-1);
+[hmove43] (loc = 4) & (rob_con = 0) & (human_level = 0) -> 0.6:(loc'=3) + 0.4:(loc'=-1);
 
 [hmove01] (loc = 0) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=1) + 0.2:(loc'=-1);
+[hmove10] (loc = 1) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=0) + 0.2:(loc'=-1);
 [hmove12] (loc = 1) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=2) + 0.2:(loc'=-1);
+[hmove21] (loc = 2) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=1) + 0.2:(loc'=-1);
 [hmove23] (loc = 2) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=3) + 0.2:(loc'=-1);
+[hmove32] (loc = 3) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=2) + 0.2:(loc'=-1);
 [hmove34] (loc = 3) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=4) + 0.2:(loc'=-1);
+[hmove43] (loc = 4) & (rob_con = 0) & (human_level = 1) -> 0.8:(loc'=3) + 0.2:(loc'=-1);
 
 [hmove01] (loc = 0) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=1) + 0.0:(loc'=-1);
+[hmove10] (loc = 1) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=0) + 0.0:(loc'=-1);
 [hmove12] (loc = 1) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=2) + 0.0:(loc'=-1);
+[hmove21] (loc = 2) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=1) + 0.0:(loc'=-1);
 [hmove23] (loc = 2) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=3) + 0.0:(loc'=-1);
+[hmove32] (loc = 3) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=2) + 0.0:(loc'=-1);
 [hmove34] (loc = 3) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=4) + 0.0:(loc'=-1);
+[hmove43] (loc = 4) & (rob_con = 0) & (human_level = 2) -> 1.0:(loc'=3) + 0.0:(loc'=-1);
 
 endmodule
 
 
-module human_power
+module human_performance
 
 human_level:[0..2] init 2;
 
-[move01] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move10] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move12] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move21] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move23] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move32] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move34] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-[move43] (human_level < 2) -> 0.1:(human_level' = human_level + 1) + 0.9:(human_level' = human_level);
-
-[hmove01] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove12] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove23] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove34] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-
-[hmove01] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove12] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove23] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove34] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-
-[hmove01] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove12] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove23] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
-[hmove34] (human_level > 0) -> 0.1:(human_level' = human_level - 1) + 0.9:(human_level' = human_level);
+[move01] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move10] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move12] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move21] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move23] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move32] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move34] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
+[move43] (rob_con = 1) -> 0.1:(human_level' = min(2, human_level + 1)) + 0.9:(human_level' = human_level);
 
 
-
-
-[move01] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move10] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move12] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move21] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move23] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move32] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move34] (human_level = 2) -> 1.0:(human_level' = human_level);
-[move43] (human_level = 2) -> 1.0:(human_level' = human_level);
-
-[hmove01] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove12] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove23] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove34] (human_level = 0) -> 1.0:(human_level' = human_level);
-
-[hmove01] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove12] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove23] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove34] (human_level = 0) -> 1.0:(human_level' = human_level);
-
-[hmove01] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove12] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove23] (human_level = 0) -> 1.0:(human_level' = human_level);
-[hmove34] (human_level = 0) -> 1.0:(human_level' = human_level);
-
-
-
+[hmove01] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove10] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove12] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove21] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove23] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove32] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove34] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
+[hmove43] (rob_con = 0) -> 0.1:(human_level' = max(human_level - 1, 0)) + 0.9:(human_level' = human_level);
 
 endmodule
 
@@ -99,21 +76,33 @@ endmodule
 rewards "human_cost"
 
 [hmove01] (human_level = 0):1.0;
+[hmove10] (human_level = 0):1.0;
 [hmove12] (human_level = 0):1.0;
+[hmove21] (human_level = 0):1.0;
 [hmove23] (human_level = 0):1.0;
+[hmove32] (human_level = 0):1.0;
 [hmove34] (human_level = 0):1.0;
+[hmove43] (human_level = 0):1.0;
 
 
 [hmove01] (human_level = 1):1.0;
+[hmove10] (human_level = 1):1.0;
 [hmove12] (human_level = 1):1.0;
+[hmove21] (human_level = 1):1.0;
 [hmove23] (human_level = 1):1.0;
+[hmove32] (human_level = 1):1.0;
 [hmove34] (human_level = 1):1.0;
+[hmove43] (human_level = 1):1.0;
 
 
 [hmove01] (human_level = 2):1.0;
+[hmove10] (human_level = 2):1.0;
 [hmove12] (human_level = 2):1.0;
+[hmove21] (human_level = 2):1.0;
 [hmove23] (human_level = 2):1.0;
+[hmove32] (human_level = 2):1.0;
 [hmove34] (human_level = 2):1.0;
+[hmove43] (human_level = 2):1.0;
 
 endrewards
 

@@ -1,0 +1,48 @@
+mdp
+
+const double p;
+
+module robot
+
+loc:[-1..4] init 0;
+rob_con:[0..1] init 1;
+
+[move01] (loc = 0) & (rob_con = 1) -> 0.7:(loc'=1) + 0.3:(loc'=-1);
+[move10] (loc = 1) & (rob_con = 1) -> 0.7:(loc'=0) + 0.3:(loc'=-1);
+[move12] (loc = 1) & (rob_con = 1) -> 0.7:(loc'=2) + 0.3:(loc'=-1);
+[move21] (loc = 2) & (rob_con = 1) -> 0.7:(loc'=1) + 0.3:(loc'=-1);
+[move23] (loc = 2) & (rob_con = 1) -> 0.7:(loc'=3) + 0.3:(loc'=-1);
+[move32] (loc = 3) & (rob_con = 1) -> 0.7:(loc'=2) + 0.3:(loc'=-1);
+[move34] (loc = 3) & (rob_con = 1) -> 0.7:(loc'=4) + 0.3:(loc'=-1);
+[move43] (loc = 4) & (rob_con = 1) -> 0.7:(loc'=3) + 0.3:(loc'=-1);
+
+[take_control] (rob_con=0) -> 1.0:(rob_con'=1);
+[give_control] (rob_con=1) -> 1.0:(rob_con'=0);
+
+
+[hmove01] (loc = 0) & (rob_con = 0) -> p:(loc'=1) + 1-p:(loc'=-1);
+[hmove10] (loc = 1) & (rob_con = 0) -> p:(loc'=0) + 1-p:(loc'=-1);
+[hmove12] (loc = 1) & (rob_con = 0) -> p:(loc'=2) + 1-p:(loc'=-1);
+[hmove21] (loc = 2) & (rob_con = 0) -> p:(loc'=1) + 1-p:(loc'=-1);
+[hmove23] (loc = 2) & (rob_con = 0) -> p:(loc'=3) + 1-p:(loc'=-1);
+[hmove32] (loc = 3) & (rob_con = 0) -> p:(loc'=2) + 1-p:(loc'=-1);
+[hmove34] (loc = 3) & (rob_con = 0) -> p:(loc'=4) + 1-p:(loc'=-1);
+[hmove43] (loc = 4) & (rob_con = 0) -> p:(loc'=3) + 1-p:(loc'=-1);
+
+endmodule
+
+
+rewards "human_cost"
+
+[hmove01] (true):1.0;
+[hmove10] (true):1.0;
+[hmove12] (true):1.0;
+[hmove21] (true):1.0;
+[hmove23] (true):1.0;
+[hmove32] (true):1.0;
+[hmove34] (true):1.0;
+[hmove43] (true):1.0;
+
+
+endrewards
+

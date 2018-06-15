@@ -1,5 +1,5 @@
 //Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1)) & (F executed_metric_map_at_WayPoint4=1)]    
-//Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1))]    
+Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1))]    
 //Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1))]    
 //Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1)) & (G (!waypoint=0))]    
 //Pmax=?[ ( G F waypoint=3) &  ( F waypoint=1)]    

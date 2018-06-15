@@ -230,31 +230,32 @@ public class BRTDPModelChecker extends PrismComponent
 				brtdp.doSearch(initState);
 				//MDP mdp = brtdp.getGreedyPolicy(false);
 				MDP mdp = brtdp.getMdp();
-				State aux = mdp.getStatesList().get(mdp.getFirstInitialState());
+				System.out.println("MDP num states: " + mdp.getNumStates());
+				mdp = brtdp.getPolicies();
+				SearchState state = (SearchState) mdp.getStatesList().get(mdp.getFirstInitialState());
 				BitSet accModel = findAccStates(mdp, da);
 				ModelCheckerResult checkRes = checkReachability(mdp, accModel);
+				System.out.println("POLICY num states: " + mdp.getNumStates());
 				double reachProb = checkRes.soln[0];
-				System.out.println("CONVERGED");
-				System.out.println(reachProb);
-				/*
-				for (int j = accModel.nextSetBit(0); j >= 0; j = accModel.nextSetBit(j + 1)) {
+
+				System.out.println("ESTIM2:" + state.getBounds().get("acc").getLb());
+				System.out.println("PROB2:" + reachProb);
+				mdp.exportToDotFile("/home/bruno/Desktop/policy.dot");
+			/*	for (int j = accModel.nextSetBit(0); j >= 0; j = accModel.nextSetBit(j + 1)) {
 					SearchState state = (SearchState)mdp.getStatesList().get(j);
 					state.configureAccForSearch();
 					brtdp.expand(state);
 					int daVal = (int)state.varValues[state.varValues.length-1];
 					brtdp.doSearch(state);
-				}
-				*/
+				} */
 			}
-			MDP mdp = brtdp.getMdp();
-			MDP policy = brtdp.getGreedyPolicy(false);
+		/*	MDP mdp = brtdp.getMdp();
 			System.out.println("MDP num states: " + mdp.getNumStates());
-			mdp.exportToDotFile("/home/bruno/Desktop/mdp_brtdp.dot");
-			policy.exportToDotFile("/home/bruno/Desktop/policy_brtdp.dot");
+			mdp.exportToDotFile("/home/bruno/Desktop/mdp.dot");
+			//mdp = brtdp.getPolicies();
+			mdp.exportToDotFile("/home/bruno/Desktop/policy.dot");
 			StateValues res = checkResult(mdp, expr);
-			System.out.println("PROB:" + res.valuesD[0]);
-			res = checkResult(policy, expr);
-			System.out.println("PROB:" + res.valuesD[0]);
+			System.out.println("PROB:" + res.valuesD[0]);*/
 		}
 		
 		

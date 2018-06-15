@@ -56,6 +56,8 @@ public final class BRTDP extends PrismComponent
 	public static final int SINK_STATE = 0;
 	public static final int ACC_STATE = 1;
 	
+	public static final String BOUND = "acc";
+	
 	
 	public final static class Bound
 	{	
@@ -266,6 +268,20 @@ public final class BRTDP extends PrismComponent
 		}
 		
 		
+		public List<Integer> getBestActions2(List<String> boundNames, List<Boolean> useUbList, boolean aggregate) {
+			if (numActions == -1) {
+				return null;
+			}
+			if (numActions == 0) {
+				return null;
+			}
+			List<Integer> bestActions = new ArrayList<Integer>(numActions);
+			for (int i = 0; i < numActions; i++) {
+				bestActions.add(i);
+			}
+			return bestActions;
+		}
+		
 		/**
 		 * Constructs a list of best actions according to the current bounds
 		 * 
@@ -455,7 +471,7 @@ public final class BRTDP extends PrismComponent
 			Entry<Integer, Double> outcome = it.next();
 			SearchState succ = (SearchState)statesList.get(outcome.getKey());
 			double prob = outcome.getValue();
-			Bound accBound = succ.getBounds().get("acc");
+			Bound accBound = succ.getBounds().get(BOUND);
 			//System.out.println("LB :" + accBound.getLb());
 			double score = (accBound.getUb() - accBound.getLb())*prob;
 			totalScore = totalScore + score;
@@ -474,6 +490,38 @@ public final class BRTDP extends PrismComponent
 			}
 		}
 		//System.out.println("FODA_SE");
+		return null;
+	}
+	
+	public SearchState sampleSucc2(SearchState sstate, int action) throws PrismException {
+		int s = sstate.getStateId();
+		int nSuccs = mdp.getNumTransitions(s, action);
+		List<SearchState> succs = new ArrayList<SearchState>(nSuccs);
+		List<Double> scores = new ArrayList<Double>(nSuccs);
+		Distribution outcomes = mdp.getChoice(s, action);
+		double totalScore = 0.0;
+		for (Iterator<Entry<Integer, Double>> it = outcomes.iterator(); it.hasNext(); ) {
+			Entry<Integer, Double> outcome = it.next();
+			SearchState succ = (SearchState)statesList.get(outcome.getKey());
+			double prob = outcome.getValue();
+			//System.out.println("LB :" + accBound.getLb());
+			double score = prob;
+			totalScore = totalScore + score;
+			scores.add(score);
+			succs.add(succ);
+		}
+		if (totalScore == 0.0) {
+			System.out.println(totalScore);
+		}
+		double sampled = randomGen.nextDouble();
+		double currentScore = 0.0;
+		for(int i = 0; i < nSuccs; i++) {
+			currentScore = currentScore + scores.get(i);
+			if (currentScore > sampled) {
+				return succs.get(i);
+			}
+		}
+		System.out.println("FODA_SE");
 		return null;
 	}
 	
@@ -565,7 +613,7 @@ public final class BRTDP extends PrismComponent
 			}
 			bound.setUb(bestUb);
 			
-			if (boundName == "acc") {
+			if (boundName == BOUND) {
 				if (PrismUtils.doublesAreClose(bound.getUb(), bound.getLb(), termCritParam, true)) {
 					state.setSolved(); //TODO: make this more general 
 				}
@@ -598,15 +646,17 @@ public final class BRTDP extends PrismComponent
 		progress.start();
 
 		List<String> boundNames = new ArrayList<String>();
-		boundNames.add("acc");
-		boundNames.add("acc");
-		boundNames.add("prog");
-		boundNames.add("prog");
+		boundNames.add(BOUND);
+		boundNames.add(BOUND);
+		//boundNames.add("acc");
+		//boundNames.add("acc");
+		//boundNames.add("prog");
+		//boundNames.add("prog");
 		List<Boolean> useUb = new ArrayList<Boolean>();
 		useUb.add(true);
 		useUb.add(false);
-		useUb.add(true);
-		useUb.add(false);
+		//useUb.add(true);
+		//useUb.add(false);
 		// Explore...
 		nOuterIters = 0;
 		while (!stop) {
@@ -616,19 +666,19 @@ public final class BRTDP extends PrismComponent
 			}
 			sstate = startSstate;
 			nInnerIters = 0;
-			while ((!sstate.isSolved() && nInnerIters < 100000) || (nInnerIters < 1)) {
+			while ((!sstate.isSolved() && nInnerIters < 1000) || (nInnerIters < 1)) {
+				sstate.incrementNumVisits();
 				//System.out.println(sstate);
 				if(!sstate.isExpanded()) {
 					expand(sstate);
 				}
-				bestActionIndices = sstate.getBestActions(boundNames, useUb, true);
+				bestActionIndices = sstate.getBestActions(boundNames, useUb, false);
 				if (bestActionIndices == null) { 
 					break;
 				} else {//TODO: Make sure this is ok
 					bestActionIndex = bestActionIndices.get(randomGen.nextInt(bestActionIndices.size()));
 					stateActionIndexPair = new Pair<SearchState, Integer>(sstate, bestActionIndex);
-					toBackupStack.addFirst(stateActionIndexPair);
-					//doBellmanBackup(sstate, bestActionIndex);
+					doBellmanBackup(sstate, bestActionIndex);
 					if (!sstate.isSolved() || nInnerIters < 1) {
 						sstate = sampleSucc(sstate, bestActionIndex);
 						if (sstate == null) {
@@ -642,7 +692,7 @@ public final class BRTDP extends PrismComponent
 				stateActionIndexPair = toBackupStack.pop();
 				doBellmanBackup(stateActionIndexPair.getKey(), stateActionIndexPair.getValue());
 			}
-			if (nOuterIters > 10000 || startSstate.isSolved()) {
+			if (nOuterIters > 100000 || startSstate.isSolved()) {
 				stop = true;
 			}
 		}
@@ -673,8 +723,8 @@ public final class BRTDP extends PrismComponent
 		boundNames.add("acc");
 		//boundNames.add("prog");
 		List<Boolean> useUb = new ArrayList<Boolean>();
-		//useUb.add(false);
 		useUb.add(false);
+		//useUb.add(true);
 
 		numStates = 0;
 		// Add initial state(s) to 'explore', 'states' and to the model
@@ -694,7 +744,7 @@ public final class BRTDP extends PrismComponent
 			src++;
 			// Look at each outgoing choice in turn
 			SearchState sstate = (SearchState) mdp.getStatesList().get(stateIndex);
-			bestActionIndices = sstate.getBestActions(boundNames, useUb, true); 
+			bestActionIndices = sstate.getBestActions(boundNames, useUb, false); 
 			if (bestActionIndices != null) {
 				for (int bestActionIndex : bestActionIndices) {
 					Distribution outcomes = mdp.getChoice(stateIndex, bestActionIndex);
@@ -702,8 +752,9 @@ public final class BRTDP extends PrismComponent
 					for(Iterator<Entry<Integer, Double>> succsIt = outcomes.iterator(); succsIt.hasNext(); ) {
 						Entry<Integer, Double> currentOutcome = succsIt.next();
 						succStateIndex = currentOutcome.getKey();
+						SearchState succState = (SearchState) mdp.getStatesList().get(succStateIndex);
 						prob = currentOutcome.getValue();
-						dest = addState((SearchState) mdp.getStatesList().get(succStateIndex), policyMdp, policyStatesSet, policyStatesList);
+						dest = addState(succState, policyMdp, policyStatesSet, policyStatesList);
 						//is state new?
 						if (dest == numStates) {
 							numStates++;
