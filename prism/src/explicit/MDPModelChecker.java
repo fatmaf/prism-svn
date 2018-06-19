@@ -1016,7 +1016,7 @@ public class MDPModelChecker extends ProbModelChecker {
 		
 		
 		boolean debugDetails = true; 
-		int debugGranularity = 2; //1 = fine, 2 okay, 3 coarse  
+		int debugGranularity = 3; //1 = fine, 2 okay, 3 coarse  
 		
 		timerGlobal = System.currentTimeMillis();
 
@@ -1203,7 +1203,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				if (!statesToIgnoreForVI.get(i)){//(unknown.get(i)) {
 					
 					
-					if(i == pvar1 || i == pvar2 || i == pvar3)
+					if(debugGranularity <2 && i == pvar1 || i == pvar2 || i == pvar3)
 						mainLog.print("");
 					numChoices = mdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {

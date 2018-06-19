@@ -3,11 +3,14 @@ package demos;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
 
+import automata.DA;
 import explicit.Distribution;
 import explicit.MDP;
 import explicit.MDPSimple;
@@ -238,6 +241,81 @@ public class StatesHelper {
 		}
 		return areEqual(s1, s2, indicesToMatch);
 	}
+	 
+		public static boolean areEqual(Object[] s1, Object[] s2)
+		{
+			int maxLen = Math.max(s1.length, s2.length); 
+			boolean equal = true;
+			for(int i = 0; i<maxLen; i++)
+			{
+				if(s1[i]!=s2[i])
+				{
+					equal = false; 
+					break; 
+				}
+			}
+			return equal;
+			
+		}
+	/**
+	 * Returns a mask thing, where indices that have the same values are 0 
+	 * and ones that have different values are 1 
+	 * so then you can do what you want 
+	 * if they aren't the same length you get the smaller of the two duh 
+	 * @param s1
+	 * @param s2
+	 * @return
+	 */
+	public static int[] XORIntegers(Object[] s1, Object[] s2)
+	{
+		int maxLen = Math.max(s1.length, s2.length); 
+		int[] mask = new int[maxLen]; 
+		for(int i = 0; i<maxLen; i++)
+		{
+			if(s1[i]==s2[i])
+				mask[i]=0; 
+			else
+				mask[i]=1;
+		}
+		return mask;
+		
+	}
+	/**
+	 * takes mask and multiplies each element in s1 with corresponding elem in mask 
+	 * @param mask
+	 * @param s1
+	 * @return
+	 */
+	public static Object[] multiplyWithMask(int[] mask, Object[] s1)
+	{
+		int maxLen = Math.max(mask.length, s1.length);
+		Object[] res = new Object[maxLen]; 
+		for(int i = 0; i<maxLen; i++)
+		{
+			res[i]= mask[i]*(int)s1[i];
+		}
+		return res;
+	}
+	
+	/**
+	 * based on the assumption that all DA states start with 0 being the initial state 
+	 * and that when we're going to "OR" stuff we'll just take s2 values (not bigger of the two)
+	 * this may not always be true ofcourse 
+	 * @param s1
+	 * @param s2
+	 */
+	public static Object[] ORIntegers(Object[] s1, Object[] s2)
+	{
+		int maxLen = Math.max(s1.length, s2.length); 
+		Object[] res = s2.clone();
+		int initState = 0; 
+				for(int i = 0; i<maxLen; i++)
+		{
+			if((int)res[i]==initState)
+			res[i]= s1[i];
+		}
+				return res;
+	}
 
 	public static Object[] XORStates(State s1, State s2, Object[] refState
 	/* a state with the initial states of all DA */) {
@@ -257,6 +335,88 @@ public class StatesHelper {
 	public static void setFolder(String folderVal)
 	{
 		folder = folderVal;
+	}
+	public static Object[] getDAStatesFromState(State state)
+	{
+		//so return everything from after robotVar upto mdpVarStart
+		Object[] stateObj = state.varValues; 
+		Object[] toret = Arrays.copyOfRange(stateObj,robotVar+1,mdpVarStart);
+		return toret; 
+	}
+	public static void saveBitSet(BitSet bitset, String anotherfolder, String name, boolean saveinsaveplace)
+	{		String temp = anotherfolder;
+	if(temp == "")
+		temp = folder; 
+	temp = temp.replace("adv", "");
+	temp = temp.replaceAll(".tra", "");
+	String location = temp;
+	if (saveinsaveplace) {
+		location = getSaveplace();
+		temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+		location += temp;
+	}
+	name = name.replace(" ", "_");
+	PrismLog out = new PrismFileLog(location+"_" + name);
+	out.println(bitset.toString()); 
+	out.close();
+	}
+	public static void saveHashMap(HashMap map, String anotherfolder, String name, boolean saveinsaveplace)
+	{		String temp = anotherfolder;
+		if(temp == "")
+			temp = folder; 
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location+"_" + name);
+		Iterator it = map.entrySet().iterator();
+	    while (it.hasNext()) {
+	        Map.Entry pair = (Map.Entry)it.next();
+	        out.println(pair.getKey() + " = " + pair.getValue());
+	      
+	    }
+		//out.print(map);
+		out.close();
+			
+	}
+	/**
+	 * @param anotherfolder
+	 * 	the location of the tile to save 
+	 * 
+	 * @param saveplace 
+	 * 	alternate location 
+	 * @param da 
+	 * 	The da
+	 * @param name 
+	 * 	filename
+	 * 
+	 * @param saveinsaveplace 
+	 * 	save in predefined save location (set to true) if
+	 * false saves in same location as adversary
+	 * @throws PrismException 
+	 */
+	public static void saveDA(DA da, String anotherfolder, String name,boolean saveinsaveplace) throws PrismException {
+		String temp = anotherfolder;
+		if(temp == "")
+			temp = folder; 
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location+"_" + name + ".dot");
+		da.printDot(out);
+		out.close();
+
 	}
 	/**
 	 * @param anotherfolder
