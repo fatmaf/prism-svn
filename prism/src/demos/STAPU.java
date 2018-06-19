@@ -45,8 +45,8 @@ import prism.PrismLog;
 
 public class STAPU {
 	
-	
-	String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
+	static String saveplace_suffix = "/tests/decomp_tests/temp/";
+	static String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
 	long timeout = 1000 *60*1000;
 	public PrismLog mainLogRef;
 	Prism prismC; 
@@ -55,6 +55,9 @@ public class STAPU {
 	
 	public static void main(String[] args)
 	{
+		String dir = System.getProperty("user.dir"); 
+		saveplace = dir+saveplace_suffix;
+		StatesHelper.setSavePlace(saveplace);
 		STAPU stapu = new STAPU(); 
 		stapu.run();
 	}
@@ -81,7 +84,7 @@ public class STAPU {
 	{
 		if (text == "")
 			text = "Time";
-		System.out.println(text+": "+time/1000.0+" seconds");
+		System.out.println(text+": "+time/1000.0+" seconds ("+time/(1000.0*60)+" mins)");
 	}
 	
 	/**
@@ -112,9 +115,11 @@ public class STAPU {
 		res.daList = new ArrayList<DAInfo>();
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
 			DAInfo daInfo = new DAInfo(daList.get(daNum));
+			
 			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
+			StatesHelper.saveDA(daInfo.da, "", name+"da_"+daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "",name+"pda_" + daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "",name+"pda_" + daNum+"switchStates", true);
 			// update state numbers
@@ -401,6 +406,8 @@ public class STAPU {
 			
 		}
 		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
+		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
+		jointPolicy.saveJointPolicy();
 		mainLogRef.println("Completed STAPU for full policy");
 		mainLogRef.println("DeadEnd States " + jointPolicy.deadendStates.toString());
 		mainLogRef.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
@@ -563,12 +570,15 @@ public class STAPU {
 	public void run()
 	{
 		try {
-			String modelLocation= "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename ="two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String dir = System.getProperty("user.dir"); 
+			String modelLocation= dir+"/tests/decomp_tests/";
+			String filename ="topo_map_modified_goals";//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String filename_suffix = "_seq";
 			ArrayList<String> filenames = new ArrayList<String>(); 
 			filenames.add(filename); 
 			filenames.add(filename+1);
-//			filenames.add(filename+2);
+			filenames.add(filename+2);
+			filenames.add(filename+3);
 //			filenames.add("chain_example_simple_mod");
 			StatesHelper.setFolder(modelLocation+filename);
 			hasDoor = false;
@@ -595,7 +605,7 @@ public class STAPU {
 			prism.loadPRISMModel(modulesFile);
 
 			// Parse and load a properties model for the model
-			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation+filename+".prop"));
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation+filename+filename_suffix+".prop"));
 
 			// Get PRISM to build the model and then extract it
 			prism.setEngine(Prism.EXPLICIT);
@@ -617,9 +627,7 @@ public class STAPU {
 			for(int i = 0; i<propFiles.size(); i++) {
 			System.out.println(propFiles.get(i).getPropertyObject(0));
 			}
-			Expression expr = propFiles.get(0).getProperty(0);
-			ProbModelChecker mcProb = new ProbModelChecker(prism);
-			
+			Expression expr = propFiles.get(0).getProperty(0);			
 			
 			// I dont know if this is the best way to do this 
 			// Doesnt look like this works 
