@@ -338,9 +338,9 @@ public class SequentialTeamMDP {
 
 		int totalSwitches = 0;
 		boolean addSwitches = true; // just going to use this to make sure that the first robot doesnt get a switch
-		for (int r = 0; r < agentMDPs.size(); r++) {
+		for (int r = 0; r < numRobots; r++) {
 			int fromRobot = r;
-			int toRobot = (r + 1) % agentMDPs.size();
+			int toRobot = (r + 1) % numRobots;
 			// dont add switches to the first robot
 			addSwitches = (toRobot != firstRobot);
 			if (addSwitches) {

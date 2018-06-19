@@ -10,9 +10,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import acceptance.AcceptanceReach;
+
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Stack;
+import java.util.Vector;
+
 import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
@@ -79,11 +84,13 @@ public class MMDPSimple {
 	public MDPSimple mdp;
 	// ArrayList<Map.Entry<State, Integer>>
 	HashMap<State, Integer> statesMap;
+	HashMap<Integer,Double> probsVector; 
 	int nRobots;
 	public PriorityQueue<StateProb> stuckStatesQ; 
 	public BitSet deadendStates; 
 	public BitSet allTasksCompletedStates; 
 	public BitSet allFailStatesSeen;
+	BitSet initStates; 
 	int numDA; 
 	
 	public void setNumDA(int n)
@@ -95,8 +102,20 @@ public class MMDPSimple {
 	{
 		return numDA;
 	}
-	
-	
+
+	public int convertDAIndToStateInd(int daNum,int numda)
+	{
+		return ((numda-1)-daNum); 
+	}
+	public int[] getDAStartStates(SequentialTeamMDP seqTeamMDP)
+	{
+		int[] daStartStates = new int[numDA];
+		for (int i=0; i<numDA; i++)
+		{
+			daStartStates[i]=getDAStartStateForRobot(convertDAIndToStateInd(i,numDA),0,seqTeamMDP);
+		}
+		return daStartStates;
+	}
 	public boolean stuckStatesQContainsState(int state)
 	{
 		for (StateProb stateprob: stuckStatesQ)
@@ -139,7 +158,11 @@ public class MMDPSimple {
 				varlist.addVar(0, new Declaration("r" + i, new DeclarationIntUnbounded()), 1, null);
 
 			}
-			varlist.addVar(0, new Declaration("t", new DeclarationIntUnbounded()), 1, null);
+//			varlist.addVar(0, new Declaration("da", new DeclarationIntUnbounded()), 1, null);
+			for(int i = 0; i <numDAs; i++)
+			{
+				varlist.addVar(0, new Declaration("da" + i, new DeclarationIntUnbounded()), 1, null);
+			}
 		} catch (PrismLangException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -152,9 +175,18 @@ public class MMDPSimple {
 		allTasksCompletedStates = new BitSet(); 
 		allFailStatesSeen = new BitSet();
 		setNumDA(numDAs);
+		probsVector = new HashMap<Integer,Double>();
 
 	}
 
+	public int getDAStartStateForRobot(int da_num, int r, SequentialTeamMDP seqTeamMDP)
+	{
+		return seqTeamMDP.agentMDPs.get(r).daList.get(da_num).da.getStartState();
+	}
+	public BitSet getDAaccStatesForRobot(int da_num, int r, SequentialTeamMDP seqTeamMDP)
+	{
+		return ((AcceptanceReach)seqTeamMDP.agentMDPs.get(r).daList.get(da_num).da.getAcceptance()).getGoalStates();
+	}
 	public void constructJointPolicyFromMDPsAndAddToCurrentPolicy(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
 			SequentialTeamMDP seqTeamMDP) {
 		int initialStates[] = new int[nRobots];
@@ -191,8 +223,13 @@ public class MMDPSimple {
 			// state
 
 		}
-		Object[] teamProgress = getTeamProgressAtCurrentStates(pols, mdpMaps, firstRobot, acceptingStates,
+		Object[] teamProgress = getTeamProgressAtCurrentStates(pols,  firstRobot,
 				initialStates, lastStates);
+		Object[] teamProgress_new = getTeamProgress(pols,firstRobot,initialStates,lastStates);
+		if(StatesHelper.areEqual(teamProgress,teamProgress_new))
+			System.out.println("Yay");
+		else
+			System.out.println("Nay");
 		currentStates = initialStates.clone();
 		State currentJointState = createJointState(teamProgress, mdpStates);
 		statesQ.add(currentJointState);
@@ -328,8 +365,13 @@ public class MMDPSimple {
 
 				}
 
-				teamProgress = getTeamProgressAtCurrentStates(pols, mdpMaps, firstRobot, acceptingStates, nextStates,
+				teamProgress = getTeamProgressAtCurrentStates(pols, firstRobot,  nextStates,
 						lastStates);
+				teamProgress_new = getTeamProgress(pols,firstRobot,nextStates,lastStates);
+				if(StatesHelper.areEqual(teamProgress,teamProgress_new))
+					System.out.println("Yay");
+				else
+					System.out.println("Nay");
 				State nextJointState = createJointState(teamProgress, mdpStates);
 				probabilities.add(prob);
 				sumProb += prob;
@@ -356,6 +398,12 @@ public class MMDPSimple {
 			mdp.addState();
 
 		}
+		//for the first state only 
+		//initialize the probs vector 
+		if(mdp.getNumStates() == 1)
+		{
+			probsVector.put(index, 1.0);
+		}
 		return index;
 	}
 
@@ -367,7 +415,17 @@ public class MMDPSimple {
 
 		for (int succ = 0; succ < states.size(); succ++) {
 			index = addStateToMDP(states.get(succ));
-			distr.add(index, probs.get(succ) / norm);
+			double normalizedProb = probs.get(succ) / norm;
+			distr.add(index,normalizedProb );
+			if (!probsVector.containsKey(index))
+			{
+				//this can happen so we're kind of ignoring it 
+				//the scenario where two different paths end up at the same node 
+				//we're just going to stick to the previous probs 
+				double probHere = normalizedProb*probsVector.get(parentIndex); 
+				probsVector.put(index, probHere);
+			}
+			
 
 		}
 		int actionNo = mdp.getNumChoices(parentIndex);
@@ -643,9 +701,59 @@ public class MMDPSimple {
 		return successorStates;
 	}
 	
+	public Object[] getRobotProgress(State previousRobotsState, State currentRobotsState)
+	{
+		Object[] previousRobotsDAState = StatesHelper.getDAStatesFromState(previousRobotsState);
+		Object[] currentRobotsDAState = StatesHelper.getDAStatesFromState(currentRobotsState);
+		int[] integerXORmask = StatesHelper.XORIntegers(previousRobotsDAState, currentRobotsDAState);
+		Object[] updatedState = StatesHelper.multiplyWithMask(integerXORmask, currentRobotsDAState); 
+		
+		return updatedState; 
+		
+		
+	}
+	public Object[] getTeamProgress(int firstRobot,State[] lastStates, State[] currentStates)
+	{
+		//DA States 
+		//start from the first robot
+		ArrayList<Object[]>  robotsProgress = new ArrayList<Object[]>();
+		Object[] teamProgress=null;
+		int currentRobot=firstRobot; 
+		int prevRobot = firstRobot; 
+		do {
+			
+		Object[] updatedState = getRobotProgress(lastStates[prevRobot],currentStates[currentRobot]);
+		if (currentRobot == firstRobot)
+			teamProgress = StatesHelper.ORIntegers(updatedState,StatesHelper.getDAStatesFromState(currentStates[firstRobot])); 
+		robotsProgress.add(updatedState); 
+		prevRobot = currentRobot;
+		currentRobot = (currentRobot+1)%this.nRobots;
+		teamProgress = StatesHelper.ORIntegers(teamProgress, updatedState);	
+		}while(currentRobot!=firstRobot);
+
+		return teamProgress;
+	}
 	
-	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int[][] mdpMaps, int firstRobot,
-			BitSet[] acceptingStates, int[] currentStates, int[] lastStates) {
+
+	public Object[] getTeamProgress(MDPSimple[] pols, int firstRobot,
+		 int[] currentStates, int[] lastStates) {
+
+		State[] lastStatesStates = new State[currentStates.length]; 
+		State[] currentStatesStates = new State[currentStates.length]; 
+		
+		
+		for (int i = 0; i < nRobots; i++) {
+			lastStatesStates[i] = pols[i].getStatesList().get(lastStates[i]);
+			currentStatesStates[i]=pols[i].getStatesList().get(currentStates[i]);
+		
+		}
+		Object[] teamProgress = getTeamProgress(firstRobot,lastStatesStates, currentStatesStates);
+		return teamProgress;
+	}
+	
+
+	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int firstRobot,
+			 int[] currentStates, int[] lastStates) {
 
 		// Ref State ???
 		// We need to make one
@@ -663,7 +771,7 @@ public class MMDPSimple {
 		for (int i = 0; i < teamProgress.length; i++) {
 			teamProgress[i] = firstRobotStateObj.varValues[i + 1];
 		}
-		for (int i = 0; i < nRobots; i++) {
+ 		for (int i = 0; i < nRobots; i++) {
 			if (i != firstRobot) {
 				int currentRobotState = currentStates[i];
 
@@ -748,11 +856,17 @@ public class MMDPSimple {
 	}
 
 		public void saveJointPolicy() {
-			String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
-
-			PrismLog log = new PrismFileLog(saveplace + "jointPolicy.dot");
-			mdp.exportToDotFile(log, null, true);
-			log.close();
+//			String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
+//
+//			PrismLog log = new PrismFileLog(saveplace + "jointPolicy.dot");
+//			mdp.exportToDotFile(log, null, true);
+//			log.close();
+			StatesHelper.saveMDP(mdp, null, "", "jointPolicy.dot",true);
+			StatesHelper.saveMDPstatra(mdp, "", "jointPolicy.dot",true);
+			StatesHelper.saveHashMap(probsVector, "", "jointPolicyProbs.lab",true);
+			StatesHelper.saveBitSet(allTasksCompletedStates, "", "jointPolicy.acc",true);
+			StatesHelper.saveBitSet(this.allFailStatesSeen, "", "jointPolicy.failstates",true);
+			StatesHelper.saveBitSet(this.deadendStates, "", "jointPolicy.deadends",true);
 
 		}
 
