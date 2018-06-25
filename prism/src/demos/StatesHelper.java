@@ -286,13 +286,17 @@ public class StatesHelper {
 	 * @param s1
 	 * @return
 	 */
-	public static Object[] multiplyWithMask(int[] mask, Object[] s1)
+	public static Object[] multiplyWithMask(int[] mask, Object[] s1,Object[] initStates)
 	{
 		int maxLen = Math.max(mask.length, s1.length);
 		Object[] res = new Object[maxLen]; 
 		for(int i = 0; i<maxLen; i++)
 		{
-			res[i]= mask[i]*(int)s1[i];
+			if (mask[i]==0)
+				res[i]=initStates[i]; 
+			else
+			res[i]= s1[i];
+			
 		}
 		return res;
 	}
@@ -304,14 +308,20 @@ public class StatesHelper {
 	 * @param s1
 	 * @param s2
 	 */
-	public static Object[] ORIntegers(Object[] s1, Object[] s2)
+	public static Object[] ORIntegers(Object[] s1, Object[] s2,Object[] initStates)
 	{
 		int maxLen = Math.max(s1.length, s2.length); 
 		Object[] res = s2.clone();
-		int initState = 0; 
+		int initState = 0;  //FIXME:FATMA bug here this is why you're getting loops 
+		if (initStates == null)
+		{
+			initStates = new Object[maxLen]; 
+			Arrays.fill(initStates, initState);
+		}
+		
 				for(int i = 0; i<maxLen; i++)
 		{
-			if((int)res[i]==initState)
+			if((int)res[i]==(int)initStates[i])
 			res[i]= s1[i];
 		}
 				return res;
