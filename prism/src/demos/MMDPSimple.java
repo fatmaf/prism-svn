@@ -382,6 +382,14 @@ public class MMDPSimple {
 										//not the whomping willow just like a nice fractal thing 
 										addTransitionToMDPResetTask(currentJointState, newJointState,1.0);
 										stateNumInMDP = statesMap.get(newJointState);
+										if(stuckStatesQContainsState(stateNumInMDP))
+										{
+											continue; //added this for some reason
+										}
+										else
+										{	if(allFailStatesSeen.get(stateNumInMDP))
+												continue;//added this for some reason
+										}
 									}
 								stuckStatesQ.add(new StateProb(stateNumInMDP,failprob));
 								allFailStatesSeen.set(stateNumInMDP);
@@ -421,6 +429,53 @@ public class MMDPSimple {
 				if(hasfailed > 0 && hasfailed > initialStateHadFailState && hasfailed > prevHadFailState)
 				{
 					System.out.println("Someone Failed here");
+					//another fail state 
+					//hmmm so strange 
+					//FIXME: FATMA all of this below (where the light something, you know this entire if thing i just put it down here now 
+					//so like what is this ?
+					stateNumInMDP = statesMap.get(currentJointState);
+					if (mdp.getNumChoices(stateNumInMDP) == 0) {
+						if (!hasAcceptingState) {
+					if (!stuckStatesQContainsState(stateNumInMDP))
+					{
+					if(!allFailStatesSeen.get(stateNumInMDP)) {
+						
+						double failprob = getProbability(0,stateNumInMDP,1.0,new BitSet());
+						//this is where we need to add the resetting bit 
+						//so basically check if there's any "task" in an "intermediate" state 
+						//if so go and fix it 
+						//FIXME: Fatma Uncomment this to get that reset stuff 
+						State newJointState = resetTasksInIntermediateStates(currentJointState, seqTeamMDP,robotDAassoc);
+						if(newJointState!=null)
+						{
+							System.out.println("!!!:)\tRobot that failed was "+indexOfLastRobotFailed);
+							System.out.println(Arrays.toString(robotDAassoc));
+							//now we add this new joint state to our mdp and link the two 
+							//the prob from this prev joint state from the new one is 1 
+							//cuz its a tree - i love trees. everyone's gotta love trees 
+							//not the whomping willow just like a nice fractal thing 
+							addTransitionToMDPResetTask(currentJointState, newJointState,1.0);
+							stateNumInMDP = statesMap.get(newJointState);
+							if(stuckStatesQContainsState(stateNumInMDP))
+							{
+								continue; //added this for some reason
+							}
+							else
+							{	if(allFailStatesSeen.get(stateNumInMDP))
+									continue;//added this for some reason
+							}
+						}
+					stuckStatesQ.add(new StateProb(stateNumInMDP,failprob));
+					allFailStatesSeen.set(stateNumInMDP);
+					}
+					else 
+						deadendStates.set(stateNumInMDP);
+					}
+					continue;
+						}
+					}
+					
+					
 				}
 				
 			}

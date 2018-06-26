@@ -387,7 +387,7 @@ public class StatesHelper {
 		Iterator it = map.entrySet().iterator();
 	    while (it.hasNext()) {
 	        Map.Entry pair = (Map.Entry)it.next();
-	        out.println(pair.getKey() + " = " + pair.getValue());
+	        out.println(pair.getKey() + ":" + pair.getValue());
 	      
 	    }
 		//out.print(map);
