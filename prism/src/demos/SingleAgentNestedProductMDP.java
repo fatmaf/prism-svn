@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPSimple;
 import explicit.LTLModelChecker.LTLProduct;
@@ -28,20 +27,11 @@ public class SingleAgentNestedProductMDP {
 	BitSet allAcceptingStatesCombined; //includes everything even the essential states 
 	int numMDPVars; 
 	
-	public void setNumMDPVars(int n)
-	{
-		numMDPVars = n; 
-	}
-	public int getNumMDPVars()
-	{
-		return numMDPVars;
-	}
 	public SingleAgentNestedProductMDP(PrismLog log) {
 //		this.stapu = stapu;
 		mainLog = log; 
 		productStateToMDPState = new HashMap<Integer, Integer>();
 	}
-
 	public SingleAgentNestedProductMDP(PrismLog log, ArrayList<DAInfo> list, LTLProduct<MDP> product) {
 		mainLog = log; 
 		productStateToMDPState = new HashMap<Integer, Integer>();
@@ -51,31 +41,6 @@ public class SingleAgentNestedProductMDP {
 				"Initializing Single Agent Nested Product MDP. " + "Make sure to update the state mappings");
 		setBitSetsForAccEssentialBadStates();
 	}
-
-	public BitSet getAndSetInitialStates(int state, boolean isMDPState) {
-//		State s1 = finalProduct.getProductModel().getStatesList().get(state);
-		int numStates = finalProduct.getProductModel().getNumStates();
-		BitSet initialStates = new BitSet(numStates);
-		int mdpState = state;
-		if (!isMDPState)
-			mdpState = productStateToMDPState.get(state);
-		((MDPSimple) finalProduct.getProductModel()).clearInitialStates();
-		((MDPSimple) finalProduct.getProductModel()).addInitialState(state);
-
-		
-		Set<Integer> keySet = productStateToMDPState.keySet();
-		for (int key : keySet) {
-			if (productStateToMDPState.get(key) == mdpState && !combinedStatesToAvoid.get(key)) {
-				initialStates.set(key);
-				
-							}
-		}
-		mainLog.println("Initial States: " + initialStates.toString());
-		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
-
-		return initialStates;
-	}
-
 	public boolean addRewardForTaskCompletion(int childState, int parentState)
 	{
 		boolean toreturn = false;
@@ -110,7 +75,7 @@ public class SingleAgentNestedProductMDP {
 		}
 		return toreturn; 
 	}
-	
+
 	/**
 	 * 
 	 * @return bitset - all possible accepting states including essential states 
@@ -126,7 +91,31 @@ public class SingleAgentNestedProductMDP {
 		}
 		return acceptingStates;
 	}
-	
+
+	public BitSet getAndSetInitialStates(int state, boolean isMDPState) {
+//		State s1 = finalProduct.getProductModel().getStatesList().get(state);
+		int numStates = finalProduct.getProductModel().getNumStates();
+		BitSet initialStates = new BitSet(numStates);
+		int mdpState = state;
+		if (!isMDPState)
+			mdpState = productStateToMDPState.get(state);
+		((MDPSimple) finalProduct.getProductModel()).clearInitialStates();
+		((MDPSimple) finalProduct.getProductModel()).addInitialState(state);
+
+		
+		Set<Integer> keySet = productStateToMDPState.keySet();
+		for (int key : keySet) {
+			if (productStateToMDPState.get(key) == mdpState && !combinedStatesToAvoid.get(key)) {
+				initialStates.set(key);
+				
+							}
+		}
+		mainLog.println("Initial States: " + initialStates.toString());
+		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
+
+		return initialStates;
+	}
+
 	private BitSet getFinalAcceptingStates() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet acceptingStates = new BitSet(numStates);
@@ -138,7 +127,7 @@ public class SingleAgentNestedProductMDP {
 		}
 		return acceptingStates;
 	}
-
+	
 	private BitSet getFinalEssentialStates() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet finalEssentialStates = new BitSet(numStates);
@@ -150,8 +139,6 @@ public class SingleAgentNestedProductMDP {
 		}
 		return finalEssentialStates;
 	}
-	
-
 	
 	private BitSet getFinalStatesToAvoid() {
 		int numStates = finalProduct.getProductModel().getNumStates();
@@ -167,6 +154,13 @@ public class SingleAgentNestedProductMDP {
 
 	public BitSet getInitialStates() {
 		return getAndSetInitialStates(finalProduct.getProductModel().getFirstInitialState(), false);
+	}
+	
+
+	
+	public int getNumMDPVars()
+	{
+		return numMDPVars;
 	}
 
 	public void initializeProductToMDPStateMapping(MDP product) {
@@ -195,6 +189,11 @@ public class SingleAgentNestedProductMDP {
 //		daList = list;
 		finalProduct = product;
 		setBitSetsForAccEssentialBadStates();
+	}
+
+	public void setNumMDPVars(int n)
+	{
+		numMDPVars = n; 
 	}
 	
 

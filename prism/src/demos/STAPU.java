@@ -47,12 +47,6 @@ public class STAPU {
 	
 	static String saveplace_suffix = "/tests/decomp_tests/temp/";
 	static String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
-	long timeout = 1000 *60*1000;
-	public PrismLog mainLogRef;
-	Prism prismC; 
-	MMDPSimple jointPolicy; 
-	boolean hasDoor = true;
-	
 	public static void main(String[] args)
 	{
 		String dir = System.getProperty("user.dir"); 
@@ -61,31 +55,12 @@ public class STAPU {
 		STAPU stapu = new STAPU(); 
 		stapu.run();
 	}
+	long timeout = 1000 *60*1000;
+	public PrismLog mainLogRef; 
+	Prism prismC; 
+	MMDPSimple jointPolicy;
 	
-	private boolean hasTimedOut(long startTime, long endTime,String text)
-	{
-		long time = endTime-startTime; 
-		printTime(time,text);
-		if(time > timeout)
-			{System.out.println("Timed Out");
-			return true; }
-		else
-			return false; 
-	}
-	private boolean hasTimedOut(long startTime,String text)
-	{
-		long endTime = System.currentTimeMillis(); 
-		return hasTimedOut(startTime,endTime,text);
-		
-	}
-	
-
-	private void printTime(long time, String text)
-	{
-		if (text == "")
-			text = "Time";
-		System.out.println(text+": "+time/1000.0+" seconds ("+time/(1000.0*60)+" mins)");
-	}
+	boolean hasDoor = true;
 	
 	/**
 	 * @param model - the mdp model
@@ -132,7 +107,18 @@ public class STAPU {
 		res.setDAListAndFinalProduct(product);
 		return res;
 	}
+	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
+			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards,int probPreference) throws PrismException {
+
+
+		ModelCheckerMultipleResult res2 =  computeNestedValIterFailurePrint(mdp, target,
+				statesToAvoid,rewards,minRewards,probPreference, null);// computeNestedValIterFailurePrint(mdp, target, statesToAvoid,
+				//rewards,minRewards,target,probPreference,null);
+
+		return res2;
+	}
 	
+
 	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
 			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards,int probPreference, double[] probInitVal) throws PrismException {
 
@@ -173,18 +159,6 @@ public class STAPU {
 				return res2;
 	}
 	
-	
-	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards,int probPreference) throws PrismException {
-
-
-		ModelCheckerMultipleResult res2 =  computeNestedValIterFailurePrint(mdp, target,
-				statesToAvoid,rewards,minRewards,probPreference, null);// computeNestedValIterFailurePrint(mdp, target, statesToAvoid,
-				//rewards,minRewards,target,probPreference,null);
-
-		return res2;
-	}
-	
 	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
 			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,int probPreference) throws PrismException {
 
@@ -194,7 +168,7 @@ public class STAPU {
 			minMaxRew.add(true);
 		return computeNestedValIterFailurePrint(mdp,target,statesToAvoid,rewards,minMaxRew,probPreference);
 	}
-
+	
 	protected ModelCheckerPartialSatResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
 			BitSet statesToAvoid, MDPRewards rewards) throws PrismException {
 
@@ -218,7 +192,8 @@ public class STAPU {
 				+ minCost);
 		return res2;
 	}
-
+	
+	
 	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles) throws PrismException {
 
 		long startTime = System.currentTimeMillis();
@@ -415,13 +390,13 @@ public class STAPU {
 
 		for (StateProb fs : orderOfFailStates) {
 			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet());
-			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
+			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + " of getting to an accepting state from this state \n Prob of acheiving task = " + prob * fs.getProb());
 		}
 
 		hasTimedOut(startTime,"All Done");
 		
 	}
-
+	
 	private int exampleNumber() {
 		// SET the EXAMPLE NUMBER HERE
 		// 0 = two room three robot not extended , 1 = two room three robot extended, 2
@@ -431,30 +406,6 @@ public class STAPU {
 		// 5= chain example
 		// 6 = vi_example
 		return 5;
-	}
-
-	private int getNumRobots(int exampleNumber) {
-		int toret = -1;
-		switch (exampleNumber) {
-		// case 0:
-		// toret =1;
-		// break;
-		case 6:
-			toret = 2; 
-			break;
-		case 0:
-		case 1:
-			toret = 4;
-			break;
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-			toret = 3;
-			break;
-
-		}
-		return toret;
 	}
 
 	private int getInitState(int robotNum, int robotModel) {
@@ -547,6 +498,48 @@ public class STAPU {
 		return ltlExpressions;
 	}
 
+	private int getNumRobots(int exampleNumber) {
+		int toret = -1;
+		switch (exampleNumber) {
+		// case 0:
+		// toret =1;
+		// break;
+		case 6:
+			toret = 2; 
+			break;
+		case 0:
+		case 1:
+			toret = 4;
+			break;
+		case 2:
+		case 3:
+		case 4:
+		case 5:
+			toret = 3;
+			break;
+
+		}
+		return toret;
+	}
+
+	private boolean hasTimedOut(long startTime, long endTime,String text)
+	{
+		long time = endTime-startTime; 
+		printTime(time,text);
+		if(time > timeout)
+			{System.out.println("Timed Out");
+			return true; }
+		else
+			return false; 
+	}
+
+	private boolean hasTimedOut(long startTime,String text)
+	{
+		long endTime = System.currentTimeMillis(); 
+		return hasTimedOut(startTime,endTime,text);
+		
+	}
+
 	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs) {
 		int numExprs = exprs.size();
 		ArrayList<DAInfo> daInfoList = new ArrayList<DAInfo>(numExprs);
@@ -563,6 +556,13 @@ public class STAPU {
 		}
 
 		return daInfoList;
+	}
+
+	private void printTime(long time, String text)
+	{
+		if (text == "")
+			text = "Time";
+		System.out.println(text+": "+time/1000.0+" seconds ("+time/(1000.0*60)+" mins)");
 	}
 
 
