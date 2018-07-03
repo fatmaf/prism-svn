@@ -549,7 +549,9 @@ public class STAPU {
 		try {
 			String dir = System.getProperty("user.dir"); 
 			String modelLocation= dir+"/tests/decomp_tests/";
-			String filename ="topo_map_modified_goals";//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String cumberland_nodoors = "topo_map_modified_goals"; 
+			String cumberland_doors = "topo_map_modified_goals_doors";
+			String filename =cumberland_doors;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
 			String filename_suffix = "_seq"; //seq_simp for two robots 
 			ArrayList<String> filenames = new ArrayList<String>(); 
 			filenames.add(filename); 
