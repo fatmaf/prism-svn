@@ -438,7 +438,7 @@ public class STAPU {
 		} else if (robotModel == 4) {
 			int initPoses[] = { 4, 8, 21, 28, 27, 17, 22, 20, 24, 26, 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 					18, 19, 23, 25, 29, 30 };
-			int notHave = 2;
+//			int notHave = 2;
 
 			initState = initPoses[robotNum] + 1;
 
@@ -619,7 +619,7 @@ public class STAPU {
 			propFiles.add(propertiesFile);
 			}
 			// Build an MDP model checker
-			MDPModelChecker mc = new MDPModelChecker(prism);
+//			MDPModelChecker mc = new MDPModelChecker(prism);
 			
 			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
 			

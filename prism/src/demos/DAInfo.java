@@ -95,9 +95,10 @@ public class DAInfo {
 		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
 			mainLog.println("\nAutomaton is not a DFA... ");
-		} else {
-			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
-		}
+		} 
+//		else {
+//			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
+//		}
 
 		LTLProduct<M> product = mcLTL.constructProductModel(da, model, labelBS, statesOfInterest, allStatesInDFA);
 
@@ -131,9 +132,10 @@ public class DAInfo {
 		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
 			mainLog.println("\nAutomaton is not a DFA... ");
-		} else {
-			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
-		}
+		} 
+//		else {
+//			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
+//		}
 
 		LTLProduct<M> product = mcLTL.constructProductModel(da, model, labelBS, statesOfInterest, allStatesInDFA);
 

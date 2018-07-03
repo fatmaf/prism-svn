@@ -90,7 +90,7 @@ public class SequentialTeamMDP {
 	}
 
 
-	public void addSwitchTransitions(int firstRobot,boolean[] hasFailed) throws PrismException {
+	public int addSwitchTransitions(int firstRobot,boolean[] hasFailed) throws PrismException {
 
 		int totalSwitches = 0;
 		boolean addSwitches = true; // just going to use this to make sure that the first robot doesnt get a switch
@@ -109,7 +109,7 @@ public class SequentialTeamMDP {
 				totalSwitches += addSwitchTransitionsBetweenRobots(toRobot, fromRobot,fromRobotEssentialStates,toRobotInitialStates);}
 		}
 		teamMDPWithSwitches.findDeadlocks(true);
-
+		return totalSwitches;
 	}
 	private int addSwitchTransitionsBetweenRobots(int toRobot, int fromRobot,BitSet fromRobotEssentialStates, BitSet toRobotInitialStates) {
 		// from the essential states of from robot
@@ -237,19 +237,19 @@ public class SequentialTeamMDP {
 			}
 		}
 
-		ArrayList<int[]> maps = new ArrayList<int[]>();
+//		ArrayList<int[]> maps = new ArrayList<int[]>();
 		BitSet acceptingStates = new BitSet(numTeamStates); // for the team mdp they are acc for r1 || acc for r2 || acc
 															// for r3 ...
 		BitSet statesToAvoid = new BitSet(numTeamStates); // for the team mdp they are bad for r1 || bad for r2 || bad
 															// for r3
 
-		ArrayList<BitSet> initialStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
-		ArrayList<BitSet> switchStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
+//		ArrayList<BitSet> initialStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
+//		ArrayList<BitSet> switchStates = new ArrayList<BitSet>(); // for the team mdp they are different for each robot
 
 		int numStates = 0;
 		int numChoices;
 		double expectedProgRewardValue = 1.0; 
-		double acceptingStateRewardValue = agentMDPs.get(0).daList.size();
+//		double acceptingStateRewardValue = agentMDPs.get(0).daList.size();
 		double progRewardFixedValue = 1.0;
 
 		for (int r = 0; r < agentMDPs.size(); r++) {
@@ -258,7 +258,7 @@ public class SequentialTeamMDP {
 //			if (numStates * (r) != teamMDP.getNumStates())
 //				mainLog.println("Something is wrong here cuz the number of states isnt what you expected");
 			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
-			BitSet allAcceptingStates = singleAgentNestedMDP.getAllAcceptingStates();
+//			BitSet allAcceptingStates = singleAgentNestedMDP.getAllAcceptingStates();
 			BitSet essentialStates = new BitSet(numTeamStates);
 			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates();
 			BitSet agentInitialStatesInTeam = new BitSet(numTeamStates);
