@@ -169,30 +169,7 @@ public class STAPU {
 		return computeNestedValIterFailurePrint(mdp,target,statesToAvoid,rewards,minMaxRew,probPreference);
 	}
 	
-	protected ModelCheckerPartialSatResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, MDPRewards rewards) throws PrismException {
 
-		BitSet statesToRemainIn = (BitSet) statesToAvoid.clone();
-		statesToRemainIn.flip(0, mdp.getNumStates());
-		MDPModelChecker mc = new MDPModelChecker(prismC);
-		
-		ModelCheckerPartialSatResult res2 = mc.computeNestedValIterFailure(mdp, target, statesToRemainIn,
-				rewards);
-
-		StateValues probsProduct = StateValues.createFromDoubleArray(res2.solnProb, mdp);
-
-		// Get final prob result
-		double maxProb = probsProduct.getDoubleArray()[mdp.getFirstInitialState()];
-
-		StateValues costsProduct = StateValues.createFromDoubleArray(res2.solnCost, mdp);
-
-		double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
-
-		mainLogRef.println("\nFor p = " + maxProb + ", the minimum expected cummulative cost to satisfy specification is "
-				+ minCost);
-		return res2;
-	}
-	
 	
 	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles) throws PrismException {
 

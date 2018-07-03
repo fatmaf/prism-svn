@@ -611,19 +611,6 @@ public class MMDPSimple {
 		saveJointPolicy();
 	}
 
-	public State createJointState(Object[] DFAProgress, int[] currentRobotStates) {
-		State currentJointState = new State(DFAProgress.length + currentRobotStates.length);
-		int offset = 0;
-		for (int i = 0; i < DFAProgress.length; i++) {
-			currentJointState.setValue(i + offset, DFAProgress[i]);
-		}
-		offset = DFAProgress.length;
-		for (int i = 0; i < currentRobotStates.length; i++) {
-			currentJointState.setValue(i + offset, currentRobotStates[i]);
-		}
-		return currentJointState;
-	}
-
 	public State createJointState(Object[] DFAProgress, int[] currentRobotStates, MDPSimple[] pols) {
 		State currentJointState = new State(DFAProgress.length + currentRobotStates.length);
 		int offset = 0;
@@ -663,33 +650,6 @@ public class MMDPSimple {
 		return indexInt;
 	}
 
-	public int findStateWithSwitch(MDPSimple pol) {
-		int switchState = StatesHelper.BADVALUE;
-		int state = pol.getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
-												// INITIAL STATES
-		LinkedList<Integer> statesQ = new LinkedList<Integer>();
-		statesQ.add(state);
-		while (!statesQ.isEmpty()) {
-			state = statesQ.remove();
-			int choices = pol.getNumChoices(state);
-			for (int i = 0; i < choices; i++) {
-				if (pol.getAction(state, i).toString().contains("switch")) {
-					switchState = state;
-					break;
-				} else {
-					Iterator<Entry<Integer, Double>> tIter = pol.getTransitionsIterator(state, i);
-					while (tIter.hasNext()) {
-						Entry<Integer, Double> child = tIter.next();
-						int childState = child.getKey();
-						statesQ.add(childState);
-					}
-				}
-
-			}
-		}
-		return switchState;
-
-	}
 
 	public int firstFailedRobot(Object[] mdpStates, int start, int end) {
 		int failedRobot = StatesHelper.BADVALUE; // no one
@@ -764,27 +724,7 @@ public class MMDPSimple {
 		return daStartStates;
 	}
 
-	public int getLastState(MDPSimple pol) {
-		int state = pol.getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
-		// INITIAL STATES
-		LinkedList<Integer> statesQ = new LinkedList<Integer>();
 
-		statesQ.add(state);
-		while (!statesQ.isEmpty()) {
-			state = statesQ.remove();
-			int choices = pol.getNumChoices(state);
-			for (int i = 0; i < choices; i++) {
-				Iterator<Entry<Integer, Double>> tIter = pol.getTransitionsIterator(state, i);
-				while (tIter.hasNext()) {
-					Entry<Integer, Double> child = tIter.next();
-					int childState = child.getKey();
-					statesQ.add(childState);
-				}
-			}
-
-		}
-		return state; // so basically this is the last state we tried to explore
-	}
 
 	// TODO: this can be more efficient
 	public int getLastState(MDPSimple pol, BitSet acceptingStates) {
@@ -854,23 +794,7 @@ public class MMDPSimple {
 		return lastState; // so basically this is the last state we tried to explore
 	}
 
-	public ArrayList<Integer> getNextStates(MDPSimple pol, int currentState) {
-		ArrayList<Integer> nextstates = null;
-		int choices = pol.getNumChoices(currentState);
-		if (choices > 0)
-			nextstates = new ArrayList<Integer>();
-		for (int i = 0; i < choices; i++) {
 
-			Iterator<Entry<Integer, Double>> tIter = pol.getTransitionsIterator(currentState, i);
-			while (tIter.hasNext()) {
-				Entry<Integer, Double> child = tIter.next();
-				int childState = child.getKey();
-				nextstates.add(childState);
-			}
-		}
-		return nextstates;
-
-	}
 
 	public int getNumDA() {
 		return numDA;
@@ -1063,54 +987,6 @@ public class MMDPSimple {
 		return teamProgress;
 	}
 
-	public Object[] getTeamProgressAtCurrentStates(MDPSimple[] pols, int firstRobot, int[] currentStates,
-			int[] lastStates) {
-
-		// Ref State ???
-		// We need to make one
-		// TODO: NEED TO CHANGE THIS I AM HARDCODING IT FOR NOW
-
-		// I need two things - the current progress of the the thing which starts from
-		// the first robot
-		// this is our base, then we need the progress of the next robot excluding
-		// anything done by the first
-		Object[] refState = StatesHelper.createRefStateObject();// refstate size = len(numDAs - we could just save this)
-		Object[] teamProgress = new Object[refState.length - (1 + StatesHelper.numMdpVars)]; // hard coding this too
-		// initialize team Progress
-		int firstRobotState = currentStates[firstRobot];
-		State firstRobotStateObj = pols[firstRobot].getStatesList().get(firstRobotState);
-		for (int i = 0; i < teamProgress.length; i++) {
-			teamProgress[i] = firstRobotStateObj.varValues[i + 1];
-		}
-		for (int i = 0; i < nRobots; i++) {
-			if (i != firstRobot) {
-				int currentRobotState = currentStates[i];
-
-				// get the last state of the i-1 thing
-				// unless you're at 0 in which case you need to go to nRobots-1
-				int prevRobot = i - 1;
-				if (prevRobot == -1) {
-					prevRobot = nRobots - 1;
-				}
-
-				// now I get the last state
-				int prevRobotLastState = lastStates[prevRobot];
-
-				State currentRobotStateObj = pols[i].getStatesList().get(currentRobotState);
-				State prevRobotStateObj = pols[prevRobot].getStatesList().get(prevRobotLastState);
-
-				Object[] robotProgress = StatesHelper.XORStates(prevRobotStateObj, currentRobotStateObj, refState);
-				// System.out.println(Arrays.toString(robotProgress));
-				teamProgress = ORObjectArrays(teamProgress, robotProgress);
-				// System.out.println(Arrays.toString(teamProgress));
-				// policyVar.addStateMDP(pols[i],mdpMaps[i],newState,acceptingStates[i]);
-				// pols[i].clearInitialStates();
-				// pols[i].addInitialState(mdpMaps[i][newState]);
-
-			}
-		}
-		return teamProgress;
-	}
 
 	public int hasFailState(int[] mdpStates) {
 		int sum = 0;
@@ -1177,13 +1053,7 @@ public class MMDPSimple {
 		return isAcceptingState(jointState.varValues, daStart, daEnd, acceptingStates);
 	}
 
-	public Object[] ORObjectArrays(Object[] a1, Object[] a2) {
-		for (int i = 0; i < a1.length; i++) {
-			if ((int) a1[i] < (int) a2[i])
-				a1[i] = a2[i];
-		}
-		return a1;
-	}
+
 
 	private State resetTasksInIntermediateStates(State jointState, SequentialTeamMDP seqTeamMDP, int[] robotDAassoc) {
 
@@ -1233,21 +1103,7 @@ public class MMDPSimple {
 		numDA = n;
 	}
 
-	public boolean stateInStatesList(State s) {
-		if (mdp.getStatesList().contains(s))
-			return true;
-		else
-			return false;
-	}
 
-	public boolean stuckStatesQContainsState(int state) {
-		for (StateProb stateprob : stuckStatesQ) {
-			if (stateprob.getState() == state)
-				return true;
-		}
-		return false;
-
-	}
 
 	public void testQ() {
 		PriorityQueue<StateProb> testQ = new PriorityQueue<StateProb>();
