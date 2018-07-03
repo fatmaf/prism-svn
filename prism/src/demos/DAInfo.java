@@ -87,41 +87,6 @@ public class DAInfo {
 	}
 	
 
-
-	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL,
-			ProbModelChecker mcProb, AcceptanceType[] accType, M model, BitSet statesOfInterest,
-			boolean allStatesInDFA) throws PrismException {
-		labelBS = new Vector<BitSet>();
-		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
-		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
-			mainLog.println("\nAutomaton is not a DFA... ");
-		} 
-//		else {
-//			BitSet acceptingStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
-//		}
-
-		LTLProduct<M> product = mcLTL.constructProductModel(da, model, labelBS, statesOfInterest, allStatesInDFA);
-
-		// update labelBS
-		Vector<BitSet> newLabelBS = new Vector<BitSet>();
-		for (int bs = 0; bs < labelBS.size(); bs++)
-			newLabelBS.add(product.liftFromAutomaton(labelBS.get(bs)));
-		productAcceptingStates = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
-
-		// rewards
-		if (daExprRew != null) {
-
-			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(mcProb.getModulesFile(),
-					mcProb.getModulesFile().getConstantValues());
-			// commenting this out because its giving the error Error: Could not evaluate
-			// constant ("failstate", line 166, column 20).
-			// we know this is because I'm not intializing this properly cuz i'm lazy and
-			// prism code is confusing
-			// but its okay we can do this later
-			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
-		}
-		return product;
-	}
 	
 	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL,
 			ProbModelChecker mcProb, ModulesFile modulesFile, AcceptanceType[] accType, M model, BitSet statesOfInterest,

@@ -446,24 +446,7 @@ public class SequentialTeamMDP {
 	}
 
 
-//	public void addSwitchTransitions(int firstRobot) throws PrismException {
-//
-//		int totalSwitches = 0;
-//		boolean addSwitches = true; // just going to use this to make sure that the first robot doesnt get a switch
-//		for (int r = 0; r < agentMDPs.size(); r++) {
-//			int fromRobot = r;
-//			int toRobot = (r + 1) % agentMDPs.size();
-//			// dont add switches to the first robot
-//			addSwitches = (toRobot != firstRobot);
-//			if (addSwitches) {
-//
-//				BitSet fromRobotEssentialStates = essentialStates.get(fromRobot);
-//				BitSet toRobotInitialStates = initialStates.get(toRobot);
-//				totalSwitches += addSwitchTransitionsBetweenRobots(toRobot, fromRobot,fromRobotEssentialStates,toRobotInitialStates);}
-//		}
-//		teamMDPWithSwitches.findDeadlocks(true);
-//
-//	}
+
 
 	public void setInitialStates(int[] robotStates) {
 		initialStates = new Vector<BitSet>();

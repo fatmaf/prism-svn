@@ -126,14 +126,6 @@ public class StatesHelper {
 		return res;
 	}
 	
-	public static Object[] createRefStateObject() {
-		// get the first state
-		Object[] ref = new Object[mdpVarStart + numMdpVars];
-		for (int i = 0; i < ref.length; i++) {
-			ref[i] = 0;
-		}
-		return ref;
-	}
 
 	public static Object[] getDAStatesFromState(State state)
 	{
@@ -220,8 +212,8 @@ public class StatesHelper {
 			for(int j = 0; j<numChoices; j++)
 			{
 			
-				ArrayList<Integer> nextStates = new ArrayList(); 
-				ArrayList<Double> nextStatesProbs = new ArrayList();
+				ArrayList<Integer> nextStates = new ArrayList<Integer>(); 
+				ArrayList<Double> nextStatesProbs = new ArrayList<Double>();
 				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(i, j); 
 				while(tranIter.hasNext())
 				{
