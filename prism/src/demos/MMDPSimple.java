@@ -766,7 +766,7 @@ public class MMDPSimple {
 						lastState = state;
 				}
 				if (kindOfState == 2) {
-					if (StatesHelper.isFailState(pol.getStatesList().get(state)))
+					if (StatesHelper.isFailState(pol.getStatesList().get(state))) //TODO: fix this here , because this has changed
 						lastState = state;
 				}
 				int choices = pol.getNumChoices(state);
