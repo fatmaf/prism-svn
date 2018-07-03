@@ -1,6 +1,5 @@
 package demos;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Vector;
 
@@ -19,7 +18,6 @@ import parser.ast.ExpressionQuant;
 import parser.ast.ExpressionReward;
 import parser.ast.ModulesFile;
 import parser.ast.RewardStruct;
-import prism.ModelInfo;
 import prism.PrismException;
 import prism.PrismLog;
 
