@@ -150,7 +150,7 @@ public class MMDPSimple {
 
 	}
 
-	public ArrayList<Integer> addSeqPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat, int initialState,
+	public ArrayList<Integer> breakSeqPolicyAndAddtoPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat, int initialState,
 			int nextSuccState, int[] allRobotInitStates) {
 		boolean debugStuff = true;
 		MDPSimple tempMDP = null;
@@ -164,6 +164,9 @@ public class MMDPSimple {
 		MDPSimple mdps[] = new MDPSimple[numRobots];
 		int mdpMaps[][] = new int[numRobots][sumprod.getNumStates()];
 		BitSet accStates[] = new BitSet[numRobots];
+		ArrayList<ArrayList<Entry<Integer,Entry<Integer,Double>>>> robotLastStateInitStatePairs = 
+				new ArrayList<ArrayList<Entry<Integer,Entry<Integer,Double>>>>(); 
+		
 		for (int i = 0; i < numRobots; i++) {
 			mdps[i] = new MDPSimple();
 			mdps[i].setVarList((VarList) sumprod.getVarList().clone());
@@ -356,7 +359,7 @@ public class MMDPSimple {
 		initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		State s1 = seqTeamMDP.teamMDPTemplate.getStatesList().get(initialState);
 		System.out.println(s1.toString());
-		return addSeqPolicy(seqTeamMDP, strat, initialState, nextRobotstate, robotStates);
+		return breakSeqPolicyAndAddtoPolicy(seqTeamMDP, strat, initialState, nextRobotstate, robotStates);
 
 	}
 
