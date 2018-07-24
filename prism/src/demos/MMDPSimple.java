@@ -89,7 +89,10 @@ public class MMDPSimple {
 	public BitSet allTasksCompletedStates;
 	public BitSet allFailStatesSeen;
 	BitSet initStates;
+	ArrayList<String> sharedVarsList; 
+	ArrayList<String> notSharedVarsList; //just to make life easier  
 	int numDA;
+	VarList teamMDPVarlist; 
 
 	/**
 	 * creates a joint policy MDP
@@ -97,15 +100,34 @@ public class MMDPSimple {
 	 * @numrobots the number of robots
 	 * 
 	 */
-	public MMDPSimple(int numrobots, int numDAs) {
+	public MMDPSimple(int numrobots, int numDAs,ArrayList<String> sharedVarsList,VarList seqTeamMDPVarlist) {
 		stuckStatesQ = new PriorityQueue<StateProb>();
 		mdp = new MDPSimple();
+		this.sharedVarsList = sharedVarsList;
+		notSharedVarsList = new ArrayList<String>(); //this is for now 
+		for (int i =0; i<seqTeamMDPVarlist.getNumVars(); i++)
+		{
+			String name = seqTeamMDPVarlist.getName(i); 
+			if (!sharedVarsList.contains(name) && (!name.contains("da")) && (name != "r"))
+				notSharedVarsList.add(name);
+		}
+		
+		int numSharedVars = this.sharedVarsList.size(); 
+		int numSeqTeamMDPVars = seqTeamMDPVarlist.getNumVars(); 
+		this.teamMDPVarlist = seqTeamMDPVarlist; 
+		
 		VarList varlist = new VarList();
+		
+		
 		try {
 			for (int i = numrobots - 1; i >= 0; i--) {
 
 				varlist.addVar(0, new Declaration("r" + i, new DeclarationIntUnbounded()), 1, null);
 
+			}
+			for(int i = 0; i<numSharedVars; i++)
+			{
+				varlist.addVar(0, new Declaration(sharedVarsList.get(i), new DeclarationIntUnbounded()), 1, null);
 			}
 			// varlist.addVar(0, new Declaration("da", new DeclarationIntUnbounded()), 1,
 			// null);
@@ -232,6 +254,21 @@ public class MMDPSimple {
 						accStates[currentRobot] = StatesHelper.addLinkInMDP(mdps[currentRobot], mdpMaps[currentRobot],
 								sumprod.getStatesList(), states, probs, currState, action, "r" + currentRobot,
 								accStates[currentRobot], seqTeamMDP.acceptingStates);
+						//need to fix this really 
+						//there can be multiple initial states because we have multiple switch actions 
+						//we also want to track the state with the higher probability - so this is a bit of a problem right now
+						if (action.toString().contains("switch"))
+						{
+							//cycle through the states and get initial states 
+							for (int nextState: states)
+							{
+								int rindex = StatesHelper.getRobotNumberFromState(sumprod.getStatesList().get(nextState)); 
+								mdps[rindex].addInitialState(
+								     StatesHelper.addStateMDP(mdps[rindex], mdpMaps[rindex],
+										sumprod.getStatesList(), nextState));
+								
+							}
+						}
 						if (mdps[currentRobot].getNumInitialStates() == 0)
 							mdps[currentRobot].addInitialState(0);
 						if (debugStuff) {
@@ -448,9 +485,20 @@ public class MMDPSimple {
 		return ((numda - 1) - daNum);
 	}
 
+	public void testMDPsToJointPolicy(MDPSimple[] pols, int[][] mdpMaps, SequentialTeamMDP seqTeamMDP) {
+		Object DAInitStates[] = getDAStartStates(seqTeamMDP); // all das dont start at 0, so we need these if we want to
+		// reset stuff
+		BitSet DAGoalStates[] = getDAGoalStates(seqTeamMDP); // we need these to check if we've got accepting states
+		int robotDAassociations[] = new int[numDA]; // to track which robot affects which da
+		Arrays.fill(robotDAassociations, -1); // initializing
+
+	}
+	//dear joint policy, you are the joy in my life - thank you 
+	//someday you wont be but thats how it is - thank you for helping drown out the noise 
+	//stay safe bruv :P 
+	//you and of course an absolutely distracting playlist - things to be grateful for 
 	public void convertMDPsToJointPolicy(MDPSimple[] pols, int[][] mdpMaps, int firstRobot, BitSet[] acceptingStates,
 			SequentialTeamMDP seqTeamMDP) {
-
 		Object DAInitStates[] = getDAStartStates(seqTeamMDP); // all das dont start at 0, so we need these if we want to
 																// reset stuff
 		BitSet DAGoalStates[] = getDAGoalStates(seqTeamMDP); // we need these to check if we've got accepting states
@@ -487,22 +535,33 @@ public class MMDPSimple {
 		String jointAction = "";
 		int numChoices = 0;
 		Object action = null;
+		for (int r = 0; r < nRobots; r++) {
 
+			StatesHelper.saveMDP(pols[r], null, "", "stratmdp"+r, true);}
 		// update initial states to reflect DA progress
 		updateInitialStates(pols, mdpMaps, firstRobot, acceptingStates, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
 				seqTeamMDP.acceptingStates);
+		for (int r = 0; r < nRobots; r++) {
 
+			StatesHelper.saveMDP(pols[r], null, "", "stratmdpfixed"+r, true);}
 		// get all the initial states and last states
 		for (int r = 0; r < nRobots; r++) {
+
+			//StatesHelper.saveMDP(pols[r], null, "", "startmdp"+r, true);
 			initialStates[r] = pols[r].getFirstInitialState();
 			lastStates[r] = getLastState(pols[r], acceptingStates[r]);
+			
 		}
 
-		Object[] teamProgress = getTeamProgress(pols, firstRobot, initialStates, lastStates, DAInitStates,
+		Object[] teamProgress = getTeamDAProgress(pols, firstRobot, initialStates, lastStates, DAInitStates,
 				robotDAassociations);
-
+		Object[] sharedStates =  getTeamSharedStatesProgress(pols,firstRobot,initialStates,lastStates,initialStates);
+		//use this to check if we need to trigger a synchronization point thing 
+		//but waaa
+//		System.out.println(sharedStates.toString());
 		currentStates = initialStates.clone();
-		State currentJointState = createJointState(teamProgress, currentStates, pols);
+		State currentJointState = createJointState(teamProgress,sharedStates,currentStates,pols);
+		//createJointState(teamProgress, currentStates, pols);
 		statesToExploreQ.add(currentJointState);
 		correspondingRobotMDPStatesQ.add(currentStates.clone());
 
@@ -595,9 +654,13 @@ public class MMDPSimple {
 
 				}
 
-				teamProgress = getTeamProgress(pols, firstRobot, nextStates, lastStates, DAInitStates, robotDAassociations);
-	
-				State nextJointState = createJointState(teamProgress, nextStates, pols);
+				teamProgress = getTeamDAProgress(pols, firstRobot, nextStates, lastStates, DAInitStates, robotDAassociations);
+				
+				//FIXME: this has to do something you know :P 
+				sharedStates =  getTeamSharedStatesProgress(pols,firstRobot,nextStates,lastStates,initialStates); 
+				
+				State nextJointState = createJointState(teamProgress,sharedStates,nextStates,pols);
+				//createJointState(teamProgress, nextStates, pols);
 				nextStateProbs.add(stateProb);
 				sumProb +=stateProb;
 				nextJointStates.add(nextJointState);
@@ -625,7 +688,29 @@ public class MMDPSimple {
 		}
 		return currentJointState;
 	}
-
+	
+	public State createJointState(Object[] DFAProgress, Object[] sharedState,int[] currentRobotStates, MDPSimple[] pols) {
+		State currentJointState = new State(DFAProgress.length +sharedState.length+currentRobotStates.length);
+		int offset = 0;
+		for (int i = 0; i < DFAProgress.length; i++) {
+			currentJointState.setValue(i + offset, DFAProgress[i]);
+		}
+		offset = DFAProgress.length;
+		for(int i = 0; i<sharedState.length; i++) {
+			currentJointState.setValue(i+offset, sharedState[i]);
+		}
+		offset +=sharedState.length;
+		for (int i = 0; i < currentRobotStates.length; i++) {
+			Object[] temp = StatesHelper
+					.getMDPStateFromState(pols[i].getStatesList().get(currentRobotStates[i]),this.teamMDPVarlist, this.notSharedVarsList);
+			for(int j = 0; j<temp.length; j++)
+			{ currentJointState.setValue( offset,temp[j]);
+			
+			}
+			offset = offset + (temp.length);
+		}
+		return currentJointState;
+	}
 	public Object[] createSingleRobotState(State jointState, int rNum) {
 		// pick the robot num
 		Object[] mdpStates = jointState.varValues;
@@ -640,7 +725,42 @@ public class MMDPSimple {
 		singleRobotState[dfaEnd + 1] = mdpStates[robotIndex];
 		return singleRobotState;
 	}
-
+	public Object[] createSingleRobotStateIncludeSharedState(State jointState, int rNum) {
+		// pick the robot num
+		Object[] mdpStates = jointState.varValues;
+		int sharedStateStart = this.numDA;//this.numDA;
+//		int dfaStart = 0;
+		int dfaEnd = this.numDA;//mdpStates.length - nRobots;
+		int robotIndex = dfaEnd+sharedVarsList.size()+ rNum;
+		Object[] singleRobotState = new Object[dfaEnd + 2+this.sharedVarsList.size()];
+		singleRobotState[0] = rNum;
+		for (int i = 1; i < dfaEnd + 1; i++) {
+			singleRobotState[i] = mdpStates[i - 1];
+		}
+		//match everything else 
+		
+		for(int i = 0; i< this.sharedVarsList.size(); i++)
+		{	//singleRobotState[i+(dfaEnd+1)]=mdpStates[dfaEnd+i]; 
+			int index = this.teamMDPVarlist.getIndex(sharedVarsList.get(i));
+			int otherIndex = this.mdp.getVarList().getIndex(sharedVarsList.get(i));
+			if (index != -1)
+			{
+				singleRobotState[index] = mdpStates[otherIndex];
+			}
+		}
+		for(int i = 0; i< this.notSharedVarsList.size(); i++)
+		{	//singleRobotState[i+(dfaEnd+1)]=mdpStates[dfaEnd+i]; 
+			int index = this.teamMDPVarlist.getIndex(notSharedVarsList.get(i));
+//			int otherIndex = this.mdp.getVarList().getIndex(notSharedVarsList.get(i));
+			if (index != -1)
+			{
+				singleRobotState[index] = mdpStates[robotIndex];
+			}
+		}
+		
+		//singleRobotState[dfaEnd +this.sharedVarsList.size()+ 1] = mdpStates[robotIndex];
+		return singleRobotState;
+	}
 	public int findStateIndex(State s) {
 		int indexInt = StatesHelper.BADVALUE;
 		Object index = statesMap.get(s);
@@ -662,7 +782,7 @@ public class MMDPSimple {
 		return failedRobot;
 	}
 
-	public int firstFailedRobot(State jointState) {
+	public int firstFailedRobot(State jointState) {   //TODO fix this for when the number of states for each robot vary/are more than 1
 		Object[] mdpStates = jointState.varValues;
 		int start = mdpStates.length - nRobots;
 		int end = mdpStates.length;
@@ -881,7 +1001,7 @@ public class MMDPSimple {
 		return probHere;
 	}
 
-	public Object[] getRobotProgress(State previousRobotsState, State currentRobotsState, Object[] daInitStates,
+	public Object[] getRobotDAProgress(State previousRobotsState, State currentRobotsState, Object[] daInitStates,
 			int[] robotDAassoc, int rnum) {
 
 		Object[] previousRobotsDAState = StatesHelper.getDAStatesFromState(previousRobotsState);
@@ -889,12 +1009,25 @@ public class MMDPSimple {
 		int[] integerXORmask = StatesHelper.XORIntegers(previousRobotsDAState, currentRobotsDAState);
 		for (int i = 0; i < integerXORmask.length; i++) {
 			if (integerXORmask[i] == 1)
-				robotDAassoc[i] = rnum; // should just be 0 or 1 and each robot has one task only so yeah
+				robotDAassoc[i] = rnum; // should just be 0 or 1 and each task can be assinged to a single robot 
 		}
 		Object[] updatedState = StatesHelper.multiplyWithMask(integerXORmask, currentRobotsDAState, daInitStates);
 
 		return updatedState;
 
+	}
+	private Object[] getRobotSharedStateProgress(State previousRobotsState, State currentRobotsState, State initialState) {
+		
+		Object[] previousRobotsSharedState = StatesHelper.getSharedStatesFromState(previousRobotsState, teamMDPVarlist, sharedVarsList); 
+		Object[] currentRobotsSharedState = StatesHelper.getSharedStatesFromState(currentRobotsState, teamMDPVarlist, sharedVarsList); 
+		Object[] initialSharedState = StatesHelper.getSharedStatesFromState(initialState, teamMDPVarlist, sharedVarsList); 
+
+		int[] integerXORmask = StatesHelper.XORIntegers(previousRobotsSharedState, currentRobotsSharedState);
+		Object[] updatedState = StatesHelper.multiplyWithMask(integerXORmask, currentRobotsSharedState, initialSharedState); 
+		
+		
+		// TODO Auto-generated method stub
+		return updatedState;
 	}
 
 	public int getRobotState(State jointState, int rnum) {
@@ -907,7 +1040,7 @@ public class MMDPSimple {
 	}
 
 	public int getRobotStateIndexFromJointState(State currState, int rNum, List<State> states) {
-		Object[] robotState = createSingleRobotState(currState, rNum);
+		Object[] robotState = /*createSingleRobotState*/createSingleRobotStateIncludeSharedState(currState, rNum);
 		int robotStateId = StatesHelper.getExactlyTheSameState(robotState, states);
 		if (robotStateId == StatesHelper.BADVALUE)
 			System.out
@@ -915,7 +1048,7 @@ public class MMDPSimple {
 		return robotStateId;
 	}
 
-	public int[] getRobotStates(State jointState) {
+	public int[] getRobotStates(State jointState) {//FIXME: this is not okay!!! 
 
 		Object[] mdpStates = jointState.varValues;
 		int start = mdpStates.length - nRobots;
@@ -946,23 +1079,24 @@ public class MMDPSimple {
 		return successorStates;
 	}
 
-	public Object[] getTeamProgress(int firstRobot, State[] lastStates, State[] currentStates, Object[] daInitStates,
+
+	public Object[] getTeamDAProgress(int firstRobot, State[] lastStates, State[] currentStates, Object[] daInitStates,
 			int robotDAassoc[]) {
 		// DA States
 		// start from the first robot
-		ArrayList<Object[]> robotsProgress = new ArrayList<Object[]>();
+//		ArrayList<Object[]> robotsProgress = new ArrayList<Object[]>();
 
 		Object[] teamProgress = null;
 		int currentRobot = firstRobot;
 		int prevRobot = firstRobot;
 		do {
 
-			Object[] updatedState = getRobotProgress(lastStates[prevRobot], currentStates[currentRobot], daInitStates,
+			Object[] updatedState = getRobotDAProgress(lastStates[prevRobot], currentStates[currentRobot], daInitStates,
 					robotDAassoc, currentRobot);
 			if (currentRobot == firstRobot)
 				teamProgress = StatesHelper.ORIntegers(updatedState,
 						StatesHelper.getDAStatesFromState(currentStates[firstRobot]), daInitStates);
-			robotsProgress.add(updatedState);
+//			robotsProgress.add(updatedState);
 			prevRobot = currentRobot;
 			currentRobot = (currentRobot + 1) % this.nRobots;
 			teamProgress = StatesHelper.ORIntegers(teamProgress, updatedState, daInitStates);
@@ -971,7 +1105,7 @@ public class MMDPSimple {
 		return teamProgress;
 	}
 
-	public Object[] getTeamProgress(MDPSimple[] pols, int firstRobot, int[] currentStates, int[] lastStates,
+	public Object[] getTeamDAProgress(MDPSimple[] pols, int firstRobot, int[] currentStates, int[] lastStates,
 			Object[] initStates, int robotDAassoc[]) {
 
 		State[] lastStatesStates = new State[currentStates.length];
@@ -982,10 +1116,47 @@ public class MMDPSimple {
 			currentStatesStates[i] = pols[i].getStatesList().get(currentStates[i]);
 
 		}
-		Object[] teamProgress = getTeamProgress(firstRobot, lastStatesStates, currentStatesStates, initStates,
+		Object[] teamProgress = getTeamDAProgress(firstRobot, lastStatesStates, currentStatesStates, initStates,
 				robotDAassoc);
 		return teamProgress;
 	}
+
+	public Object[] getTeamSharedStatesProgress(MDPSimple pols[], int firstRobot, int[] currentStates, int[] lastStates, int[] initStates)
+	{
+		State[] lastStatesStates = new State[lastStates.length]; 
+		State[] currentStatesStates = new State[currentStates.length]; 
+		State[] initStatesStates = new State[initStates.length];
+		for (int i = 0; i < nRobots; i++) {
+			lastStatesStates[i] = pols[i].getStatesList().get(lastStates[i]);
+			currentStatesStates[i] = pols[i].getStatesList().get(currentStates[i]);
+			initStatesStates[i]=pols[i].getStatesList().get(initStates[i]);
+
+		}
+		Object[] sharedProgress = getTeamSharedStatesProgress(firstRobot,lastStatesStates,currentStatesStates,initStatesStates);
+		return sharedProgress; 
+	}
+
+	private Object[] getTeamSharedStatesProgress(int firstRobot, State[] lastStatesStates, State[] currentStatesStates,
+			State[] initStatesStates) {
+		
+		Object[] teamProgress = null; 
+		int currentRobot = firstRobot; 
+		int prevRobot = firstRobot; 
+		Object[] initState = StatesHelper.getSharedStatesFromState(initStatesStates[firstRobot],
+				this.teamMDPVarlist, this.sharedVarsList);
+		do {
+			Object[] updatedState = getRobotSharedStateProgress(lastStatesStates[prevRobot],
+					currentStatesStates[currentRobot],initStatesStates[firstRobot]);
+			if (currentRobot == firstRobot)
+				teamProgress = StatesHelper.ORIntegers(updatedState,initState,initState);
+			prevRobot = currentRobot;
+			currentRobot = (currentRobot + 1) % this.nRobots;
+			teamProgress = StatesHelper.ORIntegers(teamProgress, updatedState, initState);
+		}while(currentRobot != firstRobot);
+		
+		return teamProgress;
+	}
+
 
 
 	public int hasFailState(int[] mdpStates) {
@@ -997,7 +1168,7 @@ public class MMDPSimple {
 		return sum;
 	}
 
-	public int hasFailState(Object[] mdpStates, int start, int end) {
+	public int hasFailState(Object[] mdpStates, int start, int end) { //TODO: fix this for multiple states
 		int sum = 0;
 		for (int i = start; i < end; i++) {
 			if ((int) mdpStates[i] == StatesHelper.failState)
@@ -1008,7 +1179,7 @@ public class MMDPSimple {
 
 	public int hasFailState(State jointState) {
 		Object[] mdpStates = jointState.varValues;
-		int start = mdpStates.length - nRobots;
+		int start = numDA+this.sharedVarsList.size();//mdpStates.length - nRobots;
 		int end = mdpStates.length;
 		return hasFailState(mdpStates, start, end);
 	}
@@ -1049,7 +1220,7 @@ public class MMDPSimple {
 
 	public boolean isAcceptingState(State jointState, BitSet[] acceptingStates) {
 		int daStart = 0;
-		int daEnd = jointState.varValues.length - nRobots;
+		int daEnd = numDA;//jointState.varValues.length - nRobots;
 		return isAcceptingState(jointState.varValues, daStart, daEnd, acceptingStates);
 	}
 

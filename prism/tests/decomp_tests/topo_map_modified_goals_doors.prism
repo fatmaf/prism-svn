@@ -85,7 +85,8 @@ door: [unknown ..open] init unknown;
 [WayPoint21_WayPoint19] (waypoint=26) -> 1:(waypoint'=25);
 [WayPoint23_WayPoint20] (waypoint=27) -> 1:(waypoint'=3);
 [WayPoint24_WayPoint20] (waypoint=28) -> 1:(waypoint'=3);
-[check_door]		(waypoint=9) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+[check_door_WayPoint10]	(waypoint=17) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+[check_door_WayPoint9]	(waypoint=18) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
 
 endmodule
 

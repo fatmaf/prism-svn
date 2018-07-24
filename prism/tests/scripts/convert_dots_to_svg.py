@@ -70,24 +70,35 @@ def convert_all_to_dot(files,open=True):
     print "\n\nDone"
 
 if __name__=="__main__":
-    print "Usage: python convert_dots_to_svg.py name_hint size_limit(in bytes) ext"
+    print "\nUsage: python convert_dots_to_svg.py name_hint size_limit(in bytes) ext\n"
     name_hint = "topo"
     ext="dot"
     size_limit = 512000
-    if len(sys.argv) == 1:
-        print "Using default name hint "+name_hint+" ext "+ext+" size "+str(size_limit)+"bytes"
-    else:
-        if len(sys.argv)>=2:
-            name_hint = sys.argv[1]
-        if len(sys.argv)>=3:
-            size_limit = int(sys.argv[2])
-        if len(sys.argv)>=4:
-            ext = sys.argv[3]
-        if len(sys.argv)>=5:
-            print "ignoring other arguments"
-        print "Using default name hint "+name_hint+" ext "+ext+" size "+str(size_limit)+"bytes"
-        
-            
-            
-    files=get_files_by_file_size_cwd(name_hint,ext,size_limit)
-    convert_all_to_dot(files)
+    error = False
+    if len(sys.argv)==0:
+        print "\nUsage: python convert_dots_to_svg.py name_hint size_limit(in bytes) ext\n"
+        print "exiting"
+        error = True
+    if not error:
+        if len(sys.argv) == 1:
+            print "Using default name hint "+name_hint+" ext "+ext+" size "+str(size_limit)+"bytes"
+        else:
+            if len(sys.argv)>=2:
+                if sys.argv[1] != "-h":
+                    name_hint = sys.argv[1]
+                else:
+                    print "Using default name hint "+name_hint+" ext "+ext+" size "+str(size_limit)+"bytes"
+                    error = True
+            if len(sys.argv)>=3:
+                size_limit = int(sys.argv[2])
+            if len(sys.argv)>=4:
+                ext = sys.argv[3]
+            if len(sys.argv)>=5:
+                print "ignoring other arguments"
+            if not error:
+                print "Using default name hint "+name_hint+" ext "+ext+" size "+str(size_limit)+"bytes"
+
+
+        if not error:
+            files=get_files_by_file_size_cwd(name_hint,ext,size_limit)
+            convert_all_to_dot(files)
