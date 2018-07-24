@@ -326,8 +326,8 @@ public class SequentialTeamMDP {
 							map[nextState] = indexInTeamNextState;
 
 						}
-						if(indexInTeamNextState == 76 )
-							mainLog.println();
+//						if(indexInTeamNextState == 76 )
+//							mainLog.println();
 						if (singleAgentNestedMDP.addRewardForTaskCompletion(nextState,s))
 						{
 							if(addProgReward)

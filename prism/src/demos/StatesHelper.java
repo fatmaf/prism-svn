@@ -17,6 +17,7 @@ import explicit.MDPSimple;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
+import parser.VarList;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -70,6 +71,18 @@ public class StatesHelper {
 
 		}
 		return updatedBitSet;
+	}
+	public static int addStateMDP(MDPSimple mdp, int[] mdpMap, List<State> states,  int state) {
+		int stateNotAdded = BADVALUE;
+		if (mdpMap[state] == stateNotAdded) {
+			// add to states list
+			mdpMap[state] = mdp.getNumStates();
+			mdp.getStatesList().add(states.get(state)); // should work
+			mdp.addState();
+
+
+		}
+		return mdpMap[state];
 	}
 	public static boolean areEqual(Object[] s1, Object[] s2)
 	{
@@ -126,6 +139,7 @@ public class StatesHelper {
 		return res;
 	}
 	
+	
 
 	public static Object[] getDAStatesFromState(State state)
 	{
@@ -134,7 +148,21 @@ public class StatesHelper {
 		Object[] toret = Arrays.copyOfRange(stateObj,robotVar+1,mdpVarStart);
 		return toret; 
 	}
-
+	public static Object[] getSharedStatesFromState(State state,VarList list, ArrayList<String> sharedVars)
+	{
+		Object[] stateObj = state.varValues;
+		Object[] toret = new Object[sharedVars.size()];
+		int index = -1;
+		for(int i = 0;i < sharedVars.size(); i++)
+		{
+			index =list.getIndex(sharedVars.get(i)); 
+			if(index != -1)
+				toret[i]=stateObj[index];
+		}
+		return toret;
+		
+	}
+	
 	public static int getExactlyTheSameState(Object s1v[], List<State> states) {
 		int res = BADVALUE;
 		for (int s = 0; s < states.size(); s++) {
@@ -156,6 +184,19 @@ public class StatesHelper {
 
 	}
 
+	public static Object[] getMDPStateFromState(State s1, VarList varlist, ArrayList<String> notSharedVarsList)
+	{
+		Object[] stateVar = s1.varValues; 
+		int numVarsNotShared = /*varlist.getNumVars() - */notSharedVarsList.size(); 
+		Object[] mdpState = new Object[numVarsNotShared]; 
+		for(int i = 0; i<numVarsNotShared; i++)
+		{
+			int index = varlist.getIndex(notSharedVarsList.get(i)); 
+			if(index != 1)
+			mdpState[i]=stateVar[index];
+		}
+		return mdpState;	
+	}
 	public static Object[] getMergedState(State s1, State s2, int statesToKeeps2[]) {
 		// int res = BADVALUE;
 		Object s1v[] = s1.varValues.clone();

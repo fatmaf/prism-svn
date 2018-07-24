@@ -171,7 +171,8 @@ public class STAPU {
 	
 
 	
-	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles) throws PrismException {
+	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb,
+			ArrayList<ModulesFile> modulesFiles,ArrayList<String> shared_vars_list) throws PrismException {
 
 		long startTime = System.currentTimeMillis();
 		int probPreference = 0; 
@@ -292,7 +293,8 @@ public class STAPU {
 		
 		// add to joint policy
 		//MMDPSimple
-		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size());
+		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
+				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList());
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLogRef.println("InitState = "+initialState);
 		
@@ -553,6 +555,10 @@ public class STAPU {
 			String cumberland_doors = "topo_map_modified_goals_doors";
 			String filename =cumberland_doors;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
 			String filename_suffix = "_seq"; //seq_simp for two robots 
+			
+			ArrayList<String> shared_vars_list = new ArrayList<String>(); 
+			shared_vars_list.add("door");
+			
 			ArrayList<String> filenames = new ArrayList<String>(); 
 			filenames.add(filename); 
 			filenames.add(filename+1);
@@ -619,7 +625,7 @@ public class STAPU {
 		        public void run() {
 		            //do your task
 		        	try {
-						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFiles);
+						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFiles,shared_vars_list);
 					} catch (PrismException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
