@@ -1,0 +1,210 @@
+digraph MDP {
+size="8,5"
+node [shape=box];
+0 -> n0_0 [ arrowhead=none,label="0:r0_WayPoint13_WayPoint11.0" ];
+n0_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_0 -> 1 [ label="1.0" ];
+1 -> n1_0 [ arrowhead=none,label="0:r0_WayPoint11_WayPoint9.0" ];
+n1_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n1_0 -> 2 [ label="1.0" ];
+2 -> n2_0 [ arrowhead=none,label="0:r0_WayPoint9_WayPoint8.0" ];
+n2_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n2_0 -> 3 [ label="0.8" ];
+n2_0 -> 4 [ label="0.19999999999999996" ];
+3 -> n3_0 [ arrowhead=none,label="0:r0_WayPoint8_WayPoint7.0" ];
+n3_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n3_0 -> 5 [ label="1.0" ];
+4 -> n4_0 [ arrowhead=none,label="0:r1_WayPoint18_WayPoint16.0" ];
+n4_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n4_0 -> 9 [ label="0.8" ];
+n4_0 -> 10 [ label="0.19999999999999996" ];
+5 -> n5_0 [ arrowhead=none,label="0:r0_WayPoint7_WayPoint2.0" ];
+n5_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n5_0 -> 6 [ label="1.0" ];
+6 -> n6_0 [ arrowhead=none,label="0:r0_WayPoint2_WayPoint27.0" ];
+n6_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n6_0 -> 4 [ label="0.19999999999999996" ];
+n6_0 -> 7 [ label="0.8" ];
+7 -> n7_0 [ arrowhead=none,label="0:r0_WayPoint27_WayPoint28.0" ];
+n7_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n7_0 -> 8 [ label="1.0" ];
+9 -> n9_0 [ arrowhead=none,label="0:r1_WayPoint16_WayPoint15.0" ];
+n9_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n9_0 -> 10 [ label="0.19999999999999996" ];
+n9_0 -> 11 [ label="0.8" ];
+10 -> n10_0 [ arrowhead=none,label="0:r2_WayPoint30_WayPoint4.0" ];
+n10_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n10_0 -> 18 [ label="0.8" ];
+n10_0 -> 19 [ label="0.19999999999999996" ];
+11 -> n11_0 [ arrowhead=none,label="0:r1_WayPoint15_WayPoint9.0" ];
+n11_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n11_0 -> 12 [ label="1.0" ];
+12 -> n12_0 [ arrowhead=none,label="0:r1_WayPoint9_WayPoint8.0" ];
+n12_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n12_0 -> 10 [ label="0.19999999999999996" ];
+n12_0 -> 13 [ label="0.8" ];
+13 -> n13_0 [ arrowhead=none,label="0:r1_WayPoint8_WayPoint7.0" ];
+n13_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n13_0 -> 14 [ label="1.0" ];
+14 -> n14_0 [ arrowhead=none,label="0:r1_WayPoint7_WayPoint2.0" ];
+n14_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n14_0 -> 15 [ label="1.0" ];
+15 -> n15_0 [ arrowhead=none,label="0:r1_WayPoint2_WayPoint27.0" ];
+n15_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n15_0 -> 16 [ label="0.8" ];
+n15_0 -> 10 [ label="0.19999999999999996" ];
+16 -> n16_0 [ arrowhead=none,label="0:r1_WayPoint27_WayPoint28.0" ];
+n16_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n16_0 -> 17 [ label="1.0" ];
+18 -> n18_0 [ arrowhead=none,label="0:r2_WayPoint4_WayPoint3.0" ];
+n18_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n18_0 -> 20 [ label="1.0" ];
+19 -> n19_0 [ arrowhead=none,label="0:r3_WayPoint25_WayPoint8.0" ];
+n19_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n19_0 -> 24 [ label="0.8" ];
+n19_0 -> 25 [ label="0.19999999999999996" ];
+20 -> n20_0 [ arrowhead=none,label="0:r2_WayPoint3_WayPoint2.0" ];
+n20_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n20_0 -> 21 [ label="1.0" ];
+21 -> n21_0 [ arrowhead=none,label="0:r2_WayPoint2_WayPoint27.0" ];
+n21_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n21_0 -> 19 [ label="0.19999999999999996" ];
+n21_0 -> 22 [ label="0.8" ];
+22 -> n22_0 [ arrowhead=none,label="0:r2_WayPoint27_WayPoint28.0" ];
+n22_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n22_0 -> 23 [ label="1.0" ];
+24 -> n24_0 [ arrowhead=none,label="0:r3_WayPoint8_WayPoint7.0" ];
+n24_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n24_0 -> 26 [ label="1.0" ];
+25 -> n25_0 [ arrowhead=none,label="0:r4_WayPoint6_WayPoint5.0" ];
+n25_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n25_0 -> 30 [ label="1.0" ];
+26 -> n26_0 [ arrowhead=none,label="0:r3_WayPoint7_WayPoint2.0" ];
+n26_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n26_0 -> 27 [ label="1.0" ];
+27 -> n27_0 [ arrowhead=none,label="0:r3_WayPoint2_WayPoint27.0" ];
+n27_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n27_0 -> 25 [ label="0.19999999999999996" ];
+n27_0 -> 28 [ label="0.8" ];
+28 -> n28_0 [ arrowhead=none,label="0:r3_WayPoint27_WayPoint28.0" ];
+n28_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n28_0 -> 29 [ label="1.0" ];
+30 -> n30_0 [ arrowhead=none,label="0:r4_WayPoint5_WayPoint4.0" ];
+n30_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n30_0 -> 32 [ label="0.19999999999999996" ];
+n30_0 -> 31 [ label="0.8" ];
+31 -> n31_0 [ arrowhead=none,label="0:r4_WayPoint4_WayPoint3.0" ];
+n31_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n31_0 -> 33 [ label="1.0" ];
+32 -> n32_0 [ arrowhead=none,label="0:r5_WayPoint15_WayPoint9.0r6_WayPoint11_WayPoint9.0r7_WayPoint29_WayPoint3.0" ];
+n32_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n32_0 -> 37 [ label="1.0" ];
+33 -> n33_0 [ arrowhead=none,label="0:r4_WayPoint3_WayPoint2.0" ];
+n33_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n33_0 -> 34 [ label="1.0" ];
+34 -> n34_0 [ arrowhead=none,label="0:r4_WayPoint2_WayPoint27.0" ];
+n34_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n34_0 -> 32 [ label="0.19999999999999996" ];
+n34_0 -> 35 [ label="0.8" ];
+35 -> n35_0 [ arrowhead=none,label="0:r4_WayPoint27_WayPoint28.0" ];
+n35_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n35_0 -> 36 [ label="1.0" ];
+37 -> n37_0 [ arrowhead=none,label="0:r7_WayPoint3_WayPoint2.0" ];
+n37_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n37_0 -> 38 [ label="1.0" ];
+38 -> n38_0 [ arrowhead=none,label="0:r7_WayPoint2_WayPoint27.0" ];
+n38_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n38_0 -> 39 [ label="0.8" ];
+n38_0 -> 40 [ label="0.19999999999999996" ];
+39 -> n39_0 [ arrowhead=none,label="0:r7_WayPoint27_WayPoint28.0" ];
+n39_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n39_0 -> 41 [ label="1.0" ];
+40 -> n40_0 [ arrowhead=none,label="0:r5_WayPoint9_WayPoint8.0" ];
+n40_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n40_0 -> 42 [ label="0.8" ];
+n40_0 -> 43 [ label="0.19999999999999996" ];
+42 -> n42_0 [ arrowhead=none,label="0:r5_WayPoint8_WayPoint7.0" ];
+n42_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n42_0 -> 44 [ label="1.0" ];
+43 -> n43_0 [ arrowhead=none,label="0:r6_WayPoint9_WayPoint8.0" ];
+n43_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n43_0 -> 48 [ label="0.8" ];
+n43_0 -> 49 [ label="0.19999999999999996" ];
+44 -> n44_0 [ arrowhead=none,label="0:r5_WayPoint7_WayPoint2.0" ];
+n44_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n44_0 -> 45 [ label="1.0" ];
+45 -> n45_0 [ arrowhead=none,label="0:r5_WayPoint2_WayPoint27.0" ];
+n45_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n45_0 -> 43 [ label="0.19999999999999996" ];
+n45_0 -> 46 [ label="0.8" ];
+46 -> n46_0 [ arrowhead=none,label="0:r5_WayPoint27_WayPoint28.0" ];
+n46_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n46_0 -> 47 [ label="1.0" ];
+48 -> n48_0 [ arrowhead=none,label="0:r6_WayPoint8_WayPoint7.0" ];
+n48_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n48_0 -> 50 [ label="1.0" ];
+50 -> n50_0 [ arrowhead=none,label="0:r6_WayPoint7_WayPoint2.0" ];
+n50_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n50_0 -> 51 [ label="1.0" ];
+51 -> n51_0 [ arrowhead=none,label="0:r6_WayPoint2_WayPoint27.0" ];
+n51_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n51_0 -> 49 [ label="0.19999999999999996" ];
+n51_0 -> 52 [ label="0.8" ];
+52 -> n52_0 [ arrowhead=none,label="0:r6_WayPoint27_WayPoint28.0" ];
+n52_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n52_0 -> 53 [ label="1.0" ];
+0 [label="0\n(0,0,0,21,24,6,15,5,1,19,8)"]
+1 [label="1\n(0,0,0,19,24,6,15,5,1,19,8)"]
+2 [label="2\n(0,1,0,18,24,6,15,5,1,19,8)"]
+3 [label="3\n(0,1,0,16,24,6,15,5,1,19,8)"]
+4 [label="4\n(0,1,0,-1,24,6,15,5,1,19,8)"]
+5 [label="5\n(0,1,0,14,24,6,15,5,1,19,8)"]
+6 [label="6\n(0,1,0,10,24,6,15,5,1,19,8)"]
+7 [label="7\n(0,1,0,11,24,6,15,5,1,19,8)"]
+8 [label="8\n(0,1,1,12,24,6,15,5,1,19,8)"]
+9 [label="9\n(0,1,0,-1,23,6,15,5,1,19,8)"]
+10 [label="10\n(0,1,0,-1,-1,6,15,5,1,19,8)"]
+11 [label="11\n(0,1,0,-1,1,6,15,5,1,19,8)"]
+12 [label="12\n(0,1,0,-1,18,6,15,5,1,19,8)"]
+13 [label="13\n(0,1,0,-1,16,6,15,5,1,19,8)"]
+14 [label="14\n(0,1,0,-1,14,6,15,5,1,19,8)"]
+15 [label="15\n(0,1,0,-1,10,6,15,5,1,19,8)"]
+16 [label="16\n(0,1,0,-1,11,6,15,5,1,19,8)"]
+17 [label="17\n(0,1,1,-1,12,6,15,5,1,19,8)"]
+18 [label="18\n(0,1,0,-1,-1,7,15,5,1,19,8)"]
+19 [label="19\n(0,1,0,-1,-1,-1,15,5,1,19,8)"]
+20 [label="20\n(0,1,0,-1,-1,9,15,5,1,19,8)"]
+21 [label="21\n(0,1,0,-1,-1,10,15,5,1,19,8)"]
+22 [label="22\n(0,1,0,-1,-1,11,15,5,1,19,8)"]
+23 [label="23\n(0,1,1,-1,-1,12,15,5,1,19,8)"]
+24 [label="24\n(0,1,0,-1,-1,-1,16,5,1,19,8)"]
+25 [label="25\n(0,1,0,-1,-1,-1,-1,5,1,19,8)"]
+26 [label="26\n(0,1,0,-1,-1,-1,14,5,1,19,8)"]
+27 [label="27\n(0,1,0,-1,-1,-1,10,5,1,19,8)"]
+28 [label="28\n(0,1,0,-1,-1,-1,11,5,1,19,8)"]
+29 [label="29\n(0,1,1,-1,-1,-1,12,5,1,19,8)"]
+30 [label="30\n(0,1,0,-1,-1,-1,-1,4,1,19,8)"]
+31 [label="31\n(0,1,0,-1,-1,-1,-1,7,1,19,8)"]
+32 [label="32\n(0,1,0,-1,-1,-1,-1,-1,1,19,8)"]
+33 [label="33\n(0,1,0,-1,-1,-1,-1,9,1,19,8)"]
+34 [label="34\n(0,1,0,-1,-1,-1,-1,10,1,19,8)"]
+35 [label="35\n(0,1,0,-1,-1,-1,-1,11,1,19,8)"]
+36 [label="36\n(0,1,1,-1,-1,-1,-1,12,1,19,8)"]
+37 [label="37\n(0,1,0,-1,-1,-1,-1,-1,18,18,9)"]
+38 [label="38\n(0,1,0,-1,-1,-1,-1,-1,18,18,10)"]
+39 [label="39\n(0,1,0,-1,-1,-1,-1,-1,18,18,11)"]
+40 [label="40\n(0,1,0,-1,-1,-1,-1,-1,18,18,-1)"]
+41 [label="41\n(0,1,1,-1,-1,-1,-1,-1,18,18,12)"]
+42 [label="42\n(0,1,0,-1,-1,-1,-1,-1,16,18,-1)"]
+43 [label="43\n(0,1,0,-1,-1,-1,-1,-1,-1,18,-1)"]
+44 [label="44\n(0,1,0,-1,-1,-1,-1,-1,14,18,-1)"]
+45 [label="45\n(0,1,0,-1,-1,-1,-1,-1,10,18,-1)"]
+46 [label="46\n(0,1,0,-1,-1,-1,-1,-1,11,18,-1)"]
+47 [label="47\n(0,1,1,-1,-1,-1,-1,-1,12,18,-1)"]
+48 [label="48\n(0,1,0,-1,-1,-1,-1,-1,-1,16,-1)"]
+49 [label="49\n(0,1,0,-1,-1,-1,-1,-1,-1,-1,-1)"]
+50 [label="50\n(0,1,0,-1,-1,-1,-1,-1,-1,14,-1)"]
+51 [label="51\n(0,1,0,-1,-1,-1,-1,-1,-1,10,-1)"]
+52 [label="52\n(0,1,0,-1,-1,-1,-1,-1,-1,11,-1)"]
+53 [label="53\n(0,1,1,-1,-1,-1,-1,-1,-1,12,-1)"]
+}

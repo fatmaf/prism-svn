@@ -1,0 +1,96 @@
+digraph MDP {
+size="8,5"
+node [shape=box];
+0 -> n0_0 [ arrowhead=none,label="0:r0_WayPoint13_WayPoint11.0r1_WayPoint18_WayPoint16.0r2_WayPoint30_WayPoint4.0" ];
+n0_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n0_0 -> 1 [ label="1.0" ];
+1 -> n1_0 [ arrowhead=none,label="0:r0_WayPoint11_WayPoint9.0r1_WayPoint16_WayPoint15.0r2_WayPoint4_WayPoint3.0" ];
+n1_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n1_0 -> 2 [ label="1.0" ];
+2 -> n2_0 [ arrowhead=none,label="0:r1_WayPoint15_WayPoint9.0r2_WayPoint3_WayPoint2.0" ];
+n2_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n2_0 -> 3 [ label="0.8" ];
+n2_0 -> 4 [ label="0.19999999999999996" ];
+3 -> n3_0 [ arrowhead=none,label="0:r2_WayPoint2_WayPoint27.0" ];
+n3_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n3_0 -> 5 [ label="1.0" ];
+4 -> n4_0 [ arrowhead=none,label="0:r3_WayPoint25_WayPoint8.0" ];
+n4_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n4_0 -> 7 [ label="0.8" ];
+n4_0 -> 8 [ label="0.19999999999999996" ];
+5 -> n5_0 [ arrowhead=none,label="0:r2_WayPoint27_WayPoint28.0" ];
+n5_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n5_0 -> 6 [ label="1.0" ];
+7 -> n7_0 [ arrowhead=none,label="0:r3_WayPoint8_WayPoint7.0" ];
+n7_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n7_0 -> 9 [ label="1.0" ];
+8 -> n8_0 [ arrowhead=none,label="0:r0_WayPoint9_WayPoint8.0" ];
+n8_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n8_0 -> 13 [ label="0.8" ];
+n8_0 -> 14 [ label="0.19999999999999996" ];
+9 -> n9_0 [ arrowhead=none,label="0:r3_WayPoint7_WayPoint2.0" ];
+n9_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n9_0 -> 8 [ label="0.19999999999999996" ];
+n9_0 -> 10 [ label="0.8" ];
+10 -> n10_0 [ arrowhead=none,label="0:r3_WayPoint2_WayPoint27.0" ];
+n10_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n10_0 -> 11 [ label="1.0" ];
+11 -> n11_0 [ arrowhead=none,label="0:r3_WayPoint27_WayPoint28.0" ];
+n11_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n11_0 -> 12 [ label="1.0" ];
+13 -> n13_0 [ arrowhead=none,label="0:r0_WayPoint8_WayPoint7.0" ];
+n13_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n13_0 -> 15 [ label="1.0" ];
+14 -> n14_0 [ arrowhead=none,label="0:r1_WayPoint9_WayPoint8.0" ];
+n14_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n14_0 -> 19 [ label="0.8" ];
+n14_0 -> 20 [ label="0.19999999999999996" ];
+15 -> n15_0 [ arrowhead=none,label="0:r0_WayPoint7_WayPoint2.0" ];
+n15_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n15_0 -> 16 [ label="0.8" ];
+n15_0 -> 14 [ label="0.19999999999999996" ];
+16 -> n16_0 [ arrowhead=none,label="0:r0_WayPoint2_WayPoint27.0" ];
+n16_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n16_0 -> 17 [ label="1.0" ];
+17 -> n17_0 [ arrowhead=none,label="0:r0_WayPoint27_WayPoint28.0" ];
+n17_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n17_0 -> 18 [ label="1.0" ];
+19 -> n19_0 [ arrowhead=none,label="0:r1_WayPoint8_WayPoint7.0" ];
+n19_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n19_0 -> 21 [ label="1.0" ];
+21 -> n21_0 [ arrowhead=none,label="0:r1_WayPoint7_WayPoint2.0" ];
+n21_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n21_0 -> 20 [ label="0.19999999999999996" ];
+n21_0 -> 22 [ label="0.8" ];
+22 -> n22_0 [ arrowhead=none,label="0:r1_WayPoint2_WayPoint27.0" ];
+n22_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n22_0 -> 23 [ label="1.0" ];
+23 -> n23_0 [ arrowhead=none,label="0:r1_WayPoint27_WayPoint28.0" ];
+n23_0 [ shape=point,width=0.1,height=0.1,label="" ];
+n23_0 -> 24 [ label="1.0" ];
+0 [label="0\n(0,0,0,21,24,6,15)"]
+1 [label="1\n(0,0,0,19,23,7,15)"]
+2 [label="2\n(0,1,0,18,1,9,15)"]
+3 [label="3\n(0,1,0,18,18,10,15)"]
+4 [label="4\n(0,1,0,18,18,-1,15)"]
+5 [label="5\n(0,1,0,18,18,11,15)"]
+6 [label="6\n(0,1,1,18,18,12,15)"]
+7 [label="7\n(0,1,0,18,18,-1,16)"]
+8 [label="8\n(0,1,0,18,18,-1,-1)"]
+9 [label="9\n(0,1,0,18,18,-1,14)"]
+10 [label="10\n(0,1,0,18,18,-1,10)"]
+11 [label="11\n(0,1,0,18,18,-1,11)"]
+12 [label="12\n(0,1,1,18,18,-1,12)"]
+13 [label="13\n(0,1,0,16,18,-1,-1)"]
+14 [label="14\n(0,1,0,-1,18,-1,-1)"]
+15 [label="15\n(0,1,0,14,18,-1,-1)"]
+16 [label="16\n(0,1,0,10,18,-1,-1)"]
+17 [label="17\n(0,1,0,11,18,-1,-1)"]
+18 [label="18\n(0,1,1,12,18,-1,-1)"]
+19 [label="19\n(0,1,0,-1,16,-1,-1)"]
+20 [label="20\n(0,1,0,-1,-1,-1,-1)"]
+21 [label="21\n(0,1,0,-1,14,-1,-1)"]
+22 [label="22\n(0,1,0,-1,10,-1,-1)"]
+23 [label="23\n(0,1,0,-1,11,-1,-1)"]
+24 [label="24\n(0,1,1,-1,12,-1,-1)"]
+}
