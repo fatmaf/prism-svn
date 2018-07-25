@@ -1,5 +1,8 @@
 package demos;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -32,7 +35,23 @@ public class StatesHelper {
 	public static String savePlace="/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/"; 
 	public static String folder; 
 	public static int numMdpVars; 
+	private static PrintWriter datacollwriter; 
 	
+	public static void openDataCollFile(String fn) throws FileNotFoundException
+	{
+		datacollwriter = new PrintWriter(new File(fn)); 
+		datacollwriter.write("Robots\tTask\tTeamTime\tTotalTime\tFS\n");
+	}
+	
+	public static void writeToDataColl(String val)
+	{
+		datacollwriter.write(val+"\t");
+	}
+	public static void closeDataColl()
+	{
+		datacollwriter.flush();
+		datacollwriter.close();
+	}
 	public static void setNumMDPVars(int mdpvars)
 	{
 		numMdpVars = mdpvars;

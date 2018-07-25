@@ -428,7 +428,7 @@ public class MMDPSimple {
 				//if one of the robots has failed 
 				if(hasfailed > 0 && hasfailed > initialStateHadFailState && hasfailed > prevHadFailState)
 				{
-					System.out.println("Someone Failed here");
+//					System.out.println("Someone Failed here");
 					//another fail state 
 					//hmmm so strange 
 					//FIXME: FATMA all of this below (where the light something, you know this entire if thing i just put it down here now 
@@ -1094,7 +1094,7 @@ public class MMDPSimple {
 //		seqTeamMDP.addSwitchesAndSetInitialState(rNum);
 		initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		State s1  = seqTeamMDP.teamMDPTemplate.getStatesList().get(initialState);
-		System.out.println(s1.toString());
+//		System.out.println(s1.toString());
 		return addSeqPolicy(seqTeamMDP,strat,initialState,nextRobotstate,robotStates);
 		
 		
@@ -1105,7 +1105,7 @@ public class MMDPSimple {
 			Strategy strat, int initialState, 
 			int nextSuccState, int[] allRobotInitStates)
 	{
-		boolean debugStuff = true; 
+		boolean debugStuff = false;//true; 
 		MDPSimple tempMDP = null;
 		int[] tempMDPMap = null;
 		BitSet tempAccStates = null; 

@@ -36,7 +36,7 @@ public class SequentialTeamMDP {
 	public ArrayList<MDPRewardsSimple> teamRewardsTemplate;
 	public MDPSimple teamMDPWithSwitches;
 	public ArrayList<MDPRewardsSimple> rewardsWithSwitches;
-	public MDPRewardsSimple progressionRewards; 
+//	public MDPRewardsSimple progressionRewards; 
 	PrismLog mainLog; 
 	//basically its just the essential states that have progressionRewad 
 	
@@ -104,7 +104,7 @@ public class SequentialTeamMDP {
 
 		teamMDP = new MDPSimple();
 		teamRewardsList = new ArrayList<MDPRewardsSimple>();
-		this.progressionRewards = new MDPRewardsSimple(numTeamStates);
+//		this.progressionRewards = new MDPRewardsSimple(numTeamStates);
 
 		teamMDP.setVarList(teamMDPVarList);
 
@@ -220,28 +220,20 @@ public class SequentialTeamMDP {
 							map[nextState] = indexInTeamNextState;
 
 						}
-						if(indexInTeamNextState == 76 )
-							mainLog.println();
-						if (singleAgentNestedMDP.addRewardForTaskCompletion(nextState,s))
-						{
-							if(addProgReward)
-							{
-								expectedProgRewardValue += nextStateProb*progRewardFixedValue;
-							}
-							else {
-							addProgReward = true;
-							expectedProgRewardValue = nextStateProb*progRewardFixedValue;
-							}
-						}
-//						if (singleAgentNestedMDP.combinedEssentialStates.get(nextState) ) {
-//							if(!allAcceptingStates.get(s)) {
+//						if(indexInTeamNextState == 76 )
+//							mainLog.println();
+//						if (singleAgentNestedMDP.addRewardForTaskCompletion(nextState,s))
+//						{
+//							if(addProgReward)
+//							{
+//								expectedProgRewardValue += nextStateProb*progRewardFixedValue;
+//							}
+//							else {
 //							addProgReward = true;
-//							expectedProgRewardValue = nextStateProb*progRewardFixedValue; }
+//							expectedProgRewardValue = nextStateProb*progRewardFixedValue;
+//							}
 //						}
-//						if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)) {
-//							addProgReward = true;
-//							expectedProgRewardValue = nextStateProb*acceptingStateRewardValue; 
-//						}
+
 						distr.add(indexInTeamNextState, nextStateProb);
 
 					}
@@ -260,10 +252,10 @@ public class SequentialTeamMDP {
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 						
 					}
-					if(addProgReward)
-					{
-						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,expectedProgRewardValue);
-					}
+//					if(addProgReward)
+//					{
+//						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,expectedProgRewardValue);
+//					}
 
 				}
 				for (int rew = 0; rew < teamRewardsList.size(); rew++) {
@@ -286,7 +278,8 @@ public class SequentialTeamMDP {
 		this.teamMDPTemplate = teamMDP;
 		this.teamRewardsTemplate = teamRewardsList;
 
-		StatesHelper.saveMDP(teamMDP, acceptingStates,"", "teamMDPTemplate", true);
+		
+//		StatesHelper.saveMDP(teamMDP, acceptingStates,"", "teamMDPTemplate", true);
 
 		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
 		// just return this

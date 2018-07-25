@@ -9,6 +9,7 @@ import java.util.Set;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPSimple;
+import explicit.ProbModelChecker;
 import explicit.LTLModelChecker.LTLProduct;
 import parser.State;
 import prism.PrismLog;
@@ -28,6 +29,8 @@ public class SingleAgentNestedProductMDP {
 	BitSet allAcceptingStatesCombined; //includes everything even the essential states 
 	int numMDPVars; 
 	
+	
+
 	public void setNumMDPVars(int n)
 	{
 		numMDPVars = n; 
@@ -52,6 +55,19 @@ public class SingleAgentNestedProductMDP {
 		setBitSetsForAccEssentialBadStates();
 	}
 
+	public BitSet getAllProductStatesForThisMDPState(int state)
+	{		int numStates = finalProduct.getProductModel().getNumStates();
+	BitSet initialStates = new BitSet(numStates);
+	
+		Set<Integer> keySet = productStateToMDPState.keySet();
+		for (int key : keySet) {
+			if (productStateToMDPState.get(key) == state && !combinedStatesToAvoid.get(key)) {
+				initialStates.set(key);
+				
+							}
+		}
+		return initialStates;
+	}
 	public BitSet getAndSetInitialStates(int state, boolean isMDPState) {
 //		State s1 = finalProduct.getProductModel().getStatesList().get(state);
 		int numStates = finalProduct.getProductModel().getNumStates();
