@@ -1,7 +1,10 @@
 package demos;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,9 +43,17 @@ public class StatesHelper {
 	public static void openDataCollFile(String fn) throws FileNotFoundException
 	{
 		datacollwriter = new PrintWriter(new File(fn)); 
-		datacollwriter.write("Robots\tTask\tTeamTime\tTotalTime\tFS\n");
+		datacollwriter.write("Robots\tTask\tFS\tTeamTime\tTotalTime\tSE\n");
 	}
-	
+	public static void writeToDataColl(String val,String fn) throws IOException
+	{
+		FileWriter fw = new FileWriter(fn,true); 
+		BufferedWriter bw = new BufferedWriter(fw); 
+		
+		datacollwriter = new PrintWriter(bw);
+		
+		datacollwriter.write(val+"\t");
+	}
 	public static void writeToDataColl(String val)
 	{
 		datacollwriter.write(val+"\t");
