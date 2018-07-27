@@ -43,7 +43,7 @@ public class StatesHelper {
 	public static void openDataCollFile(String fn) throws FileNotFoundException
 	{
 		datacollwriter = new PrintWriter(new File(fn)); 
-		datacollwriter.write("Robots\tTask\tFS\tTeamTime\tTotalTime\tSE\n");
+		datacollwriter.write("Robots\tTask\tFS\tTeamTime\tTeamSize\tTotalTime\tSE\n");
 	}
 	public static void writeToDataColl(String val,String fn) throws IOException
 	{

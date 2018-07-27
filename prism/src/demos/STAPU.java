@@ -70,8 +70,8 @@ public class STAPU {
 		STAPU stapu = new STAPU(); 
 		try {
 //			stapu.runIROS2018Thresh();
-//			stapu.runIROS2018();
-			stapu.runIROS2018Prod();
+			stapu.runIROS2018();
+//			stapu.runIROS2018Prod();
 //			stapu.prodTest();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -562,7 +562,7 @@ public class STAPU {
 		// create team automaton from a set of MDP DA stuff
 		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
-		StatesHelper.writeToDataColl(""+getTime(startTime));
+				
 		if (hasTimedOut(startTime,"Created Sequential MDP Template"))
 			return;
 		
@@ -572,7 +572,9 @@ public class STAPU {
 //		else
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - StatesHelper.numMdpVars); //cuz there is door too 
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
-		
+		StatesHelper.writeToDataColl(""+getTime(startTime));
+		StatesHelper.writeToDataColl(""+seqTeamMDP.teamMDPWithSwitches.getNumStates()+","+seqTeamMDP.teamMDPWithSwitches.getNumTransitions());
+
 		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
 			return;
 		
@@ -961,7 +963,7 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 	{
 		String dir = System.getProperty("user.dir"); 
 		String baseLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/";
-		String res_file_name = baseLocation+"res5.csv";
+		String res_file_name = baseLocation+"res6.csv";
 		StatesHelper.openDataCollFile(res_file_name);
 		StatesHelper.closeDataColl();
 		try {
