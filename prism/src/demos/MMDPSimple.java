@@ -91,7 +91,9 @@ public class MMDPSimple {
 	public BitSet allTasksCompletedStates; 
 	public BitSet allFailStatesSeen;
 	BitSet initStates; 
-	int numDA; 
+	int numDA;
+	public int numDeadendStates=0;
+	public int numRepeatedStates=0; 
 	
 	public void setNumDA(int n)
 	{
@@ -395,7 +397,9 @@ public class MMDPSimple {
 								allFailStatesSeen.set(stateNumInMDP);
 								}
 								else 
-									deadendStates.set(stateNumInMDP);
+								{	deadendStates.set(stateNumInMDP);
+									this.numDeadendStates++;
+								}
 								}
 							
 						}
@@ -406,6 +410,7 @@ public class MMDPSimple {
 					}
 					else {
 						System.out.println("Repeated Fail State in Joint Policy for  "+stateNumInMDP+":"+currentJointState);
+						this.numRepeatedStates++;
 					}
 				}
 				else
@@ -469,10 +474,19 @@ public class MMDPSimple {
 					allFailStatesSeen.set(stateNumInMDP);
 					}
 					else 
-						deadendStates.set(stateNumInMDP);
+					{	deadendStates.set(stateNumInMDP);
+					numDeadendStates++;
+					}
 					}
 					continue;
 						}
+					}
+					else {
+						if(!hasAcceptingState)
+						{
+							numRepeatedStates++;
+						}
+						
 					}
 					
 					
@@ -1105,7 +1119,7 @@ public class MMDPSimple {
 			Strategy strat, int initialState, 
 			int nextSuccState, int[] allRobotInitStates)
 	{
-		boolean debugStuff = false;//true; 
+		boolean debugStuff = false;//true;//false;//true; 
 		MDPSimple tempMDP = null;
 		int[] tempMDPMap = null;
 		BitSet tempAccStates = null; 
@@ -1308,10 +1322,11 @@ public class MMDPSimple {
 
 	
 	
-	public double getProbabilityAcceptingStateOnly(int startState, double probHere,BitSet discoveredStates)
+	public double getProbabilityAcceptingStateOnly(int startState, double probHere,BitSet discoveredStates,HashMap<Integer,Double> probMap)
 	{
 		int choice = 0; 
 		double probSum = 0; 
+
 		if(!allTasksCompletedStates.get(startState))
 		{
 
@@ -1327,19 +1342,34 @@ public class MMDPSimple {
 					Entry<Integer, Double> stateProbPair = tranIter.next(); 
 					int nextState = stateProbPair.getKey(); 
 					double nextStateProb = stateProbPair.getValue(); 
-					probSum+=getProbabilityAcceptingStateOnly(nextState,nextStateProb*probHere,discoveredStates);
+					probSum+=getProbabilityAcceptingStateOnly(nextState,nextStateProb*probHere,discoveredStates,probMap);
 				}
 				probHere = probSum; 
 			}
 			else
 				probHere = 0; //no chance of getting to an accepting state
 		}
+			else
+			{
+				double tprob = probMap.get(startState);
+				if (tprob!=0)
+				{
+					discoveredStates.set(startState,false);
+					probHere=getProbabilityAcceptingStateOnly(startState,probHere,discoveredStates,probMap);
+				}
+				else
+					probHere = tprob;
+			}
 //			else
 //			{
 //				//its a self loop so we will just stop here 
 //				probHere = 0; 
 //			}
+		//	probHere = probSum;
 		}
+		if(!probMap.containsKey(startState))
+			probMap.put(startState, probHere);
+
 		return probHere;
 	}
 

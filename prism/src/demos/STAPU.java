@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -70,9 +71,10 @@ public class STAPU {
 		STAPU stapu = new STAPU(); 
 		try {
 //			stapu.runIROS2018Thresh();
-			stapu.runIROS2018();
-//			stapu.runIROS2018Prod();
+			stapu.runIROS2018_lastonly("res_inc_last.csv");
+//			stapu.runIROS2018Prod("prodresprob2");
 //			stapu.prodTest();
+//			stapu.fsTest();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -498,12 +500,14 @@ public class STAPU {
 		mainLogRef.println("Information about fail states ");
 
 		for (StateProb fs : orderOfFailStates) {
-			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet());
+			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet(),new HashMap<Integer,Double>());
 			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
 		}
 
 		hasTimedOut(startTime,"All Done");
 		StatesHelper.writeToDataColl(""+orderOfFailStates.size());
+		double finalprob = jointPolicy.getProbabilityAcceptingStateOnly(0, 1.0,new BitSet(),new HashMap<Integer,Double>()); 
+		StatesHelper.writeToDataColl(""+finalprob);
 	}
 	
 
@@ -700,12 +704,15 @@ public class STAPU {
 		mainLogRef.println("Information about fail states ");
 
 		for (StateProb fs : orderOfFailStates) {
-			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet());
+			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet(),new HashMap<Integer, Double>());
 			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + "= " + prob * fs.getProb());
 		}
 
 		hasTimedOut(startTime,"All Done");
 		StatesHelper.writeToDataColl(""+orderOfFailStates.size());
+		double finalprob = jointPolicy.getProbabilityAcceptingStateOnly(0, 1.0,new BitSet(),new HashMap<Integer, Double>()); 
+		StatesHelper.writeToDataColl(""+finalprob);
+		StatesHelper.writeToDataColl(""+(orderOfFailStates.size()+jointPolicy.numRepeatedStates+jointPolicy.numDeadendStates));
 	}
 	
 
@@ -888,10 +895,10 @@ public class STAPU {
 		mainLogRef.println(product2.getProductModel().getNumStates());
 		mainLogRef.println(product2.getProductModel().getFirstInitialState());
 		model = product2.getProductModel();
-		for(int v=0; v<7; v++)
-		{
-			mainLogRef.println("v"+v+": "+model.getLabelStates("v"+v));
-		}
+//		for(int v=0; v<7; v++)
+//		{
+//			mainLogRef.println("v"+v+": "+model.getLabelStates("v"+v));
+//		}
 		}
 		
 //		int probPreference = 0; 
@@ -957,13 +964,18 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 		StatesHelper.writeToDataColl(""+(System.currentTimeMillis()-startTime));
 		StatesHelper.writeToDataColl(""+nestedProduct.finalProduct.getProductModel().getNumStates()+","+
 		nestedProduct.finalProduct.getProductModel().getNumTransitions());}
+		double[] solnProb = solution.soln;
+		StateValues probsProduct = StateValues.createFromDoubleArray(solnProb, nestedProduct.finalProduct.getProductModel());
+		double maxProb = probsProduct.getDoubleArray()[nestedProduct.finalProduct.getProductModel().getFirstInitialState()];
+		StatesHelper.writeToDataColl(""+maxProb);
 
 	}
-	public void runIROS2018() throws IOException
+	
+	public void runIROS2018_lastonly(String resfilename) throws IOException
 	{
 		String dir = System.getProperty("user.dir"); 
-		String baseLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/";
-		String res_file_name = baseLocation+"res6.csv";
+		String baseLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/inc/";
+		String res_file_name = baseLocation+resfilename;
 		StatesHelper.openDataCollFile(res_file_name);
 		StatesHelper.closeDataColl();
 		try {
@@ -974,7 +986,120 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 			
 			
 			int[] fsvals = {5,10,15,20,25}; 
-			int[] rvals = {2};//{8,4}; 
+			int[] rvals = {4,8};//{2,4};//{8,4}; 
+			int[] propvals = {0,1,2,3};
+			
+				
+				propnum= 3;
+				numfiles =8; 
+				numfs = 25;
+//				continue; 
+			
+			StatesHelper.writeToDataColl("\n"+numfiles+"\t"+(propnum*2+3)+"\t"+numfs,res_file_name);
+			String modelsuffix = "fs_"+numfs+"/";
+			String filename ="topo_map_failbase_fs"+numfs+"_";//"topo_map_modified_goals";//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
+			String propfilename = "topo_map_modified_goals";
+
+			String newsaveplace = baseLocation+modelsuffix+"res/r"+numfiles+"/t"+propnum; 
+			new File(newsaveplace).mkdirs();
+			StatesHelper.setSavePlace(newsaveplace+"/");
+			
+			ArrayList<String> filenames = new ArrayList<String>(); 
+			for(int i = 0; i<numfiles; i++)
+			filenames.add(filename+i); 
+
+			StatesHelper.setFolder(baseLocation+modelsuffix+filename);
+			hasDoor = false;
+			int maxMDPVars = 0;
+			
+			ArrayList<Model> models = new ArrayList<Model>(); 
+			ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
+			ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
+
+			// Create a log for PRISM output (hidden or stdout)
+			PrismLog mainLog = new PrismDevNullLog();
+	//		PrismLog mainLog = new PrismFileLog("stdout");
+			this.mainLogRef = mainLog; 
+
+			// Initialise PRISM engine 
+			Prism prism = new Prism(mainLog);
+			prismC = prism;
+			prism.initialise();
+
+			for(int files = 0; files<filenames.size(); files++) {
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(baseLocation+modelsuffix+filenames.get(files)+".prism"));
+			modulesFiles.add(modulesFile);
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(baseLocation+propfilename +filename_suffix+".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
+			int numVars = mdp.getVarList().getNumVars();
+			if(numVars > maxMDPVars)
+				maxMDPVars = numVars;
+			
+			models.add(mdp);
+			propFiles.add(propertiesFile);
+			}
+			// Build an MDP model checker
+			MDPModelChecker mc = new MDPModelChecker(prism);
+			
+			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
+			
+			// Model check the first property from the file using the model checker
+//			for(int i = 0; i<propFiles.get(0).getNumProperties(); i++) {
+//			System.out.println(propFiles.get(0).getPropertyObject(i));
+//			}
+			Expression expr = propFiles.get(0).getProperty(propnum);			
+			
+
+			StatesHelper.setNumMDPVars(maxMDPVars);
+		
+						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFiles);
+			
+						StatesHelper.closeDataColl();
+			// Close down PRISM
+			prism.closeDown();
+//			}
+			System.out.println("DONE\n"+numfiles+"\t"+(propnum*2+3)+"\t"+numfs);
+//			}
+//			}
+			
+			
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+	}
+
+
+	public void runIROS2018(String resfilename) throws IOException
+	{
+		String dir = System.getProperty("user.dir"); 
+		String baseLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/inc/";
+		String res_file_name = baseLocation+resfilename;
+		StatesHelper.openDataCollFile(res_file_name);
+		StatesHelper.closeDataColl();
+		try {
+			int numfs = 5; 
+			int numfiles = 2; 
+			int propnum = 0;
+			
+			
+			
+			int[] fsvals = {5,10,15,20,25}; 
+			int[] rvals = {4,8};//{2,4};//{8,4}; 
 			int[] propvals = {0,1,2,3};
 			
 			for(int er = 0; er<rvals.length; er++)
@@ -988,7 +1113,7 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 				numfs = fsvals[efs];
 				
 				//skipping one cuz it took forever 
-			if (propnum == 3 && numfiles ==8 && numfs == 25)
+			if (propnum != 3 && numfiles !=8 && numfs != 25)
 				continue; 
 			
 			StatesHelper.writeToDataColl("\n"+numfiles+"\t"+(propnum*2+3)+"\t"+numfs,res_file_name);
@@ -1194,10 +1319,10 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 		}
 		
 	}
-	public void runIROS2018Prod() throws IOException
+	public void runIROS2018Prod(String resfilename) throws IOException
 	{String dir = System.getProperty("user.dir"); 
 	String baseLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/";
-	String res_file_name = baseLocation+"pres_final.csv";
+	String res_file_name = baseLocation+resfilename;
 	StatesHelper.openDataCollFile(res_file_name);
 	StatesHelper.closeDataColl();
 	try {
@@ -1207,8 +1332,8 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 		
 		
 		
-		int[] fsvals = {5,10,15,20,25}; 
-		int[] rvals = {2,4}; 
+		int[] fsvals = {5}; //,10,15,20,25}; 
+		int[] rvals = {4}; 
 		int[] propvals = {0,1,2,3};
 		
 		for(int er = 0; er<rvals.length; er++)
@@ -1231,7 +1356,7 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 		String filename_suffix = "";//"_seq"; //seq_simp for two robots 
 		String propfilename = "topo_map_modified_goals";
 
-		String newsaveplace = baseLocation+modelsuffix+"res/r"+numfiles+"/t"+propnum; 
+		String newsaveplace = baseLocation+modelsuffix+"res/prod/r"+numfiles+"/t"+propnum; 
 		new File(newsaveplace).mkdirs();
 		StatesHelper.setSavePlace(newsaveplace+"/");
 		
@@ -1313,6 +1438,103 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 	}
 
 		
+	}
+	
+	public void fsTest() throws IOException
+	{
+		String dir = System.getProperty("user.dir"); 
+		String baseLocation= dir+"/tests/decomp_tests/";
+		String res_file_name = baseLocation+"fsTest.csv";
+		StatesHelper.openDataCollFile(res_file_name);
+		StatesHelper.closeDataColl();
+
+		try {
+
+			int numfiles = 3; 
+			int propnum = 0;
+					
+			String filename ="test_prod";
+			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
+			String propfilename = filename;
+	
+			ArrayList<String> filenames = new ArrayList<String>(); 
+			for(int i = 0; i<numfiles; i++)
+			filenames.add(filename+i); 
+
+			StatesHelper.setFolder(baseLocation+filename);
+			StatesHelper.setSavePlace(baseLocation+"/res/");
+			hasDoor = false;
+			int maxMDPVars = 0;
+			StatesHelper.writeToDataColl("\n"+numfiles+"\t"+(propnum*2+3)+"\t2",res_file_name);
+			
+			ArrayList<Model> models = new ArrayList<Model>(); 
+			ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
+			ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
+
+			// Create a log for PRISM output (hidden or stdout)
+//			PrismLog mainLog = new PrismDevNullLog();
+			PrismLog mainLog = new PrismFileLog("stdout");
+			this.mainLogRef = mainLog; 
+			noPrintouts = false;
+
+			// Initialise PRISM engine 
+			Prism prism = new Prism(mainLog);
+			prismC = prism;
+			prism.initialise();
+
+			for(int files = 0; files<filenames.size(); files++) {
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(baseLocation+filenames.get(files)+".prism"));
+			modulesFiles.add(modulesFile);
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(baseLocation+propfilename +filename_suffix+".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
+			int numVars = mdp.getVarList().getNumVars();
+			if(numVars > maxMDPVars)
+				maxMDPVars = numVars;
+			
+			models.add(mdp);
+			propFiles.add(propertiesFile);
+			}
+			// Build an MDP model checker
+			MDPModelChecker mc = new MDPModelChecker(prism);
+			
+			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
+			
+			// Model check the first property from the file using the model checker
+//			for(int i = 0; i<propFiles.get(0).getNumProperties(); i++) {
+//			System.out.println(propFiles.get(0).getPropertyObject(i));
+//			}
+			Expression expr = propFiles.get(0).getProperty(propnum);			
+			
+
+			StatesHelper.setNumMDPVars(maxMDPVars);
+		
+						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFiles);
+			
+						StatesHelper.closeDataColl();
+			// Close down PRISM
+			prism.closeDown();
+			
+			
+			
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+
+
 	}
 	public void prodTest() throws IOException
 	{
