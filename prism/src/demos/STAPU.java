@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
@@ -368,10 +369,12 @@ public class STAPU {
 		mainLogRef.println("Information about fail states ");
 
 		for (StateProb fs : orderOfFailStates) {
-			double prob = jointPolicy.getProbabilityAcceptingStateOnly(fs.getState(), 1.0,new BitSet());
-			mainLogRef.println("Explored state " + fs.toString() + " with prob " + prob + " of getting to an accepting state from this state \n Prob of acheiving task = " + prob * fs.getProb());
+			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0,new BitSet());
+			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(), new HashMap<Integer,Double>());
+			mainLogRef.println("Explored state " + fs.toString() + " with prob " + probAnyAcc + " of getting to an accepting state from this state \n Prob of acheiving task = " + fs.getProb()*probAllAcc);
 		}
 
+		mainLogRef.println("Probablilty of acheiving task from initial state using entire policy = "+jointPolicy.getProbabilityAllPossibleAcceptingStates(0, 1.0,new BitSet(),new HashMap<Integer,Double>()));
 		hasTimedOut(startTime,"All Done");
 		
 	}

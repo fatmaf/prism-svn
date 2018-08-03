@@ -150,13 +150,31 @@ public class MMDPSimple {
 
 	}
 
+	public class switchStateInfo{
+		public int pstate; 
+		public int crnum; 
+		public int cstate; 
+		public double prob; 
+		public switchStateInfo(int ps,int r, int s, double p)
+		{
+			pstate = ps;
+			crnum = r; 
+			cstate = s; 
+			prob = p; 
+		}
+		@Override
+		public String toString() {
+			return " [ps:" + pstate + ", r:" + crnum + ", s:" + cstate + ", " + prob + "]";
+		}
+		
+	}
 	public ArrayList<Integer> breakSeqPolicyAndAddtoPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat, int initialState,
 			int nextSuccState, int[] allRobotInitStates) {
 		boolean debugStuff = true;
+	
 		MDPSimple tempMDP = null;
 		int[] tempMDPMap = null;
 		BitSet tempAccStates = null;
-		int indexOfRobotThatFailedLast = -1;
 		boolean actionFound = false;
 		MDPSimple sumprod = seqTeamMDP.teamMDPWithSwitches;
 		int numRobots = seqTeamMDP.agentMDPs.size();
@@ -164,10 +182,14 @@ public class MMDPSimple {
 		MDPSimple mdps[] = new MDPSimple[numRobots];
 		int mdpMaps[][] = new int[numRobots][sumprod.getNumStates()];
 		BitSet accStates[] = new BitSet[numRobots];
-		ArrayList<ArrayList<Entry<Integer,Entry<Integer,Double>>>> robotLastStateInitStatePairs = 
-				new ArrayList<ArrayList<Entry<Integer,Entry<Integer,Double>>>>(); 
+		//<state,child_state_robot,child_state>
+		ArrayList<ArrayList<switchStateInfo>> robotLastStateInitStatePairs = 
+				new ArrayList<ArrayList<switchStateInfo>>(); 
+		double probsArr[] = new double[sumprod.getNumStates()];
 		
 		for (int i = 0; i < numRobots; i++) {
+			robotLastStateInitStatePairs.add(new ArrayList<switchStateInfo>());
+		
 			mdps[i] = new MDPSimple();
 			mdps[i].setVarList((VarList) sumprod.getVarList().clone());
 			Arrays.fill(mdpMaps[i], StatesHelper.BADVALUE);
@@ -195,8 +217,8 @@ public class MMDPSimple {
 		List<Integer> discoveredStates = new LinkedList<Integer>();
 		// on second thought this does not matter (the thing below) because we might
 		// visit the same state again but it may be a child of another state
-		// and so the inital state of the robot would have changed (though maybe no new
-		// task would be acheived)
+		// and so the initial state of the robot would have changed (though maybe no new
+		// task would be achieved)
 		// BitSet addedToStuckQ = new BitSet(tAutomaton.numStates); //for each policy
 		// unfolding we don't need to add the same state over and over again to the
 		// stuck stack
@@ -205,7 +227,9 @@ public class MMDPSimple {
 															// to the goal , well its not dfs but yeah
 		int currState = initialState;
 		int firstRobot = StatesHelper.getRobotNumberFromState(sumprod.getStatesList().get(currState));
+		
 		statesStack.push(currState);
+		probsArr[currState]=1.0;
 		// TODO: what do you do when the policy has been computed before and we're just
 		// here again ?
 		// Do we care about this here or later ?
@@ -253,10 +277,22 @@ public class MMDPSimple {
 							states.add(nextState);
 							probs.add(nextStateProb);
 						}
+						
 						int currentRobot = StatesHelper.getRobotNumberFromState(sumprod.getStatesList().get(currState));
+						
 						accStates[currentRobot] = StatesHelper.addLinkInMDP(mdps[currentRobot], mdpMaps[currentRobot],
 								sumprod.getStatesList(), states, probs, currState, action, "r" + currentRobot,
 								accStates[currentRobot], seqTeamMDP.acceptingStates);
+					
+						//adding probs 
+						for(int ns = 0; ns<states.size(); ns++)
+						{
+							int nextState = states.get(ns); 
+							double probsNext = probs.get(ns); 
+							probsNext = probsNext * probsArr[currState]; 
+							probsArr[nextState]=probsNext;
+						}
+						
 						//need to fix this really 
 						//there can be multiple initial states because we have multiple switch actions 
 						//we also want to track the state with the higher probability - so this is a bit of a problem right now
@@ -269,7 +305,9 @@ public class MMDPSimple {
 								mdps[rindex].addInitialState(
 								     StatesHelper.addStateMDP(mdps[rindex], mdpMaps[rindex],
 										sumprod.getStatesList(), nextState));
-								
+								switchStateInfo ssi = new switchStateInfo(mdpMaps[currentRobot][currState],rindex,
+										mdpMaps[rindex][nextState],probsArr[nextState]);
+								robotLastStateInitStatePairs.get(currentRobot).add(ssi);
 							}
 						}
 						if (mdps[currentRobot].getNumInitialStates() == 0)
@@ -285,9 +323,8 @@ public class MMDPSimple {
 					}
 				}
 				if (!actionFound) {
-					if (StatesHelper.isFailState(sumprod.getStatesList().get(currState)))
-						indexOfRobotThatFailedLast = StatesHelper
-								.getRobotNumberFromState(sumprod.getStatesList().get(currState));
+					if (StatesHelper.isFailState(sumprod.getStatesList().get(currState))) {
+					}
 				}
 
 			}
@@ -305,12 +342,18 @@ public class MMDPSimple {
 //		constructJointPolicyFromMDPsAndAddToCurrentPolicy_new(mdps, mdpMaps, firstRobot, accStates, seqTeamMDP);
 		convertMDPsToJointPolicy(mdps, mdpMaps, firstRobot, accStates, seqTeamMDP);
 		statesDiscovered.add(statesForPolicy);
-
+		for(int i = 0; i<robotLastStateInitStatePairs.size();i++)
+		{
+			for(int j = 0; j< robotLastStateInitStatePairs.get(i).size(); j++)
+			{
+				System.out.println(i+"->"+robotLastStateInitStatePairs.get(i).get(j));
+			}
+		}
 		return statesDiscovered;
 
 	}
 
-	public ArrayList<Integer> addSeqPolicyToJointPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat, int initialState,
+	public ArrayList<Integer> addSeqPolicyToJointPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat,  int initialState,
 			boolean noJointState) throws PrismException {
 
 		int nextRobotstate = StatesHelper.BADVALUE;
@@ -358,7 +401,7 @@ public class MMDPSimple {
 		// seqTeamMDP.addSwitchesAndSetInitialState(rNum);
 		initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		State s1 = seqTeamMDP.teamMDPTemplate.getStatesList().get(initialState);
-		System.out.println(s1.toString());
+		System.out.println("Adding policy for "+ s1.toString());
 		return breakSeqPolicyAndAddtoPolicy(seqTeamMDP, strat, initialState, nextRobotstate, robotStates);
 
 	}
@@ -457,6 +500,9 @@ public class MMDPSimple {
 					} else {
 						deadendStates.set(stateNumInMDP);
 					}
+				}
+				else {
+					deadendStates.set(stateNumInMDP);
 				}
 			}
 
@@ -960,8 +1006,58 @@ public class MMDPSimple {
 		
 		return probHere;
 	}
+	public double getProbabilityAllPossibleAcceptingStates(int startState, double probHere,BitSet discoveredStates,HashMap<Integer,Double> probMap)
+	{
+		int choice = 0; 
+		double probSum = 0; 
 
-	public double getProbabilityAcceptingStateOnly(int startState, double probHere, BitSet discoveredStates) {
+		if(!allTasksCompletedStates.get(startState))
+		{
+
+			int numChoice = mdp.getNumChoices(startState); 
+			if(!discoveredStates.get(startState)) {
+			discoveredStates.set(startState);
+			if(numChoice == 1)
+			{
+				Object action = mdp.getAction(startState, choice); 
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(startState, choice); 
+				while(tranIter.hasNext())
+				{
+					Entry<Integer, Double> stateProbPair = tranIter.next(); 
+					int nextState = stateProbPair.getKey(); 
+					double nextStateProb = stateProbPair.getValue(); 
+					probSum+=getProbabilityAllPossibleAcceptingStates(nextState,nextStateProb*probHere,discoveredStates,probMap);
+				}
+				probHere = probSum; 
+			}
+			else
+				probHere = 0; //no chance of getting to an accepting state
+		}
+			else
+			{
+				double tprob = probMap.get(startState);
+				if (tprob!=0)
+				{
+					discoveredStates.set(startState,false);
+					probHere=getProbabilityAllPossibleAcceptingStates(startState,probHere,discoveredStates,probMap);
+				}
+				else
+					probHere = tprob;
+			}
+//			else
+//			{
+//				//its a self loop so we will just stop here 
+//				probHere = 0; 
+//			}
+		//	probHere = probSum;
+		}
+		if(!probMap.containsKey(startState))
+			probMap.put(startState, probHere);
+
+		return probHere;
+	}
+
+	public double getProbabilityAnyAcceptingState(int startState, double probHere, BitSet discoveredStates) {
 		int choice = 0;
 		double probSum = 0;
 		
@@ -984,7 +1080,7 @@ public class MMDPSimple {
 						Entry<Integer, Double> stateProbPair = tranIter.next();
 						int nextState = stateProbPair.getKey();
 						double nextStateProb = stateProbPair.getValue();
-						probSum += getProbabilityAcceptingStateOnly(nextState, nextStateProb * probHere,
+						probSum += getProbabilityAnyAcceptingState(nextState, nextStateProb * probHere,
 								discoveredStates);
 					}
 					probHere = probSum;
