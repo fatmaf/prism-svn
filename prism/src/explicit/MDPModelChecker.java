@@ -1192,7 +1192,7 @@ public class MDPModelChecker extends ProbModelChecker {
 				System.out.println("Rew "+rews+" Values: "+Arrays.toString(solnReward.get(rews)));
 			}
 			}
-			int pvar1 = 25;
+			int pvar1 = 514;
 			int pvar2 = 36; 
 			int pvar3 = 44;
 ////			System.out.println(iters+":"+solnProb[pvar1]+","+solnProb[pvar2]+","+solnProb[pvar3]);
