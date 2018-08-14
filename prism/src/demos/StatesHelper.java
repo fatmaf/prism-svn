@@ -153,12 +153,17 @@ public class StatesHelper {
 		Object[] stateObj = state.varValues;
 		Object[] toret = new Object[sharedVars.size()];
 		int index = -1;
+		int numnull = 0;
 		for(int i = 0;i < sharedVars.size(); i++)
 		{
 			index =list.getIndex(sharedVars.get(i)); 
 			if(index != -1)
 				toret[i]=stateObj[index];
+			else
+				numnull++; 
 		}
+		if(numnull == sharedVars.size())
+			toret = null;
 		return toret;
 		
 	}
@@ -227,6 +232,13 @@ public class StatesHelper {
 		return savePlace;
 	}
 
+	//check to see if s1 is a substring of masterstring starting from index 0
+	public static boolean isEntireStringASubstring(String s1, String masterString)
+	{
+		return masterString.regionMatches(0, s1,0,s1.length());
+		
+	}
+	
 
 	public static boolean isFailState(State s1) {
 		int ind = mdpVarStart;
@@ -604,7 +616,7 @@ public class StatesHelper {
 		int[] mask = new int[maxLen]; 
 		for(int i = 0; i<maxLen; i++)
 		{
-			if(s1[i]==s2[i])
+			if((int)s1[i]==(int)s2[i])
 				mask[i]=0; 
 			else
 				mask[i]=1;

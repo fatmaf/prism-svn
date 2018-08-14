@@ -161,19 +161,26 @@ public class STAPU {
 	}
 	
 	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,int probPreference) throws PrismException {
+			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,int probPreference,boolean doMaxTasks) throws PrismException {
 
 	
 		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>(); 
-		for(int rew = 0; rew<rewards.size(); rew++)
+		int rewinit=0;
+		if( doMaxTasks)
+		{
+			minMaxRew.add(false);
+		}
+		for(int rew = rewinit; rew<rewards.size(); rew++)
 			minMaxRew.add(true);
 		return computeNestedValIterFailurePrint(mdp,target,statesToAvoid,rewards,minMaxRew,probPreference);
 	}
 	
 
+
 	
 	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb,
-			ArrayList<ModulesFile> modulesFiles,ArrayList<String> shared_vars_list) throws PrismException {
+			ArrayList<ModulesFile> modulesFiles,ArrayList<String> shared_vars_list,
+			boolean includefailstatesinswitches,boolean matchSharedVars) throws PrismException {
 
 		long startTime = System.currentTimeMillis();
 		int probPreference = 0; 
@@ -222,10 +229,11 @@ public class STAPU {
 		
 		}
 		
-		
+	
 		// create team automaton from a set of MDP DA stuff
-		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
-		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots,matchSharedVars); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+	
+		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs,shared_vars_list);
 
 		if (hasTimedOut(startTime,"Created Sequential MDP Template"))
 			return;
@@ -234,8 +242,7 @@ public class STAPU {
 //		if (hasDoor)
 //		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 2); //cuz there is door too 
 //		else
-		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - StatesHelper.numMdpVars); //cuz there is door too 
-		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
+		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot,includefailstatesinswitches);
 		
 		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
 			return;
@@ -299,7 +306,7 @@ public class STAPU {
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLogRef.println("InitState = "+initialState);
 		
-		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true);
+		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,!includefailstatesinswitches);
 
 		if (hasTimedOut(startTime,"Added Initial Solution to Joint Policy"))
 			return;
@@ -317,6 +324,8 @@ public class STAPU {
 			StateProb stuckState = jointPolicy.stuckStatesQ.remove();
 			initialState = stuckState.getState();
 			orderOfFailStates.add(stuckState.copy());
+			if(stuckState.getState()==10)
+				mainLogRef.println("Hmm");
 			mainLogRef.println("Exploring " + stuckState.toString());
 
 			//update the teammdp 
@@ -335,7 +344,7 @@ public class STAPU {
 			// so we will just add switches from all failed robots 
 			// we really dont care who failed first because 
 			// the switches will take care of that 
-			seqTeamMDP.addSwitchesAndSetInitialState(rNum);
+			seqTeamMDP.addSwitchesAndSetInitialState(rNum,includefailstatesinswitches);
 			
 			if (hasTimedOut(startTime,"Added Switches"))
 				return;
@@ -345,7 +354,7 @@ public class STAPU {
 					"teamMDPWithSwitches" + currState.toString(), true);
 			
 			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-					seqTeamMDP.statesToAvoid, rewards,probPreference);
+					seqTeamMDP.statesToAvoid, rewards,probPreference,true);
 //			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 //					seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
 			
@@ -354,7 +363,7 @@ public class STAPU {
 				return;
 			
 			
-			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false);
+			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,!includefailstatesinswitches);
 			
 			if (hasTimedOut(startTime,"Added Solution to Joint Policy"))
 				return;
@@ -556,17 +565,20 @@ public class STAPU {
 			String modelLocation= dir+"/tests/decomp_tests/";
 			String cumberland_nodoors = "topo_map_modified_goals"; 
 			String cumberland_doors = "topo_map_modified_goals_doors";
-			String filename =cumberland_doors;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
-			String filename_suffix = "_seq"; //seq_simp for two robots 
-			
+			String a_door_example = "a_door_example";
+			String no_door_example = "no_door_example";
+			String filename =a_door_example;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
+			boolean includefailstatesinswitches=false;
+			boolean matchsharedstatesinswitch=true;
 			ArrayList<String> shared_vars_list = new ArrayList<String>(); 
 			shared_vars_list.add("door");
 			
 			ArrayList<String> filenames = new ArrayList<String>(); 
-			filenames.add(filename); 
+			filenames.add(filename+0); 
 			filenames.add(filename+1);
 			filenames.add(filename+2);
-			filenames.add(filename+3);
+//			filenames.add(filename+3);
 //			filenames.add("chain_example_simple_mod");
 			StatesHelper.setFolder(modelLocation+filename);
 			hasDoor = false;
@@ -621,6 +633,7 @@ public class STAPU {
 			// Doesnt look like this works 
 			// But yeah, maybe move this bit in the while loop in doSTAPU 
 //			models.add(mdp);
+		
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			StatesHelper.setNumMDPVars(maxMDPVars);
 		    Runnable task = new Runnable() {
@@ -628,7 +641,8 @@ public class STAPU {
 		        public void run() {
 		            //do your task
 		        	try {
-						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),modulesFiles,shared_vars_list);
+						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),
+								modulesFiles,shared_vars_list,includefailstatesinswitches,matchsharedstatesinswitch);
 					} catch (PrismException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
