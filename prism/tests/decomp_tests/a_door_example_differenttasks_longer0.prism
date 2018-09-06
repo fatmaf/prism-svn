@@ -1,0 +1,132 @@
+// r1 - 8
+// r2 - 9
+//8---- 	5---	7---	 0----	9
+//		|		_|_
+//		door1	    door1 |
+//		6---		3 1
+//				| |
+//				4 2
+//			
+
+
+mdp
+
+       const int failstate = -1;
+       const double p = 0.8;
+       const double ps = 1.0;
+       const int unknown = -1;
+       const int open = 1;
+       const int closed = 0; 
+
+
+module world
+
+       s:[failstate..9] init 8;
+       door:[unknown .. open] init unknown; 
+
+       //for R1 its easy to get to 5, 6
+
+       [v8_5] (s=8) -> p:(s'=5) + (1-p):(s'=failstate);
+       [v5_8] (s=5) -> (s'=8);
+       [v5_7] (s=5) -> (s'=7);
+       [v7_5] (s=7) -> (s'=5);
+
+       [v5_10] (s=5) -> (s'=10);
+       [v10_5] (s=10) -> (s'=5);
+       
+       [vcheckdoor_10] (s=10) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+
+       [v10_11] (s=10) & (door=closed) -> p:(s'=11)+(1-p):(s'=failstate);
+
+       [v10_6] (s=10) & (door=open) -> (s'=6);
+       [v6_10] (s=6) & (door=open) -> (s'=5);
+
+       [v6_3] (s=6) -> (1-p):(s'=3) + p:(s'=failstate);
+       [v3_6] (s=3) -> (1-p):(s'=6) + p:(s'=failstate);
+       [v3_4] (s=3) -> (1-p):(s'=4) + p:(s'=failstate);
+       [v4_3] (s=4) -> (1-p):(s'=3) + p:(s'=failstate);
+
+       [v9_12] (s=9) -> (s'=12);
+       [v12_13] (s=12) -> (s'=13);
+       [v13_0] (s=13) -> (s'=0); 
+       [v0_9] (s=0) -> (s'=9);
+       [v0_7] (s=0) -> (s'=7);
+       [v7_0] (s=7) -> (s'=0);
+
+       [vcheckdoor_0] (s=0) & (door=unknown) -> p:(door'=open)+(1-p):(door'=closed);
+       [v0_3] (s=0) & (door=open) -> p:(s'=3) + (1-p):(s'=failstate);
+       [v3_0] (s=3)-> p:(s'=failstate) + (1-p):(s'=0);
+       [v3_4] (s=3) -> (s'=4);
+       [v4_3] (s=4) -> (s'=3);
+
+       [v0_1] (s=0) & (door=closed) -> p:(s'=1) + (1-p):(s'=failstate);
+       [v1_0] (s=1) -> p:(s'=failstate)+(1-p):(s'=0);
+       [v1_2] (s=1) -> (s'=2);
+       [v2_1] (s=2) -> (s'=1);
+       
+       [vfailed] (s=failstate) -> (s'=failstate);
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+label "v4" = s=4;
+label "v5" = s=5; 
+label "v6" = s=6;
+label "v7" = s=7;
+label "v8" = s=8;
+label "v9" = s=9; 
+label "v10" = s=10;
+label "v11" = s=11;
+label "v13" = s=13;
+
+
+rewards "time"
+//for future use to replace with regexp m-x replace-regexp <ret> ->.+ <ret>  :1.0;
+
+       [v8_5] (s=8)  :1.0;
+       [v5_8] (s=5)  :1.0;
+       [v5_7] (s=5)  :1.0;
+       [v7_5] (s=7)  :1.0;
+
+
+       [v5_10] (s=5)  :1.0;
+       [v10_5] (s=10)  :1.0;
+       
+       [vcheckdoor_10] (s=10) & (door=unknown) :1.0;
+        [v10_11] (s=10) & (door=closed): 1.0;
+       [v10_6] (s=10) & (door=open)  :1.0;
+       [v6_10] (s=6) & (door=open)  :1.0;
+       
+       [v6_3] (s=6)  :1.0;
+       [v3_6] (s=3)  :1.0;
+       [v3_4] (s=3)  :1.0;
+       [v4_3] (s=4)  :1.0;
+
+       //[v9_0] (s=9)  :1.0;
+       [v9_12] (s=9) :1.0;
+       [v12_13] (s=12) : 1.0;
+       [v13_0] (s=13) :1.0; 
+       [v0_9] (s=0)  :1.0;
+       [v0_7] (s=0)  :1.0;
+       [v7_0] (s=7)  :1.0;
+
+       [vcheckdoor_0] (s=0) & (door=unknown) : 1.0;
+       [v0_3] (s=0) & (door=open)  :1.0;
+       [v3_0] (s=3) :1.0;
+       [v3_4] (s=3)  :1.0;
+       [v4_3] (s=4)  :1.0;
+
+       [v0_1] (s=0) & (door=closed)  :1.0;
+       [v1_0] (s=1)  :1.0;
+       [v1_2] (s=1)  :1.0;
+       [v2_1] (s=2)  :1.0;
+
+	
+       [vfailed] (s=failstate) : 1.0;
+
+endrewards
+
+
