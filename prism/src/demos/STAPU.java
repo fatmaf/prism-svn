@@ -1,6 +1,5 @@
 package demos;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -43,39 +42,43 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 
-
 public class STAPU {
-	
+
 	static String saveplace_suffix = "/tests/decomp_tests/temp/";
 	static String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
-	public static void main(String[] args)
-	{
-		String dir = System.getProperty("user.dir"); 
-		saveplace = dir+saveplace_suffix;
+
+	public static void main(String[] args) {
+		String dir = System.getProperty("user.dir");
+		saveplace = dir + saveplace_suffix;
 		StatesHelper.setSavePlace(saveplace);
-		STAPU stapu = new STAPU(); 
+		STAPU stapu = new STAPU();
 		stapu.run();
 	}
-	long timeout = 1000 *60*1000;
-	public PrismLog mainLogRef; 
-	Prism prismC; 
+
+	long timeout = 1000 * 60 * 1000;
+	public PrismLog mainLog;
+	Prism prismC;
 	MMDPSimple jointPolicy;
-	
+
 	boolean hasDoor = true;
-	
+
 	/**
-	 * @param model - the mdp model
+	 * @param model
+	 *            - the mdp model
 	 * 
-	 * @param exprs - array list of expressions
+	 * @param exprs
+	 *            - array list of expressions
 	 * 
-	 * @param statesOfInterest - states to care about - we care about everything so
-	 * we don't really need this
+	 * @param statesOfInterest
+	 *            - states to care about - we care about everything so we don't
+	 *            really need this
 	 * 
 	 */
-	protected SingleAgentNestedProductMDP buildSingleAgentNestedProductMDP(String name,Model model, ArrayList<DAInfo> daList,
-			BitSet statesOfInterest,ProbModelChecker mcProb,ModulesFile modulesFile) throws PrismException {
+	protected SingleAgentNestedProductMDP buildSingleAgentNestedProductMDP(String name, Model model,
+			ArrayList<DAInfo> daList, BitSet statesOfInterest, ProbModelChecker mcProb, ModulesFile modulesFile)
+			throws PrismException {
 		// return the list of daInfo and the product mdp
- 		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLogRef);
+		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLog);
 		res.setNumMDPVars(model.getVarList().getNumVars());
 		res.initializeProductToMDPStateMapping((MDP) model);
 		LTLProduct<MDP> product = null;
@@ -91,16 +94,21 @@ public class STAPU {
 		res.daList = new ArrayList<DAInfo>();
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
 			DAInfo daInfo = new DAInfo(daList.get(daNum));
-			
-			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
+
+			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null,
+					true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
-			StatesHelper.saveDA(daInfo.da, "", name+"da_"+daNum, true);
-			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "",name+"pda_" + daNum, true);
-			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "",name+"pda_" + daNum+"switchStates", true);
+			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
+			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
+			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
+			StatesHelper.saveMDPstatra(productMDP,  "", name + "pda_" + daNum+"sta_tra", true);
+			
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
 				res.daList.get(otherDAs).updateStateNumbers(product);
+				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "", name+"pda_"+daNum+"_"+otherDAs+".ess", true);
+				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "", name+"pda_"+daNum+"_"+otherDAs+".acc", true);
 			}
 			res.updateProductToMDPStateMapping(product);
 			res.daList.add(daInfo);
@@ -108,286 +116,288 @@ public class STAPU {
 		res.setDAListAndFinalProduct(product);
 		return res;
 	}
-	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards,int probPreference) throws PrismException {
 
+	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid,
+			ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean> minRewards, int probPreference)
+			throws PrismException {
 
-		ModelCheckerMultipleResult res2 =  computeNestedValIterFailurePrint(mdp, target,
-				statesToAvoid,rewards,minRewards,probPreference, null);// computeNestedValIterFailurePrint(mdp, target, statesToAvoid,
-				//rewards,minRewards,target,probPreference,null);
+		ModelCheckerMultipleResult res2 = computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards,
+				minRewards, probPreference, null);// computeNestedValIterFailurePrint(mdp, target, statesToAvoid,
+		// rewards,minRewards,target,probPreference,null);
 
 		return res2;
 	}
-	
 
-	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean>minRewards,int probPreference, double[] probInitVal) throws PrismException {
+	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid,
+			ArrayList<MDPRewardsSimple> rewards, ArrayList<Boolean> minRewards, int probPreference,
+			double[] probInitVal) throws PrismException {
 
 		BitSet statesToRemainIn = (BitSet) statesToAvoid.clone();
 		statesToRemainIn.flip(0, mdp.getNumStates());
 		MDPModelChecker mc = new MDPModelChecker(prismC);
 		mc.setGenStrat(true);
-//		mc.genStrat = true;
-		//lets set them all to true 
+		// mc.genStrat = true;
+		// lets set them all to true
 		ModelCheckerResult anotherSol = mc.computeUntilProbs(mdp, statesToRemainIn, target, false);
-		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat"+mdp.getFirstInitialState(), true);
-		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp); 
-		mainLogRef.println("Compute Until Probs Vals\n "+Arrays.toString(testValues.getDoubleArray())); 
-		mainLogRef.println("Prob in init"+testValues.getDoubleArray()[mdp.getFirstInitialState()]);
-		
-		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn,
-				rewards,null,minRewards,target,probPreference,probInitVal);
+		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat" + mdp.getFirstInitialState(),
+				true);
+		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
+		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
+		mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
+
+		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn, rewards, null,
+				minRewards, target, probPreference, probInitVal);
 
 		ArrayList<double[]> solns = res2.solns;
-		double[] solnProb = solns.get(solns.size()-1);
+		double[] solnProb = solns.get(solns.size() - 1);
 		StateValues probsProduct = StateValues.createFromDoubleArray(solnProb, mdp);
 
 		// Get final prob result
-		
+
 		double maxProb = probsProduct.getDoubleArray()[mdp.getFirstInitialState()];
 
 		String resString = "";
-		for(int i = 0; i<solns.size()-1; i++) {
-		StateValues costsProduct = StateValues.createFromDoubleArray(res2.solns.get(i), mdp);
+		for (int i = 0; i < solns.size() - 1; i++) {
+			StateValues costsProduct = StateValues.createFromDoubleArray(res2.solns.get(i), mdp);
 
-		double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
-		resString+=i+":"+minCost+" ";
-		
+			double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
+			resString += i + ":" + minCost + " ";
+
 		}
-		mainLogRef.println("\nFor p = " + maxProb + ", rewards "
-				+ resString);
-		
-				return res2;
-	}
-	
-	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target,
-			BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,int probPreference,boolean doMaxTasks) throws PrismException {
+		mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
 
-	
-		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>(); 
-		int rewinit=0;
-		if( doMaxTasks)
-		{
+		return res2;
+	}
+
+	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid,
+			ArrayList<MDPRewardsSimple> rewards, int probPreference, boolean doMaxTasks) throws PrismException {
+
+		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>();
+		int rewinit = 0;
+		if (doMaxTasks) {
 			minMaxRew.add(false);
 		}
-		for(int rew = rewinit; rew<rewards.size(); rew++)
+		for (int rew = rewinit; rew < rewards.size(); rew++)
 			minMaxRew.add(true);
-		return computeNestedValIterFailurePrint(mdp,target,statesToAvoid,rewards,minMaxRew,probPreference);
+		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference);
 	}
-	
 
-
-	
-	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,ProbModelChecker mcProb,
-			ArrayList<ModulesFile> modulesFiles,ArrayList<String> shared_vars_list,
-			boolean includefailstatesinswitches,boolean matchSharedVars) throws PrismException {
+	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,
+			ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list,
+			boolean includefailstatesinswitches, boolean matchSharedVars,boolean completeSwitchRing) throws PrismException {
 
 		long startTime = System.currentTimeMillis();
-		int probPreference = 0; 
-		
+		int probPreference = 0;
+
 		// process ltl expressions
 		int numRobots = getNumRobots(exampleNumber());
 		boolean sameModelForAll = false;
-		if(numRobots != models.size() && models.size()==1)
+		if (numRobots != models.size() && models.size() == 1)
 			sameModelForAll = true;
 		else
 			numRobots = models.size();
-		
+
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
-		if (hasTimedOut(startTime,"Initialized DA from LTL Expressions"))
+		if (hasTimedOut(startTime, "Initialized DA from LTL Expressions"))
 			return;
 		Model model = models.get(0);
 		ModulesFile modulesFile = modulesFiles.get(0);
-		for(int i = 0; i<numRobots; i++) {
-			if(!sameModelForAll)
-			{model = models.get(i);
-			modulesFile = modulesFiles.get(i);
+		for (int i = 0; i < numRobots; i++) {
+			if (!sameModelForAll) {
+				model = models.get(i);
+				modulesFile = modulesFiles.get(i);
 			}
-		StatesHelper.saveMDP((MDP) model, null, "","mdp"+i, true);
-		if (hasTimedOut(startTime,"Saved original MDP"))
-			return;
-		int initState = model.getFirstInitialState();
-		
-//		for (int i = 0; i < numRobots; i++) {
+			StatesHelper.saveMDP((MDP) model, null, "", "mdp" + i, true);
+			if (hasTimedOut(startTime, "Saved original MDP"))
+				return;
+			int initState = model.getFirstInitialState();
+
+			// for (int i = 0; i < numRobots; i++) {
 			if (i != 0 && sameModelForAll) {
 				initState = getInitState(i, exampleNumber());
 				((MDPSparse) model).clearInitialStates();
 				((MDPSparse) model).addInitialState(initState);
 
 			}
-		
-			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP(""+i,model, daList,
-					statesOfInterest,mcProb,modulesFile);
+
+			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP("" + i, model, daList,
+					statesOfInterest, mcProb, modulesFile);
 
 			singleAgentProductMDPs.add(nestedProduct);
-			if (hasTimedOut(startTime,"Created Nested Product "+i))
+			if (hasTimedOut(startTime, "Created Nested Product " + i))
 				return;
 
-//		}
-		
-		}
-		
-	
-		// create team automaton from a set of MDP DA stuff
-		SequentialTeamMDP seqTeamMDP =  new SequentialTeamMDP(this.mainLogRef,numRobots,matchSharedVars); //buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
-	
-		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs,shared_vars_list);
+			// }
 
-		if (hasTimedOut(startTime,"Created Sequential MDP Template"))
+		}
+
+		// create team automaton from a set of MDP DA stuff
+		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this.mainLog, numRobots, matchSharedVars); // buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+
+		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
+
+		if (hasTimedOut(startTime, "Created Sequential MDP Template"))
 			return;
-		
+
 		int firstRobot = 0; // fix this
-//		if (hasDoor)
-//		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 2); //cuz there is door too 
-//		else
-		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot,includefailstatesinswitches);
-		
-		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
+		// if (hasDoor)
+		// StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() -
+		// 2); //cuz there is door too
+		// else
+		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches,completeSwitchRing);
+
+		if (hasTimedOut(startTime, "Created Sequential MDP with Switches"))
 			return;
-		
+
 		BitSet combinedEssentialStates = new BitSet();
-		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++)
-			{combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
-			mainLogRef.println("Essential States "+seqTeamMDP.essentialStates.get(i)); 
-			
-			}
-		mainLogRef.println("Accepting States "+seqTeamMDP.acceptingStates); 
-		
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"", "teamMDPWithSwitches", true);
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "","teamMDPWithSwitchesAvoid", true);
+		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
+			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
+			mainLog.println("Essential States " + seqTeamMDP.essentialStates.get(i));
+
+		}
+		mainLog.println("Accepting States " + seqTeamMDP.acceptingStates);
+
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
+				true);
 		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
-		
+		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess",true);
+		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc",true);
+
 		// solve
-//		ModelCheckerPartialSatResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-//				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
-		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches); 
-		ArrayList<Boolean> minRewards = new ArrayList<Boolean>(); 
-		for(int rew = 0; rew<rewards.size(); rew++)
-		{
+		// ModelCheckerPartialSatResult solution =
+		// computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+		// seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid,
+		// seqTeamMDP.rewardsWithSwitches.get(0));
+		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
+		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
+		for (int rew = 0; rew < rewards.size(); rew++) {
 			minRewards.add(true);
 		}
-		rewards.add(0,seqTeamMDP.progressionRewards);
+		rewards.add(0, seqTeamMDP.progressionRewards);
 
-		minRewards.add(0,false);
-		
+		minRewards.add(0, false);
+
 		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
-		for(int rew = 0; rew<rewards.size(); rew++)
-		{
-			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew),combinedEssentialStates ,
-					"", "rew"+rew, true);
+		for (int rew = 0; rew < rewards.size(); rew++) {
+			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
+					"rew" + rew, true);
 		}
-		
-//		double[] probInitVals = new double[seqTeamMDP.teamMDPWithSwitches.getNumStates()]; 
-//		for(int i = 0; i<probInitVals.length; i++)
-//		{
-//			if(seqTeamMDP.acceptingStates.get(i) || combinedEssentialStates.get(i))
-//				probInitVals[i]=1.0;
-//			else
-//				probInitVals[i]=0.0;
-//		}
-		
-		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards,minRewards,probPreference);//,probInitVals);
-	
-		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
-//		solution.strat.exportInducedModel(mainLogRef);
-//		solution.strat.exportActions(mainLogRef);
-		mainLogRef.println(seqTeamMDP.acceptingStates.toString());
-		if (hasTimedOut(startTime,"Solved Initial Sequential MDP"))
-			return;
-		
-		
-		// add to joint policy
-		//MMDPSimple
-		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
-				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList());
-		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
-		mainLogRef.println("InitState = "+initialState);
-		
-		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,!includefailstatesinswitches);
 
-		if (hasTimedOut(startTime,"Added Initial Solution to Joint Policy"))
+		// double[] probInitVals = new
+		// double[seqTeamMDP.teamMDPWithSwitches.getNumStates()];
+		// for(int i = 0; i<probInitVals.length; i++)
+		// {
+		// if(seqTeamMDP.acceptingStates.get(i) || combinedEssentialStates.get(i))
+		// probInitVals[i]=1.0;
+		// else
+		// probInitVals[i]=0.0;
+		// }
+
+		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+
+		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
+		// solution.strat.exportInducedModel(mainLogRef);
+		// solution.strat.exportActions(mainLogRef);
+		mainLog.println(seqTeamMDP.acceptingStates.toString());
+		if (hasTimedOut(startTime, "Solved Initial Sequential MDP"))
 			return;
-		
-		StatesHelper.saveMDP(jointPolicy.mdp, null, "","jointPolicy", true);
-		boolean stopHere =false;// true; 
+
+		// add to joint policy
+		// MMDPSimple
+		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
+				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
+		mainLog.println("InitState = " + initialState);
+
+		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
+				!includefailstatesinswitches);
+
+		if (hasTimedOut(startTime, "Added Initial Solution to Joint Policy"))
+			return;
+
+		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "jointPolicy", true);
+		boolean stopHere = false;// true;
 		if (stopHere)
-		return;
+			return;
 		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
-		
-		//start the loop 
+
+		// start the loop
 		while (!jointPolicy.stuckStatesQ.isEmpty()) {
 
-			//get the state with the highest probability, given the current joint policy 
+			// get the state with the highest probability, given the current joint policy
 			StateProb stuckState = jointPolicy.stuckStatesQ.remove();
 			initialState = stuckState.getState();
 			orderOfFailStates.add(stuckState.copy());
-			if(stuckState.getState()==10)
-				mainLogRef.println("Hmm");
-			mainLogRef.println("Exploring " + stuckState.toString());
 
-			//update the teammdp 
+			mainLog.println("Exploring " + stuckState.toString());
+
+			// update the teammdp
 			List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
 			State currState = states.get(initialState);
 			int rNum = jointPolicy.firstFailedRobot(currState);
 			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
 					seqTeamMDP.teamMDPWithSwitches.getStatesList());
 			seqTeamMDP.setInitialStates(robotStates);
-			
-			if (hasTimedOut(startTime,"Set Initial States for Fail State"))
+
+			if (hasTimedOut(startTime, "Set Initial States for Fail State"))
 				return;
-			
-			
+
 			// we need to change the switches to the initial states
-			// so we will just add switches from all failed robots 
-			// we really dont care who failed first because 
-			// the switches will take care of that 
-			seqTeamMDP.addSwitchesAndSetInitialState(rNum,includefailstatesinswitches);
-			
-			if (hasTimedOut(startTime,"Added Switches"))
+			// so we will just add switches from all failed robots
+			// we really dont care who failed first because
+			// the switches will take care of that
+			seqTeamMDP.addSwitchesAndSetInitialState(rNum, includefailstatesinswitches,completeSwitchRing);
+
+			if (hasTimedOut(startTime, "Added Switches"))
 				return;
-			
-			
-			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates,"",
+
+			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "",
 					"teamMDPWithSwitches" + currState.toString(), true);
-			
+
 			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-					seqTeamMDP.statesToAvoid, rewards,probPreference,true);
-//			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-//					seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
-			
-			StatesHelper.saveStrategy(solution.strat, null, "", "stratFor"+currState.toString(), true);
-			if (hasTimedOut(startTime,"Solved for Fail State"))
+					seqTeamMDP.statesToAvoid, rewards, probPreference, true);
+			// solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+			// seqTeamMDP.acceptingStates,
+			// seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
+
+			StatesHelper.saveStrategy(solution.strat, null, "", "stratFor" + currState.toString(), true);
+			if (hasTimedOut(startTime, "Solved for Fail State"))
 				return;
-			
-			
-			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,!includefailstatesinswitches);
-			
-			if (hasTimedOut(startTime,"Added Solution to Joint Policy"))
+
+			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,
+					!includefailstatesinswitches);
+
+			if (hasTimedOut(startTime, "Added Solution to Joint Policy"))
 				return;
-			
+
 		}
 		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
 		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
 		jointPolicy.saveJointPolicy();
-		mainLogRef.println("Completed STAPU for full policy");
-		mainLogRef.println("DeadEnd States " + jointPolicy.deadendStates.toString());
-		mainLogRef.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
-		mainLogRef.println("Information about fail states ");
+		mainLog.println("Completed STAPU for full policy");
+		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
+		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
+		mainLog.println("Information about fail states ");
 
 		for (StateProb fs : orderOfFailStates) {
-			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0,new BitSet());
-			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(), new HashMap<Integer,Double>());
-			mainLogRef.println("Explored state " + fs.toString() + " with prob " + probAnyAcc + " of getting to an accepting state from this state \n Prob of acheiving task = " + fs.getProb()*probAllAcc);
+			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0, new BitSet());
+			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(),
+					new HashMap<Integer, Double>());
+			mainLog.println("Explored state " + fs.toString() + " with prob " + probAnyAcc
+					+ " of getting to an accepting state from this state \n Prob of acheiving task = "
+					+ fs.getProb() * probAllAcc);
 		}
 
-		mainLogRef.println("Probablilty of acheiving task from initial state using entire policy = "+jointPolicy.getProbabilityAllPossibleAcceptingStates(0, 1.0,new BitSet(),new HashMap<Integer,Double>()));
-		hasTimedOut(startTime,"All Done");
-		
+		mainLog.println("Probablilty of acheiving task from initial state using entire policy = " + jointPolicy
+				.getProbabilityAllPossibleAcceptingStates(0, 1.0, new BitSet(), new HashMap<Integer, Double>()));
+		hasTimedOut(startTime, "All Done");
+
 	}
-	
+
 	private int exampleNumber() {
 		// SET the EXAMPLE NUMBER HERE
 		// 0 = two room three robot not extended , 1 = two room three robot extended, 2
@@ -429,7 +439,7 @@ public class STAPU {
 		} else if (robotModel == 4) {
 			int initPoses[] = { 4, 8, 21, 28, 27, 17, 22, 20, 24, 26, 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 					18, 19, 23, 25, 29, 30 };
-//			int notHave = 2;
+			// int notHave = 2;
 
 			initState = initPoses[robotNum] + 1;
 
@@ -453,17 +463,14 @@ public class STAPU {
 			if (robotNum == 2)
 				initState = 7;
 
-		}
-		else if(robotModel == 6)
-		{
-			switch (robotNum)
-			{
+		} else if (robotModel == 6) {
+			switch (robotNum) {
 			case 0:
-				initState = 1; 
-				break; 
+				initState = 1;
+				break;
 			case 1:
-				initState = 4; 
-				break; 
+				initState = 4;
+				break;
 			}
 		}
 		///////////////////////////////////// DECIDE Robot init states
@@ -477,15 +484,22 @@ public class STAPU {
 	protected ArrayList<Expression> getLTLExpressions(ExpressionFunc expr) throws PrismException {
 		int numOp = expr.getNumOperands();
 		String exprString = "";
+		ExpressionFunc conjunctionOfExpressions = null;
 		ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
 		for (int exprNum = 0; exprNum < numOp; exprNum++) {
 			if (expr.getOperand(exprNum) instanceof ExpressionQuant) {
 				ltlExpressions.add((expr.getOperand(exprNum)));
 				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
+				if(Expression.isCoSafeLTLSyntactic(expr.getOperand(exprNum))) {
+				if(conjunctionOfExpressions == null )
+				{
+					conjunctionOfExpressions =  new ExpressionFunc(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString());
+				}
+				}
 			}
 		}
 
-		mainLogRef.println("LTL Mission: " + exprString);
+		mainLog.println("LTL Mission: " + exprString);
 		return ltlExpressions;
 	}
 
@@ -496,7 +510,7 @@ public class STAPU {
 		// toret =1;
 		// break;
 		case 6:
-			toret = 2; 
+			toret = 2;
 			break;
 		case 0:
 		case 1:
@@ -513,22 +527,20 @@ public class STAPU {
 		return toret;
 	}
 
-	private boolean hasTimedOut(long startTime, long endTime,String text)
-	{
-		long time = endTime-startTime; 
-		printTime(time,text);
-		if(time > timeout)
-			{System.out.println("Timed Out");
-			return true; }
-		else
-			return false; 
+	private boolean hasTimedOut(long startTime, long endTime, String text) {
+		long time = endTime - startTime;
+		printTime(time, text);
+		if (time > timeout) {
+			mainLog.println("Timed Out");
+			return true;
+		} else
+			return false;
 	}
 
-	private boolean hasTimedOut(long startTime,String text)
-	{
-		long endTime = System.currentTimeMillis(); 
-		return hasTimedOut(startTime,endTime,text);
-		
+	private boolean hasTimedOut(long startTime, String text) {
+		long endTime = System.currentTimeMillis();
+		return hasTimedOut(startTime, endTime, text);
+
 	}
 
 	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs) {
@@ -542,119 +554,130 @@ public class STAPU {
 				thisExpr = exprs.get(daNum);
 			else
 				thisExpr = ((ExpressionQuant) exprs.get(daNum)).getExpression();
-			DAInfo daInfo = new DAInfo(mainLogRef, thisExpr, hasReward);
+			DAInfo daInfo = new DAInfo(mainLog, thisExpr, hasReward);
 			daInfoList.add(daInfo);
 		}
 
 		return daInfoList;
 	}
 
-	private void printTime(long time, String text)
-	{
+	private void printTime(long time, String text) {
 		if (text == "")
 			text = "Time";
-		System.out.println(text+": "+time/1000.0+" seconds ("+time/(1000.0*60)+" mins)");
+		mainLog.println(text + ": " + time / 1000.0 + " seconds (" + time / (1000.0 * 60) + " mins)");
 	}
 
-
-	
-	public void run()
-	{
+	public void run() {
 		try {
-			String dir = System.getProperty("user.dir"); 
-			String modelLocation= dir+"/tests/decomp_tests/";
-			String cumberland_nodoors = "topo_map_modified_goals"; 
+			String dir = System.getProperty("user.dir");
+			String modelLocation = dir + "/tests/decomp_tests/";
+			String cumberland_nodoors = "topo_map_modified_goals";
 			String cumberland_doors = "topo_map_modified_goals_doors";
 			String a_door_example = "a_door_example";
 			String no_door_example = "no_door_example";
-			String filename =a_door_example;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
-			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
-			boolean includefailstatesinswitches=false;
-			boolean matchsharedstatesinswitch=true;
-			ArrayList<String> shared_vars_list = new ArrayList<String>(); 
-			shared_vars_list.add("door");
+			String a_door_example_actionwithtwogoals = "a_door_example_actionwithtwogoals";
+			String different_goals_example="a_door_example_differenttasks"; //has completely different tasks but engineered such that there needs to be a wait before the door is checked 
+			String different_goals_example_longer="a_door_example_differenttasks_longer";
+			String filename = different_goals_example;
 			
-			ArrayList<String> filenames = new ArrayList<String>(); 
-			filenames.add(filename+0); 
-			filenames.add(filename+1);
-			filenames.add(filename+2);
-//			filenames.add(filename+3);
-//			filenames.add("chain_example_simple_mod");
-			StatesHelper.setFolder(modelLocation+filename);
+			
+			String filename_suffix = "";// "_seq"; //seq_simp for two robots
+			boolean includefailstatesinswitches = false;
+			boolean matchsharedstatesinswitch = true;
+			boolean completeSwitchRing = false;//true;
+			ArrayList<String> shared_vars_list = new ArrayList<String>();
+			shared_vars_list.add("door");
+
+			ArrayList<String> filenames = new ArrayList<String>();
+			filenames.add(filename + 0);
+			filenames.add(filename + 1);
+		
+	
+
+
+//		 	filenames.add(filename + 2);
+		
+			// filenames.add(filename+3);
+			// filenames.add("chain_example_simple_mod");
+
+			StatesHelper.setFolder(modelLocation + filename);
 			hasDoor = false;
 			int maxMDPVars = 0;
-			
-			ArrayList<Model> models = new ArrayList<Model>(); 
+
+			ArrayList<Model> models = new ArrayList<Model>();
 			ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
 			ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
 
 			// Create a log for PRISM output (hidden or stdout)
-//			PrismLog mainLog = new PrismDevNullLog();
+			// PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
-			this.mainLogRef = mainLog; 
-
-			// Initialise PRISM engine 
+			this.mainLog = mainLog;
+			StatesHelper.mainLog = mainLog;
+			// Initialise PRISM engine
 			Prism prism = new Prism(mainLog);
 			prismC = prism;
 			prism.initialise();
 
-			for(int files = 0; files<filenames.size(); files++) {
-			// Parse and load a PRISM model from a file
-			ModulesFile modulesFile = prism.parseModelFile(new File(modelLocation+filenames.get(files)+".prism"));
-			modulesFiles.add(modulesFile);
-			prism.loadPRISMModel(modulesFile);
+			for (int files = 0; files < filenames.size(); files++) {
+				// Parse and load a PRISM model from a file
+				ModulesFile modulesFile = prism
+						.parseModelFile(new File(modelLocation + filenames.get(files) + ".prism"));
+				modulesFiles.add(modulesFile);
+				prism.loadPRISMModel(modulesFile);
 
-			// Parse and load a properties model for the model
-			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation+filename+filename_suffix+".prop"));
+				// Parse and load a properties model for the model
+				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile,
+						new File(modelLocation + filename + filename_suffix + ".prop"));
 
-			// Get PRISM to build the model and then extract it
-			prism.setEngine(Prism.EXPLICIT);
-			prism.buildModel();
-			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
-			int numVars = mdp.getVarList().getNumVars();
-			if(numVars > maxMDPVars)
-				maxMDPVars = numVars;
-			
-			models.add(mdp);
-			propFiles.add(propertiesFile);
+				// Get PRISM to build the model and then extract it
+				prism.setEngine(Prism.EXPLICIT);
+				prism.buildModel();
+				MDP mdp = (MDP) prism.getBuiltModelExplicit();
+				int numVars = mdp.getVarList().getNumVars();
+				if (numVars > maxMDPVars)
+					maxMDPVars = numVars;
+
+				models.add(mdp);
+				propFiles.add(propertiesFile);
 			}
 			// Build an MDP model checker
-//			MDPModelChecker mc = new MDPModelChecker(prism);
-			
-			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
-			
+			// MDPModelChecker mc = new MDPModelChecker(prism);
+
+			// mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile,
+			// currentModelGenerator);
+
 			// Model check the first property from the file using the model checker
-			for(int i = 0; i<propFiles.size(); i++) {
-			System.out.println(propFiles.get(i).getPropertyObject(0));
+			for (int i = 0; i < propFiles.size(); i++) {
+				mainLog.println(propFiles.get(i).getPropertyObject(0));
 			}
-			Expression expr = propFiles.get(0).getProperty(0);			
-			
-			// I dont know if this is the best way to do this 
-			// Doesnt look like this works 
-			// But yeah, maybe move this bit in the while loop in doSTAPU 
-//			models.add(mdp);
-		
+			Expression expr = propFiles.get(0).getProperty(0);
+
+			// I dont know if this is the best way to do this
+			// Doesnt look like this works
+			// But yeah, maybe move this bit in the while loop in doSTAPU
+			// models.add(mdp);
+
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			StatesHelper.setNumMDPVars(maxMDPVars);
-		    Runnable task = new Runnable() {
-		        @Override
-		        public void run() {
-		            //do your task
-		        	try {
-						doSTAPU(models,(ExpressionFunc) expr,null,new ProbModelChecker(prism),
-								modulesFiles,shared_vars_list,includefailstatesinswitches,matchsharedstatesinswitch);
+			Runnable task = new Runnable() {
+				@Override
+				public void run() {
+					// do your task
+					try {
+						doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles,
+								shared_vars_list, includefailstatesinswitches, matchsharedstatesinswitch,completeSwitchRing);
 					} catch (PrismException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-		        }
-		    };
+				}
+			};
 
-		    Future<?> future = executor.submit(task);
+			Future<?> future = executor.submit(task);
 
-		    try {
+			try {
 				future.get(timeout, TimeUnit.MILLISECONDS);
-				
+
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -663,18 +686,15 @@ public class STAPU {
 				e.printStackTrace();
 			} catch (TimeoutException e) {
 				// TODO Auto-generated catch block
-				if(jointPolicy!=null)
-				mainLog.println("States "+jointPolicy.allFailStatesSeen.toString());
+				if (jointPolicy != null)
+					mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
 				e.printStackTrace();
-			} // awaits termination 
-			
-			
+			} // awaits termination
+
 			// Close down PRISM
 			prism.closeDown();
 
-			
-		}
-		catch (FileNotFoundException e) {
+		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
 		} catch (PrismException e) {

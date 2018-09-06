@@ -5,85 +5,80 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.Vector;
 
 import explicit.MDP;
 import explicit.MDPSimple;
 import explicit.LTLModelChecker.LTLProduct;
 import parser.State;
+import parser.VarList;
 import prism.PrismLog;
 
 public class SingleAgentNestedProductMDP {
 	/**
 	 * 
 	 */
-//	private final STAPU stapu;
+	// private final STAPU stapu;
 	ArrayList<DAInfo> daList;
 	LTLProduct<MDP> finalProduct;
 	HashMap<Integer, Integer> productStateToMDPState;
 	BitSet combinedAcceptingStates;
 	BitSet combinedStatesToAvoid;
 	BitSet combinedEssentialStates;
-	PrismLog mainLog; 
-	BitSet allAcceptingStatesCombined; //includes everything even the essential states 
-	int numMDPVars; 
-	
+	PrismLog mainLog;
+	BitSet allAcceptingStatesCombined; // includes everything even the essential states
+	int numMDPVars;
+
 	public SingleAgentNestedProductMDP(PrismLog log) {
-//		this.stapu = stapu;
-		mainLog = log; 
+		// this.stapu = stapu;
+		mainLog = log;
 		productStateToMDPState = new HashMap<Integer, Integer>();
 	}
+
 	public SingleAgentNestedProductMDP(PrismLog log, ArrayList<DAInfo> list, LTLProduct<MDP> product) {
-		mainLog = log; 
+		mainLog = log;
 		productStateToMDPState = new HashMap<Integer, Integer>();
 		daList = list;
 		finalProduct = product;
-		mainLog.println(
-				"Initializing Single Agent Nested Product MDP. " + "Make sure to update the state mappings");
+		mainLog.println("Initializing Single Agent Nested Product MDP. " + "Make sure to update the state mappings");
 		setBitSetsForAccEssentialBadStates();
 	}
-	public boolean addRewardForTaskCompletion(int childState, int parentState)
-	{
+
+	public boolean addRewardForTaskCompletion(int childState, int parentState) {
 		boolean toreturn = false;
-		if(allAcceptingStatesCombined == null)
-		allAcceptingStatesCombined = getAllAcceptingStates() ;
-		if (combinedEssentialStates.get(childState) /*|| combinedAcceptingStates.get(childState)*/)
-		{
-			//you could remove all this and just check if the two da bits are unequal 
-			if(allAcceptingStatesCombined.get(parentState))
-			{
-				if(childState != parentState)
-				{
-				
-				
-				List<State> statesList = this.finalProduct.getProductModel().getStatesList();
-				if(!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),statesList.get(parentState),numMDPVars))
-				{
-					toreturn = true; 
+		if (allAcceptingStatesCombined == null)
+			allAcceptingStatesCombined = getAllAcceptingStates();
+		if (combinedEssentialStates.get(childState) /* || combinedAcceptingStates.get(childState) */) {
+			// you could remove all this and just check if the two da bits are unequal
+			if (allAcceptingStatesCombined.get(parentState)) {
+				if (childState != parentState) {
+
+					List<State> statesList = this.finalProduct.getProductModel().getStatesList();
+					if (!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),
+							statesList.get(parentState), numMDPVars)) {
+						toreturn = true;
+					}
 				}
-				}
-//				if (acceptingStatesFromSeparateDAs(childState,parentState))
-//				{
-//					toreturn = true;
-//				}
-			}
-			else
-			{
-				toreturn = true; 
+				// if (acceptingStatesFromSeparateDAs(childState,parentState))
+				// {
+				// toreturn = true;
+				// }
+			} else {
+				toreturn = true;
 			}
 
-			
 		}
-		return toreturn; 
+		return toreturn;
 	}
 
 	/**
 	 * 
-	 * @return bitset - all possible accepting states including essential states 
+	 * @return bitset - all possible accepting states including essential states
 	 */
 	public BitSet getAllAcceptingStates() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet acceptingStates = new BitSet(numStates);
-//		acceptingStates.set(0, numStates);
+		// acceptingStates.set(0, numStates);
 		for (int i = 0; i < daList.size(); i++) {
 			if (!(daList.get(i).isSafeExpr)) {
 				acceptingStates.or(daList.get(i).productAcceptingStates);
@@ -92,8 +87,8 @@ public class SingleAgentNestedProductMDP {
 		return acceptingStates;
 	}
 
-	public BitSet getAndSetInitialStates(int state, boolean isMDPState) {
-//		State s1 = finalProduct.getProductModel().getStatesList().get(state);
+	public BitSet getAndSetInitialStates(int state, boolean isMDPState,boolean ignoreSharedStateValues, List<String> sharedVars) {
+		// State s1 = finalProduct.getProductModel().getStatesList().get(state);
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet initialStates = new BitSet(numStates);
 		int mdpState = state;
@@ -101,15 +96,40 @@ public class SingleAgentNestedProductMDP {
 			mdpState = productStateToMDPState.get(state);
 		((MDPSimple) finalProduct.getProductModel()).clearInitialStates();
 		((MDPSimple) finalProduct.getProductModel()).addInitialState(state);
-
-		
+		if(!ignoreSharedStateValues) {
 		Set<Integer> keySet = productStateToMDPState.keySet();
 		for (int key : keySet) {
 			if (productStateToMDPState.get(key) == mdpState && !combinedStatesToAvoid.get(key)) {
 				initialStates.set(key);
-				
-							}
+
+			}
 		}
+		}
+		else
+		{
+			//if we arent ignoring shared state variables we need to match the mdp bits that are not shared 
+			State stateVar = finalProduct.getProductModel().getStatesList().get(state); 
+			VarList pVarList = finalProduct.getProductModel().getVarList();
+			//create a list of the indices we want to match 
+			Vector<Integer> statesToMatch = new Vector<Integer>();
+			for(int i = stateVar.varValues.length-1;i>=stateVar.varValues.length - numMDPVars; i-- )
+			{
+				String varname = pVarList.getName(i);
+					if(!sharedVars.contains(varname))
+					{
+						statesToMatch.add(i);
+					}
+						}
+			List<State> statesList = finalProduct.getProductModel().getStatesList(); 
+			for(int i = 0; i<statesList.size(); i++)
+			{
+				if(StatesHelper.areEqual(stateVar, statesList.get(i),statesToMatch))
+				{
+					initialStates.set(i);
+				}
+			}
+		}
+		
 		mainLog.println("Initial States: " + initialStates.toString());
 		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
 
@@ -127,7 +147,7 @@ public class SingleAgentNestedProductMDP {
 		}
 		return acceptingStates;
 	}
-	
+
 	private BitSet getFinalEssentialStates() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet finalEssentialStates = new BitSet(numStates);
@@ -139,7 +159,7 @@ public class SingleAgentNestedProductMDP {
 		}
 		return finalEssentialStates;
 	}
-	
+
 	private BitSet getFinalStatesToAvoid() {
 		int numStates = finalProduct.getProductModel().getNumStates();
 		BitSet statesToAvoid = new BitSet(numStates);
@@ -152,14 +172,11 @@ public class SingleAgentNestedProductMDP {
 		return statesToAvoid;
 	}
 
-	public BitSet getInitialStates() {
-		return getAndSetInitialStates(finalProduct.getProductModel().getFirstInitialState(), false);
+	public BitSet getInitialStates(boolean ignoreSharedStateValues, List<String> sharedVars) {
+		return getAndSetInitialStates(finalProduct.getProductModel().getFirstInitialState(), false,ignoreSharedStateValues, sharedVars);
 	}
-	
 
-	
-	public int getNumMDPVars()
-	{
+	public int getNumMDPVars() {
 		return numMDPVars;
 	}
 
@@ -186,28 +203,24 @@ public class SingleAgentNestedProductMDP {
 	}
 
 	public void setDAListAndFinalProduct(LTLProduct<MDP> product) {
-//		daList = list;
+		// daList = list;
 		finalProduct = product;
 		setBitSetsForAccEssentialBadStates();
 	}
 
-	public void setNumMDPVars(int n)
-	{
-		numMDPVars = n; 
+	public void setNumMDPVars(int n) {
+		numMDPVars = n;
 	}
-	
 
 	public void updateProductToMDPStateMapping(LTLProduct<MDP> product) {
 		HashMap<Integer, Integer> tempProductStateToMDPState = new HashMap<Integer, Integer>();
-//		System.out.println("s"+"-"+"oldstate"+"-"+"productStateToMDPState.get(oldstate)"+"-"+"s1.toString()");
+		// System.out.println("s"+"-"+"oldstate"+"-"+"productStateToMDPState.get(oldstate)"+"-"+"s1.toString()");
 		for (int s = 0; s < product.getProductModel().getNumStates(); s++) {
 			int oldstate = product.getModelState(s);
-//			State s1 = product.getProductModel().getStatesList().get(s);
-//			System.out.println(s+"-"+oldstate+"-"+productStateToMDPState.get(oldstate)+"-"+s1.toString());
+			// State s1 = product.getProductModel().getStatesList().get(s);
+			// System.out.println(s+"-"+oldstate+"-"+productStateToMDPState.get(oldstate)+"-"+s1.toString());
 			tempProductStateToMDPState.put(s, productStateToMDPState.get(oldstate));
-		
 
-			
 		}
 		productStateToMDPState = tempProductStateToMDPState;
 	}
