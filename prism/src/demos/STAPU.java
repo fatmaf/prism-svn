@@ -55,7 +55,7 @@ import prism.PrismLog;
 public class STAPU {
 	
 	static String saveplace_suffix = "/tests/decomp_tests/IROS_2018_final_submission/res/";
-	static String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
+	static String saveplace = "/tests/decomp_tests/temp/";
 	long timeout = 1000 *60*1000;
 	public PrismLog mainLogRef;
 	Prism prismC; 
@@ -63,25 +63,27 @@ public class STAPU {
 	boolean hasDoor = true;
 	boolean noPrintouts = true;
 	double probThresh = 10^-4; 
+	boolean save_data = false; //UNCOMMENTTHIS TO FIX STUFF 
 	public static void main(String[] args)
 	{
 		String dir = System.getProperty("user.dir"); 
-		saveplace = dir+saveplace_suffix;
-		StatesHelper.setSavePlace(saveplace);
+	
+		StatesHelper.setSavePlace(dir+saveplace);
 		STAPU stapu = new STAPU(); 
-		try {
+//		try {
+			stapu.run();
 //			stapu.runIROS2018Thresh();
-			stapu.runIROS2018_lastonly("res_inc_last.csv");
+//			stapu.runIROS2018_lastonly("res_inc_last.csv");
 //			stapu.runIROS2018Prod("prodresprob2");
 //			stapu.prodTest();
 //			stapu.fsTest();
-		} catch (FileNotFoundException e) {
+//		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 	
 	private boolean hasTimedOut(long startTime, long endTime,String text)
@@ -575,10 +577,12 @@ public class STAPU {
 //		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - 2); //cuz there is door too 
 //		else
 		StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() - StatesHelper.numMdpVars); //cuz there is door too 
+
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot);
+		if(save_data) {
 		StatesHelper.writeToDataColl(""+getTime(startTime));
 		StatesHelper.writeToDataColl(""+seqTeamMDP.teamMDPWithSwitches.getNumStates()+","+seqTeamMDP.teamMDPWithSwitches.getNumTransitions());
-
+		}
 		if (hasTimedOut(startTime,"Created Sequential MDP with Switches"))
 			return;
 		
@@ -695,6 +699,7 @@ public class STAPU {
 			
 		}
 		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
+		if(save_data) 
 		StatesHelper.writeToDataColl(""+getTime(startTime));
 		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
 		jointPolicy.saveJointPolicy();
@@ -709,10 +714,12 @@ public class STAPU {
 		}
 
 		hasTimedOut(startTime,"All Done");
+		if(save_data) 
 		StatesHelper.writeToDataColl(""+orderOfFailStates.size());
 		double finalprob = jointPolicy.getProbabilityAcceptingStateOnly(0, 1.0,new BitSet(),new HashMap<Integer, Double>()); 
-		StatesHelper.writeToDataColl(""+finalprob);
+		if(save_data) {StatesHelper.writeToDataColl(""+finalprob);
 		StatesHelper.writeToDataColl(""+(orderOfFailStates.size()+jointPolicy.numRepeatedStates+jointPolicy.numDeadendStates));
+		}
 	}
 	
 
@@ -1638,15 +1645,15 @@ StatesHelper.saveMDPstatra(nestedProduct.finalProduct.getProductModel(),  "", "d
 	{
 		try {
 			String dir = System.getProperty("user.dir"); 
-			String modelLocation= dir+"/tests/decomp_tests/IROS_2018_final_submission/";
-			String filename ="topo_map_failbase_fs5_";//"topo_map_modified_goals";//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String modelLocation= dir+"/tests/decomp_tests/";
+			String filename ="grid_3_topomap_sim";//grid_map_topmap_sim";//"topo_map_modified_goals";//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
 			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
-			String propfilename = "topo_map_modified_goals";
+			String propfilename = "grid_3_topomap_sim";//"grid_2_topomap_sim";//"grid_map_topmap_sim";//"topo_map_modified_goals";
 			ArrayList<String> filenames = new ArrayList<String>(); 
 			filenames.add(filename+0); 
 			filenames.add(filename+1);
-//			filenames.add(filename+2);
-//			filenames.add(filename+3);
+			filenames.add(filename+2);
+			filenames.add(filename+3);
 //			filenames.add("chain_example_simple_mod");
 			StatesHelper.setFolder(modelLocation+filename);
 			hasDoor = false;

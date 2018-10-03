@@ -498,7 +498,7 @@ public class MMDPSimple {
 			probabilities = new ArrayList<Double>();
 			nextJointStates = new ArrayList<State>();
 			sumProb = 0;
-			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations);
+			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations,numSuccessorStates.length-1);
 			for (int[] combination : combinations) {
 				prob = 1.0;
 				for (int r = 0; r < nRobots; r++) {
@@ -694,7 +694,7 @@ public class MMDPSimple {
 
 	}
 
-	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res) {
+	private void generateCombinations_error(int counter[], int original[], ArrayList<int[]> res) {
 		// System.out.println(Arrays.toString(counter));
 		res.add(counter.clone());
 		if (!checkCombinationCounter(counter, 0, counter.length)) {
@@ -710,10 +710,64 @@ public class MMDPSimple {
 			if (do0) {
 				counter[0]--;
 			}
+			generateCombinations_error(counter, original, res);
+
+		}
+	}
+	
+	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res, int dec_pos) {
+		int end_check = 1; 
+		if(dec_pos == 0)
+		{
+			while(counter[dec_pos]!=end_check)
+			{
+				res.add(counter.clone()); 
+				counter[dec_pos]--;
+			}
+			res.add(counter.clone());
+		}
+		else
+		{
+			//res.add(counter.clone());
+			generateCombinations(counter,original,res,dec_pos-1);
+			if(counter[dec_pos]!=end_check)
+			{counter[dec_pos]--; 
+			for(int i =0; i<dec_pos; i++)
+			{
+				counter[i]=original[i];
+			}
+			generateCombinations(counter,original,res,dec_pos-1); 
+			}
+		}
+		
+	}
+	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res) {
+		// System.out.println(Arrays.toString(counter));
+		res.add(counter.clone());
+		if (!checkCombinationCounter(counter, 0, counter.length)) {
+			boolean do0 = true;
+			for (int i = counter.length - 1; i >= 0; i--) {
+				if (!checkCombinationCounter(counter, 0, i + 1)) {
+					if(counter[i-1]>1)
+					{counter[i - 1]--;
+					counter[i] = original[i];
+					do0 = false;
+					break;}
+				}
+			}
+			if (do0) {
+				if(counter[counter.length-1]>1) {
+				counter[counter.length-1]--;
+				for(int i = 0; i<counter.length-1; i++)
+				{
+					counter[i]=original[i];
+				}}
+			}
 			generateCombinations(counter, original, res);
 
 		}
 	}
+	
 
 	public int getLastState(MDPSimple pol) {
 		int state = pol.getFirstInitialState(); // TODO: CHANGE THIS TO SOMETHING FOR MULTIPLE
@@ -1119,7 +1173,7 @@ public class MMDPSimple {
 			Strategy strat, int initialState, 
 			int nextSuccState, int[] allRobotInitStates)
 	{
-		boolean debugStuff = false;//true;//false;//true; 
+		boolean debugStuff =false;//true; 
 		MDPSimple tempMDP = null;
 		int[] tempMDPMap = null;
 		BitSet tempAccStates = null; 
