@@ -1257,7 +1257,7 @@ public class MMDPSimple {
 			combinations.clear();
 			sumProb = 0;
 			// Set<String> intersection = null;
-			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations);
+			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations,numSuccessorStates.length);
 			// Vector<Set<String>> switchingPathsForRobots = new Vector<Set<String>>();
 			// boolean succSwitchPath = false;
 			for (int[] combination : combinations) {
@@ -1472,27 +1472,55 @@ public class MMDPSimple {
 
 	}
 
-	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res) {
-		// mainLog.println(Arrays.toString(counter));
-		res.add(counter.clone());
-		if (!checkCombinationCounter(counter, 0, counter.length)) {
-			boolean do0 = true;
-			for (int i = counter.length - 1; i >= 0; i--) {
-				if (checkCombinationCounter(counter, 0, i + 1)) {
-					counter[i + 1]--;
-					counter[i] = original[i];
-					do0 = false;
-					break;
-				}
-			}
-			if (do0) {
-				counter[0]--;
-			}
-			generateCombinations(counter, original, res);
+//	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res) {
+//		// mainLog.println(Arrays.toString(counter));
+//		res.add(counter.clone());
+//		if (!checkCombinationCounter(counter, 0, counter.length)) {
+//			boolean do0 = true;
+//			for (int i = counter.length - 1; i >= 0; i--) {
+//				if (checkCombinationCounter(counter, 0, i + 1)) {
+//					counter[i + 1]--;
+//					counter[i] = original[i];
+//					do0 = false;
+//					break;
+//				}
+//			}
+//			if (do0) {
+//				counter[0]--;
+//			}
+//			generateCombinations(counter, original, res);
+//
+//		}
+//	}
+//
 
+	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res, int dec_pos) {
+		int end_check = 1; 
+		if(dec_pos == 0)
+		{
+			while(counter[dec_pos]!=end_check)
+			{
+				res.add(counter.clone()); 
+				counter[dec_pos]--;
+			}
+			res.add(counter.clone());
 		}
-	}
-
+		else
+		{
+			//res.add(counter.clone());
+			generateCombinations(counter,original,res,dec_pos-1);
+			if(counter[dec_pos]!=end_check)
+			{counter[dec_pos]--; 
+			for(int i =0; i<dec_pos; i++)
+			{
+				counter[i]=original[i];
+			}
+			generateCombinations(counter,original,res,dec_pos-1); 
+			}
+		}
+		
+}
+	
 	public BitSet getDAaccStatesForRobot(int da_num, int r, SequentialTeamMDP seqTeamMDP) {
 		if (!seqTeamMDP.agentMDPs.get(r).daList.get(da_num).isSafeExpr)
 			return ((AcceptanceReach) seqTeamMDP.agentMDPs.get(r).daList.get(da_num).da.getAcceptance())
