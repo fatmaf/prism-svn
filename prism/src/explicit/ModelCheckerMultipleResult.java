@@ -1,7 +1,7 @@
 package explicit;
 import java.util.ArrayList;
 
-import strat.Strategy;
+import strat.MDStrategyArray;
 
 /**
 * Class storing some info/data from a call to a model checking or
@@ -22,7 +22,7 @@ public class ModelCheckerMultipleResult {
 	// Time taken for Prob0-type precomputation (secs)
 	public double timeProb0 = 0.0;
 	// Strategy
-	public Strategy strat = null;
+	public MDStrategyArray strat = null;
 
 	/**
 	 * Clear all stored data, including setting of array pointers to null

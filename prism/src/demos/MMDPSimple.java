@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -17,7 +16,6 @@ import acceptance.AcceptanceReach;
 
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
@@ -28,7 +26,10 @@ import parser.ast.DeclarationIntUnbounded;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
+import strat.MDStrategy;
+import strat.MDStrategyArray;
 import strat.Strategy;
+import explicit.DTMC;
 import explicit.Distribution;
 import explicit.MDPSimple;
 
@@ -42,16 +43,26 @@ public class MMDPSimple {
 	public class StateProb implements Comparable<StateProb> {
 		private double prob;
 		private int state;
+		private String action;
 
 		public StateProb(int state, double prob) {
 			this.prob = prob;
 
 			this.state = state;
+			this.action = null;
+		}
+
+		public StateProb(int state, double prob, String action) {
+			this.prob = prob;
+
+			this.state = state;
+			this.action = action;
 		}
 
 		public StateProb(StateProb other) {
 			this.prob = other.prob;
 			this.state = other.state;
+			this.action = other.action;
 		}
 
 		@Override
@@ -79,9 +90,16 @@ public class MMDPSimple {
 			return this.state;
 		}
 
+		public String getAction() {
+			return this.action;
+		}
+
 		@Override
 		public String toString() {
-			return "[s=" + state + ", p=" + prob + "]";
+			if (action == null)
+				return "[s=" + state + ", p=" + prob + "]";
+			else
+				return "[s=" + state + ", p=" + prob + ", a=" + action + "]";
 		}
 
 	}
@@ -162,6 +180,7 @@ public class MMDPSimple {
 		public int crnum;
 		public int cstate;
 		public double prob;
+		private int prnum;
 
 		public switchStateInfo(int ps, int r, int s, double p) {
 			pstate = ps;
@@ -170,9 +189,25 @@ public class MMDPSimple {
 			prob = p;
 		}
 
+		public switchStateInfo(int ps, int r, int s, double p, int prnum) {
+			pstate = ps;
+			crnum = r;
+			cstate = s;
+			prob = p;
+			this.prnum = prnum;
+		}
+
 		@Override
 		public String toString() {
 			return " [ps:" + pstate + ", r:" + crnum + ", s:" + cstate + ", " + prob + "]";
+		}
+
+		public void setParentRobotNum(int parentRobot) {
+			prnum = parentRobot;
+		}
+
+		public int getParentRobotNum() {
+			return prnum;
 		}
 
 	}
@@ -209,6 +244,293 @@ public class MMDPSimple {
 			}
 		}
 		return sortedMap;
+	}
+
+	/***
+	 * createJointPolicyFromSequentialSolution a work in progress creates a joint
+	 * policy from the sequential solution
+	 * 
+	 * @param strat
+	 *            - the sequential solution
+	 * @param initState
+	 *            - the initial state of the seqTeamMDP
+	 * @param seqTeamMDP
+	 *            - the MDP whose solution is in strat
+	 * @param initialStateIsNotJointState
+	 *            - if it is not , we have to create one
+	 */
+	public void createJointPolicyFromSequentialSolution(MDStrategyArray strat, int initialStateInSeqTeamMDP,
+			SequentialTeamMDP seqTeamMDP, boolean initialStateIsNotJointState) {
+		
+		List<State> states = null;
+		int[] currentRobotStates = null;
+		State currentState = null;
+		int firstRobotNumber = -1;
+		if (initialStateIsNotJointState) {
+			states = seqTeamMDP.teamMDPWithSwitches.getStatesList();
+			currentState = states.get(initialStateInSeqTeamMDP);
+			firstRobotNumber = StatesHelper.getRobotNumberFromState(currentState);
+			currentRobotStates = new int[nRobots];
+			currentRobotStates[firstRobotNumber] = initialStateInSeqTeamMDP;
+
+			for (int i = 0; i < nRobots; i++) {
+				if (i != firstRobotNumber) {
+					currentRobotStates[i] = seqTeamMDP.initialStates.get(i).nextSetBit(0);
+				}
+			}
+		}
+		// do {
+		ArrayList<StateProb> mostProbablePath = findMostProbablePath(strat, initialStateInSeqTeamMDP, seqTeamMDP);
+		// get the state that switches to a new robot
+		ArrayList<switchStateInfo> switchInfo = getSwitchStateInfoFromPath(mostProbablePath,
+				seqTeamMDP.teamMDPWithSwitches.getStatesList());
+		int lastState = mostProbablePath.get(mostProbablePath.size() - 1).getState();
+		// from the switch info get the task allocations
+		ArrayList<ArrayList<Integer>> taskAllocation = findTaskAllocation(switchInfo, initialStateInSeqTeamMDP,
+				lastState, seqTeamMDP.teamMDPWithSwitches.getStatesList());
+
+		for (int ar = 0; ar < taskAllocation.size(); ar++)
+			mainLog.println(ar + ":" + taskAllocation.get(ar).toString());
+
+		// Arrays.toString(taskAllocation));
+		HashMap<Integer, State> robotTaskStates = new HashMap<Integer, State>();
+		// List<State> robotTaskStates = new ArrayList<State>();
+		// we have to create new robot states
+		int rnum = firstRobotNumber;
+		int switchNumber = 0;
+		do {
+			if (switchNumber < switchInfo.size()) {
+				robotTaskStates.put(rnum, states.get(switchInfo.get(switchNumber).pstate));
+			} else
+				robotTaskStates.put(rnum, states.get(lastState));
+			switchNumber++;
+
+			rnum = (rnum + 1) % nRobots;
+		} while (rnum != firstRobotNumber);
+
+		Queue<int[]> robotStatesList = new LinkedList<int[]>();
+		Queue<State> jointStatesList = new LinkedList<State>();
+		robotStatesList.add(currentRobotStates.clone());
+		while (!robotStatesList.isEmpty()) {
+			currentRobotStates = robotStatesList.remove();
+
+			// TODO: marker this is where we check for failure of the states
+			// if we know that the state has failed we just add it and do nothing else.
+
+			// testing the querying bit
+			// create new states
+			List<Integer> updatedCurrentRobotStates = new ArrayList<Integer>();
+
+			for (int i = 0; i < nRobots; i++) {
+
+				State currentRobotStateState = states.get(currentRobotStates[i]);
+				int newStateNumber;
+				if (i != firstRobotNumber) {
+					State taskAllocatedState = robotTaskStates.get((i - 1) % nRobots);
+					// combined state
+					Object[] newState = StatesHelper.getMergedState(currentRobotStateState, taskAllocatedState, 1,
+							1 + numDA); // hardcoding this
+					newStateNumber = StatesHelper.getExactlyTheSameState(newState, states);
+
+				} else {
+					newStateNumber = currentRobotStates[i];// initialStateInSeqTeamMDP;
+				}
+				updatedCurrentRobotStates.add(newStateNumber);
+
+			}
+
+			ArrayList<ArrayList<Entry<Integer, Double>>> robotStatesIteratorList = new ArrayList<ArrayList<Entry<Integer, Double>>>();
+			int[] numSuccessors = new int[nRobots];
+			mainLog.println(updatedCurrentRobotStates.toString());
+			String jointAction = "";
+			Object action;
+			for (int i = 0; i < nRobots; i++) {
+
+
+				
+				action = getActionFromStrat(strat, updatedCurrentRobotStates.get(i));
+				ArrayList<Entry<Integer, Double>> nextStates = findNextState(updatedCurrentRobotStates.get(i), action,
+						seqTeamMDP.teamMDPWithSwitches);
+				numSuccessors[i] = nextStates.size();
+				if (numSuccessors[i] == 0) {
+					numSuccessors[i] = 1;
+					nextStates = new ArrayList<Entry<Integer, Double>>();
+					nextStates.add(new AbstractMap.SimpleEntry(updatedCurrentRobotStates.get(i), 1.0));
+				}
+				robotStatesIteratorList.add(nextStates);
+				jointAction = jointAction + "_r" + i + "_" + action.toString();
+
+			}
+			mainLog.println(jointAction);
+
+			// i got this
+			// everything is alright
+			// now we have to make combinations
+
+			ArrayList<int[]> combinations = new ArrayList<int[]>();
+			generateCombinations(numSuccessors.clone(), numSuccessors.clone(), combinations, numSuccessors.length - 1);
+
+			int[] combinationStates = new int[nRobots];
+			ArrayList<int[]> allCombinationStates = new ArrayList<int[]>();
+			ArrayList<Double> probs = new ArrayList<Double>();
+			double sumFinalProb = 0;
+			for (int[] combination : combinations) {
+				double finalProb = 1.0;
+				// lets make a combination
+				for (int r = 0; r < combination.length; r++) {
+					Entry<Integer, Double> stateProb = (robotStatesIteratorList.get(r)).get(combination[r] - 1);
+					combinationStates[r] = stateProb.getKey();
+					double prob = stateProb.getValue();
+					finalProb = prob * finalProb;
+				}
+				allCombinationStates.add(combinationStates.clone());
+				robotStatesList.add(combinationStates.clone());
+				probs.add(finalProb);
+				sumFinalProb = sumFinalProb + finalProb;
+			}
+			// yay done with step one
+			// now we recycle
+			// skipping the joint state stuff
+			// cuz something is wrong with me
+
+			// }while(true);//final joint state does not have all tasks completed or we
+			// haven't gotten to a state thats like the last switch ?
+			// or joint action is empty or all * you know
+			// I really dont know how long to do this for
+			// lets make a queue
+		}
+	}
+
+	public Object getActionFromStrat(Strategy strat, int state) {
+		strat.initialise(state);
+		return strat.getChoiceAction();
+	}
+
+	public ArrayList<Entry<Integer, Double>> findNextState(int currentState, Object action, MDPSimple mdp) {
+		ArrayList<Entry<Integer, Double>> nextStates = new ArrayList<Entry<Integer, Double>>();
+		Iterator<Entry<Integer, Double>> stateIter = null;
+		int numChoices = mdp.getNumChoices(currentState);
+		int actionChoice = -1;
+		for (int i = 0; i < numChoices; i++) {
+			if (mdp.getAction(currentState, i).equals(action)) {
+				actionChoice = i;
+				break;
+			}
+		}
+		if (actionChoice != -1) {
+			stateIter = mdp.getTransitionsIterator(currentState, actionChoice);
+
+			while (stateIter.hasNext()) {
+				// Entry<Integer, Double> stateProb = stateIter.next();
+				nextStates.add(stateIter.next());
+			}
+		}
+		return nextStates;
+
+	}
+
+	public ArrayList<ArrayList<Integer>> findTaskAllocation(ArrayList<switchStateInfo> switchInfo, int initialState,
+			int lastState, List<State> statesList) {
+		ArrayList<ArrayList<Integer>> taskAllocation = new ArrayList<ArrayList<Integer>>();
+
+		int taskAllocationArray[] = new int[numDA];
+		Arrays.fill(taskAllocationArray, StatesHelper.BADVALUE);
+		int prevRobotState = initialState;
+		int thisRobotState;
+		int rnum = StatesHelper.getRobotNumberFromState(statesList.get(initialState));
+		for (int i = 0; i < switchInfo.size() + 1; i++) {
+			if (i < switchInfo.size())
+				thisRobotState = switchInfo.get(i).cstate;
+			else
+				thisRobotState = lastState;
+			int[] integerXORmask = StatesHelper.XORIntegers(statesList.get(prevRobotState).varValues,
+					statesList.get(thisRobotState).varValues);
+			for (int j = 0; j < numDA; j++) {
+				if (integerXORmask[j + 1] == 1) {
+					if (taskAllocationArray[j] != StatesHelper.BADVALUE)
+						mainLog.println("Overwriting previous task allocation, issue here");
+					taskAllocationArray[j] = rnum;
+
+					while (taskAllocation.size() <= rnum) {
+						taskAllocation.add(new ArrayList<Integer>());
+					}
+					taskAllocation.get(rnum).add(j);
+
+				}
+			}
+
+			prevRobotState = thisRobotState;
+			if (i < switchInfo.size())
+				rnum = switchInfo.get(i).crnum;
+		}
+
+		return taskAllocation;
+
+	}
+
+	public ArrayList<switchStateInfo> getSwitchStateInfoFromPath(ArrayList<StateProb> path, List<State> stateList) {
+		String actionToLookFor = "switch";
+		ArrayList<switchStateInfo> switchStateInfoList = new ArrayList<switchStateInfo>();
+
+		for (int i = 0; i < path.size(); i++) {
+			if (path.get(i).getAction().contains(actionToLookFor)) {
+				int pstate = path.get(i).getState();
+				int cstate = path.get(i + 1).getState();
+				double prob = path.get(i).getProb();
+				int crnum = StatesHelper.getRobotNumberFromState(stateList.get(cstate));
+				int prnum = StatesHelper.getRobotNumberFromState(stateList.get(pstate));
+				switchStateInfoList.add(new switchStateInfo(pstate, crnum, cstate, prob, prnum));
+
+			}
+		}
+		return switchStateInfoList;
+
+	}
+
+	public ArrayList<StateProb> findMostProbablePath(Strategy strat, int initialStateForStrategy,
+			SequentialTeamMDP seqTeamMDP) {
+		ArrayList<StateProb> path = new ArrayList<StateProb>();
+		int currentState = initialStateForStrategy;
+		int nextState = -1;
+		Object action;
+
+		strat.initialise(currentState);
+		action = strat.getChoiceAction();
+		path.add(new StateProb(currentState, 1.0, action.toString()));
+		while (action != null && action.toString() != "*") {
+			int tranIterNum = -1;
+			int numActionChoices = seqTeamMDP.teamMDPWithSwitches.getNumChoices(currentState);
+			for (int choice = 0; choice < numActionChoices; choice++) {
+				if (seqTeamMDP.teamMDPWithSwitches.getAction(currentState, choice) == action) {
+					tranIterNum = choice;
+					break;
+				}
+			}
+			if (tranIterNum != -1) {
+				double maxProb = 0;
+				Iterator<Entry<Integer, Double>> tranIter = seqTeamMDP.teamMDPWithSwitches
+						.getTransitionsIterator(currentState, tranIterNum);
+				while (tranIter.hasNext()) {
+					Entry<Integer, Double> stateProbPair = tranIter.next();
+					if (stateProbPair.getValue() > maxProb) {
+						nextState = stateProbPair.getKey();
+					}
+
+				}
+
+				currentState = nextState;
+				strat.initialise(currentState);
+				action = strat.getChoiceAction();
+				path.add(new StateProb(currentState, maxProb, action.toString()));
+			}
+
+			else {
+				mainLog.println("No such action - " + action.toString());
+				break;
+			}
+
+		}
+		return path;
 	}
 
 	public ArrayList<Integer> breakSeqPolicyAndAddtoPolicy(SequentialTeamMDP seqTeamMDP, Strategy strat,
@@ -491,7 +813,7 @@ public class MMDPSimple {
 		if (debugStuff) {
 			String stratName = "tempStrat" + initialState;
 			if (simulateOnly)
-				stratName ="tempStratsim" + initialState;
+				stratName = "tempStratsim" + initialState;
 			StatesHelper.saveMDP(tempMDP, tempAccStates, "", stratName, true);
 			StatesHelper.checkMDPs(mdps, mdpMaps, sumprod.getStatesList(), allRobotInitStates, initialState, accStates,
 					seqTeamMDP.acceptingStates);
@@ -1174,54 +1496,54 @@ public class MMDPSimple {
 							action = pols[r].getAction(currentStates[r], numChoices - 1);
 							if (action != null) {
 								if (action.toString().contains("switch")) {
-									//TODO: Fatma FIX THIS - MULTIPLE SWITCHES FOR ONE ROBOT ON ONE PATH
-									// THIS DOES NOT WORK THIS WAY 
-									// WE NEED TO DEAL WITH MULTIPLE SWITCHES TO AND FROM THE SAME ROBOT 
-									//FIXME: THE MULTIPLE SWITCHES THING FOR ONE ROBOT
+									// TODO: Fatma FIX THIS - MULTIPLE SWITCHES FOR ONE ROBOT ON ONE PATH
+									// THIS DOES NOT WORK THIS WAY
+									// WE NEED TO DEAL WITH MULTIPLE SWITCHES TO AND FROM THE SAME ROBOT
+									// FIXME: THE MULTIPLE SWITCHES THING FOR ONE ROBOT
 									// check if the next state belongs to the same robot
 									// so we're going to be a bit meh and just check if the thing after the _ is the
 									// same as this robot number
-									
-									
-									//we're switching to another robot 
-									//meaning we're either at the end of this path 
-									//or we might come back to this same robot later
-									
-									//are we at the end of this path ? 
-									BitSet thisRobotsPath = (BitSet)paths.get(firstPath).get(r).clone(); 
-									if (thisRobotsPath.cardinality() > (stcount+1))
-									{
-										//then we have to come back to this path 
-										thisRobotsPath.and(allStateNumbers.get(stcount+1).get(r));
-										
-										//change the current state to th
+
+									// we're switching to another robot
+									// meaning we're either at the end of this path
+									// or we might come back to this same robot later
+
+									// are we at the end of this path ?
+									BitSet thisRobotsPath = (BitSet) paths.get(firstPath).get(r).clone();
+									if (thisRobotsPath.cardinality() > (stcount + 1)) {
+										// then we have to come back to this path
+										thisRobotsPath.and(allStateNumbers.get(stcount + 1).get(r));
+
+										// change the current state to th
 									}
-									
-									
-//									String actionString = action.toString();
-//									int underscorePosition = actionString.lastIndexOf('-');
-//									String nextRobotNumberString = actionString.substring(underscorePosition + 1,
-//											actionString.length());
-//									int nextRobotNumber = (int) (Double.parseDouble(nextRobotNumberString));
-//									if (!(nextRobotNumber == r)) {
-//										numChoices = 0;
-//										alldone = true;
-//									} else {
-//										// we've got to get the next state
-//										// so the next state in our path at the next number ?
-//										BitSet stateIsolated = (BitSet) paths.get(firstPath).get(r).clone();
-//										stateIsolated.and(allStateNumbers.get(stcount + 1).get(r));
-//										mainLog.println(stateIsolated.toString());
-//										// set this as our current state
-//										// and get its choices
-//										currentStates[r] = stateIsolated.nextSetBit(0);
-//										numChoices = 0;
-									
-									/*********** If you want things to run do not uncomment the lines below, unless you've got full code for this part ******/
-									numChoices=0; 
-									alldone=true; 
+
+									// String actionString = action.toString();
+									// int underscorePosition = actionString.lastIndexOf('-');
+									// String nextRobotNumberString = actionString.substring(underscorePosition + 1,
+									// actionString.length());
+									// int nextRobotNumber = (int) (Double.parseDouble(nextRobotNumberString));
+									// if (!(nextRobotNumber == r)) {
+									// numChoices = 0;
+									// alldone = true;
+									// } else {
+									// // we've got to get the next state
+									// // so the next state in our path at the next number ?
+									// BitSet stateIsolated = (BitSet) paths.get(firstPath).get(r).clone();
+									// stateIsolated.and(allStateNumbers.get(stcount + 1).get(r));
+									// mainLog.println(stateIsolated.toString());
+									// // set this as our current state
+									// // and get its choices
+									// currentStates[r] = stateIsolated.nextSetBit(0);
+									// numChoices = 0;
+
+									/***********
+									 * If you want things to run do not uncomment the lines below, unless you've got
+									 * full code for this part
+									 ******/
+									numChoices = 0;
+									alldone = true;
 									/*****/
-//									}
+									// }
 								}
 							}
 							if (numChoices == 1) {
@@ -1257,7 +1579,8 @@ public class MMDPSimple {
 			combinations.clear();
 			sumProb = 0;
 			// Set<String> intersection = null;
-			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations,numSuccessorStates.length);
+			generateCombinations(numSuccessorStates.clone(), numSuccessorStates.clone(), combinations,
+					numSuccessorStates.length);
 			// Vector<Set<String>> switchingPathsForRobots = new Vector<Set<String>>();
 			// boolean succSwitchPath = false;
 			for (int[] combination : combinations) {
@@ -1266,26 +1589,26 @@ public class MMDPSimple {
 				for (int r = 0; r < nRobots; r++) {
 					nextStates[r] = successorStates.get(r).get(combination[r] - 1).getKey();
 					stateProb = stateProb * successorStates.get(r).get(combination[r] - 1).getValue();
-//					if (doPaths) {
-//						if (!paths.get(firstPath).get(r).get(nextStates[r])) {
-//							// succSwitchPath = true;
-//							// mainLog.println("This state is not on the same path we're following");
-//							for (String key : paths.keySet()) {
-//								// find the path with this state
-//								if (paths.get(key).get(r).get(nextStates[r])) {
-//									// if(switchingPathsForRobots.size() <=r)
-//									// {
-//									// while(switchingPathsForRobots.size()<=r)
-//									// switchingPathsForRobots.add(new HashSet<String>());
-//									// }
-//									// switchingPathsForRobots.get(r).add(key);
-//									//// mainLog.println("This state is on path " + key);
-//									//// mainLog.println(paths.get(key));
-//								}
-//							}
-//						}
-//
-//					}
+					// if (doPaths) {
+					// if (!paths.get(firstPath).get(r).get(nextStates[r])) {
+					// // succSwitchPath = true;
+					// // mainLog.println("This state is not on the same path we're following");
+					// for (String key : paths.keySet()) {
+					// // find the path with this state
+					// if (paths.get(key).get(r).get(nextStates[r])) {
+					// // if(switchingPathsForRobots.size() <=r)
+					// // {
+					// // while(switchingPathsForRobots.size()<=r)
+					// // switchingPathsForRobots.add(new HashSet<String>());
+					// // }
+					// // switchingPathsForRobots.get(r).add(key);
+					// //// mainLog.println("This state is on path " + key);
+					// //// mainLog.println(paths.get(key));
+					// }
+					// }
+					// }
+					//
+					// }
 				}
 
 				initialStates = pathInitialStates.get(firstPath);
@@ -1318,16 +1641,16 @@ public class MMDPSimple {
 
 				// just to test stuff
 				if (jointAction.toString().contains("switchPath")) {
-					//what are the current robot states 
-					int[] robotStatesInTeamMDP = getRobotStatesIndexFromJointState(currentJointState, seqTeamMDP.teamMDPWithSwitches.getStatesList());
-					//lets see if we can find policies for any of these 
-					for(int r = 0; r<nRobots; r++)
-					{
-						int currRobotState = robotStatesInTeamMDP[r]; 
-						int nextRobotState = robotStatesInTeamMDP[(r+1)%nRobots];
-//						if(currRobotState != -2)
-//						breakSeqPolicyAndAddtoPolicy(seqTeamMDP,strat,currRobotState,nextRobotState,
-//								robotStatesInTeamMDP,true,true);
+					// what are the current robot states
+					int[] robotStatesInTeamMDP = getRobotStatesIndexFromJointState(currentJointState,
+							seqTeamMDP.teamMDPWithSwitches.getStatesList());
+					// lets see if we can find policies for any of these
+					for (int r = 0; r < nRobots; r++) {
+						int currRobotState = robotStatesInTeamMDP[r];
+						int nextRobotState = robotStatesInTeamMDP[(r + 1) % nRobots];
+						// if(currRobotState != -2)
+						// breakSeqPolicyAndAddtoPolicy(seqTeamMDP,strat,currRobotState,nextRobotState,
+						// robotStatesInTeamMDP,true,true);
 					}
 
 				}
@@ -1472,55 +1795,51 @@ public class MMDPSimple {
 
 	}
 
-//	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res) {
-//		// mainLog.println(Arrays.toString(counter));
-//		res.add(counter.clone());
-//		if (!checkCombinationCounter(counter, 0, counter.length)) {
-//			boolean do0 = true;
-//			for (int i = counter.length - 1; i >= 0; i--) {
-//				if (checkCombinationCounter(counter, 0, i + 1)) {
-//					counter[i + 1]--;
-//					counter[i] = original[i];
-//					do0 = false;
-//					break;
-//				}
-//			}
-//			if (do0) {
-//				counter[0]--;
-//			}
-//			generateCombinations(counter, original, res);
-//
-//		}
-//	}
-//
+	// private void generateCombinations(int counter[], int original[],
+	// ArrayList<int[]> res) {
+	// // mainLog.println(Arrays.toString(counter));
+	// res.add(counter.clone());
+	// if (!checkCombinationCounter(counter, 0, counter.length)) {
+	// boolean do0 = true;
+	// for (int i = counter.length - 1; i >= 0; i--) {
+	// if (checkCombinationCounter(counter, 0, i + 1)) {
+	// counter[i + 1]--;
+	// counter[i] = original[i];
+	// do0 = false;
+	// break;
+	// }
+	// }
+	// if (do0) {
+	// counter[0]--;
+	// }
+	// generateCombinations(counter, original, res);
+	//
+	// }
+	// }
+	//
 
 	private void generateCombinations(int counter[], int original[], ArrayList<int[]> res, int dec_pos) {
-		int end_check = 1; 
-		if(dec_pos == 0)
-		{
-			while(counter[dec_pos]!=end_check)
-			{
-				res.add(counter.clone()); 
+		int end_check = 1;
+		if (dec_pos == 0) {
+			while (counter[dec_pos] != end_check) {
+				res.add(counter.clone());
 				counter[dec_pos]--;
 			}
 			res.add(counter.clone());
-		}
-		else
-		{
-			//res.add(counter.clone());
-			generateCombinations(counter,original,res,dec_pos-1);
-			if(counter[dec_pos]!=end_check)
-			{counter[dec_pos]--; 
-			for(int i =0; i<dec_pos; i++)
-			{
-				counter[i]=original[i];
-			}
-			generateCombinations(counter,original,res,dec_pos-1); 
+		} else {
+			// res.add(counter.clone());
+			generateCombinations(counter, original, res, dec_pos - 1);
+			if (counter[dec_pos] != end_check) {
+				counter[dec_pos]--;
+				for (int i = 0; i < dec_pos; i++) {
+					counter[i] = original[i];
+				}
+				generateCombinations(counter, original, res, dec_pos - 1);
 			}
 		}
-		
-}
-	
+
+	}
+
 	public BitSet getDAaccStatesForRobot(int da_num, int r, SequentialTeamMDP seqTeamMDP) {
 		if (!seqTeamMDP.agentMDPs.get(r).daList.get(da_num).isSafeExpr)
 			return ((AcceptanceReach) seqTeamMDP.agentMDPs.get(r).daList.get(da_num).da.getAcceptance())
