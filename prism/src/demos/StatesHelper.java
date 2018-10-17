@@ -218,6 +218,16 @@ public class StatesHelper {
 		return mdpState;
 	}
 
+	public static Object[] getMergedState(State s1, State s2, int start,int end) {
+		// int res = BADVALUE;
+		Object s1v[] = s1.varValues.clone();
+		Object s2v[] = s2.varValues;
+		for (int i = start; i < end; i++) {
+			s1v[i] = s2v[i];
+		}
+		// res = getExactlyTheSameState(s1v);
+		return s1v;
+	}
 	public static Object[] getMergedState(State s1, State s2, int statesToKeeps2[]) {
 		// int res = BADVALUE;
 		Object s1v[] = s1.varValues.clone();

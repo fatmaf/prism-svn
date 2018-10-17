@@ -41,6 +41,7 @@ import prism.Prism;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
+import strat.Strategy;
 
 public class STAPU {
 
@@ -312,7 +313,10 @@ public class STAPU {
 				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
-
+		
+		
+		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
+		
 		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
 				!includefailstatesinswitches);
 
@@ -578,7 +582,9 @@ public class STAPU {
 			String a_door_example_actionwithtwogoals = "a_door_example_actionwithtwogoals";
 			String different_goals_example="a_door_example_differenttasks"; //has completely different tasks but engineered such that there needs to be a wait before the door is checked 
 			String different_goals_example_longer="a_door_example_differenttasks_longer";
-			String filename = different_goals_example;
+			String grid_2_example="grid_2_topomap_sim";
+			
+			String filename = different_goals_example_longer;//grid_2_example;//different_goals_example;
 			
 			
 			String filename_suffix = "";// "_seq"; //seq_simp for two robots
