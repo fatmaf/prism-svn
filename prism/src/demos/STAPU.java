@@ -191,7 +191,7 @@ public class STAPU {
 		int probPreference = 0;
 
 		// process ltl expressions
-		int numRobots = getNumRobots(exampleNumber());
+		int numRobots = models.size();//getNumRobots(exampleNumber());
 		boolean sameModelForAll = false;
 		if (numRobots != models.size() && models.size() == 1)
 			sameModelForAll = true;
@@ -307,6 +307,8 @@ public class STAPU {
 		if (hasTimedOut(startTime, "Solved Initial Sequential MDP"))
 			return;
 
+
+		
 		// add to joint policy
 		// MMDPSimple
 		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
@@ -314,12 +316,24 @@ public class STAPU {
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
 		
+
+		//*************************************************************//
+		//testing the new joint policy stuff 
+		//this is a build as you go along kind of thing 
+		//so it doesn't really work right now okay 
+		//cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me 
+		
+		JointPolicyBuilder atempThing = new JointPolicyBuilder(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
+				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList(),mainLog);
+		atempThing.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
+		//*************************************************************//
 		
 		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
 		
 		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
 				!includefailstatesinswitches);
-
+	
+		
 		if (hasTimedOut(startTime, "Added Initial Solution to Joint Policy"))
 			return;
 
@@ -583,21 +597,23 @@ public class STAPU {
 			String different_goals_example="a_door_example_differenttasks"; //has completely different tasks but engineered such that there needs to be a wait before the door is checked 
 			String different_goals_example_longer="a_door_example_differenttasks_longer";
 			String grid_2_example="grid_2_topomap_sim";
+			String another_one = "three_robot_one_door"; 
 			
-			String filename = different_goals_example_longer;//grid_2_example;//different_goals_example;
+			String filename = another_one; //different_goals_example_longer;//grid_2_example;//different_goals_example;
 			
 			
 			String filename_suffix = "";// "_seq"; //seq_simp for two robots
-			boolean includefailstatesinswitches = false;
+			boolean includefailstatesinswitches = true;//false;
 			boolean matchsharedstatesinswitch = true;
-			boolean completeSwitchRing = false;//true;
+			boolean completeSwitchRing = false;//true;//false;//true;
 			ArrayList<String> shared_vars_list = new ArrayList<String>();
 			shared_vars_list.add("door");
 
 			ArrayList<String> filenames = new ArrayList<String>();
+			filenames.add(filename + 2);	
 			filenames.add(filename + 0);
 			filenames.add(filename + 1);
-		
+
 	
 
 

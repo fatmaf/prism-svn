@@ -160,20 +160,48 @@ public class StatesHelper {
 		return res;
 	}
 
+	@Deprecated
 	public static Object[] getDAStatesFromState(State state) {
 		// so return everything from after robotVar upto mdpVarStart
 		Object[] stateObj = state.varValues;
 		Object[] toret = Arrays.copyOfRange(stateObj, robotVar + 1, mdpVarStart);
 		return toret;
 	}
-
-	public static Object[] getSharedStatesFromState(State state, VarList list, ArrayList<String> sharedVars) {
+	
+	//new
+	public static Object[] getDAStatesFromState(State state,VarList varlist, int numTasks) {
+		// so return everything from after robotVar upto mdpVarStart
+		Object[] stateObj = state.varValues;
+		Object[] toRet = new Object[numTasks]; 
+		int task = 0; 
+		for(int i = 0; i<varlist.getNumVars(); i++)
+		{
+			String name = varlist.getName(i); 
+			if(name.contains("da"))
+			{
+				toRet[task] = stateObj[i]; 
+				task++; 
+			}
+		}
+	
+		return toRet;
+	}
+	public static ArrayList<Object[]> getDAandSharedStatesFromState(State state, VarList varlist, ArrayList<String> sharedVars, int numTasks)
+	{
+		Object[] das =  getDAStatesFromState(state,varlist, numTasks);
+		Object[] ss = getSharedStatesFromState(state,varlist,sharedVars); 
+		ArrayList<Object[]> toret = new ArrayList<Object[]>(); 
+		toret.add(das); 
+		toret.add(ss);
+		return toret; 
+	}
+	public static Object[] getSharedStatesFromState(State state, VarList varlist, ArrayList<String> sharedVars) {
 		Object[] stateObj = state.varValues;
 		Object[] toret = new Object[sharedVars.size()];
 		int index = -1;
 		int numnull = 0;
 		for (int i = 0; i < sharedVars.size(); i++) {
-			index = list.getIndex(sharedVars.get(i));
+			index = varlist.getIndex(sharedVars.get(i));
 			if (index != -1)
 				toret[i] = stateObj[index];
 			else
@@ -200,15 +228,18 @@ public class StatesHelper {
 		return (int) s1.varValues[index];
 	}
 
+	@Deprecated
 	public static int getMDPStateFromState(State s1) {
 		Object[] stateVar = s1.varValues;
 		return (int) stateVar[mdpVarStart];
 
 	}
 
+	//in use
 	public static Object[] getMDPStateFromState(State s1, VarList varlist, ArrayList<String> notSharedVarsList) {
 		Object[] stateVar = s1.varValues;
 		int numVarsNotShared = /* varlist.getNumVars() - */notSharedVarsList.size();
+		
 		Object[] mdpState = new Object[numVarsNotShared];
 		for (int i = 0; i < numVarsNotShared; i++) {
 			int index = varlist.getIndex(notSharedVarsList.get(i));
@@ -217,7 +248,16 @@ public class StatesHelper {
 		}
 		return mdpState;
 	}
-
+	//new
+	public static State createState(Object[] stateObj)
+	{
+		State newState =new State(stateObj.length); 
+		for(int i = 0; i<stateObj.length; i++)
+		{
+			newState.setValue(i, stateObj[i]); 
+		}
+		return newState;
+	}
 	public static Object[] getMergedState(State s1, State s2, int start,int end) {
 		// int res = BADVALUE;
 		Object s1v[] = s1.varValues.clone();
@@ -246,7 +286,7 @@ public class StatesHelper {
 
 	}
 
-	public static int getRobotNumberFromState(State s1) {
+	public static int getRobotNumberFromSeqTeamMDPState(State s1) {
 		Object[] stateVar = s1.varValues;
 		return (int) stateVar[robotVar];
 
@@ -663,6 +703,11 @@ public class StatesHelper {
 				resS[i - 1] = refState[i];
 		}
 		return resS;
+	}
+	public static int[] XORIntegers(State firstStateState, State lastStateState) {
+		// TODO Auto-generated method stub
+		return XORIntegers(firstStateState.varValues,lastStateState.varValues);
+		
 	}
 
 }
