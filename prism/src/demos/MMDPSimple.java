@@ -269,7 +269,7 @@ public class MMDPSimple {
 		if (initialStateIsNotJointState) {
 			states = seqTeamMDP.teamMDPWithSwitches.getStatesList();
 			currentState = states.get(initialStateInSeqTeamMDP);
-			firstRobotNumber = StatesHelper.getRobotNumberFromState(currentState);
+			firstRobotNumber = StatesHelper.getRobotNumberFromSeqTeamMDPState(currentState);
 			currentRobotStates = new int[nRobots];
 			currentRobotStates[firstRobotNumber] = initialStateInSeqTeamMDP;
 
@@ -437,7 +437,7 @@ public class MMDPSimple {
 		Arrays.fill(taskAllocationArray, StatesHelper.BADVALUE);
 		int prevRobotState = initialState;
 		int thisRobotState;
-		int rnum = StatesHelper.getRobotNumberFromState(statesList.get(initialState));
+		int rnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(initialState));
 		for (int i = 0; i < switchInfo.size() + 1; i++) {
 			if (i < switchInfo.size())
 				thisRobotState = switchInfo.get(i).cstate;
@@ -477,8 +477,8 @@ public class MMDPSimple {
 				int pstate = path.get(i).getState();
 				int cstate = path.get(i + 1).getState();
 				double prob = path.get(i).getProb();
-				int crnum = StatesHelper.getRobotNumberFromState(stateList.get(cstate));
-				int prnum = StatesHelper.getRobotNumberFromState(stateList.get(pstate));
+				int crnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(stateList.get(cstate));
+				int prnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(stateList.get(pstate));
 				switchStateInfoList.add(new switchStateInfo(pstate, crnum, cstate, prob, prnum));
 
 			}
@@ -606,7 +606,7 @@ public class MMDPSimple {
 		Stack<Integer> stateNumStack = new Stack<Integer>();
 
 		int currState = initialState;
-		int firstRobot = StatesHelper.getRobotNumberFromState(sumprod.getStatesList().get(currState));
+		int firstRobot = StatesHelper.getRobotNumberFromSeqTeamMDPState(sumprod.getStatesList().get(currState));
 		int currStateNum = 0;
 		Stack<String> pathStack = new Stack<String>();
 		statesStack.push(currState);
@@ -633,7 +633,7 @@ public class MMDPSimple {
 			action = strat.getChoiceAction();
 			actionFound = false;
 			// boolean linkSwitch = false;
-			int currentRobot = StatesHelper.getRobotNumberFromState(sumprod.getStatesList().get(currState));
+			int currentRobot = StatesHelper.getRobotNumberFromSeqTeamMDPState(sumprod.getStatesList().get(currState));
 			if (!allStateNumbers.containsKey(currStateNum)) {
 				Vector<BitSet> tempv = new Vector<BitSet>();
 				for (int r = 0; r < nRobots; r++)
@@ -712,7 +712,7 @@ public class MMDPSimple {
 								stateNumStack.push(currStateNum + 1);
 							} else {
 								int nextStateRobot = StatesHelper
-										.getRobotNumberFromState(sumprod.getStatesList().get(nextState));
+										.getRobotNumberFromSeqTeamMDPState(sumprod.getStatesList().get(nextState));
 								int nextRobotStackNum = allPathStates.get(pathnum).get(nextStateRobot).cardinality();
 								// if ( nextRobotStackNum > 0)
 								stateNumStack.push(nextRobotStackNum);
@@ -754,7 +754,7 @@ public class MMDPSimple {
 							// cycle through the states and get initial states
 							for (int nextState : states) {
 								int rindex = StatesHelper
-										.getRobotNumberFromState(sumprod.getStatesList().get(nextState));
+										.getRobotNumberFromSeqTeamMDPState(sumprod.getStatesList().get(nextState));
 								mdps[rindex].addInitialState(StatesHelper.addStateMDP(mdps[rindex], mdpMaps[rindex],
 										sumprod.getStatesList(), nextState));
 								switchStateInfo ssi = new switchStateInfo(mdpMaps[currentRobot][currState], rindex,
@@ -915,7 +915,7 @@ public class MMDPSimple {
 			// lets get some information from the model itself
 			// if we dont have initial states
 			rNum = StatesHelper
-					.getRobotNumberFromState(seqTeamMDP.teamMDPWithSwitches.getStatesList().get(initialState));
+					.getRobotNumberFromSeqTeamMDPState(seqTeamMDP.teamMDPWithSwitches.getStatesList().get(initialState));
 			robotStates = new int[nRobots];
 			for (int i = 0; i < nRobots; i++) {
 				if (i == rNum) {

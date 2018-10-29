@@ -217,26 +217,50 @@ public class SequentialTeamMDP {
 
 		MDP productMDP = agentMDPs.get(0).finalProduct.getProductModel();
 		if (productMDP.getVarList() != null) {
-			teamMDPVarList = (VarList) (productMDP.getVarList()).clone();
+			teamMDPVarList = new VarList();
+			String daVar="r"; 
+			DeclarationInt daint;// = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
+			Declaration decl;// = new Declaration(daVar, daint);
 
-			String daVar = "r";// "_da"; // TODO: come back to fix this
+			int prodMDPNumVars = productMDP.getVarList().getNumVars();
+			int daCount = 0; 
+			for(int i = 0;i<prodMDPNumVars;i++)
+			{
+				daVar = productMDP.getVarList().getName(i); 
+				decl = productMDP.getVarList().getDeclaration(i); 
+				if(daVar.contains("da"))
+				{
+				decl.setName("da"+daCount);
+				daCount++;
+				}
+				
+				teamMDPVarList.addVar( decl,productMDP.getVarList().getModule(i),productMDP.getConstantValues());
+			}
+			//(VarList) (productMDP.getVarList()).clone();
+
+			//String
+			daVar = "r";// "_da"; // TODO: come back to fix this
 			// while (teamMDPVarList.getIndex(daVar) != -1) {
 			// daVar = "_" + daVar;
 			// }
 			// NB: if DA only has one state, we add an extra dummy state
-			DeclarationInt daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
-			Declaration decl = new Declaration(daVar, daint);
+			daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
+			decl = new Declaration(daVar, daint);
 			teamMDPVarList.addVar(0, decl, 1, productMDP.getConstantValues());
 			// //lets rename all the other ones
 			// //so from 1 all the way to the end minus s
 			// //we want to do stuff like dan, dan-1, dan-2
-			// int numVar = teamMDPVarList.getNumVars();
-			// for(int i = 1; i< numVar; i++)
-			// {
-			// decl = teamMDPVarList.getDeclaration(i);
-			// decl.setName("da"+(numVar-(i-1)));
-			// teamMDPVarList.addVar(i, decl, teamMDPVarList.getModule(i), constantValues);
-			// }
+//			 int numVar = teamMDPVarList.getNumVars();
+//			 
+//			 for(int i = 1; i< numVar; i++)
+//			 {
+//				 String name= teamMDPVarList.getName(i); 
+//				 if(name.contains("da")) {
+//			 decl = teamMDPVarList.getDeclaration(i);
+//			 decl.setName("da"+i);//(numVar-(i-1)));
+//			 //teamMDPVarList.addVar(i, decl, teamMDPVarList.getModule(i), productMDP.getConstantValues());
+//			 }
+//				 }
 
 		}
 
