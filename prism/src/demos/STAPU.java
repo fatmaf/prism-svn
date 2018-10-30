@@ -603,17 +603,17 @@ public class STAPU {
 			
 			
 			String filename_suffix = "";// "_seq"; //seq_simp for two robots
-			boolean includefailstatesinswitches = true;//false;
+			boolean includefailstatesinswitches = false;//true;//false;
 			boolean matchsharedstatesinswitch = true;
-			boolean completeSwitchRing = false;//true;//false;//true;
+			boolean completeSwitchRing = false;//true;
 			ArrayList<String> shared_vars_list = new ArrayList<String>();
 			shared_vars_list.add("door");
 
 			ArrayList<String> filenames = new ArrayList<String>();
-			filenames.add(filename + 2);	
+			
 			filenames.add(filename + 0);
 			filenames.add(filename + 1);
-
+			filenames.add(filename + 2);	
 	
 
 
