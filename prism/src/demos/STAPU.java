@@ -567,7 +567,8 @@ public class STAPU {
 			String cumberland_doors = "topo_map_modified_goals_doors";
 			String a_door_example = "a_door_example";
 			String no_door_example = "no_door_example";
-			String filename =a_door_example;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
+			String three_robot = "three_robot_one_door";
+			String filename =three_robot;//a_door_example;//"two_actions_spec";//"cant_complete_spec";//"two_actions_spec";//"can_complete_spec2pc";//"chain_example_simple_mod";//"alice_in_chains";// "chain_example";//"chain_example_simple_mod";// "vi_example";//"chain_example";
 			String filename_suffix = "";//"_seq"; //seq_simp for two robots 
 			boolean includefailstatesinswitches=false;
 			boolean matchsharedstatesinswitch=true;
