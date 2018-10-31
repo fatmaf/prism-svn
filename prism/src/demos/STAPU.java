@@ -16,6 +16,7 @@ import java.util.concurrent.TimeoutException;
 
 import acceptance.AcceptanceType;
 import cern.colt.Arrays;
+import demos.JointPolicyBuilder.StateExtended;
 import demos.MMDPSimple.StateProb;
 import explicit.LTLModelChecker;
 import explicit.MDP;
@@ -311,8 +312,8 @@ public class STAPU {
 		
 		// add to joint policy
 		// MMDPSimple
-		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+//		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
+//				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
 		
@@ -323,96 +324,127 @@ public class STAPU {
 		//so it doesn't really work right now okay 
 		//cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me 
 		
-		JointPolicyBuilder atempThing = new JointPolicyBuilder(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
+		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
 				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList(),mainLog);
-		atempThing.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
+		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
 		//*************************************************************//
 		
-		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
+		//while failedstatesQ is not empty 
+			//statextended stateToExplore = failedStatesQ.remove()
+			//State stateToExploreState =jointPolicyBuilder.getStateState(stateToExplore) 
+			//Get initial states from this state 
+			//update initial states for team mdp 
+			//update switches 
+			//solve 
+			//add to joint policy 
 		
-		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
-				!includefailstatesinswitches);
-	
-		
-		if (hasTimedOut(startTime, "Added Initial Solution to Joint Policy"))
-			return;
-
-		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "jointPolicy", true);
-		boolean stopHere = false;// true;
-		if (stopHere)
-			return;
-		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
-
-		// start the loop
-		while (!jointPolicy.stuckStatesQ.isEmpty()) {
-
-			// get the state with the highest probability, given the current joint policy
-			StateProb stuckState = jointPolicy.stuckStatesQ.remove();
-			initialState = stuckState.getState();
-			orderOfFailStates.add(stuckState.copy());
-
-			mainLog.println("Exploring " + stuckState.toString());
-
-			// update the teammdp
-			List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
-			State currState = states.get(initialState);
-			int rNum = jointPolicy.firstFailedRobot(currState);
-			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
-					seqTeamMDP.teamMDPWithSwitches.getStatesList());
+		while(jointPolicyBuilder.hasFailedStates())
+		{
+			State stateToExplore = jointPolicyBuilder.getNextFailedState(); 
+			//get first failed robot 
+			
+			int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(
+					stateToExplore, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
+					seqTeamMDP.teamMDPWithSwitches.getVarList());
+			firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates, seqTeamMDP.teamMDPWithSwitches);
+			
 			seqTeamMDP.setInitialStates(robotStates);
+			seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches,completeSwitchRing);
+			
+			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+					seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 
-			if (hasTimedOut(startTime, "Set Initial States for Fail State"))
-				return;
-
-			// we need to change the switches to the initial states
-			// so we will just add switches from all failed robots
-			// we really dont care who failed first because
-			// the switches will take care of that
-			seqTeamMDP.addSwitchesAndSetInitialState(rNum, includefailstatesinswitches,completeSwitchRing);
-
-			if (hasTimedOut(startTime, "Added Switches"))
-				return;
-
-			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "",
-					"teamMDPWithSwitches" + currState.toString(), true);
-
-			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-					seqTeamMDP.statesToAvoid, rewards, probPreference, true);
-			// solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-			// seqTeamMDP.acceptingStates,
-			// seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
-
-			StatesHelper.saveStrategy(solution.strat, null, "", "stratFor" + currState.toString(), true);
-			if (hasTimedOut(startTime, "Solved for Fail State"))
-				return;
-
-			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,
-					!includefailstatesinswitches);
-
-			if (hasTimedOut(startTime, "Added Solution to Joint Policy"))
-				return;
-
+			jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
 		}
-		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
-		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
-		jointPolicy.saveJointPolicy();
-		mainLog.println("Completed STAPU for full policy");
-		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
-		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
-		mainLog.println("Information about fail states ");
-
-		for (StateProb fs : orderOfFailStates) {
-			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0, new BitSet());
-			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(),
-					new HashMap<Integer, Double>());
-			mainLog.println("Explored state " + fs.toString() + " with prob " + probAnyAcc
-					+ " of getting to an accepting state from this state \n Prob of acheiving task = "
-					+ fs.getProb() * probAllAcc);
-		}
-
-		mainLog.println("Probablilty of acheiving task from initial state using entire policy = " + jointPolicy
-				.getProbabilityAllPossibleAcceptingStates(0, 1.0, new BitSet(), new HashMap<Integer, Double>()));
-		hasTimedOut(startTime, "All Done");
+		mainLog.println("All done");
+	
+//		
+////		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
+////		
+////		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
+////				!includefailstatesinswitches);
+////	
+//		
+//		if (hasTimedOut(startTime, "Added Initial Solution to Joint Policy"))
+//			return;
+//
+////		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "jointPolicy", true);
+////		boolean stopHere = false;// true;
+////		if (stopHere)
+////			return;
+////		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
+//
+//		// start the loop
+//		while (!jointPolicyBuilder.failedStatesQueue.isEmpty()) {
+//
+//			// get the state with the highest probability, given the current joint policy
+//			//StateProb stuckState = jointPolicy.stuckStatesQ.remove();
+//			StateExtended initialJointState = jointPolicyBuilder.failedStatesQueue.remove();
+//			//initialState = stuckState.getState();
+//			//orderOfFailStates.add(stuckState.copy());
+//
+//			mainLog.println("Exploring " + initialJointState .toString());
+//
+//			// update the teammdp
+//			//List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
+//			//State currState = states.get(initialState);
+//			//int rNum = jointPolicy.firstFailedRobot(currState);
+////			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
+////					seqTeamMDP.teamMDPWithSwitches.getStatesList());
+////			seqTeamMDP.setInitialStates(robotStates);
+//
+//			if (hasTimedOut(startTime, "Set Initial States for Fail State"))
+//				return;
+//
+//			// we need to change the switches to the initial states
+//			// so we will just add switches from all failed robots
+//			// we really dont care who failed first because
+//			// the switches will take care of that
+//			seqTeamMDP.addSwitchesAndSetInitialState(rNum, includefailstatesinswitches,completeSwitchRing);
+//
+//			if (hasTimedOut(startTime, "Added Switches"))
+//				return;
+//
+//			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "",
+//					"teamMDPWithSwitches" + currState.toString(), true);
+//
+//			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
+//					seqTeamMDP.statesToAvoid, rewards, probPreference, true);
+//			// solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
+//			// seqTeamMDP.acceptingStates,
+//			// seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
+//
+//			StatesHelper.saveStrategy(solution.strat, null, "", "stratFor" + currState.toString(), true);
+//			if (hasTimedOut(startTime, "Solved for Fail State"))
+//				return;
+//
+//			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,
+//					!includefailstatesinswitches);
+//
+//			if (hasTimedOut(startTime, "Added Solution to Joint Policy"))
+//				return;
+//
+//		}
+//		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
+//		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
+//		jointPolicy.saveJointPolicy();
+//		mainLog.println("Completed STAPU for full policy");
+//		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
+//		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
+//		mainLog.println("Information about fail states ");
+//
+//		for (StateProb fs : orderOfFailStates) {
+//			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0, new BitSet());
+//			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(),
+//					new HashMap<Integer, Double>());
+//			mainLog.println("Explored state " + fs.toString() + " with prob " + probAnyAcc
+//					+ " of getting to an accepting state from this state \n Prob of acheiving task = "
+//					+ fs.getProb() * probAllAcc);
+//		}
+//
+//		mainLog.println("Probablilty of acheiving task from initial state using entire policy = " + jointPolicy
+//				.getProbabilityAllPossibleAcceptingStates(0, 1.0, new BitSet(), new HashMap<Integer, Double>()));
+//		hasTimedOut(startTime, "All Done");
 
 	}
 
