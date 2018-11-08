@@ -101,6 +101,9 @@ public class STAPU {
 					true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
+			
+			
+			
 			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
@@ -326,6 +329,7 @@ public class STAPU {
 		
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
 				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList(),mainLog);
+   
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
 		//*************************************************************//
 		
@@ -337,12 +341,14 @@ public class STAPU {
 			//update switches 
 			//solve 
 			//add to joint policy 
-		
+		int numPlanning = 1; 
 		while(jointPolicyBuilder.hasFailedStates())
 		{
-			State stateToExplore = jointPolicyBuilder.getNextFailedState(); 
-			//get first failed robot 
 			
+			State stateToExplore = jointPolicyBuilder.getNextFailedState(); 
+			if(!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
+			//get first failed robot 
+			numPlanning++;
 			int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(
 					stateToExplore, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
 					seqTeamMDP.teamMDPWithSwitches.getVarList());
@@ -356,8 +362,11 @@ public class STAPU {
 
 			jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
 		}
+		}
 		mainLog.println("All done");
-	
+		mainLog.println("NVI done "+numPlanning+" times");
+		jointPolicyBuilder.printStatesExploredOrder();
+		mainLog.println("All done");
 //		
 ////		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
 ////		
@@ -630,12 +639,13 @@ public class STAPU {
 			String different_goals_example_longer="a_door_example_differenttasks_longer";
 			String grid_2_example="grid_2_topomap_sim";
 			String another_one = "three_robot_one_door"; 
+			String two_robot_no_door = "two_robot_no_door"; 
 			
-			String filename = another_one; //different_goals_example_longer;//grid_2_example;//different_goals_example;
+			String filename = another_one;//two_robot_no_door; //different_goals_example_longer;//grid_2_example;//different_goals_example;
 			
 			
 			String filename_suffix = "";// "_seq"; //seq_simp for two robots
-			boolean includefailstatesinswitches = false;//true;//false;
+			boolean includefailstatesinswitches =false;
 			boolean matchsharedstatesinswitch = true;
 			boolean completeSwitchRing = false;//true;
 			ArrayList<String> shared_vars_list = new ArrayList<String>();
@@ -645,7 +655,7 @@ public class STAPU {
 			
 			filenames.add(filename + 0);
 			filenames.add(filename + 1);
-			filenames.add(filename + 2);	
+//			filenames.add(filename + 2);	
 	
 
 

@@ -87,7 +87,9 @@ public class DAInfo {
 		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
 			mainLog.println("\nAutomaton is not a DFA... ");
+			throw new PrismException("Automaton is not a DFA "+daExpr.toString());
 		}
+		
 		// else {
 		// BitSet acceptingStates = ((AcceptanceReach)
 		// da.getAcceptance()).getGoalStates();
