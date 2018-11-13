@@ -240,8 +240,8 @@ public class JointPolicyBuilder {
 			}
 		}
 		// create a new joint state but use only the automata states of the first robot
-		State currentJointState = createJointState(currentRobotStates, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
-				true, firstRobotNumber, seqTeamMDP.teamMDPWithSwitches.getVarList(), null);
+		State currentJointState = createJointStateConsideringFirstRobotOnly(currentRobotStates, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
+				firstRobotNumber, seqTeamMDP.teamMDPWithSwitches.getVarList(), null);
 		if (sharedVarsInitialStates == null)
 			sharedVarsInitialStates = new HashMap<String, Integer>();
 		for (int i = 0; i < this.sharedStatesNamesList.size(); i++) {
@@ -276,20 +276,29 @@ public class JointPolicyBuilder {
 
 			jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, 1.0));
 			BitSet jointStatesDiscovered = new BitSet();
-			boolean followingPath = false;// true;// false;
-			boolean doreset = false;
+			boolean followingPath = true;// false;
+			boolean doreset = true;// false;
 			ArrayList<ArrayList<StateExtended>> statesDiscovered = null;
 			Entry<State, Double> currentJointStateProbPair = null;
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValuesBeforeProcessing = null;
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues = null;
+			int[] modifiedRobotStatesInSeqTeamMDP = null;
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> stateValuesBeforeTaskAllocationBeforeProcessing = null;
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> stateValuesBeforeTaskAllocation = null;
 			Entry<boolean[], Integer> numFailedPlusFlagsInitialState = numFailedInJointState(initialJointState);
 			int numFailedInInitialState = numFailedPlusFlagsInitialState.getValue();
 			boolean[] failedInInitialState = numFailedPlusFlagsInitialState.getKey();
-
+			Queue<HashMap<Integer, ArrayList<Entry<Integer, Integer>>>> mostProbableTaskAllocationStateValuesBeforeProcessingQ = new LinkedList<HashMap<Integer, ArrayList<Entry<Integer, Integer>>>>();
+			Queue<ArrayList<ArrayList<StateExtended>>> statesDiscoveredQ = new LinkedList<ArrayList<ArrayList<StateExtended>>>();
+			mostProbableTaskAllocationStateValuesBeforeProcessingQ.add(null);
+			statesDiscoveredQ.add(null);
 			if (jointStateQueue != null) {
 
 				while (!jointStateQueue.isEmpty()) {
-
+					mostProbableTaskAllocationStateValuesBeforeProcessing = mostProbableTaskAllocationStateValuesBeforeProcessingQ
+							.remove();
 					currentJointStateProbPair = jointStateQueue.remove();
+					statesDiscovered = statesDiscoveredQ.remove();
 					currentJointState = currentJointStateProbPair.getKey();
 					int stateIndex = findStateIndex(currentJointState);
 					boolean discovered = false;
@@ -306,7 +315,8 @@ public class JointPolicyBuilder {
 						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
 
 						double probVar = currentJointStateProbPair.getValue();
-
+						if (currentJointState.toString().contains("0,0,0,1,0,-1,5,-1"))
+							mainLog.println("check here");
 						if (numFailedInState > numFailedInInitialState) {
 							// the assumption is we have seen fail states before
 							if (stateIndex != StatesHelper.BADVALUE) {
@@ -344,37 +354,122 @@ public class JointPolicyBuilder {
 						int[] robotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState,
 								mdp.getStatesList(), mdp.getVarList());
 
+						if (statesDiscovered == null) // if we just started we need to get a new task allocation
+						{
+							followingPath = true;
+							statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, robotStatesInSeqTeamMDP,
+									followingPath/* follow a path cuz you dont know anything */);
+
+							mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
+									statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
+									mostProbableTaskAllocationStateValuesBeforeProcessing);
+
+							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
+									robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
+									mdp.getStatesList());
+
+							stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(
+									statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+							stateValuesBeforeTaskAllocation = this
+									.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
+
+						} else {
+							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
+									robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
+									mdp.getStatesList());
+							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
+									mostProbableTaskAllocationStateValuesBeforeProcessing);
+
+							// use the previous task allocation to check if something has changed.
+
+							if (getNewTaskAllocation(statesDiscovered, modifiedRobotStatesInSeqTeamMDP,
+									followingPath /* we dont have to follow the path */)) {
+								followingPath = false;
+								// so like which states should we use here ??? I'm a bit confused
+								// think about this okay
+								// TODO: which bit ?
+								statesDiscovered = getTaskAllocationForAllRobots(strat, mdp,
+										modifiedRobotStatesInSeqTeamMDP, // robotStatesInSeqTeamMDP,
+										followingPath/* follow a path cuz you dont know anything */);
+
+								mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
+										statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+								mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
+										mostProbableTaskAllocationStateValuesBeforeProcessing);
+
+								modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
+										robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
+										mdp.getStatesList());
+
+								stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(
+										statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+								stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(
+										stateValuesBeforeTaskAllocationBeforeProcessing);
+							}
+						}
+
 						// once we have the initial robot states
 						// we need to get the task allocation
 						// from this particular start state to the one we end up in till we get to a
 						// switch
-						if (getNewTaskAllocation(statesDiscovered, robotStatesInSeqTeamMDP, followingPath)) // get new
-																											// task
-																											// allocation
-							statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, robotStatesInSeqTeamMDP,
-									followingPath);
-
-						mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
-								statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-						HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues = this
-								.processStateIndexValues(statesDiscovered,
-										mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
-
-						HashMap<Integer, ArrayList<Entry<Integer, Integer>>> stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(
-								statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-
-						HashMap<Integer, ArrayList<Entry<Integer, Integer>>> stateValuesBeforeTaskAllocation = this
-								.processStateIndexValues(statesDiscovered,
-										stateValuesBeforeTaskAllocationBeforeProcessing, mdp.getStatesList());
-
-						int[] modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletion(
-								robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues, mdp.getStatesList(), 0); // FIXME:
-																															// hardcoding
-																															// first
-																															// robot
-																															// fix
-																															// this
-																															// please
+						// if (getNewTaskAllocation(statesDiscovered, robotStatesInSeqTeamMDP,
+						// followingPath)) // get new
+						// // task
+						// // allocation
+						// statesDiscovered = getTaskAllocationForAllRobots(strat, mdp,
+						// robotStatesInSeqTeamMDP,
+						// followingPath);
+						//
+						// mostProbableTaskAllocationStateValuesBeforeProcessing =
+						// getStateIndexValuesForTaskAllocationForAllRobots(
+						// statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+						// HashMap<Integer, ArrayList<Entry<Integer, Integer>>>
+						// mostProbableTaskAllocationStateValues = this
+						// .processStateIndexValuesSeq(statesDiscovered,
+						// mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
+						//
+						// HashMap<Integer, ArrayList<Entry<Integer, Integer>>>
+						// mostProbableTaskAllocationStateValues2 =
+						// this.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
+						// mainLog.println(mostProbableTaskAllocationStateValues2.toString());
+						//
+						// int[] tempStates = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
+						// robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues2,
+						// mdp.getStatesList());
+						// mainLog.println(Arrays.toString(tempStates));
+						//
+						//
+						// HashMap<Integer, ArrayList<Entry<Integer, Integer>>>
+						// stateValuesBeforeTaskAllocationBeforeProcessing =
+						// getStateIndexValuesBeforeTaskAllocationForAllRobots(
+						// statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
+						//
+						// HashMap<Integer, ArrayList<Entry<Integer, Integer>>>
+						// stateValuesBeforeTaskAllocation = this
+						// .processStateIndexValuesSeq(statesDiscovered,
+						// stateValuesBeforeTaskAllocationBeforeProcessing, mdp.getStatesList());
+						//
+						// HashMap<Integer, ArrayList<Entry<Integer, Integer>>>
+						// stateValuesBeforeTaskAllocation2 =
+						// this.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
+						// mainLog.println(stateValuesBeforeTaskAllocation2.toString());
+						// int[] newtempStates =
+						// this.modifyRobotStatesToUndoExpectedTaskCompletionHolistic(tempStates,
+						// stateValuesBeforeTaskAllocation2, mdp.getStatesList());
+						// mainLog.println(Arrays.toString(robotStatesInSeqTeamMDP));
+						// mainLog.println(Arrays.toString(tempStates));
+						// mainLog.println(Arrays.toString(newtempStates));
+						// int[] modifiedRobotStatesInSeqTeamMDP =
+						// modifyRobotStatesToReflectExpectedTaskCompletionSeq(
+						// robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
+						// mdp.getStatesList(), 0); // FIXME:
+						// // hardcoding
+						// // first
+						// // robot
+						// // fix
+						// // this
+						// // please
 
 						Entry<String, ArrayList<Entry<int[], Double>>> actionAndCombinations = getActionAndSuccStatesAllRobots(
 								strat, modifiedRobotStatesInSeqTeamMDP, mdp);
@@ -386,15 +481,26 @@ public class JointPolicyBuilder {
 							// {
 							int[] modifiedRobotSuccStatesInSeqTeamMDP = combination.getKey();
 
-							int[] newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletion(
+							int[] newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletionHolistic(
 									modifiedRobotSuccStatesInSeqTeamMDP, stateValuesBeforeTaskAllocation,
-									mdp.getStatesList(), 0);
+									mdp.getStatesList());
+							// modifyRobotStatesToUndoExpectedTaskCompletionSeq(
+							// modifiedRobotSuccStatesInSeqTeamMDP, stateValuesBeforeTaskAllocation,
+							// mdp.getStatesList(), 0);
 							State succJointState = createJointState(newSuccStatesForJointState, mdp.getStatesList(),
-									false, 0, mdp.getVarList(), stateValuesBeforeTaskAllocation);
+									mdp.getVarList(), currentJointState);
+							// createJointState(newSuccStatesForJointState,
+							// mdp.getStatesList(),mdp.getVarList(),
+							// mostProbableTaskAllocationStateValuesBeforeProcessing);//createJointState(newSuccStatesForJointState,
+							// mdp.getStatesList(),
+							// false, 0, mdp.getVarList(), stateValuesBeforeTaskAllocation);
 							succStatesQueue.add(succJointState);
 							succStatesProbQueue.add(combination.getValue());
 							jointStateQueue.add(
 									new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue()));
+							statesDiscoveredQ.add(statesDiscovered);
+							mostProbableTaskAllocationStateValuesBeforeProcessingQ
+									.add(stateValuesBeforeTaskAllocationBeforeProcessing);
 							// }
 							// add to mdp
 
@@ -446,21 +552,25 @@ public class JointPolicyBuilder {
 						// number of tasks
 						// don't do it
 						// the nicer cleaner way is to use varmapping
-						if (e.getKey() < numTasks) {
-							int valueInJointState = (int) currentJointState.varValues[e.getKey()];
-							if (!(valueInJointState == daInitialStates.get(e.getKey())
-									|| valueInJointState == daFinalStates.get(e.getKey()))) {
+						if (e.getKey() - 1 < numTasks) {
+							int valueInJointState = (int) currentJointState.varValues[e.getKey() - 1];
+							if (!(valueInJointState == daInitialStates.get(e.getKey() - 1)
+									|| valueInJointState == daFinalStates.get(e.getKey() - 1))) {
 
 								// then change it to its initial state
 								if (updatedJointState == null)
 									updatedJointState = new State(currentJointState);
-								updatedJointState.setValue(e.getKey(), daInitialStates.get(e.getKey()));
+								updatedJointState.setValue(e.getKey() - 1, daInitialStates.get(e.getKey() - 1));
 
 							}
 						}
 					}
 				}
 			}
+		}
+		if (updatedJointState != null) {
+			if (updatedJointState.compareTo(currentJointState) == 0)
+				updatedJointState = null;
 		}
 		return updatedJointState;
 	}
@@ -627,9 +737,9 @@ public class JointPolicyBuilder {
 		return true;
 	}
 
-	private int[] modifyRobotStatesToReflectExpectedTaskCompletion(int[] robotStatesInSeqTeamMDP,
+	private int[] modifyRobotStatesToReflectExpectedTaskCompletionHolistic(int[] robotStatesInSeqTeamMDP,
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues,
-			List<State> statesList, int firstRobot) {
+			List<State> statesList) {
 		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
 		// For each state
 		// get the states values
@@ -638,71 +748,131 @@ public class JointPolicyBuilder {
 		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
 		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
 			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
-			if (robotNum != firstRobot) {
-				Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
 
-				int prevRobot = (robotNum - 1) % (this.numRobots); // ring thing
+			Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
 
-				// what do we do if there is no task allocation for this robot ?
-				// I think its best to add an empty array thing to changed thing - this won't
-				// materialize right now though
-				// so need to do this for later
+			if (mostProbableTaskAllocationStateValues.containsKey(robotNum)) {
+				indicesToChange = mostProbableTaskAllocationStateValues.get(robotNum);
+			}
+			// otherwise just use the one from before because those things should be done
+			// so now we change this
+			if (indicesToChange != null) {
+				for (int j = 0; j < indicesToChange.size(); j++) {
 
-				if (mostProbableTaskAllocationStateValues.containsKey(prevRobot)) {
-					indicesToChange = mostProbableTaskAllocationStateValues.get(prevRobot);
+					currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
 				}
-				// otherwise just use the one from before because those things should be done
+			}
+			newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+
+		}
+
+		return newStates;
+	}
+
+	
+//	private int[] modifyRobotStatesToReflectExpectedTaskCompletionSeq(int[] robotStatesInSeqTeamMDP,
+//			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues,
+//			List<State> statesList, int firstRobot) {
+//		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
+//		// For each state
+//		// get the states values
+//		// modify them
+//		// move on
+//		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
+//		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+//			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
+//			if (robotNum != firstRobot) {
+//				Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
+//
+//				int prevRobot = (robotNum - 1) % (this.numRobots); // ring thing
+//
+//				// what do we do if there is no task allocation for this robot ?
+//				// I think its best to add an empty array thing to changed thing - this won't
+//				// materialize right now though
+//				// so need to do this for later
+//
+//				if (mostProbableTaskAllocationStateValues.containsKey(prevRobot)) {
+//					indicesToChange = mostProbableTaskAllocationStateValues.get(prevRobot);
+//				}
+//				// otherwise just use the one from before because those things should be done
+//				// so now we change this
+//				if (indicesToChange != null) {
+//					for (int j = 0; j < indicesToChange.size(); j++) {
+//
+//						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
+//					}
+//				}
+//				newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+//			} else {
+//				newStates[robotNum] = robotStatesInSeqTeamMDP[i];
+//			}
+//
+//		}
+//
+//		return newStates;
+//	}
+
+//	private int[] modifyRobotStatesToUndoExpectedTaskCompletionSeq(int[] robotStatesInSeqTeamMDP,
+//			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues,
+//			List<State> statesList, int firstRobot) {
+//		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
+//		// For each state
+//		// get the states values
+//		// modify them
+//		// move on
+//		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
+//		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+//			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
+//			if (robotNum != firstRobot) {
+//				int prevRobot = (robotNum - 1) % (this.numRobots); // ring thing
+//
+//				Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
+//				if (mostProbableTaskAllocationStateValues.containsKey(prevRobot))
+//					indicesToChange = mostProbableTaskAllocationStateValues.get(prevRobot);
+//				if (indicesToChange != null) {
+//					// so now we change this
+//					for (int j = 0; j < indicesToChange.size(); j++) {
+//
+//						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
+//					}
+//				}
+//				newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+//			} else {
+//				newStates[robotNum] = robotStatesInSeqTeamMDP[i];
+//			}
+//
+//		}
+//		return newStates;
+//	}
+
+	private int[] modifyRobotStatesToUndoExpectedTaskCompletionHolistic(int[] robotStatesInSeqTeamMDP,
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues,
+			List<State> statesList) {
+		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
+		// For each state
+		// get the states values
+		// modify them
+		// move on
+		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
+		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
+
+			Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
+			if (mostProbableTaskAllocationStateValues.containsKey(robotNum))
+				indicesToChange = mostProbableTaskAllocationStateValues.get(robotNum);
+			if (indicesToChange != null) {
 				// so now we change this
-				if (indicesToChange != null) {
-					for (int j = 0; j < indicesToChange.size(); j++) {
+				for (int j = 0; j < indicesToChange.size(); j++) {
 
-						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
-					}
+					currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
 				}
-				newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
-			} else {
-				newStates[robotNum] = robotStatesInSeqTeamMDP[i];
 			}
-
-		}
-
-		return newStates;
-	}
-
-	private int[] modifyRobotStatesToUndoExpectedTaskCompletion(int[] robotStatesInSeqTeamMDP,
-			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues,
-			List<State> statesList, int firstRobot) {
-		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
-		// For each state
-		// get the states values
-		// modify them
-		// move on
-		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
-		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
-			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
-			if (robotNum != firstRobot) {
-				int prevRobot = (robotNum - 1) % (this.numRobots); // ring thing
-
-				Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
-				if (mostProbableTaskAllocationStateValues.containsKey(prevRobot))
-					indicesToChange = mostProbableTaskAllocationStateValues.get(prevRobot);
-				if (indicesToChange != null) {
-					// so now we change this
-					for (int j = 0; j < indicesToChange.size(); j++) {
-
-						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
-					}
-				}
-				newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
-			} else {
-				newStates[robotNum] = robotStatesInSeqTeamMDP[i];
-			}
-
+			newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
 		}
 		return newStates;
 	}
 
-	protected HashMap<Integer, ArrayList<Entry<Integer, Integer>>> processStateIndexValues(
+	protected HashMap<Integer, ArrayList<Entry<Integer, Integer>>> processStateIndexValuesSeq(
 			ArrayList<ArrayList<StateExtended>> statesDiscovered,
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> changedStatesForAllRobots, List<State> statesList) {
 		StateExtended firstState = statesDiscovered.get(0).get(0);
@@ -732,13 +902,34 @@ public class JointPolicyBuilder {
 		return concatenatedChangedStatesForAllRobots;
 	}
 
+	protected HashMap<Integer, ArrayList<Entry<Integer, Integer>>> processStateIndexValuesHolistic(
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> changedStatesForAllRobots) {
+
+		HashMap<Integer, ArrayList<Entry<Integer, Integer>>> concatenatedChangedStatesForAllRobots = new HashMap<Integer, ArrayList<Entry<Integer, Integer>>>();
+
+		// for each robot the indices that need to be changed are from all the other
+		// robots
+		for (int robotToConsider = 0; robotToConsider < numRobots; robotToConsider++) {
+			ArrayList<Entry<Integer, Integer>> updatedChangedStates = new ArrayList<Entry<Integer, Integer>>();
+			for (int allOtherRobots = 0; allOtherRobots < numRobots; allOtherRobots++) {
+				if (allOtherRobots != robotToConsider) {
+					if (changedStatesForAllRobots.containsKey(allOtherRobots)) {
+						updatedChangedStates.addAll(changedStatesForAllRobots.get(allOtherRobots));
+					}
+				}
+			}
+			concatenatedChangedStatesForAllRobots.put(robotToConsider, updatedChangedStates);
+		}
+
+		return concatenatedChangedStatesForAllRobots;
+	}
+
 	protected HashMap<Integer, ArrayList<Entry<Integer, Integer>>> getStateIndexValuesForTaskAllocationForAllRobots(
 			ArrayList<ArrayList<StateExtended>> statesDiscovered, List<State> statesList, VarList varList,
 			boolean followingPath) {
 
 		StateExtended firstState = statesDiscovered.get(0).get(0);
 		State firstStateState = statesList.get(firstState.childState);
-		int firstRobot = StatesHelper.getRobotNumberFromSeqTeamMDPState(firstStateState);
 
 		HashMap<Integer, ArrayList<Entry<Integer, Integer>>> changedStatesForAllRobots = new HashMap<Integer, ArrayList<Entry<Integer, Integer>>>();
 		if (!followingPath) {
@@ -797,7 +988,6 @@ public class JointPolicyBuilder {
 			boolean followingPath) {
 		StateExtended firstState = statesDiscovered.get(0).get(0);
 		State firstStateState = statesList.get(firstState.childState);
-		int firstRobot = StatesHelper.getRobotNumberFromSeqTeamMDPState(firstStateState);
 
 		HashMap<Integer, ArrayList<Entry<Integer, Integer>>> changedStatesForAllRobots = new HashMap<Integer, ArrayList<Entry<Integer, Integer>>>();
 		if (!followingPath) {
@@ -1010,7 +1200,9 @@ public class JointPolicyBuilder {
 		int[] numSuccs = new int[numRobots];
 		for (int i = 0; i < states.length; i++) {
 			boolean forceNull = false;
-			String currentAction = actionChoices.get(states[i]).getKey().toString();
+			String currentAction = "";
+			if (actionChoices.get(states[i]).getKey() != null)
+				currentAction = actionChoices.get(states[i]).getKey().toString();
 			if (currentAction.contains("switch"))
 				forceNull = true;
 			int rnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(mdp.getStatesList().get(states[i]));
@@ -1022,7 +1214,7 @@ public class JointPolicyBuilder {
 			if (tranIterList == null) {
 				// then the list is just that state there aren't any more actions
 				tranIterList = new ArrayList<Entry<Integer, Double>>();
-				tranIterList.add(new AbstractMap.SimpleEntry(states[i], 1.0));
+				tranIterList.add(new AbstractMap.SimpleEntry<Integer, Double>(states[i], 1.0));
 			}
 			succArrs.put(rnum, tranIterList);
 			numSuccs[i] = tranIterList.size();
@@ -1050,14 +1242,14 @@ public class JointPolicyBuilder {
 			// create new joint state
 			// State succJointState=
 			// createJointState(currentSuccStates,mdp.getStatesList(),false,0,null);
-			succStateProbList.add(new AbstractMap.SimpleEntry(currentSuccStates.clone(), combProb));
+			succStateProbList.add(new AbstractMap.SimpleEntry<int[], Double>(currentSuccStates.clone(), combProb));
 		}
 		// normalize here
 		for (int i = 0; i < succStateProbList.size(); i++) {
 			combProb = succStateProbList.get(i).getValue();
 			succStateProbList.get(i).setValue(combProb / sumSuccProb);
 		}
-		toret = new AbstractMap.SimpleEntry(jointAction, succStateProbList);
+		toret = new AbstractMap.SimpleEntry<String, ArrayList<Entry<int[], Double>>>(jointAction, succStateProbList);
 		return toret;
 
 	}
@@ -1111,10 +1303,117 @@ public class JointPolicyBuilder {
 
 	}
 
-	protected State createJointState(int[] states, List<State> statesList, boolean considerFirstRobotOnly,
+	protected State createJointState(int[] states, List<State> statesList, VarList varlist, State parentState) {
+		State stateToRet = new State(parentState);
+
+		// so now we find out what changed between this state and the parent state
+		for (int i = 0; i < states.length; i++) {
+			State robotState = statesList.get(states[i]);
+			int rnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(robotState);
+
+			Object[] ss = StatesHelper.getSharedStatesFromState(robotState, varlist, this.sharedStatesNamesList);
+			Object[] das = StatesHelper.getDAStatesFromState(robotState, varlist, this.numTasks);
+
+			// if the da state is different form the parent state copy it
+			for (int j = 0; j < das.length; j++) {
+				if (parentState.varValues[j] != das[j])
+					stateToRet.setValue(j, das[j]);
+			}
+			if (ss != null) {
+				for (int j = 0; j < ss.length; j++) {
+					if (ss[j] != null) {
+						if ((int) parentState.varValues[j + das.length] != (int) ss[j])
+							stateToRet.setValue(j + das.length, ss[j]);
+					}
+				}
+			}
+			Object[] rs = StatesHelper.getMDPStateFromState(robotState, varlist, isolatedStatesNamesList);
+			for (int j = 0; j < rs.length; j++) {
+				// TODO: We need to figure out how this works for multiple states for robots!!!
+				stateToRet.setValue(varListMapping.get("r" + rnum) + j, rs[j]);
+			}
+
+		}
+
+		return stateToRet;
+	}
+
+	protected State createJointState(int[] states, List<State> statesList, VarList varlist,
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> taskAllocation) {
+
+		// for each state
+		State stateToRet = new State(this.jointMDP.getVarList().getNumVars());
+
+		// ArrayList<State> robotStates = new ArrayList<State>();
+		for (int i = 0; i < states.length; i++) {
+			State robotState = statesList.get(states[i]);
+
+			int rnum = StatesHelper.getRobotNumberFromSeqTeamMDPState(robotState);
+			// get the robot number
+			// get the ss and da
+
+			Object[] ss = StatesHelper.getSharedStatesFromState(robotState, varlist, this.sharedStatesNamesList);
+			Object[] das = StatesHelper.getDAStatesFromState(robotState, varlist, this.numTasks);
+
+			for (int j = 0; j < das.length; j++) {
+				if (stateToRet.varValues[j] == null)
+					stateToRet.setValue(j, das[j]);
+				else {
+					if (taskAllocation.containsKey(rnum)) {
+						for (Entry<Integer, Integer> ta : taskAllocation.get(rnum)) {
+							if ((int) ta.getKey() == j + 1) {
+								stateToRet.setValue(j, das[j]);
+							}
+						}
+					}
+				}
+
+			}
+
+			if (ss != null) {
+				for (int j = 0; j < ss.length; j++) {
+					if (stateToRet.varValues[j + das.length] == null)
+						stateToRet.setValue(j + das.length, ss[j]);
+					else {
+						if (((int) stateToRet.varValues[j + das.length]) != (int) ss[j]
+								&& (int) ss[j] != sharedVarsInitialStates.get(this.sharedStatesNamesList.get(j))) {
+							stateToRet.setValue(j + das.length, ss[j]);
+						}
+					}
+				}
+			}
+
+			Object[] rs = StatesHelper.getMDPStateFromState(robotState, varlist, isolatedStatesNamesList);
+			for (int j = 0; j < rs.length; j++) {
+				// TODO: We need to figure out how this works for multiple states for robots!!!
+				stateToRet.setValue(varListMapping.get("r" + rnum) + j, rs[j]);
+			}
+
+		}
+
+		// if the ss has changed then copy it
+		// for the da use task allocation to copy stuff
+		// this could mean so many errors
+		// its going to drive me fucking crazy
+		// lets just be mad here
+		// omg kuttay
+		// the faiday of roman urdu are so many
+		// and of learning galiyan
+		// wtf man like what the fuck
+		// what is this shit like who does this omg I want o kill something
+		// o i might
+		// like a plant fuck fuck fuck fuck fuck fuck fuck
+		// fuck fuck fuck fuck fuck
+		// kya buckwas hai yaar
+		// kyaaaaaaa i want my ami
+		return stateToRet;
+
+	}
+
+	protected State createJointStateConsideringFirstRobotOnly(int[] states, List<State> statesList,
 			int firstRobot, VarList varlist,
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> stateValuesBeforeTaskAllocation) {
-		if (considerFirstRobotOnly) {
+//		if (considerFirstRobotOnly) {
 			State stateToRet = new State(this.jointMDP.getVarList().getNumVars());
 
 			// ArrayList<State> robotStates = new ArrayList<State>();
@@ -1145,99 +1444,99 @@ public class JointPolicyBuilder {
 			}
 			return stateToRet;
 
-		} else {
-			// since we've undone all the changes
-			// we just combine the states
-			State stateToRet = new State(this.jointMDP.getVarList().getNumVars());
-			// start from the first robot
-			// xor then modify
-			int lastRobot = numRobots - (firstRobot + 1); // check if this is the right thing
-			State robotState = statesList.get(states[firstRobot]);
-			ArrayList<Object[]> robotStateElements = StatesHelper.getDAandSharedStatesFromState(robotState, varlist,
-					sharedStatesNamesList, numTasks);
-			Object[] das = robotStateElements.get(0);
-			Object[] ss = robotStateElements.get(1);
-
-			for (int j = 0; j < das.length; j++) {
-				stateToRet.setValue(j, das[j]);
-
-			}
-			if (ss != null) {
-				for (int j = 0; j < ss.length; j++) {
-					if (ss[j] != null)
-						stateToRet.setValue(j + das.length, ss[j]);
-				}
-			}
-			Object[] rs = StatesHelper.getMDPStateFromState(robotState, varlist, isolatedStatesNamesList);
-			for (int j = 0; j < rs.length; j++) {
-				stateToRet.setValue(varListMapping.get("r" + firstRobot) + j, rs[j]);
-			}
-			int robotCount = firstRobot;
-			do {
-
-				int nextRobot = (robotCount + 1) % numRobots;
-				State nextRobotState = statesList.get(states[nextRobot]);
-				ArrayList<Object[]> nextRobotStateElements = StatesHelper.getDAandSharedStatesFromState(nextRobotState,
-						varlist, sharedStatesNamesList, numTasks);
-				Object[] nextRobotDAs = nextRobotStateElements.get(0);
-				Object[] nextRobotSS = nextRobotStateElements.get(1);
-				for (int j = 0; j < das.length; j++) {
-					// this says only change this value if there has been any progress
-					// for sequential states progress is not limited to the initial state
-					// so there has to be a better way to say this.
-					// only change this value if it is different from the other robots
-					// and it is not an initial state and it is not the same as the previous value
-					// of this robot
-					if ((int) stateToRet.varValues[j] != (int) nextRobotDAs[j]
-							&& (int) nextRobotDAs[j] != daInitialStates.get(j)) {
-						if (stateValuesBeforeTaskAllocation != null) {
-							if (stateValuesBeforeTaskAllocation.containsKey(nextRobot)) {
-								boolean containsJ = false;
-								ArrayList<Entry<Integer, Integer>> stateValsForNextRobot = stateValuesBeforeTaskAllocation
-										.get(nextRobot);
-								for (int k = 0; k < stateValsForNextRobot.size(); k++) {
-									if ((int) stateValsForNextRobot.get(k).getKey() == (j + 1)) {
-										containsJ = true;
-										if (stateValsForNextRobot.get(k).getValue() != nextRobotDAs[j]) {
-											stateToRet.setValue(j, nextRobotDAs[j]);
-
-										}
-										break;
-									}
-
-								}
-								// if (!containsJ)
-								// stateToRet.setValue(j, nextRobotDAs[j]);
-							}
-							// else
-							// stateToRet.setValue(j, nextRobotDAs[j]);
-						} else
-							stateToRet.setValue(j, nextRobotDAs[j]);
-					}
-				}
-				if (ss != null) {
-					for (int j = 0; j < ss.length; j++) {
-						if (ss[j] != null) {
-
-							if (((int) stateToRet.varValues[j + das.length]) != (int) nextRobotSS[j]
-									&& (int) nextRobotSS[j] != sharedVarsInitialStates
-											.get(this.sharedStatesNamesList.get(j))) {
-								stateToRet.setValue(j + das.length, nextRobotSS[j]);
-							}
-						}
-					}
-				}
-				// we compare the da and shared states
-				rs = StatesHelper.getMDPStateFromState(nextRobotState, varlist, isolatedStatesNamesList);
-				for (int j = 0; j < rs.length; j++) {
-					stateToRet.setValue(varListMapping.get("r" + ((robotCount + 1) % numRobots)) + j, rs[j]);
-				}
-				robotCount = (robotCount + 1) % numRobots;
-
-			} while (robotCount != lastRobot);
-			return stateToRet;
-		}
-		// return null;
+//		} else {
+//			// since we've undone all the changes
+//			// we just combine the states
+//			State stateToRet = new State(this.jointMDP.getVarList().getNumVars());
+//			// start from the first robot
+//			// xor then modify
+//			int lastRobot = numRobots - (firstRobot + 1); // check if this is the right thing
+//			State robotState = statesList.get(states[firstRobot]);
+//			ArrayList<Object[]> robotStateElements = StatesHelper.getDAandSharedStatesFromState(robotState, varlist,
+//					sharedStatesNamesList, numTasks);
+//			Object[] das = robotStateElements.get(0);
+//			Object[] ss = robotStateElements.get(1);
+//
+//			for (int j = 0; j < das.length; j++) {
+//				stateToRet.setValue(j, das[j]);
+//
+//			}
+//			if (ss != null) {
+//				for (int j = 0; j < ss.length; j++) {
+//					if (ss[j] != null)
+//						stateToRet.setValue(j + das.length, ss[j]);
+//				}
+//			}
+//			Object[] rs = StatesHelper.getMDPStateFromState(robotState, varlist, isolatedStatesNamesList);
+//			for (int j = 0; j < rs.length; j++) {
+//				stateToRet.setValue(varListMapping.get("r" + firstRobot) + j, rs[j]);
+//			}
+//			int robotCount = firstRobot;
+//			do {
+//
+//				int nextRobot = (robotCount + 1) % numRobots;
+//				State nextRobotState = statesList.get(states[nextRobot]);
+//				ArrayList<Object[]> nextRobotStateElements = StatesHelper.getDAandSharedStatesFromState(nextRobotState,
+//						varlist, sharedStatesNamesList, numTasks);
+//				Object[] nextRobotDAs = nextRobotStateElements.get(0);
+//				Object[] nextRobotSS = nextRobotStateElements.get(1);
+//				for (int j = 0; j < das.length; j++) {
+//					// this says only change this value if there has been any progress
+//					// for sequential states progress is not limited to the initial state
+//					// so there has to be a better way to say this.
+//					// only change this value if it is different from the other robots
+//					// and it is not an initial state and it is not the same as the previous value
+//					// of this robot
+//					if ((int) stateToRet.varValues[j] != (int) nextRobotDAs[j]
+//							&& (int) nextRobotDAs[j] != daInitialStates.get(j)) {
+//						if (stateValuesBeforeTaskAllocation != null) {
+//							if (stateValuesBeforeTaskAllocation.containsKey(nextRobot)) {
+////								boolean containsJ = false;
+//								ArrayList<Entry<Integer, Integer>> stateValsForNextRobot = stateValuesBeforeTaskAllocation
+//										.get(nextRobot);
+//								for (int k = 0; k < stateValsForNextRobot.size(); k++) {
+//									if ((int) stateValsForNextRobot.get(k).getKey() == (j + 1)) {
+////										containsJ = true;
+//										if (stateValsForNextRobot.get(k).getValue() != nextRobotDAs[j]) {
+//											stateToRet.setValue(j, nextRobotDAs[j]);
+//
+//										}
+//										break;
+//									}
+//
+//								}
+//								// if (!containsJ)
+//								// stateToRet.setValue(j, nextRobotDAs[j]);
+//							}
+//							// else
+//							// stateToRet.setValue(j, nextRobotDAs[j]);
+//						} else
+//							stateToRet.setValue(j, nextRobotDAs[j]);
+//					}
+//				}
+//				if (ss != null) {
+//					for (int j = 0; j < ss.length; j++) {
+//						if (ss[j] != null) {
+//
+//							if (((int) stateToRet.varValues[j + das.length]) != (int) nextRobotSS[j]
+//									&& (int) nextRobotSS[j] != sharedVarsInitialStates
+//											.get(this.sharedStatesNamesList.get(j))) {
+//								stateToRet.setValue(j + das.length, nextRobotSS[j]);
+//							}
+//						}
+//					}
+//				}
+//				// we compare the da and shared states
+//				rs = StatesHelper.getMDPStateFromState(nextRobotState, varlist, isolatedStatesNamesList);
+//				for (int j = 0; j < rs.length; j++) {
+//					stateToRet.setValue(varListMapping.get("r" + ((robotCount + 1) % numRobots)) + j, rs[j]);
+//				}
+//				robotCount = (robotCount + 1) % numRobots;
+//
+//			} while (robotCount != lastRobot);
+//			return stateToRet;
+//		}
+//		// return null;
 
 	}
 
