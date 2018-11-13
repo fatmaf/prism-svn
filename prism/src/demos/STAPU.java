@@ -4,9 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,20 +13,16 @@ import java.util.concurrent.TimeoutException;
 
 import acceptance.AcceptanceType;
 import cern.colt.Arrays;
-import demos.JointPolicyBuilder.StateExtended;
-import demos.MMDPSimple.StateProb;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
 import explicit.MDPSparse;
 import explicit.Model;
 import explicit.ModelCheckerMultipleResult;
-import explicit.ModelCheckerPartialSatResult;
 import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
 import explicit.StateValues;
 import explicit.LTLModelChecker.LTLProduct;
-import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import parser.ast.Expression;
@@ -42,7 +35,6 @@ import prism.Prism;
 import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
-import strat.Strategy;
 
 public class STAPU {
 
@@ -148,6 +140,7 @@ public class STAPU {
 				true);
 		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
 		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
+		if(mdp.getFirstInitialState()!=-1)
 		mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
 
 		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn, rewards, null,
@@ -158,7 +151,7 @@ public class STAPU {
 		StateValues probsProduct = StateValues.createFromDoubleArray(solnProb, mdp);
 
 		// Get final prob result
-
+ if(mdp.getFirstInitialState()!=-1) {
 		double maxProb = probsProduct.getDoubleArray()[mdp.getFirstInitialState()];
 
 		String resString = "";
@@ -170,7 +163,7 @@ public class STAPU {
 
 		}
 		mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
-
+ }
 		return res2;
 	}
 
@@ -562,29 +555,7 @@ public class STAPU {
 		return ltlExpressions;
 	}
 
-	private int getNumRobots(int exampleNumber) {
-		int toret = -1;
-		switch (exampleNumber) {
-		// case 0:
-		// toret =1;
-		// break;
-		case 6:
-			toret = 2;
-			break;
-		case 0:
-		case 1:
-			toret = 4;
-			break;
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-			toret = 3;
-			break;
 
-		}
-		return toret;
-	}
 
 	private boolean hasTimedOut(long startTime, long endTime, String text) {
 		long time = endTime - startTime;
@@ -655,7 +626,7 @@ public class STAPU {
 			
 			filenames.add(filename + 0);
 			filenames.add(filename + 1);
-//			filenames.add(filename + 2);	
+			filenames.add(filename + 2);	
 	
 
 
