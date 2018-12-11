@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -338,7 +339,11 @@ public class STAPU {
 		while(jointPolicyBuilder.hasFailedStates())
 		{
 			
-			State stateToExplore = jointPolicyBuilder.getNextFailedState(); 
+			Entry<State, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState(); 
+			State stateToExplore = stateToExploreAndBitSet.getKey();
+			BitSet statesToAvoid = stateToExploreAndBitSet.getValue(); 
+			
+			
 			if(!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
 			//get first failed robot 
 			numPlanning++;
@@ -350,8 +355,26 @@ public class STAPU {
 			seqTeamMDP.setInitialStates(robotStates);
 			seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches,completeSwitchRing);
 			
+			
+			if(statesToAvoid == null)
+				statesToAvoid = seqTeamMDP.statesToAvoid; 
+			else {
+
+				statesToAvoid.or(seqTeamMDP.statesToAvoid);
+			}
+			if(stateToExploreAndBitSet.getValue()!=null)
+			{
+				String stateVal = stateToExplore.toString(); 
+				stateVal=stateVal.replace(",", "_");
+				stateVal=stateVal.replace(")","");
+				stateVal=stateVal.replace("(","");
+			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs"+stateVal, true);			
+			}
+			if(stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
+				mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
+			
 			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-					seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+					seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 
 			jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
 		}
@@ -630,7 +653,6 @@ public class STAPU {
 	
 
 
-//		 	filenames.add(filename + 2);
 		
 			// filenames.add(filename+3);
 			// filenames.add("chain_example_simple_mod");
