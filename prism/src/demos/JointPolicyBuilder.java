@@ -283,7 +283,8 @@ public class JointPolicyBuilder {
 			jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, 1.0));
 			BitSet jointStatesDiscovered = new BitSet();
 			boolean followingPath = true;// false;
-			boolean doreset = true;// false;
+			boolean doreset = false;//true;// false;
+			boolean skipAutomataStatesInTA = true; 
 			ArrayList<ArrayList<StateExtended>> statesDiscovered = null;
 			Entry<State, Double> currentJointStateProbPair = null;
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValuesBeforeProcessing = null;
@@ -304,6 +305,8 @@ public class JointPolicyBuilder {
 			stateValuesBeforeTaskAllocationBeforeProcessingQ.add(null);
 			sharedStateChangesQ.add(null);
 			statesDiscoveredQ.add(null);
+			
+			
 			if (jointStateQueue != null) {
 
 				while (!jointStateQueue.isEmpty()) {
@@ -330,7 +333,7 @@ public class JointPolicyBuilder {
 						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
 
 						double probVar = currentJointStateProbPair.getValue();
-						String textToCheck = "0,0,0,1,0,0,5,-1";
+						String textToCheck = "0,0,0,0,0,4,5,-1";
 						if (currentJointState.toString().contains(textToCheck))
 							mainLog.println("check here");
 						if (numFailedInState > numFailedInInitialState) {
@@ -363,6 +366,7 @@ public class JointPolicyBuilder {
 										// if anyone other than the failed robot is assigned a seq task //i.e we did not
 										// do a reset
 										BitSet statesToAvoidDueToSeqTask = null;
+										if(doreset) {
 										if (!stateReset) {
 											// think of a better function name atleast yaar
 											// what is this
@@ -373,6 +377,7 @@ public class JointPolicyBuilder {
 												mainLog.println("kabhi kabhi aisa hota hai janab");
 											else
 												mainLog.println("fazool zid karna");
+										}
 										}
 										// get all states for all robots which don't have the exact seq task value
 										StateExtended failState = new StateExtended(stateIndex, probVar);
@@ -421,14 +426,19 @@ public class JointPolicyBuilder {
 						else
 						{
 							//update current states to reflect seq task allocation
-							//check if we need a new TA  
+							//check if we need a new TA
+							if(!skipAutomataStatesInTA) {
  							modifiedRobotStatesInSeqTeamMDP = this.modifyRobotStatesToReflectExpectedTaskCompletionSeq(statesDiscovered,
 									robotStatesInSeqTeamMDP, 
 									mostProbableTaskAllocationStateValuesBeforeProcessing,stateValuesBeforeTaskAllocationBeforeProcessing, 
 									sharedStateChanges,
-									mdp.getStatesList(),0);
+									mdp.getStatesList(),0);}
+							else
+							{
+								modifiedRobotStatesInSeqTeamMDP = robotStatesInSeqTeamMDP.clone();
+							}
 							if (getNewTaskAllocation(statesDiscovered, modifiedRobotStatesInSeqTeamMDP,
-									followingPath /* we dont have to follow the path */))
+									followingPath /* we have to follow the path */,skipAutomataStatesInTA,mdp.getStatesList(), mdp.getVarList()))
 							{
 								statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, /*robotStatesInSeqTeamMDP*/modifiedRobotStatesInSeqTeamMDP,
 										followingPath/* follow a path cuz you dont know anything */,true/*use all robot states*/);
@@ -897,14 +907,59 @@ public class JointPolicyBuilder {
 		return false;
 	}
 
-	private boolean childStateInStateExtended(StateExtended state, int cs) {
+	private boolean childStateInStateExtended(StateExtended state, int cs, boolean skipAutomataStatesInTA, List<State> statesList, VarList varlist) {
+		if(!skipAutomataStatesInTA)
 		return state.childState == cs;
+		else
+		{
+			//match robot num 
+			//match everything else 
+			State stateState = statesList.get(state.childState);
+			State csState = statesList.get(cs);
+			int stateR = StatesHelper.getRobotNumberFromSeqTeamMDPState(stateState); 
+			int csR = StatesHelper.getRobotNumberFromSeqTeamMDPState(csState); 
+			if(stateR == csR)
+			{
+				//same robot 
+				//now we match the mdp states 
+				//which ones are the mdp states ? 
+				//do we have this information ? I think we do 
+				//this is the end 
+				Object[] stateMDPStatesSS=StatesHelper.getSharedStatesFromState(stateState, varlist, this.sharedStatesNamesList);
+				Object[] csMDPStatesSS = StatesHelper.getSharedStatesFromState(csState, varlist, sharedStatesNamesList); 
+				Object[] stateMDPStateIS = StatesHelper.getMDPStateFromState(stateState, varlist, isolatedStatesNamesList); 
+				Object[] csMDPStateIS = StatesHelper.getMDPStateFromState(csState, varlist, isolatedStatesNamesList); 
+				boolean sameSS = true; 
+				for(int i = 0; i<stateMDPStatesSS.length; i++)
+				{
+					if(stateMDPStatesSS[i]!=csMDPStatesSS[i])
+					{
+						sameSS = false; 
+						break;
+					}
+				}
+				if(sameSS)
+				{
+					for(int i = 0; i<stateMDPStateIS.length; i++)
+					{
+						
+						if(stateMDPStateIS[i]!=csMDPStateIS[i])
+						{
+							sameSS = false; 
+							break;
+						}
+					}
+				}
+				return sameSS;
+			}
+			return false; 
+		}
 	}
 
-	private boolean childStateInStateExtendedArray(ArrayList<StateExtended> states, int cs) {
+	private boolean childStateInStateExtendedArray(ArrayList<StateExtended> states, int cs, boolean skipAutomataStatesInTA, List<State> statesList, VarList varlist) {
 		boolean toret = false;
 		for (int i = 0; i < states.size(); i++) {
-			if (childStateInStateExtended(states.get(i), cs)) {
+			if (childStateInStateExtended(states.get(i), cs,skipAutomataStatesInTA,statesList,varlist)) {
 				toret = true;
 				break;
 			}
@@ -919,13 +974,13 @@ public class JointPolicyBuilder {
 	// robots) that are not on the path
 	// TODO: what I said above
 	private boolean getNewTaskAllocation(ArrayList<ArrayList<StateExtended>> statesDiscovered,
-			int[] robotStatesInSeqTeamMDP, boolean followingPath) {
+			int[] robotStatesInSeqTeamMDP, boolean followingPath, boolean skipAutomataStatesInTA, List<State> statesList, VarList varlist) {
 		// so basically check if the robotStatesInSeqTeamMDP are here
 		if (statesDiscovered != null) {
 			if (!followingPath) {
 				boolean newTA = false;
 				for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
-					if (!childStateInStateExtendedArray(statesDiscovered.get(i), robotStatesInSeqTeamMDP[i])) {
+					if (!childStateInStateExtendedArray(statesDiscovered.get(i), robotStatesInSeqTeamMDP[i],skipAutomataStatesInTA,statesList,varlist)) {
 						newTA = true;
 						break;
 					}
@@ -934,7 +989,7 @@ public class JointPolicyBuilder {
 			} else {
 				boolean newTA = false;
 				for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
-					if (!childStateInStateExtendedArray(statesDiscovered.get(0), robotStatesInSeqTeamMDP[i])) {
+					if (!childStateInStateExtendedArray(statesDiscovered.get(0), robotStatesInSeqTeamMDP[i],skipAutomataStatesInTA,statesList,varlist)) {
 						newTA = true;
 						break;
 					}
