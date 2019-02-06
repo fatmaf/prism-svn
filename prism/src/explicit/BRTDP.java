@@ -489,7 +489,7 @@ public final class BRTDP extends PrismComponent
 				return succs.get(i);
 			}
 		}
-		System.out.println("FODA_SE");
+		//System.out.println("FODA_SE");
 		return null;
 	}
 	
@@ -661,7 +661,9 @@ public final class BRTDP extends PrismComponent
 		nOuterIters = 0;
 		while (!stop) {
 			nOuterIters++;
-			System.out.println(nOuterIters);
+			if (nOuterIters % 100 == 1) {
+				System.out.println(nOuterIters);
+			}
 			sstate = startSstate;
 			nInnerIters = 0;
 			while ((!sstate.isSolved() && nInnerIters < 1000) || (nInnerIters < 1)) {
@@ -676,7 +678,6 @@ public final class BRTDP extends PrismComponent
 				} else {//TODO: Make sure this is ok
 					bestActionIndex = bestActionIndices.get(randomGen.nextInt(bestActionIndices.size()));
 					stateActionIndexPair = new Pair<SearchState, Integer>(sstate, bestActionIndex);
-					toBackupStack.addFirst(stateActionIndexPair);
 					doBellmanBackup(sstate, bestActionIndex);
 					if (!sstate.isSolved() || nInnerIters < 1) {
 						sstate = sampleSucc(sstate, bestActionIndex);

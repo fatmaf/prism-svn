@@ -5,4 +5,4 @@ Pmax=?[(G (F waypoint=3)) & (G (F waypoint=1))]
 //Pmax=?[ ( G F waypoint=3) &  ( F waypoint=1)]    
 //Pmax=?[   (F G waypoint=1)]    
 //multi(Pmax=?[ ( G F waypoint=3)], P>=0.8[  ( F waypoint=1)])
-//Pmax=?[(F waypoint=6)]
+Pmax=?[G (F waypoint=6)]

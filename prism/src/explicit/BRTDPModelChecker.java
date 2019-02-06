@@ -228,6 +228,7 @@ public class BRTDPModelChecker extends PrismComponent
 			BRTDP brtdp = new BRTDP(this, prodModelGen, da.calculateDistsToState(i), sinkStates, 10, 10, false, null);
 			for (State initState : prodModelGen.getInitialStates()) {
 				brtdp.doSearch(initState);
+				//MDP mdp = brtdp.getGreedyPolicy(false);
 				MDP mdp = brtdp.getMdp();
 				System.out.println("MDP num states: " + mdp.getNumStates());
 				mdp = brtdp.getPolicies();
@@ -236,6 +237,7 @@ public class BRTDPModelChecker extends PrismComponent
 				ModelCheckerResult checkRes = checkReachability(mdp, accModel);
 				System.out.println("POLICY num states: " + mdp.getNumStates());
 				double reachProb = checkRes.soln[0];
+
 				System.out.println("ESTIM2:" + state.getBounds().get("acc").getLb());
 				System.out.println("PROB2:" + reachProb);
 				mdp.exportToDotFile("/home/bruno/Desktop/policy.dot");
