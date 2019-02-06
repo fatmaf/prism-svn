@@ -1072,7 +1072,7 @@ public class PrismSettings implements Observer
 			set(PRISM_MDP_SOLN_METHOD, "Linear programming");
 			set(PRISM_MDP_MULTI_SOLN_METHOD, "Linear programming");
 		} else if (sw.equals("mcts")) {
-			set(PRISM_MDP_SOLN_METHOD, "BRTDP"); //TODO: Change this
+			set(PRISM_MDP_SOLN_METHOD, "MCTS"); //TODO: Change this
 		} else if (sw.equals("brtdp")) {
 			set(PRISM_MDP_SOLN_METHOD, "BRTDP");
 		}

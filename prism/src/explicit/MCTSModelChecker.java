@@ -194,14 +194,14 @@ public class MCTSModelChecker extends PrismComponent
 		UCTNode uctRes;
 		BitSet originalTerminalStates = new BitSet();
 		BitSet prunedTerminalStates = new BitSet();
-		int depth = 15;
-		int nSamples = 200000;
+		int depth = 30;
+		int nSamples = 100000;
 		
 		MDPSimple resMDP2 = null, resMDP = null;
 		List<MDPSimple> candidateMDPs = new ArrayList<MDPSimple>();
 		List<Double> candidateMDPsReachProbs = new ArrayList<Double>();
 		List<BitSet> candidateMDPsAccStates = new ArrayList<BitSet>();
-		double reachProb;
+		double reachProb = 0.0;
 		int nCandidates = 0;
 		BitSet accModel = null;
 		ModelCheckerResult checkRes = null;
@@ -260,7 +260,7 @@ public class MCTSModelChecker extends PrismComponent
 		
 		//resMDP.findDeadlocks(true);
 		
-
+/*
 		depth = 10;
 		nSamples = 10000;
 		// THIS IS THE VERSION THAT DEEPENS THE HORIZON - IT ALSO ASSUMES THERE IS ONLY ONE POLICY FOR THE ACCEPTING STATE
@@ -288,8 +288,8 @@ public class MCTSModelChecker extends PrismComponent
 		//DTMC dtmc = buildDTMC(res, prodModelGen);
 		//MDP mdp = buildMDP(res, prodModelGen);
 		mainLog.println("\nThe probability is " + res.valuesD[0]);
-		
-		return new Result(new Double(1));//uct.getReward()
+*/		
+		return new Result(reachProb);//uct.getReward()
 	}
 	
 	public MDPSimple buildPolicyMDP(ModelGenerator modelGen, MDPSimple originalMDP, ModelCheckerResult checkRes, BitSet originalTerminalStates, BitSet prunedTerminalStates) throws PrismException {
