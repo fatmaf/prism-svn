@@ -26,10 +26,8 @@ import parser.ast.DeclarationIntUnbounded;
 import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
-import strat.MDStrategy;
 import strat.MDStrategyArray;
 import strat.Strategy;
-import explicit.DTMC;
 import explicit.Distribution;
 import explicit.MDPSimple;
 
@@ -355,7 +353,7 @@ public class MMDPSimple {
 				if (numSuccessors[i] == 0) {
 					numSuccessors[i] = 1;
 					nextStates = new ArrayList<Entry<Integer, Double>>();
-					nextStates.add(new AbstractMap.SimpleEntry(updatedCurrentRobotStates.get(i), 1.0));
+					nextStates.add(new AbstractMap.SimpleEntry<Integer, Double>(updatedCurrentRobotStates.get(i), 1.0));
 				}
 				robotStatesIteratorList.add(nextStates);
 				jointAction = jointAction + "_r" + i + "_" + action.toString();
@@ -1047,17 +1045,17 @@ public class MMDPSimple {
 		return isJointFailState;
 	}
 
-	private boolean checkCombinationCounter(int arr[], int start, int end) {
-		int endcondition = 1;
-		boolean allDone = true;
-		for (int i = start; i < end; i++) {
-			if (arr[i] != endcondition) {
-				allDone = false;
-				break;
-			}
-		}
-		return allDone;
-	}
+//	private boolean checkCombinationCounter(int arr[], int start, int end) {
+//		int endcondition = 1;
+//		boolean allDone = true;
+//		for (int i = start; i < end; i++) {
+//			if (arr[i] != endcondition) {
+//				allDone = false;
+//				break;
+//			}
+//		}
+//		return allDone;
+//	}
 
 	public boolean checkSynchronizationPointAddToQ(int stateNumInMDP, State currentJointState, int numFailedRobots,
 			int numFailedRobotsInInitState, SequentialTeamMDP seqTeamMDP, int[] robotDAassociations) {

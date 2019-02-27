@@ -1,0 +1,88 @@
+
+//a strange new world :P 
+
+//r1 init 0 r2 init 2  
+
+mdp
+
+
+       //const double fail = 0.2;
+       const int failstate = -1;
+       const double p = 0.8;
+       const double ps = 1.0;
+       const int open = 1;
+       const int closed = 0;
+       const int unknown = -1;
+       const int maxstate = 5; 
+
+
+module world
+ 
+       s:[failstate..maxstate] init 2; 
+       door:[unknown..open] init unknown;
+
+       [v0_v1] (s=0) -> p:(s'=1) + (1-p):(s'=failstate);
+       [v0_checkdoor] (s=0) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+       [v0_v3] (s=0) & (door=open) -> p:(s'=3) + (1-p)/2:(s'=2) + (1-p)/2:(s'=failstate);
+
+       [v1_v0] (s=1) -> p:(s'=0) + (1-p):(s'=failstate);
+       [v1_v2] (s=1) -> p:(s'=2) + (1-p):(s'=failstate);
+       [v1_v4] (s=1) -> p:(s'=4) + (1-p):(s'=failstate);
+
+       [v2_v1] (s=2) -> p:(s'=1) + (1-p):(s'=failstate);
+       [v2_v5] (s=2) -> p:(s'=5) + (1-p)/2:(s'=0) + (1-p)/2:(s'=failstate);
+
+       [v3_checkdoor] (s=3) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+       [v3_v0] (s=3) & (door=open) -> p:(s'=0) + (1-p):(s'=failstate);
+       [v3_v4] (s=3) -> p:(s'=4) + (1-p):(s'=failstate);
+
+       [v4_v1] (s=4) -> p:(s'=1) + (1-p):(s'=failstate);
+       [v4_v3] (s=4) -> p:(s'=3) + (1-p):(s'=failstate);
+       [v4_v5] (s=4) -> p:(s'=5) + (1-p):(s'=failstate);
+
+       [v5_v2] (s=5) -> p:(s'=2) + (1-p):(s'=failstate);
+       [v5_v4] (s=5) -> p:(s'=4) + (1-p):(s'=failstate);
+       
+       [failed] (s=failstate) -> (s'=failstate);
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+label "v4" = s=4;
+label "v5" = s=5; 
+label "v6" = s=6;
+//label "v7" = s=7; 
+
+
+rewards "time"
+//for future use to replace with regexp m-x replace-regexp ->.+ <ret> :1.0;
+
+       [v0_v1] (s=0) :1.0;
+       [v0_v3] (s=0) :1.0;
+
+       [v1_v0] (s=1) :1.0;
+       [v1_v2] (s=1) :1.0;
+       [v1_v4] (s=1) :1.0;
+
+       [v2_v1] (s=2) :1.0;
+       [v2_v5] (s=2) :1.0;
+
+       [v3_v0] (s=3) :1.0;
+       [v3_v4] (s=3) :1.0;
+
+       [v4_v1] (s=4) :1.0;
+       [v4_v3] (s=4) :1.0;
+       [v4_v5] (s=4) :1.0;
+
+       [v5_v2] (s=5) :1.0;
+       [v5_v4] (s=5) :1.0;
+
+       
+       [failed] (s=failstate)  :1.0;
+
+endrewards
+
+
