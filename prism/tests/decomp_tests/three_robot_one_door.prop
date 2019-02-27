@@ -1,0 +1,3 @@
+//partial(R{"time"}min=? [ F "v5"],Pmax=? [F "v3"],Pmax=? [F "v6"] ,Pmax=?[G (!"v7")]  )
+//partial(R{"time"}min=? [ F "v5"],Pmax=? [F "v3"],Pmax=? [F "v6"] )
+partial(R{"time"}min=? [ F ( "v5" & (F "v4" ))],Pmax=? [F "v3"],Pmax=? [F "v6"] ,Pmax=?[G (!"v7")] )  
