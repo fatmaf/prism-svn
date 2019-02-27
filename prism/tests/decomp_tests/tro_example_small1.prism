@@ -1,0 +1,125 @@
+
+
+mdp
+
+       const int failstate = -1;
+       const double p = 0.8;
+       const double ps = 1.0;
+       const int unknown = -1;
+       const int open = 1;
+       const int closed = 0;
+       const double action_cost = 1.0;
+       const double cost_mult = 2;
+       const int maxstate = 13;
+
+module world
+
+       s:[failstate..maxstate] init 2;
+       door:[unknown .. open] init unknown;
+
+       [v0_v1] (s=0) -> p:(s'=1) + (1-p):(s'=failstate);
+       [v0_v7] (s=0) -> p:(s'=7)+(1-p):(s'=failstate);
+       [v0_checkdoor] (s=0) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+       [v0_v5] (s=0) & (door=open) -> (s'=5);
+       
+       //[v1_v2] (s=1) -> (s'=2);
+       [v1_v2] (s=1) -> p:(s'=2)+(1-p):(s'=failstate);
+       [v1_v0] (s=1) -> p:(s'=0) + (1-p):(s'=failstate);
+
+       [v2_v1] (s=2) -> (s'=1);
+       [v2_v3] (s=2) -> p:(s'=3) + (1-p):(s'=failstate);
+
+       [v3_v2] (s=3) -> p:(s'=2) + (1-p):(s'=failstate);
+       [v3_v10] (s=3) -> (s'=10);
+       [v3_checkdoor] (s=3) & (door=unknown) -> p:(door'=open) + (1-p):(door'=closed);
+       [v3_v6] (s=3) & (door=open) -> (s'=6);
+
+       [v5_v0] (s=5) & (door=open) -> (s'=0);
+
+       [v6_v3] (s=6) & (door=open) -> (s'=3);
+
+
+       
+       [v7_v0] (s=7) -> p:(s'=0)+(1-p):(s'=failstate);
+       [v7_v8] (s=7) -> (s'=8);
+       //[v7_v8] (s=7) -> p:(s'=8)+(1-p):(s'=failstate);
+
+       [v8_v9] (s=8) -> p:(s'=9) + (1-p):(s'=failstate);
+       [v8_v7] (s=8) -> (s'=7);
+
+       [v9_v10] (s=9) -> (s'=10);
+       [v9_v8] (s=9) -> p:(s'=8) + (1-p):(s'=failstate);
+       [v9_v13] (s=9) -> (s'=13);
+
+       [v10_v3] (s=10) -> (s'=3);
+       [v10_v9] (s=10) -> (s'=9);
+
+
+       
+       
+       
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+label "v4" = s=4;
+label "v5" = s=5; 
+label "v6" = s=6;
+label "v7" = s=7;
+label "v8" = s=8;
+label "v9" = s=9; 
+label "v10" = s=10;
+//label "v11" = s=11;
+//label "v12" = s=12; 
+//label "v13" = s=13; 
+//label "v14" = s=14;
+//label "v15" = s=15; 
+//label "v16" = s=16;
+
+
+
+rewards "time"
+//for future use to replace with regexp m-x replace-regexp <ret> ->.+ <ret>  :1.0;
+
+
+      
+       [v0_v1] (s=0) : action_cost;
+       [v0_v7] (s=0) : action_cost;
+       [v0_checkdoor] (s=0) & (door=unknown) : action_cost;
+       [v0_v5] (s=0) & (door=open) : action_cost;
+       
+       [v1_v2] (s=1) : 5;
+       [v1_v0] (s=1) : action_cost;
+
+       [v2_v1] (s=2) : 5;
+       [v2_v3] (s=2) : action_cost;
+
+       [v3_v2] (s=3) : action_cost;
+       [v3_v10] (s=3) : action_cost;
+       [v3_checkdoor] (s=3) & (door=unknown) : action_cost;
+       [v3_v6] (s=3) & (door=open) : action_cost;
+
+       [v5_v0] (s=5) & (door=open) :action_cost;
+
+       [v6_v3] (s=6) & (door=open) :action_cost;
+
+       [v7_v0] (s=7) : action_cost;
+       [v7_v8] (s=7) : action_cost;
+
+       [v8_v9] (s=8) : 5.0;//action_cost*cost_mult;
+       [v8_v7] (s=8) : action_cost;
+
+       [v9_v10] (s=9) : action_cost;
+       [v9_v8] (s=9) : 5.0;//action_cost*cost_mult;
+
+       [v10_v3] (s=10) : action_cost;
+       [v10_v9] (s=10) : action_cost;
+
+       
+ 
+endrewards
+
+
