@@ -1,0 +1,7 @@
+//states_to_fail_at=[18,21,29,4,30,31]
+//avoid = 12
+partial(R{"time"}min=?  [ F (("WayPoint47") & (F ("WayPoint62")))],Pmax=? [ F (("WayPoint60") & (F ("WayPoint45")))],Pmax=? [ F "WayPoint63"],Pmax=? [ F "WayPoint59"],Pmax=? [ F "WayPoint61"],Pmax=? [ F "WayPoint64"], Pmax=?[G (!"WayPoint46") & (G (!"WayPoint58")) & (G (!"WayPoint49"))])
+//F ("WayPoint47" & (F "WayPoint62")) , 
+//F ("WayPoint60" & (F "WayPoint45")), F "WayPoint63", 
+//F "WayPoint59", F "WayPoint61",F "WayPoint64", 
+//G !"WayPoint46" & G !"WayPoint58" & G !"WayPoint49"

@@ -593,6 +593,7 @@ public class StatesHelper {
 		name = name.replace(" ", "_");
 		PrismLog out = new PrismFileLog(location + "_" + name + ".dot");
 		strat.exportDotFile(out);
+		
 		out.close();
 		out = new PrismFileLog(location + "_" + name + ".actions");
 		strat.exportActions(out);

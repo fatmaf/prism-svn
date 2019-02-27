@@ -423,16 +423,19 @@ public class SequentialTeamMDP {
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
+
 					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
 						// mainLog.println(s+" "+j+"
 						// "+singleAgentNestedMDP.productStateToMDPState.get(s));
-						// if(s == 32)
-						// mainLog.print("");
+						 
+						
+						
+						int singleAgentState = singleAgentNestedMDP.productStateToMDPState.get(s);
 						double rewardHere = rewardStruct
-								.getTransitionReward(singleAgentNestedMDP.productStateToMDPState.get(s), j);
+								.getTransitionReward(singleAgentState, j);
 
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 

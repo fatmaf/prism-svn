@@ -1203,7 +1203,7 @@ public class MDPModelChecker extends ProbModelChecker {
 					}
 				}
 			}
-			int[] pvarArr = { 4,6,46,51 };
+			int[] pvarArr = { 193 };
 
 			iters++;
 			done = true;
@@ -1223,7 +1223,9 @@ public class MDPModelChecker extends ProbModelChecker {
 							String pvarString = "\n"+iters + ":" + i;
 							for (int pvar = 0; pvar < pvarArr.length; pvar++) {
 								pvarString += "(" + pvarArr[pvar] + " p" + solnProb[pvarArr[pvar]] + " a"
-										+ strat[pvarArr[pvar]] ; 
+										+ strat[pvarArr[pvar]] ;
+								if(strat[pvarArr[pvar]] >= 0 )
+									pvarString+=mdp.getAction(i, strat[pvarArr[pvar]]).toString();
 								for(int rewsp = 0; rewsp < solnReward.size(); rewsp++)
 									pvarString+=" r"+rewsp+"-"+solnReward.get(rewsp)[pvarArr[pvar]]; 
 								
