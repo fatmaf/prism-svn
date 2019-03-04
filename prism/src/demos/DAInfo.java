@@ -132,13 +132,18 @@ public class DAInfo {
 		essentialStates = new BitSet(numstates); // new essential states
 		int setbit = -1;
 		for (int s = 0; s < numstates; s++) { // loop over all states
+			
 			if (!accs.get(s)) // if not an accepting state
 			{
 				setbit = accsCopy.nextSetBit(0); // get the first accepting state
 
 				while (setbit != -1) { // loop over all accepting states
-					if (prod.isSuccessor(s, setbit)) { // check if this accepting state is a successor of s (which is a
+
+					boolean state_is_successor = prod.isSuccessor(s, setbit);
+
+					if (state_is_successor) { // check if this accepting state is a successor of s (which is a
 														// non accepting state)
+						
 						essentialStates.set(setbit); // if so then its an essential state
 						accsCopy.clear(setbit); // remove this accepting state from copy [do we need to do this ??? -
 												// yes cuz its checked ?
@@ -149,6 +154,7 @@ public class DAInfo {
 				}
 			}
 		}
+		
 		return essentialStates;
 
 	}

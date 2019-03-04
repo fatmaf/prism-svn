@@ -33,7 +33,7 @@ public class StatesHelper {
 	public static String folder;
 	public static int numMdpVars;
 	public static PrismLog mainLog;
-
+	
 	public static BitSet addLinkInMDP(MDPSimple mdp, int[] mdpMap, List<State> statesList,int state,
 			double prob, int parentState, Object action, String additionalText, BitSet updatedBitSet,
 			BitSet statesToUpdate)
@@ -387,6 +387,16 @@ public class StatesHelper {
 		return res;
 	}
 
+	public static String getLocation()
+	{
+		String temp = folder;
+		temp = temp.replace("adv", "");
+		temp = temp.replaceAll(".tra", "");
+		String location = getSaveplace();
+		temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+		location += temp;
+		return location;
+	}
 	public static void saveBitSet(BitSet bitset, String anotherfolder, String name, boolean saveinsaveplace) {
 		String temp = anotherfolder;
 		if (temp == "")
