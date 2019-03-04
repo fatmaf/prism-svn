@@ -15,6 +15,7 @@ import java.util.concurrent.TimeoutException;
 
 import acceptance.AcceptanceType;
 import cern.colt.Arrays;
+import demos.ResultsTiming.varIDs;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
@@ -47,16 +48,18 @@ public class STAPU {
 		String dir = System.getProperty("user.dir");
 		saveplace = dir + saveplace_suffix;
 		StatesHelper.setSavePlace(saveplace);
+
 		STAPU stapu = new STAPU();
 		stapu.run();
 	}
 
-	long timeout = 10 * 60 * 1000;
+	// long timeout = 100 * 60 * 1000;
 	public PrismLog mainLog;
 	Prism prismC;
 	MMDPSimple jointPolicy;
 
 	boolean hasDoor = true;
+	ResultsTiming resSaver;
 
 	/**
 	 * @param model
@@ -74,9 +77,11 @@ public class STAPU {
 			ArrayList<DAInfo> daList, BitSet statesOfInterest, ProbModelChecker mcProb, ModulesFile modulesFile)
 			throws PrismException {
 		// return the list of daInfo and the product mdp
+
 		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLog);
 		res.setNumMDPVars(model.getVarList().getNumVars());
 		res.initializeProductToMDPStateMapping((MDP) model);
+
 		LTLProduct<MDP> product = null;
 		MDP productMDP = null;
 		LTLModelChecker mcLTL = new LTLModelChecker(mcProb); // is this okay ?
@@ -88,6 +93,7 @@ public class STAPU {
 		bsInit.set(0, numStates);
 		productMDP = (MDP) model;
 		res.daList = new ArrayList<DAInfo>();
+
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
 			DAInfo daInfo = new DAInfo(daList.get(daNum));
 
@@ -95,23 +101,25 @@ public class STAPU {
 					true);
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
-			
-			
-			
+
 			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
 			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-			StatesHelper.saveMDPstatra(productMDP,  "", name + "pda_" + daNum+"sta_tra", true);
-			
+			StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
+
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
 				res.daList.get(otherDAs).updateStateNumbers(product);
-				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "", name+"pda_"+daNum+"_"+otherDAs+".ess", true);
-				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "", name+"pda_"+daNum+"_"+otherDAs+".acc", true);
+				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
+						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
+				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
+						name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
 			}
-			StatesHelper.saveHashMap(res.productStateToMDPState, "", name+"pda_"+daNum+"_before_productStateToMDPState.txt", true);
+			StatesHelper.saveHashMap(res.productStateToMDPState, "",
+					name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
 			res.updateProductToMDPStateMapping(product);
-			StatesHelper.saveHashMap(res.productStateToMDPState, "", name+"pda_"+daNum+"_after_productStateToMDPState.txt", true);
+			StatesHelper.saveHashMap(res.productStateToMDPState, "",
+					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
 		res.setDAListAndFinalProduct(product);
@@ -144,8 +152,8 @@ public class STAPU {
 				true);
 		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
 		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
-		if(mdp.getFirstInitialState()!=-1)
-		mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
+		if (mdp.getFirstInitialState() != -1)
+			mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
 
 		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn, rewards, null,
 				minRewards, target, probPreference, probInitVal);
@@ -155,19 +163,19 @@ public class STAPU {
 		StateValues probsProduct = StateValues.createFromDoubleArray(solnProb, mdp);
 
 		// Get final prob result
- if(mdp.getFirstInitialState()!=-1) {
-		double maxProb = probsProduct.getDoubleArray()[mdp.getFirstInitialState()];
+		if (mdp.getFirstInitialState() != -1) {
+			double maxProb = probsProduct.getDoubleArray()[mdp.getFirstInitialState()];
 
-		String resString = "";
-		for (int i = 0; i < solns.size() - 1; i++) {
-			StateValues costsProduct = StateValues.createFromDoubleArray(res2.solns.get(i), mdp);
+			String resString = "";
+			for (int i = 0; i < solns.size() - 1; i++) {
+				StateValues costsProduct = StateValues.createFromDoubleArray(res2.solns.get(i), mdp);
 
-			double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
-			resString += i + ":" + minCost + " ";
+				double minCost = costsProduct.getDoubleArray()[mdp.getFirstInitialState()];
+				resString += i + ":" + minCost + " ";
 
+			}
+			mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
 		}
-		mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
- }
 		return res2;
 	}
 
@@ -186,13 +194,17 @@ public class STAPU {
 
 	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest,
 			ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list,
-			boolean includefailstatesinswitches, boolean matchSharedVars,boolean completeSwitchRing) throws PrismException {
+			boolean includefailstatesinswitches, boolean matchSharedVars, boolean completeSwitchRing)
+			throws PrismException {
 
-		long startTime = System.currentTimeMillis();
+
+		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
+		resSaver.setLocalStartTime();
+		
 		int probPreference = 0;
 
 		// process ltl expressions
-		int numRobots = models.size();//getNumRobots(exampleNumber());
+		int numRobots = models.size();// getNumRobots(exampleNumber());
 		boolean sameModelForAll = false;
 		if (numRobots != models.size() && models.size() == 1)
 			sameModelForAll = true;
@@ -202,19 +214,23 @@ public class STAPU {
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
-		if (hasTimedOut(startTime, "Initialized DA from LTL Expressions"))
-			return;
+
+		//record num tasks here
+		resSaver.recordInits(daList.size(), "Num Tasks", varIDs.numtasks);
+		
 		Model model = models.get(0);
 		ModulesFile modulesFile = modulesFiles.get(0);
+		resSaver.setScopeStartTime();
+		
 		for (int i = 0; i < numRobots; i++) {
 			if (!sameModelForAll) {
 				model = models.get(i);
 				modulesFile = modulesFiles.get(i);
 			}
 			StatesHelper.saveMDP((MDP) model, null, "", "mdp" + i, true);
-			if (hasTimedOut(startTime, "Saved original MDP"))
-				return;
+
 			int initState = model.getFirstInitialState();
+		
 
 			// for (int i = 0; i < numRobots; i++) {
 			if (i != 0 && sameModelForAll) {
@@ -228,51 +244,38 @@ public class STAPU {
 					statesOfInterest, mcProb, modulesFile);
 
 			singleAgentProductMDPs.add(nestedProduct);
-			if (hasTimedOut(startTime, "Created Nested Product " + i))
-				return;
-
+			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
+			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(),
+					"Nested Product States",varIDs.nestedproductstates);
 			// }
 
 		}
+
+		resSaver.recordTime("Total Single Agent Nested Product Time", varIDs.allnestedproductcreationtime, false);
+		resSaver.setScopeStartTime();
 
 		// create team automaton from a set of MDP DA stuff
 		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this.mainLog, numRobots, matchSharedVars); // buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
 
-		if (hasTimedOut(startTime, "Created Sequential MDP Template"))
-			return;
-
 		int firstRobot = 0; // fix this
 		// if (hasDoor)
 		// StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() -
 		// 2); //cuz there is door too
 		// else
-		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches,completeSwitchRing);
-
-		if (hasTimedOut(startTime, "Created Sequential MDP with Switches"))
-			return;
+		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly,true);
 
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
-			mainLog.println("Essential States " + seqTeamMDP.essentialStates.get(i));
+//			mainLog.println("Essential States " + seqTeamMDP.essentialStates.get(i));
 
 		}
-		mainLog.println("Accepting States " + seqTeamMDP.acceptingStates);
+//		mainLog.println("Accepting States " + seqTeamMDP.acceptingStates);
 
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
-				true);
-		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
-		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess",true);
-		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc",true);
 
-		// solve
-		// ModelCheckerPartialSatResult solution =
-		// computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-		// seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid,
-		// seqTeamMDP.rewardsWithSwitches.get(0));
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
 		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
 		for (int rew = 0; rew < rewards.size(); rew++) {
@@ -283,210 +286,125 @@ public class STAPU {
 		minRewards.add(0, false);
 
 		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
+		
+		resSaver.recordTime("Team MDP Time (including single agent time)", varIDs.totalteammdpcreationtime, false);
+		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
+		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
+
+		
 		for (int rew = 0; rew < rewards.size(); rew++) {
 			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
 					"rew" + rew, true);
 		}
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
+		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
+				true);
+		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
+		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess", true);
+		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc", true);
 
-		// double[] probInitVals = new
-		// double[seqTeamMDP.teamMDPWithSwitches.getNumStates()];
-		// for(int i = 0; i<probInitVals.length; i++)
-		// {
-		// if(seqTeamMDP.acceptingStates.get(i) || combinedEssentialStates.get(i))
-		// probInitVals[i]=1.0;
-		// else
-		// probInitVals[i]=0.0;
-		// }
 
-		StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(1), null,"", "teamMDPWithSwitches_Rewards"+1, true);
+		StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(1), null, "",
+				"teamMDPWithSwitches_Rewards" + 1, true);
+		
+		resSaver.setLocalStartTime();
+		resSaver.setScopeStartTime();
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
-
+		resSaver.recordTime("First Solution", varIDs.reallocations, true);
+		
 		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
 		// solution.strat.exportInducedModel(mainLogRef);
 		// solution.strat.exportActions(mainLogRef);
 		mainLog.println(seqTeamMDP.acceptingStates.toString());
-		if (hasTimedOut(startTime, "Solved Initial Sequential MDP"))
-			return;
 
-
-		
 		// add to joint policy
 		// MMDPSimple
-//		jointPolicy = new MMDPSimple(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-//				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+		// jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,
+		// seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
+		// seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
-		
 
-		//*************************************************************//
-		//testing the new joint policy stuff 
-		//this is a build as you go along kind of thing 
-		//so it doesn't really work right now okay 
-		//cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me 
-		
-		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots,seqTeamMDP.agentMDPs.get(0).daList.size(),
-				shared_vars_list,seqTeamMDP.teamMDPTemplate.getVarList(),mainLog);
-   
+		// *************************************************************//
+		// testing the new joint policy stuff
+		// this is a build as you go along kind of thing
+		// so it doesn't really work right now okay
+		// cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me
+
+		resSaver.setScopeStartTime();
+		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots,
+				seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list, seqTeamMDP.teamMDPTemplate.getVarList(),
+				mainLog);
+
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
-		//*************************************************************//
-		
-		//while failedstatesQ is not empty 
-			//statextended stateToExplore = failedStatesQ.remove()
-			//State stateToExploreState =jointPolicyBuilder.getStateState(stateToExplore) 
-			//Get initial states from this state 
-			//update initial states for team mdp 
-			//update switches 
-			//solve 
-			//add to joint policy 
-		int numPlanning = 1; 
-		while(jointPolicyBuilder.hasFailedStates())
-		{
-			
-			Entry<State, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState(); 
+		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation,true);
+		// *************************************************************//
+		// while failedstatesQ is not empty
+		// statextended stateToExplore = failedStatesQ.remove()
+		// State stateToExploreState =jointPolicyBuilder.getStateState(stateToExplore)
+		// Get initial states from this state
+		// update initial states for team mdp
+		// update switches
+		// solve
+		// add to joint policy
+		int numPlanning = 1;
+		while (jointPolicyBuilder.hasFailedStates()) {
+
+			Entry<State, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState();
 			State stateToExplore = stateToExploreAndBitSet.getKey();
-			BitSet statesToAvoid = stateToExploreAndBitSet.getValue(); 
-			
-			
-			if(!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
-			//get first failed robot 
-			numPlanning++;
-			int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(
-					stateToExplore, seqTeamMDP.teamMDPWithSwitches.getStatesList(),
-					seqTeamMDP.teamMDPWithSwitches.getVarList());
-			firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates, seqTeamMDP.teamMDPWithSwitches);
-			
-			seqTeamMDP.setInitialStates(robotStates);
-			seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches,completeSwitchRing);
-			
-			
-			if(statesToAvoid == null)
-				statesToAvoid = seqTeamMDP.statesToAvoid; 
-			else {
+			BitSet statesToAvoid = stateToExploreAndBitSet.getValue();
 
-				statesToAvoid.or(seqTeamMDP.statesToAvoid);
-			}
-			if(stateToExploreAndBitSet.getValue()!=null)
-			{
-				String stateVal = stateToExplore.toString(); 
-				stateVal=stateVal.replace(",", "_");
-				stateVal=stateVal.replace(")","");
-				stateVal=stateVal.replace("(","");
-			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs"+stateVal, true);			
-			}
-			if(stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
-				mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
-			
-			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-					seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+			if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
+				
+				// get first failed robot
+				numPlanning++;
+				resSaver.recordValues(numPlanning, "Realloc "+numPlanning, varIDs.numreallocationsincode);
+				resSaver.setScopeStartTime();
+				
+				int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(stateToExplore,
+						seqTeamMDP.teamMDPWithSwitches.getStatesList(), seqTeamMDP.teamMDPWithSwitches.getVarList());
+				firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates,
+						seqTeamMDP.teamMDPWithSwitches);
 
-			jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
+				seqTeamMDP.setInitialStates(robotStates);
+				seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+
+				if (statesToAvoid == null)
+					statesToAvoid = seqTeamMDP.statesToAvoid;
+				else {
+
+					statesToAvoid.or(seqTeamMDP.statesToAvoid);
+				}
+				if (stateToExploreAndBitSet.getValue() != null) {
+					String stateVal = stateToExplore.toString();
+					stateVal = stateVal.replace(",", "_");
+					stateVal = stateVal.replace(")", "");
+					stateVal = stateVal.replace("(", "");
+					StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs" + stateVal, true);
+				}
+				if (stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
+					mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
+
+				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
+						statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+				
+				resSaver.recordTime("Solution Time "+numPlanning, varIDs.reallocations, true);
+				resSaver.setScopeStartTime();
+				jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches,
+						stateToExplore);
+				resSaver.recordTime( "Joint Policy Time", varIDs.jointpolicycreation,true);
+			}
 		}
-		}
+		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime,false);
+		
 		mainLog.println("All done");
-		mainLog.println("NVI done "+numPlanning+" times");
+		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
 		mainLog.println("All done");
-//		
-////		jointPolicy.createJointPolicyFromSequentialSolution(solution.strat, initialState, seqTeamMDP, true);
-////		
-////		jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, true,
-////				!includefailstatesinswitches);
-////	
-//		
-//		if (hasTimedOut(startTime, "Added Initial Solution to Joint Policy"))
-//			return;
-//
-////		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "jointPolicy", true);
-////		boolean stopHere = false;// true;
-////		if (stopHere)
-////			return;
-////		Vector<StateProb> orderOfFailStates = new Vector<StateProb>();
-//
-//		// start the loop
-//		while (!jointPolicyBuilder.failedStatesQueue.isEmpty()) {
-//
-//			// get the state with the highest probability, given the current joint policy
-//			//StateProb stuckState = jointPolicy.stuckStatesQ.remove();
-//			StateExtended initialJointState = jointPolicyBuilder.failedStatesQueue.remove();
-//			//initialState = stuckState.getState();
-//			//orderOfFailStates.add(stuckState.copy());
-//
-//			mainLog.println("Exploring " + initialJointState .toString());
-//
-//			// update the teammdp
-//			//List<State> states = jointPolicy.mdp.getStatesList();// seqTeamMDP.teamMDPWithSwitches.getStatesList();
-//			//State currState = states.get(initialState);
-//			//int rNum = jointPolicy.firstFailedRobot(currState);
-////			int[] robotStates = jointPolicy.getRobotStatesIndexFromJointState(currState,
-////					seqTeamMDP.teamMDPWithSwitches.getStatesList());
-////			seqTeamMDP.setInitialStates(robotStates);
-//
-//			if (hasTimedOut(startTime, "Set Initial States for Fail State"))
-//				return;
-//
-//			// we need to change the switches to the initial states
-//			// so we will just add switches from all failed robots
-//			// we really dont care who failed first because
-//			// the switches will take care of that
-//			seqTeamMDP.addSwitchesAndSetInitialState(rNum, includefailstatesinswitches,completeSwitchRing);
-//
-//			if (hasTimedOut(startTime, "Added Switches"))
-//				return;
-//
-//			StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "",
-//					"teamMDPWithSwitches" + currState.toString(), true);
-//
-//			solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-//					seqTeamMDP.statesToAvoid, rewards, probPreference, true);
-//			// solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
-//			// seqTeamMDP.acceptingStates,
-//			// seqTeamMDP.statesToAvoid, seqTeamMDP.rewardsWithSwitches.get(0));
-//
-//			StatesHelper.saveStrategy(solution.strat, null, "", "stratFor" + currState.toString(), true);
-//			if (hasTimedOut(startTime, "Solved for Fail State"))
-//				return;
-//
-//			jointPolicy.addSeqPolicyToJointPolicy(seqTeamMDP, solution.strat, initialState, false,
-//					!includefailstatesinswitches);
-//
-//			if (hasTimedOut(startTime, "Added Solution to Joint Policy"))
-//				return;
-//
-//		}
-//		StatesHelper.saveMDP(jointPolicy.mdp, null, "", "finalJointPolicy", true);
-//		StatesHelper.saveMDPstatra(jointPolicy.mdp, "", "finalJointPolicy", true);
-//		jointPolicy.saveJointPolicy();
-//		mainLog.println("Completed STAPU for full policy");
-//		mainLog.println("DeadEnd States " + jointPolicy.deadendStates.toString());
-//		mainLog.println("Accepting States " + jointPolicy.allTasksCompletedStates.toString());
-//		mainLog.println("Information about fail states ");
-//
-//		for (StateProb fs : orderOfFailStates) {
-//			double probAnyAcc = jointPolicy.getProbabilityAnyAcceptingState(fs.getState(), 1.0, new BitSet());
-//			double probAllAcc = jointPolicy.getProbabilityAllPossibleAcceptingStates(fs.getState(), 1.0, new BitSet(),
-//					new HashMap<Integer, Double>());
-//			mainLog.println("Explored state " + fs.toString() + " with prob " + probAnyAcc
-//					+ " of getting to an accepting state from this state \n Prob of acheiving task = "
-//					+ fs.getProb() * probAllAcc);
-//		}
-//
-//		mainLog.println("Probablilty of acheiving task from initial state using entire policy = " + jointPolicy
-//				.getProbabilityAllPossibleAcceptingStates(0, 1.0, new BitSet(), new HashMap<Integer, Double>()));
-//		hasTimedOut(startTime, "All Done");
 
 	}
 
-	private int exampleNumber() {
-		// SET the EXAMPLE NUMBER HERE
-		// 0 = two room three robot not extended , 1 = two room three robot extended, 2
-		// = debugging on
-		// two_room_three_robot_blowup_reduced, 3 = three_robot_simple
-		// 4 = topo_map
-		// 5= chain example
-		// 6 = vi_example
-		return 5;
-	}
 
 	private int getInitState(int robotNum, int robotModel) {
 		int initState = -1;
@@ -569,35 +487,17 @@ public class STAPU {
 			if (expr.getOperand(exprNum) instanceof ExpressionQuant) {
 				ltlExpressions.add((expr.getOperand(exprNum)));
 				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
-				if(Expression.isCoSafeLTLSyntactic(expr.getOperand(exprNum))) {
-				if(conjunctionOfExpressions == null )
-				{
-					conjunctionOfExpressions =  new ExpressionFunc(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString());
-				}
+				if (Expression.isCoSafeLTLSyntactic(expr.getOperand(exprNum))) {
+					if (conjunctionOfExpressions == null) {
+						conjunctionOfExpressions = new ExpressionFunc(
+								((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString());
+					}
 				}
 			}
 		}
 
 		mainLog.println("LTL Mission: " + exprString);
 		return ltlExpressions;
-	}
-
-
-
-	private boolean hasTimedOut(long startTime, long endTime, String text) {
-		long time = endTime - startTime;
-		printTime(time, text);
-		if (time > timeout) {
-			mainLog.println("Timed Out");
-			return true;
-		} else
-			return false;
-	}
-
-	private boolean hasTimedOut(long startTime, String text) {
-		long endTime = System.currentTimeMillis();
-		return hasTimedOut(startTime, endTime, text);
-
 	}
 
 	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs) {
@@ -618,209 +518,98 @@ public class STAPU {
 		return daInfoList;
 	}
 
-	private void printTime(long time, String text) {
-		if (text == "")
-			text = "Time";
-		mainLog.println(text + ": " + time / 1000.0 + " seconds (" + time / (1000.0 * 60) + " mins)");
-	}
-
 	public void run() {
+		// saving filenames etc
+		String dir = System.getProperty("user.dir");
+		String modelLocation = dir + "/tests/decomp_tests/";
+
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+
+		String cumberland_nodoors = "topo_map_modified_goals"; // the cumberland map with no doors
+		example_has_door_list.put(cumberland_nodoors, false);
+		example_num_robot_list.put(cumberland_nodoors, 3);
+
+		String cumberland_doors = "topo_map_modified_goals_doors"; // the cumberland map with doors
+		example_has_door_list.put(cumberland_doors, true);
+		example_num_door_list.put(cumberland_doors, 1);
+		example_num_robot_list.put(cumberland_doors, 3);
+
+		String a_door_example = "a_door_example"; // a single door
+		example_has_door_list.put(a_door_example, true);
+		example_num_door_list.put(a_door_example, 1);
+		example_num_robot_list.put(a_door_example, 3);
+
+		String no_door_example = "no_door_example"; // no door
+		example_has_door_list.put(no_door_example, false);
+		example_num_robot_list.put(no_door_example, 3);
+
+		String a_door_example_actionwithtwogoals = "a_door_example_actionwithtwogoals";
+		example_has_door_list.put(a_door_example_actionwithtwogoals, true);
+		example_num_door_list.put(a_door_example_actionwithtwogoals, 1);
+		example_num_robot_list.put(a_door_example_actionwithtwogoals, 3);
+
+		String different_goals_example = "a_door_example_differenttasks"; // has completely different tasks but
+																			// engineered such that there needs to be a
+																			// wait before the door is checked
+		example_has_door_list.put(different_goals_example, true);
+		example_num_door_list.put(different_goals_example, 1);
+		example_num_robot_list.put(different_goals_example, 3);
+
+		String different_goals_example_longer = "a_door_example_differenttasks_longer";
+		example_has_door_list.put(different_goals_example_longer, true);
+		example_num_door_list.put(different_goals_example_longer, 1);
+		example_num_robot_list.put(different_goals_example_longer, 3);
+
+		String grid_2_example = "grid_2_topomap_sim";
+		example_has_door_list.put(grid_2_example, false);
+		example_num_robot_list.put(grid_2_example, 3);
+
+		String grid_3_example = "grid_3_topomap_sim_doors";
+		example_has_door_list.put(grid_3_example, true);
+		example_num_door_list.put(grid_3_example, 2);
+		example_num_robot_list.put(grid_3_example, 3);
+
+		String three_robot_one_door = "three_robot_one_door";
+		example_has_door_list.put(three_robot_one_door, true);
+		example_num_door_list.put(three_robot_one_door, 1);
+		example_num_robot_list.put(three_robot_one_door, 3);
+
+		String two_robot_no_door = "two_robot_no_door";
+		example_has_door_list.put(two_robot_no_door, false);
+		example_num_door_list.put(two_robot_no_door, 1);
+		example_num_robot_list.put(two_robot_no_door, 2);
+
+		String two_robot_no_door_multiple_switches = "two_robot_no_door_ms";
+		example_has_door_list.put(two_robot_no_door_multiple_switches, false);
+		example_num_robot_list.put(two_robot_no_door_multiple_switches, 3);
+
+		String two_robot_door_multiple_switches = "two_robot_door";
+		example_has_door_list.put(two_robot_door_multiple_switches, true);
+		example_num_door_list.put(two_robot_door_multiple_switches, 1);
+		example_num_robot_list.put(two_robot_door_multiple_switches, 2);
+
+		String tro_example = "tro_example";
+		example_has_door_list.put(tro_example, true);
+		example_num_door_list.put(tro_example, 1);
+		example_num_robot_list.put(tro_example, 2);
+
+		String tro_example_small = "tro_example_small";
+		example_has_door_list.put(tro_example_small, true);
+		example_num_door_list.put(tro_example_small, 1);
+		example_num_robot_list.put(tro_example_small, 2);
+
+		String autogen_example = "temp";
+		example_has_door_list.put(autogen_example, true);
+		example_num_door_list.put(autogen_example, 2);
+		example_num_robot_list.put(autogen_example, 3);
+
 		try {
-			String dir = System.getProperty("user.dir");
-			String modelLocation = dir + "/tests/decomp_tests/";
-			
-			HashMap<String,Boolean> example_has_door_list = new HashMap<String,Boolean>(); 
-			HashMap<String,Integer> example_num_door_list = new HashMap<String,Integer>(); 
-			HashMap<String,Integer> example_num_robot_list = new HashMap<String,Integer>(); 
-
-			String cumberland_nodoors = "topo_map_modified_goals";	//the cumberland map with no doors
-			example_has_door_list.put(cumberland_nodoors, false);
-			
-			String cumberland_doors = "topo_map_modified_goals_doors"; //the cumberland map with doors
-			example_has_door_list.put(cumberland_doors,true);
-			example_num_door_list.put(cumberland_doors, 1);
-			
-			String a_door_example = "a_door_example";			//a single door
-			example_has_door_list.put(a_door_example,true);
-			
-			String no_door_example = "no_door_example";			//no door 
-			example_has_door_list.put(no_door_example,false);
-			
-			String a_door_example_actionwithtwogoals = "a_door_example_actionwithtwogoals";
-			example_has_door_list.put(a_door_example_actionwithtwogoals,true);
-			
-			String different_goals_example="a_door_example_differenttasks"; //has completely different tasks but engineered such that there needs to be a wait before the door is checked 
-			example_has_door_list.put(different_goals_example,true);
-			
-			String different_goals_example_longer="a_door_example_differenttasks_longer";
-			example_has_door_list.put(different_goals_example_longer,true);
-			
-			String grid_2_example="grid_2_topomap_sim";
-			example_has_door_list.put(grid_2_example,false);
-			
-			String grid_3_example="grid_3_topomap_sim_doors";
-			example_has_door_list.put(grid_3_example,true);
-			
-			String three_robot_one_door = "three_robot_one_door"; 
-			example_has_door_list.put(three_robot_one_door,true);
-			
-			String two_robot_no_door = "two_robot_no_door"; 
-			example_has_door_list.put(two_robot_no_door,false);
-
-			String two_robot_no_door_multiple_switches = "two_robot_no_door_ms"; 			
-			example_has_door_list.put(two_robot_no_door_multiple_switches,false);
-			
-			String two_robot_door_multiple_switches = "two_robot_door"; 			
-			example_has_door_list.put(two_robot_door_multiple_switches,true);
-			
-			String tro_example = "tro_example"; 			
-			example_has_door_list.put(tro_example,true);
-			
-			String tro_example_small = "tro_example_small"; 			
-			example_has_door_list.put(tro_example_small,true);
-			
-			String autogen_example = "temp"; 			
-			example_has_door_list.put(autogen_example,true);
-			
-			String filename = tro_example_small;//grid_3_example;//autogen_example;//grid_3_example;//three_robot_one_door;//two_robot_door_multiple_switches;//another_one;//two_robot_no_door; //different_goals_example_longer;//grid_2_example;//different_goals_example;
-			
-			boolean example_has_door = example_has_door_list.get(filename);
-			
-			String filename_suffix = "";// "_seq"; //seq_simp for two robots
-			boolean includefailstatesinswitches =false;
-			boolean matchsharedstatesinswitch = false;//true;
-			boolean completeSwitchRing = false;//true;
-			ArrayList<String> shared_vars_list = new ArrayList<String>();
-			if(example_has_door)
-			{
-				if(filename==grid_3_example)
-				{
-					int numdoors = 2; 
-					for(int i = 1; i<numdoors; i++)
-					{
-						shared_vars_list.add("door"+i);
-					}
-				}else
-				{
-					if(filename==autogen_example)
-					{
-						int numdoors = 2; 
-						for(int i = 0; i<numdoors; i++)
-						{
-							shared_vars_list.add("door"+i);
-						}
-					}
-					else
-			shared_vars_list.add("door");
-			}
-			}
-			ArrayList<String> filenames = new ArrayList<String>();
-			
-			filenames.add(filename + 0);
-			filenames.add(filename + 1);
-//			filenames.add(filename + 2);	
-//			filenames.add(filename + 3);
-
-
-		
-			// filenames.add(filename+3);
-			// filenames.add("chain_example_simple_mod");
-
-			StatesHelper.setFolder(modelLocation + filename);
-			hasDoor = false;
-			int maxMDPVars = 0;
-
-			ArrayList<Model> models = new ArrayList<Model>();
-			ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
-			ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
-
-			// Create a log for PRISM output (hidden or stdout)
-			// PrismLog mainLog = new PrismDevNullLog();
-			PrismLog mainLog = new PrismFileLog("stdout");
-			this.mainLog = mainLog;
-			StatesHelper.mainLog = mainLog;
-			// Initialise PRISM engine
-			Prism prism = new Prism(mainLog);
-			prismC = prism;
-			prism.initialise();
-
-			for (int files = 0; files < filenames.size(); files++) {
-				// Parse and load a PRISM model from a file
-				ModulesFile modulesFile = prism
-						.parseModelFile(new File(modelLocation + filenames.get(files) + ".prism"));
-				modulesFiles.add(modulesFile);
-				prism.loadPRISMModel(modulesFile);
-
-				// Parse and load a properties model for the model
-				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile,
-						new File(modelLocation + filename + filename_suffix + ".prop"));
-
-				// Get PRISM to build the model and then extract it
-				prism.setEngine(Prism.EXPLICIT);
-				prism.buildModel();
-				MDP mdp = (MDP) prism.getBuiltModelExplicit();
-				int numVars = mdp.getVarList().getNumVars();
-				if (numVars > maxMDPVars)
-					maxMDPVars = numVars;
-
-				models.add(mdp);
-				propFiles.add(propertiesFile);
-			}
-			// Build an MDP model checker
-			// MDPModelChecker mc = new MDPModelChecker(prism);
-
-			// mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile,
-			// currentModelGenerator);
-
-			// Model check the first property from the file using the model checker
-			for (int i = 0; i < propFiles.size(); i++) {
-				mainLog.println(propFiles.get(i).getPropertyObject(0));
-			}
-			Expression expr = propFiles.get(0).getProperty(0);
-
-			// I dont know if this is the best way to do this
-			// Doesnt look like this works
-			// But yeah, maybe move this bit in the while loop in doSTAPU
-			// models.add(mdp);
-
-			ExecutorService executor = Executors.newSingleThreadExecutor();
-			StatesHelper.setNumMDPVars(maxMDPVars);
-			Runnable task = new Runnable() {
-				@Override
-				public void run() {
-					// do your task
-					try {
-						doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles,
-								shared_vars_list, includefailstatesinswitches, matchsharedstatesinswitch,completeSwitchRing);
-					} catch (PrismException e) {
-						// TODO Auto-generated catch block
-						
-						e.printStackTrace();
-					}
-				}
-			};
-
-			Future<?> future = executor.submit(task);
-
-			try {
-				future.get(timeout, TimeUnit.MILLISECONDS);
-
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (TimeoutException e) {
-				mainLog.println("Timed out - "+(timeout/(1000))+" seconds, "+(timeout/(1000*60))+" mins");
-				// TODO Auto-generated catch block
-				if (jointPolicy != null)
-					mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
-				e.printStackTrace();
-			} // awaits termination
-
-			// Close down PRISM
-			prism.closeDown();
+			runOneExample(three_robot_one_door, example_has_door_list,
+					example_num_door_list, 
+					example_num_robot_list,
+					modelLocation);
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
@@ -829,6 +618,151 @@ public class STAPU {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
 		}
+	}
+
+	public void runOneExample(String example_name, HashMap<String, Boolean> example_has_door_list,
+			HashMap<String, Integer> example_num_door_list, 
+			HashMap<String, Integer> example_num_robot_list,
+			String modelLocation) throws PrismException, FileNotFoundException {
+
+		//Setting up
+		String filename = example_name;
+		
+		boolean example_has_door = example_has_door_list.get(filename);
+
+		String filename_suffix = "";
+		
+		//these affect the switch transitions and hence the solution 
+		boolean includefailstatesinswitches = false;
+		boolean matchsharedstatesinswitch = false;
+		boolean completeSwitchRing = false;
+		
+		ArrayList<String> shared_vars_list = new ArrayList<String>();
+		int numdoors = 0;
+		if (example_has_door) {
+			numdoors = example_num_door_list.get(example_name);
+			if (numdoors == 1)
+				shared_vars_list.add("door");
+			else {
+				for (int i = 0; i < numdoors; i++) {
+					shared_vars_list.add("door" + i);
+
+				}
+			}
+		}
+		
+		ArrayList<String> filenames = new ArrayList<String>();
+
+		
+		int numRobots = example_num_robot_list.get(example_name);
+		for (int i = 0; i < numRobots; i++)
+			filenames.add(filename + i);
+
+		StatesHelper.setFolder(modelLocation + filename);
+		hasDoor = false;
+		int maxMDPVars = 0;
+
+		ArrayList<Model> models = new ArrayList<Model>();
+		ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
+		ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
+
+		// Create a log for PRISM output (hidden or stdout)
+		// PrismLog mainLog = new PrismDevNullLog();
+		PrismLog mainLog = new PrismFileLog("stdout");
+		this.mainLog = mainLog;
+		StatesHelper.mainLog = mainLog;
+		resSaver = new ResultsTiming(mainLog, filename);
+		
+		//record num robots and doors 
+		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
+		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
+
+		
+		// Initialise PRISM engine
+		Prism prism = new Prism(mainLog);
+		prismC = prism;
+		prism.initialise();
+
+		//loading models 
+		resSaver.setGlobalStartTime();
+		resSaver.setLocalStartTime();
+		
+		for (int files = 0; files < filenames.size(); files++) {
+			resSaver.setScopeStartTime();
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(modelLocation + filenames.get(files) + ".prism"));
+			modulesFiles.add(modulesFile);
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile,
+					new File(modelLocation + filename + filename_suffix + ".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit();
+			int numVars = mdp.getVarList().getNumVars();
+			if (numVars > maxMDPVars)
+				maxMDPVars = numVars;
+
+			models.add(mdp);
+			propFiles.add(propertiesFile);
+			resSaver.recordTime("model loading time "+files, varIDs.modelloadingtimes, true);
+		}
+
+		// Model check the first property from the file using the model checker
+		for (int i = 0; i < propFiles.size(); i++) {
+			mainLog.println(propFiles.get(i).getPropertyObject(0));
+		}
+		Expression expr = propFiles.get(0).getProperty(0);
+
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		StatesHelper.setNumMDPVars(maxMDPVars);
+		Runnable task = new Runnable() {
+			@Override
+			public void run() {
+				// do your task
+				try {
+					doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles,
+							shared_vars_list, includefailstatesinswitches, matchsharedstatesinswitch,
+							completeSwitchRing);
+				} catch (PrismException e) {
+					// TODO Auto-generated catch block
+
+					e.printStackTrace();
+				}
+			}
+		};
+
+		Future<?> future = executor.submit(task);
+
+		try {
+			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
+
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			mainLog.println("Timed out - " + (resSaver.timeout / (1000)) + " seconds, "
+					+ (resSaver.timeout / (1000 * 60)) + " mins");
+			// TODO Auto-generated catch block
+			if (jointPolicy != null)
+				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
+			e.printStackTrace();
+		} // awaits termination
+
+		resSaver.writeResults();
+		// Close down PRISM
+		prism.closeDown();
+
+	}
+	public int exampleNumber()
+	{
+		return 5;
 	}
 
 }
