@@ -88,6 +88,8 @@ public class MCTSModelChecker extends PrismComponent
 	private LabelList labelListModel;
 	// Labels from the property file
 	private LabelList labelListProp;
+	private String saveLocation = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/mcts";
+
 	
 	AcceptanceType[] allowedAcceptance = {
 			AcceptanceType.RABIN,
@@ -320,7 +322,7 @@ public class MCTSModelChecker extends PrismComponent
 
 		
 		prunedMDP.setStatesList(statesList);
-		prunedMDP.exportToDotFile("/home/bruno/Desktop/mdp_prune.dot");
+		prunedMDP.exportToDotFile(saveLocation+"mdp_prune.dot");
 		
 		return prunedMDP;
 	}
@@ -472,7 +474,7 @@ public class MCTSModelChecker extends PrismComponent
 			}
 		}
 		mdp.setStatesList(statesList);
-		mdp.exportToDotFile("/home/bruno/Desktop/mdp.dot");
+		mdp.exportToDotFile(saveLocation+"mdp.dot");
 
 		return mdp;
 	}
@@ -495,7 +497,7 @@ public class MCTSModelChecker extends PrismComponent
 	private StateValues checkResult(MDP resMDP, Expression expr) throws PrismException {
 		mcMdp.setGenStrat(true);
 		mcMdp.setExportAdv(true);
-		mcMdp.setExportAdvFilename("/home/bruno/Desktop/policy.adv");
+		mcMdp.setExportAdvFilename(saveLocation+"policy.adv");
 		
 		resMDP.findDeadlocks(true);
 		return mcMdp.checkExpressionProb((MDP)resMDP, (ExpressionProb)expr, null);
@@ -529,7 +531,7 @@ public class MCTSModelChecker extends PrismComponent
 		mcMdp.setLog(new PrismDevNullLog());
 		mcMdp.setGenStrat(true);
 		mcMdp.setExportAdv(true);
-		mcMdp.setExportAdvFilename("/home/bruno/Desktop/policy.adv");
+		mcMdp.setExportAdvFilename(saveLocation+"policy.adv");
 		
 		LTLModelChecker mcLtl = new LTLModelChecker(null);
 		mcLtl.setSettings(new PrismSettings());

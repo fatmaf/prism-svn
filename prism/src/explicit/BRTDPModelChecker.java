@@ -89,6 +89,7 @@ public class BRTDPModelChecker extends PrismComponent
 	// Labels from the property file
 	private LabelList labelListProp;
 	
+	private String saveLocation = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/brtdp";
 	AcceptanceType[] allowedAcceptance = {
 			AcceptanceType.RABIN,
 			AcceptanceType.REACH
@@ -240,7 +241,7 @@ public class BRTDPModelChecker extends PrismComponent
 
 				System.out.println("ESTIM2:" + state.getBounds().get("acc").getLb());
 				System.out.println("PROB2:" + reachProb);
-				mdp.exportToDotFile("/home/bruno/Desktop/policy.dot");
+				mdp.exportToDotFile(saveLocation+"policy.dot");
 			/*	for (int j = accModel.nextSetBit(0); j >= 0; j = accModel.nextSetBit(j + 1)) {
 					SearchState state = (SearchState)mdp.getStatesList().get(j);
 					state.configureAccForSearch();
@@ -382,7 +383,7 @@ public class BRTDPModelChecker extends PrismComponent
 
 		
 		prunedMDP.setStatesList(statesList);
-		prunedMDP.exportToDotFile("/home/bruno/Desktop/mdp_prune.dot");
+		prunedMDP.exportToDotFile(saveLocation+"mdp_prune.dot");
 		
 		return prunedMDP;
 	}
@@ -440,7 +441,7 @@ public class BRTDPModelChecker extends PrismComponent
 	private StateValues checkResult(MDP resMDP, Expression expr) throws PrismException {
 		mcMdp.setGenStrat(true);
 		mcMdp.setExportAdv(true);
-		mcMdp.setExportAdvFilename("/home/bruno/Desktop/policy.adv");
+		mcMdp.setExportAdvFilename(saveLocation+"policy.adv");
 		
 		resMDP.findDeadlocks(true);
 		return mcMdp.checkExpressionProb((MDP)resMDP, (ExpressionProb)expr, null);

@@ -562,7 +562,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	 * Model check a P operator expression and return the values for the statesOfInterest.
  	 * @param statesOfInterest the states of interest, see checkExpression()
 	 */
-	protected StateValues checkExpressionProb(Model model, ExpressionProb expr, BitSet statesOfInterest) throws PrismException
+	public StateValues checkExpressionProb(Model model, ExpressionProb expr, BitSet statesOfInterest) throws PrismException
 	{
 		// Use the default semantics for a standalone P operator
 		// (i.e. quantification over all strategies, and no game-coalition info)
