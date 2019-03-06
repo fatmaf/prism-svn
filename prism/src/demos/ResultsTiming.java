@@ -183,7 +183,7 @@ public class ResultsTiming {
 		if (text == "")
 			text = "Time";
 		if ((time > 1))
-			mainLog.println(time_identifiers + text + ": " + time / 1000.000 + " seconds (" + time / (1000.000 * 60.000)
+			mainLog.println(time_identifiers + text + ": " +time +"ms (" + time / 1000.000 + " seconds /" + time / (1000.000 * 60.000)
 					+ " mins)" + time_identifiers);
 		if (varid != null) {
 			saveData(time, varid);

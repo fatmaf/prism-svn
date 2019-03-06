@@ -7,6 +7,7 @@ import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
+import common.IterableStateSet;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.Model;
@@ -119,45 +120,100 @@ public class DAInfo {
 				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
 		return product;
 	}
-
+	
 	public BitSet getEssentialStates(MDP prod) {
 		// check if an accepting state is connected to a non accepting state
 		// basically I want a bitset of all the edges and and it with !(accepting
 		// states), if its not null I know
-
+//		ResultsTiming resSaver = new ResultsTiming(mainLog,"justLogging"); 
+//		resSaver.setLocalStartTime();
+		
 		BitSet accs = productAcceptingStates; // the accepting states for this da only
 		int numstates = prod.getNumStates(); // get the number of states
 
-		BitSet accsCopy = (BitSet) accs.clone(); // make a copy
 		essentialStates = new BitSet(numstates); // new essential states
-		int setbit = -1;
-		for (int s = 0; s < numstates; s++) { // loop over all states
-			
-			if (!accs.get(s)) // if not an accepting state
+
+		boolean state_is_successor;
+		//for each acc state 
+		for(int acc = accs.nextSetBit(0); acc>=0; acc=accs.nextSetBit(acc+1))
+		{
+//			resSaver.setScopeStartTime();
+			state_is_successor=false;
+			//for each state which is not an acc 
+			for(int s = 0; s<numstates; s++)
 			{
-				setbit = accsCopy.nextSetBit(0); // get the first accepting state
-
-				while (setbit != -1) { // loop over all accepting states
-
-					boolean state_is_successor = prod.isSuccessor(s, setbit);
-
-					if (state_is_successor) { // check if this accepting state is a successor of s (which is a
-														// non accepting state)
-						
-						essentialStates.set(setbit); // if so then its an essential state
-						accsCopy.clear(setbit); // remove this accepting state from copy [do we need to do this ??? -
-												// yes cuz its checked ?
-
+				//if it is not an accepting state 
+				if(!accs.get(s))
+				{
+					//is state acc a sucessor of state s 
+					state_is_successor = prod.isSuccessor(s, acc);
+					//if it is 
+					if(state_is_successor)
+					{
+						essentialStates.set(acc); // if so then its an essential state
+						break; //do not need to repeat this for other states s 
 					}
-
-					setbit = accsCopy.nextSetBit(setbit + 1);
 				}
 			}
+//			resSaver.recordTime("ES", null, true);
 		}
-		
+//		resSaver.recordTime("Essential States", null, false);
 		return essentialStates;
 
 	}
+
+
+//	public BitSet getEssentialStates(MDP prod) {
+//		// check if an accepting state is connected to a non accepting state
+//		// basically I want a bitset of all the edges and and it with !(accepting
+//		// states), if its not null I know
+//
+//		BitSet accs = productAcceptingStates; // the accepting states for this da only
+//		int numstates = prod.getNumStates(); // get the number of states
+//
+//		BitSet accsCopy = (BitSet) accs.clone(); // make a copy
+//		essentialStates = new BitSet(numstates); // new essential states
+//		int setbit = -1;
+//		
+////		BitSet result = new BitSet();
+////
+////		for (int s : new IterableStateSet(statesOfInterest, model.getNumStates())) {
+////			// for each state of interest, check whether there is a transition to the 'target'
+////			if (model.someSuccessorsInSet(s, target)) {
+////				result.set(s);
+////			}
+//		
+//		//move this inside 
+//		for (int s = 0; s < numstates; s++) { // loop over all states
+//			
+//			if (!accs.get(s)) // if not an accepting state
+//			{
+//				//do this like a for loop thing 
+//				//move this outside 
+//				//for (int i = filter.nextSetBit(0); i >= 0; i = filter.nextSetBit(i + 1)) {
+//				setbit = accsCopy.nextSetBit(0); // get the first accepting state
+//
+//				while (setbit != -1) { // loop over all accepting states
+//
+//					boolean state_is_successor = prod.isSuccessor(s, setbit);
+//
+//					if (state_is_successor) { // check if this accepting state is a successor of s (which is a
+//														// non accepting state)
+//						
+//						essentialStates.set(setbit); // if so then its an essential state
+//						accsCopy.clear(setbit); // remove this accepting state from copy [do we need to do this ??? -
+//												// yes cuz its checked ?
+//
+//					}
+//
+//					setbit = accsCopy.nextSetBit(setbit + 1);
+//				}
+//			}
+//		}
+//		
+//		return essentialStates;
+//
+//	}
 
 	private void initializeDAInfo(Expression expr) {
 		daExpr = expr;
@@ -190,10 +246,7 @@ public class DAInfo {
 			if (productAcceptingStates.get(oldstate)) {
 				newProductAcceptingStates.set(s);
 			}
-			if (s ==426)
-			{
-				mainLog.println("check this bit");
-			}
+
 			if (essentialStates.get(oldstate)) {
 				newEssentialStates.set(s);
 			}

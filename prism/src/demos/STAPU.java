@@ -606,7 +606,10 @@ public class STAPU {
 		example_num_robot_list.put(autogen_example, 3);
 
 		try {
-			runOneExample(three_robot_one_door, example_has_door_list,
+			runOneExample(
+					grid_3_example,
+//					three_robot_one_door, 
+					example_has_door_list,
 					example_num_door_list, 
 					example_num_robot_list,
 					modelLocation);
