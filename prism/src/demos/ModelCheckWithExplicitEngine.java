@@ -64,8 +64,10 @@ public class ModelCheckWithExplicitEngine
 		try {
 			
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/mcts/bounded/";
+			saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 			//tests/mcts/bounded/clocked_coffee.prism tests/mcts/bounded/clocked_coffee.prop -mcts
 			String filename = "clocked_coffee";
+			filename="no_door_example";
 			// Create a log for PRISM output (hidden or stdout)
 			//PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
@@ -83,13 +85,19 @@ public class ModelCheckWithExplicitEngine
 
 			// Get PRISM to build the model and then extract it
 			prism.setEngine(Prism.EXPLICIT);
-//			prism.buildModel();
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
+			mdp.exportToDotFile(saveplace+filename+"mdp.dot");
 			
 			BRTDPModelChecker brtdpmc = new BRTDPModelChecker(prism,modulesFile,propertiesFile);
 			Expression expr = propertiesFile.getProperty(0); 
 			
 			Result resultBRTDP = brtdpmc.check(expr);
 			System.out.println(resultBRTDP.getResult());
+			
+			MCTSModelChecker mctsmc = new MCTSModelChecker(prism,modulesFile,propertiesFile);
+			Result resultMCTS = mctsmc.check(expr); 
+			System.out.println(resultMCTS.getResult());
 			
 //			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
 

@@ -69,6 +69,7 @@ public class BRTDPModelChecker {
 	boolean useDistCost = false;
 	/**
 	 * Constructor.
+	 * Initialises things 
 	 */
 	public BRTDPModelChecker(PrismComponent parent, ModulesFile modulesFile, PropertiesFile propertiesFile) throws PrismException
 	{
@@ -158,7 +159,9 @@ public class BRTDPModelChecker {
 		ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, this.prismcomponent);
 		ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 		
+		//get the accepting states 
 		BitSet acc = da.getAccStates();
+		//get the sink states 
 		BitSet sinkStates = da.getSinkStates();
 		
 		/*if (true) {
@@ -196,13 +199,16 @@ public class BRTDPModelChecker {
 		
 		
 		// Add initial state(s) to 'explore', 'states' and to the model
+		//For each accepting state in the DA 
 		for (int i = acc.nextSetBit(0); i >= 0; i = acc.nextSetBit(i + 1)) {
+			
 			BRTDP brtdp = new BRTDP(this.prismcomponent, prodModelGen, da.calculateDistsToState(i), sinkStates, 10, 10, false, null);
 			for (State initState : prodModelGen.getInitialStates()) {
 				brtdp.doSearch(initState);
 				//MDP mdp = brtdp.getGreedyPolicy(false);
 				MDP mdp = brtdp.getMdp();
 				System.out.println("MDP num states: " + mdp.getNumStates());
+				mdp.exportToDotFile(saveLocation+"mdp"+i+"_"+initState.toString()+".dot");
 				mdp = brtdp.getPolicies();
 				SearchState state = (SearchState) mdp.getStatesList().get(mdp.getFirstInitialState());
 				BitSet accModel = findAccStates(mdp, da);
@@ -212,7 +218,7 @@ public class BRTDPModelChecker {
 
 				System.out.println("ESTIM2:" + state.getBounds().get("acc").getLb());
 				System.out.println("PROB2:" + reachProb);
-				mdp.exportToDotFile(saveLocation+"policy.dot");
+				mdp.exportToDotFile(saveLocation+"policy"+i+"_"+initState.toString()+".dot");
 			/*	for (int j = accModel.nextSetBit(0); j >= 0; j = accModel.nextSetBit(j + 1)) {
 					SearchState state = (SearchState)mdp.getStatesList().get(j);
 					state.configureAccForSearch();

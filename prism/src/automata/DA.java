@@ -480,10 +480,14 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		// We are fine with an empty apList or an apList that lacks some of the expected Li.
 	}
 
+	/*
+	 *  Calculate the distance to a target state 
+	 */
 	public List<Double> calculateDistsToState(int target) {
 		List<Double> dists = new ArrayList<Double>(size);
 		Deque<Integer> queue = new ArrayDeque<Integer>();
 
+		//max dist = DA size * atomic props for da 
 		
 		for(int i = 0; i < size; i++) {
 			if(i == target) {
@@ -500,14 +504,21 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		int numEdges;
 		Double newDist;
 		Double minDist=Double.MAX_VALUE;
+		//basically iteratively refine the distance of all states to this state 
+		
 		while(!queue.isEmpty()) {
 			currentState=queue.poll();
+			//find the minimum distance to this state from all states 
 			for (int i = 0; i < size; i++) {
+				//get the number of edges 
 				numEdges = getNumEdges(i,currentState);
+				
 				if (numEdges > 0) {
+					//our heuristic in my head of course 
 					double a =(double)Math.pow(2, apList.size())/(double)numEdges;
 					newDist=dists.get(currentState) + Math.log(a)/Math.log(2);
 					if (newDist < dists.get(i)) {
+					
 						queue.add(i);
 						dists.set(i,newDist);
 						minDist=Math.min(minDist, newDist);
@@ -522,6 +533,8 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		double initDist = dists.get(getStartState());
 		for(int i = 0; i < size; i++) {
 			if (dists.get(i) == size*apList.size()) {
+				//if we will have to go through all possible 
+				//state combinations then this is a sink state ?
 				sinkStates.set(i);
 			} else {
 				normalisedDist = dists.get(i)/initDist;
@@ -610,6 +623,9 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		}
 	}
 	
+	/*
+	 * Return the accepting states of this DA as a BitSet
+	 */
 	public BitSet getAccStates() {
 		BitSet daAcc = new BitSet(size);
 		if (getAcceptance() instanceof AcceptanceReach) {
