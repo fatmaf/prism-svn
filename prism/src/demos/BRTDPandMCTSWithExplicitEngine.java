@@ -88,17 +88,20 @@ public class BRTDPandMCTSWithExplicitEngine
 //			prism.buildModel();
 //			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
 //			mdp.exportToDotFile(saveplace+filename+"mdp.dot");
+			Expression expr = propertiesFile.getProperty(0); 
+			
+			MCTSModelChecker mctsmc = new MCTSModelChecker(prism,modulesFile,propertiesFile);
+			Result resultMCTS = mctsmc.check(expr); 
+			System.out.println(resultMCTS.getResult());
+			
 			
 			BRTDPModelChecker brtdpmc = new BRTDPModelChecker(prism,modulesFile,propertiesFile);
-			Expression expr = propertiesFile.getProperty(0); 
+			
 			
 			Result resultBRTDP = brtdpmc.check(expr);
 			System.out.println(resultBRTDP.getResult());
 			
 						
-			MCTSModelChecker mctsmc = new MCTSModelChecker(prism,modulesFile,propertiesFile);
-			Result resultMCTS = mctsmc.check(expr); 
-			System.out.println(resultMCTS.getResult());
 			
 			
 			// Close down PRISM

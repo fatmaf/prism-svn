@@ -39,7 +39,6 @@ import parser.ast.PropertiesFile;
 import prism.Prism;
 import prism.PrismDevNullLog;
 import prism.PrismException;
-import prism.PrismFileLog;
 import prism.PrismLog;
 import prism.Result;
 
@@ -63,14 +62,11 @@ public class ModelCheckWithExplicitEngine
 	{
 		try {
 			
-			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/mcts/bounded/";
-			saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-			//tests/mcts/bounded/clocked_coffee.prism tests/mcts/bounded/clocked_coffee.prop -mcts
-			String filename = "clocked_coffee";
-			filename="no_door_example";
+			String saveplace =  "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+			String filename = "no_door_example";
 			// Create a log for PRISM output (hidden or stdout)
-			//PrismLog mainLog = new PrismDevNullLog();
-			PrismLog mainLog = new PrismFileLog("stdout");
+			PrismLog mainLog = new PrismDevNullLog();
+			//PrismLog mainLog = new PrismFileLog("stdout");
 
 			// Initialise PRISM engine 
 			Prism prism = new Prism(mainLog);
@@ -87,35 +83,22 @@ public class ModelCheckWithExplicitEngine
 			prism.setEngine(Prism.EXPLICIT);
 			prism.buildModel();
 			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
-			mdp.exportToDotFile(saveplace+filename+"mdp.dot");
 			
-			BRTDPModelChecker brtdpmc = new BRTDPModelChecker(prism,modulesFile,propertiesFile);
-			Expression expr = propertiesFile.getProperty(0); 
-			
-			Result resultBRTDP = brtdpmc.check(expr);
-			System.out.println(resultBRTDP.getResult());
-			
-			MCTSModelChecker mctsmc = new MCTSModelChecker(prism,modulesFile,propertiesFile);
-			Result resultMCTS = mctsmc.check(expr); 
-			System.out.println(resultMCTS.getResult());
-			
-//			MDP mdp = (MDP) prism.getBuiltModelExplicit(); 
-
 			// Build an MDP model checker
-//			MDPModelChecker mc = new MDPModelChecker(prism);
+			MDPModelChecker mc = new MDPModelChecker(prism);
 			//mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, currentModelGenerator);
 			
 			// Model check the first property from the file using the model checker
-//			System.out.println(propertiesFile.getPropertyObject(0));
-//			Result result = mc.check(mdp, propertiesFile.getProperty(0));
+			System.out.println(propertiesFile.getPropertyObject(0));
+			Result result = mc.check(mdp, propertiesFile.getProperty(0));
 			// mc.computeReachProbs(mdp, target, min)
-//			System.out.println(result.getResult());
+			System.out.println(result.getResult());
 			
 			// Perform probabilistic model checking directly, using a model label as a target
-//			Expression labelGoal = prism.parsePropertiesString(modulesFile, "\"goal1\"").getProperty(0);
-//			BitSet statesGoal = mc.checkExpression(mdp, labelGoal, null).getBitSet();
-//			double probsGoal[] = mc.computeReachProbs(mdp, statesGoal, false).soln;
-//			System.out.println(Arrays.toString(probsGoal));
+			Expression labelGoal = prism.parsePropertiesString(modulesFile, "\"v7\"").getProperty(0);
+			BitSet statesGoal = mc.checkExpression(mdp, labelGoal, null).getBitSet();
+			double probsGoal[] = mc.computeReachProbs(mdp, statesGoal, false).soln;
+			System.out.println(Arrays.toString(probsGoal));
 			
 			// Close down PRISM
 			prism.closeDown();
