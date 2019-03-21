@@ -39,10 +39,13 @@ import java.util.List;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceType;
 import automata.DA;
+import cern.colt.Arrays;
 import explicit.LTLModelChecker;
 import explicit.MDP;
+import explicit.MDPModelChecker;
 import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
+import explicit.ProbModelChecker;
 import parser.State;
 import parser.ast.Expression;
 import parser.ast.ExpressionProb;
@@ -123,11 +126,19 @@ public class MRmcts {
 			//now do something with these 
 			BitSet acc = da.getAccStates();
 			BitSet sinkStates = da.getSinkStates();
-			int max_rollouts = 10; 
-			int rollout_depth = 10;
+			int max_rollouts = 10000; 
+			//the nodoorexample has 8 steps for 1 robot 
+			//so lets do 10 steps + slack = 30
+			int rollout_depth = 30;
 			MRuct uct = new MRuct(prism.getLog(),prodModGens,max_rollouts,rollout_depth,null,da.getDistsToAcc());
-			uct.search();
-			
+			uct.search(acc);
+			if(uct.uctPolicy.accStates.cardinality() > 0) {
+			MDPModelChecker mdpMC = new MDPModelChecker(prism);
+			uct.uctPolicy.jointMDP.findDeadlocks(true);
+			ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP,uct.uctPolicy.accStates, false);
+			mainLog.println("Result: "+Arrays.toString(res.soln));
+			}
+			mainLog.print("acha");
 //			UCT uct;
 //			demos.UCT.UCTNode uctRes;
 //			BitSet originalTerminalStates = new BitSet();
