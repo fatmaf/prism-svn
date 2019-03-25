@@ -1,9 +1,14 @@
 package demos;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Random;
 
 import explicit.Distribution;
@@ -11,6 +16,7 @@ import explicit.MDPSimple;
 import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
+import strat.MDStrategyArray;
 
 public class JointPolicy {
 	int numRobots;
@@ -28,6 +34,8 @@ public class JointPolicy {
 	protected BitSet visited;
 
 	protected BitSet accStates;
+	double defaultQValue = 1;// Double.MAX_VALUE;
+	double explorationBias = 10;
 
 	public void setAsAccState(State state) {
 		int stateIndex = getStateIndex(state);
@@ -147,12 +155,23 @@ public class JointPolicy {
 		} else {
 			// TODO check if this works
 			// because it might not
-
+			// we're exploring all successors so we should not have to do this.
+			// this makes no sense to me.
+			// why does this even happen ???
 			stateInd = getStateIndex(state);
+			mainLog.println("Action " + action.toString());
+			mainLog.println("State " + state.toString());
+			distr = jointMDP.getChoice(stateInd, actionInd);
+			Iterator<Entry<Integer, Double>> dist_list = distr.iterator();
+			while (dist_list.hasNext()) {
+				Entry<Integer, Double> sa = dist_list.next();
+				State sas = jointMDP.getStatesList().get(sa.getKey());
+				mainLog.println("succ: " + sas.toString() + ", " + sa.getValue());
+			}
 			for (int i = 0; i < succStates.size(); i++) {
 				int succStateIndex = addState(succStates.get(i));
 				// only add this new state if it is not there already
-				distr = jointMDP.getChoice(stateInd, actionInd);
+
 				if (!distr.contains(succStateIndex))
 					jointMDP.getChoice(stateInd, actionInd).add(succStateIndex, probs.get(i));
 			}
@@ -225,7 +244,7 @@ public class JointPolicy {
 	}
 
 	double getQvalue(State state, Object action) {
-		double qvalue = 0;
+		double qvalue = defaultQValue;
 		if (stateActionQvalues.containsKey(state)) {
 			if (stateActionQvalues.get(state).containsKey(action)) {
 				qvalue = stateActionQvalues.get(state).get(action);
@@ -286,7 +305,19 @@ public class JointPolicy {
 		return numC;
 	}
 
-	public Object getBestAction(State state, boolean minimizeCost) {
+	public State getStateFromIndex(int ind) {
+		State storet = null;
+		for (State s : stateIndices.keySet()) {
+			if (stateIndices.get(s) == ind) {
+				storet = s;
+				break;
+			}
+
+		}
+		return storet;
+	}
+
+	public Object getBestAction(State state, boolean minimizeCost) throws PrismException {
 		int numActions = 0;
 		int numActionsZeroQ = 0;
 		Object bestAction = null;
@@ -295,48 +326,121 @@ public class JointPolicy {
 		if (!minimizeCost)
 			minCost = 0;
 		boolean costCheck;
-		double exploration_bias = 0.5;
-		for (Object act : stateActionVisits.get(state).keySet()) {
-			numActions++;
-			// adding 1 so that I dont get undefined
-			double lnStateVisits = Math.log(getNumVisits(state) + 1);
-			double stateActionVisits = Math.log(getNumVisits(state, act) + 1);
-			double exploration_term = lnStateVisits / stateActionVisits;
-			if (Double.isNaN(exploration_term)) {
-				exploration_term = 0;
-			}
-			double sqrt = Math.sqrt(exploration_term);
-			cost = getQvalue(state, act) - exploration_bias * sqrt;
-			if (cost == 0) {
-				numActionsZeroQ++;
-			}
-			if (minimizeCost)
-				costCheck = cost < minCost;
-			else
-				costCheck = cost > minCost;
+		double exploration_bias = explorationBias;
+		if (stateActionVisits.containsKey(state)) {
+			for (Object act : stateActionVisits.get(state).keySet()) {
+				numActions++;
+				// adding 1 so that I dont get undefined
+				double lnStateVisits = Math.log(getNumVisits(state) + 1);
+				double stateActionVisits = Math.log(getNumVisits(state, act) + 1);
+				double exploration_term = lnStateVisits / stateActionVisits;
+				if (Double.isNaN(exploration_term)) {
+					exploration_term = 0;
+				}
+				double sqrt = Math.sqrt(exploration_term);
+				cost = getQvalue(state, act) - exploration_bias * sqrt;
+				if (cost == defaultQValue) {
+					numActionsZeroQ++;
+				}
+				if (minimizeCost)
+					costCheck = cost < minCost;
+				else
+					costCheck = cost > minCost;
 
-			if (costCheck) {
-				minCost = cost;
-				bestAction = act;
+				if (costCheck) {
+					minCost = cost;
+					bestAction = act;
+				}
+			}
+			if (numActionsZeroQ == numActions) {
+				// then pick something at random
+				Random rand = new Random();
+				int choice = rand.nextInt(numActions);
+				bestAction = (stateActionVisits.get(state).keySet().toArray())[choice];
 			}
 		}
-		if (numActionsZeroQ == numActions) {
-			// then pick something at random
-			Random rand = new Random();
-			int choice = rand.nextInt(numActions);
-			bestAction = (stateActionVisits.get(state).keySet().toArray())[choice];
-		}
+//			else
+//			throw new PrismException("state not found");
 
 		return bestAction;
 
 	}
 
-	HashMap<State, Object> getBestPolicySoFar(boolean minimiseCosts) {
+	public MDPSimple extractPolicyTreeAsDotFile(MDPSimple mdp, int initialState, boolean minimiseCosts) {
+
+		MDPSimple policyTree = new MDPSimple();
+		List<State> statesList = new ArrayList<State>();
+		int[] stateLabels = new int[mdp.getNumStates()];
+		Arrays.fill(stateLabels, -1);
+		Queue<Integer> stateQ = new LinkedList<Integer>();
+		stateQ.add(initialState);
+		int state, ps, choice;
+		Object action = null;
+		BitSet visited = new BitSet();
+
+		while (!stateQ.isEmpty()) {
+			state = stateQ.remove();
+			if(!visited.get(state)) {
+				visited.set(state);
+			if (stateLabels[state] == -1) {
+				stateLabels[state] = policyTree.addState();
+				statesList.add(mdp.getStatesList().get(state));
+			}
+			ps = stateLabels[state];
+			State statestate = getStateFromIndex(state);
+			try {
+				action = getBestAction(statestate, minimiseCosts);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (action != null) {
+				if (stateActionIndices.containsKey(statestate)) {
+					if (stateActionIndices.get(statestate).containsKey(action)) {
+						choice = stateActionIndices.get(statestate).get(action);
+						if (choice > -1) {
+							Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(state, choice);
+							Distribution distr = new Distribution();
+							while (tranIter.hasNext()) {
+								Entry<Integer, Double> csp = tranIter.next();
+								int childstate = csp.getKey();
+								double stateProb = csp.getValue();
+								if (stateLabels[childstate] == -1) {
+									stateLabels[childstate] = policyTree.addState();
+									statesList.add(mdp.getStatesList().get(childstate));
+								}
+								int cs = stateLabels[childstate];
+								distr.add(cs, stateProb);
+								stateQ.add(childstate);
+							}
+							policyTree.addActionLabelledChoice(ps, distr, action);
+						}
+						
+					}
+				}
+			}
+
+		}
+		}
+		policyTree.setStatesList(statesList);
+
+		return policyTree;
+	}
+
+	HashMap<State, Object> getBestPolicySoFar(State initialState, boolean minimiseCosts) {
+
 		HashMap<State, Object> bestPolicySoFar = new HashMap<State, Object>();
 		for (State s : stateActionQvalues.keySet()) {
-			Object action = getBestAction(s, minimiseCosts);
+			Object action = null;
+			try {
+				action = getBestAction(s, minimiseCosts);
+			} catch (PrismException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			bestPolicySoFar.put(s, action);
 		}
+
 		return bestPolicySoFar;
 	}
 

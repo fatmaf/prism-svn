@@ -81,7 +81,7 @@ public class MRmcts {
 			// Create a log for PRISM output (hidden or stdout)
 			// PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
-
+			Long startTime = System.currentTimeMillis();
 			// Initialise PRISM engine
 			Prism prism = new Prism(mainLog);
 			prism.initialise();
@@ -93,7 +93,7 @@ public class MRmcts {
 			ArrayList<ProductModelGenerator> prodModGens = new ArrayList<ProductModelGenerator>();
 
 			ExpressionProb expr = null;
-			DA<BitSet, ? extends AcceptanceOmega> da=null;
+			DA<BitSet, ? extends AcceptanceOmega> da = null;
 			LTLModelChecker ltlMC;// = new LTLModelChecker(prism);
 			AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
 
@@ -103,19 +103,19 @@ public class MRmcts {
 				ModulesFile modulesFile = prism.parseModelFile(new File(filenames.get(fileno)));
 				prism.loadPRISMModel(modulesFile);
 //				if(expr == null) {
-				// have not investigated this 
-				//but i can not use the same da to generate all models 
-				//i get an outofbounds index error for the first state when i do get init state on that prod mod 
-				//soo no to this if above 
+				// have not investigated this
+				// but i can not use the same da to generate all models
+				// i get an outofbounds index error for the first state when i do get init state
+				// on that prod mod
+				// soo no to this if above
 				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
 				expr = (ExpressionProb) propertiesFile.getProperty(0);
-				
+
 				ltlMC = new LTLModelChecker(prism);
-				da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs,
-						allowedAcceptance);
+				da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
 				da.setDistancesToAcc();
 				da.printDot(mainLog);
-				PrismFileLog out = new PrismFileLog(saveplace+"mrmctsda"+fileno+".dot");
+				PrismFileLog out = new PrismFileLog(saveplace + "mrmctsda" + fileno + ".dot");
 				da.printDot(out);
 				out.close();
 //				}
@@ -123,105 +123,33 @@ public class MRmcts {
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 				prodModGens.add(prodModelGen);
 			}
-			//now do something with these 
+			// now do something with these
 			BitSet acc = da.getAccStates();
 			BitSet sinkStates = da.getSinkStates();
-			int max_rollouts = 10000; 
-			//the nodoorexample has 8 steps for 1 robot 
-			//so lets do 10 steps + slack = 30
+			int max_rollouts = 1000;
+			// the nodoorexample has 8 steps for 1 robot
+			// so lets do 10 steps + slack = 30
 			int rollout_depth = 30;
-			MRuct uct = new MRuct(prism.getLog(),prodModGens,max_rollouts,rollout_depth,null,da.getDistsToAcc());
-			uct.search(acc);
-			if(uct.uctPolicy.accStates.cardinality() > 0) {
-			MDPModelChecker mdpMC = new MDPModelChecker(prism);
-			uct.uctPolicy.jointMDP.findDeadlocks(true);
-			ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP,uct.uctPolicy.accStates, false);
-			mainLog.println("Result: "+Arrays.toString(res.soln));
+
+			MRuct uct = new MRuct(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null, da.getDistsToAcc());
+			ArrayList<Integer> solfoundinrollout = uct.search(acc);
+			long searchOverTime = System.currentTimeMillis();
+			if (uct.uctPolicy.accStates.cardinality() > 0) {
+				MDPModelChecker mdpMC = new MDPModelChecker(prism);
+				uct.uctPolicy.jointMDP.findDeadlocks(true);
+				ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, uct.uctPolicy.accStates,
+						false);
+				uct.uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "sol.dot", uct.uctPolicy.accStates);
+				mainLog.println("Result: " + Arrays.toString(res.soln));
+				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
+						uct.uctPolicy.getStateIndex(uct.initState), true);
+				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
+				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
 			}
-			mainLog.print("acha");
-//			UCT uct;
-//			demos.UCT.UCTNode uctRes;
-//			BitSet originalTerminalStates = new BitSet();
-//			BitSet prunedTerminalStates = new BitSet();
-//			int depth = 30;
-//			int nSamples = 100000;
-//			
-//			MDPSimple resMDP2 = null, resMDP = null;
-//			List<MDPSimple> candidateMDPs = new ArrayList<MDPSimple>();
-//			List<Double> candidateMDPsReachProbs = new ArrayList<Double>();
-//			List<BitSet> candidateMDPsAccStates = new ArrayList<BitSet>();
-//			double reachProb = 0.0;
-//			int nCandidates = 0;
-//			BitSet accModel = null;
-//			ModelCheckerResult checkRes = null;
-//			int current_acc = acc.nextSetBit(0);
-//			boolean useDistCost = false; 
-//			
-////			for (int current_acc = acc.nextSetBit(0); current_acc >= 0; current_acc = acc.nextSetBit(current_acc + 1)) {
-//				List<Double> distsToAcc = da.calculateDistsToState(acc.nextSetBit(0));
-				
-//				uct = new UCT(prism.getLog(), prodModelGen, prodModelGen.getInitialState(), distsToAcc, sinkStates, depth, nSamples, useDistCost, null); //TODO iterative deepening; tweak exploration param, # samples, depth
-//				uctRes = uct.search();
-//				resMDP = buildMDP(uctRes, prodModelGen, originalTerminalStates);
-//				accModel = findAccStates(resMDP, da);
-//				checkRes = checkReachability(resMDP, accModel);
-//				resMDP2 = buildPolicyMDP(prodModelGen, resMDP, checkRes, originalTerminalStates, prunedTerminalStates);
-//				reachProb = checkRes.soln[0];
-//				int pos = 0;
-//				if(reachProb > 0) {
-//					for(pos = 0; pos < candidateMDPsReachProbs.size(); pos++) {
-//						if (reachProb > candidateMDPsReachProbs.get(pos)) {
-//							break;
-//						}
-//					}
-//					candidateMDPs.add(pos, resMDP);
-//					candidateMDPsReachProbs.add(pos, reachProb);
-//					candidateMDPsAccStates.add(pos, accModel);
-//					nCandidates++;
-//				}
-//			}
 
-			
-
-			// da.printDot(new PrismFileLog(saveplace+"da.dot"));
-			// int numStateVars = mdps.size() + 1;
-			//
-			// ArrayList<String> stateLabels = new ArrayList<String>();
-			// ArrayList<HashMap<String,BitSet>> mdpStateLabels = new
-			// ArrayList<HashMap<String,BitSet>>();
-			// State jointState = new State(numStateVars);
-			// //get all initial states
-			// for(int i = 0; i<mdps.size(); i++)
-			// {
-			//
-			// jointState.setValue(i, mdps.get(i).getFirstInitialState());
-			// HashMap<String,BitSet> labelsMap = new HashMap<String,BitSet>();
-			// for(String lab: mdps.get(i).getLabels())
-			// {
-			// labelsMap.put(lab,mdps.get(i).getLabelStates(lab));
-			// for (Expression expr : labelExprs)
-			// {
-			//
-			// if(labelsMap.get(lab).get(mdps.get(i).getFirstInitialState()))
-			// {
-			// stateLabels.add(lab);
-			// }
-			// }
-			//
-			// }
-			// mdpStateLabels.add(labelsMap);
-			// }
-			// jointState.setValue(numStateVars-1, da.getStartState());
-			// //there may be a case where one of the robots puts us in a state that we
-			// weren't aware of
-			// //you know that whole starting in a goal state thing
-			// //best to deal with it here.
-			//
-			//
-			//
-			// mainLog.println(jointState.toString());
-
-
+			long endTime = System.currentTimeMillis();
+			mainLog.println("Search Time: " + (searchOverTime - startTime) / 1000.0 + "s" + "\nTotal Time:"
+					+ (endTime - startTime) / 1000.0 + "s");
 			// Close down PRISM
 			prism.closeDown();
 

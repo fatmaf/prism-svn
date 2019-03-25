@@ -6,6 +6,9 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+
+import explicit.MDPSimple;
+
 import java.util.Random;
 import java.util.Set;
 
@@ -35,6 +38,7 @@ public class MRuct {
 	private String da_id_string = "_da0";
 	private ArrayList<String> shared_state_names;
 
+	State initState=null; 
 	Random randomGen;
 	JointPolicy uctPolicy;
 
@@ -79,16 +83,20 @@ public class MRuct {
 			int da_state_index = prodModGens.get(i).getVarIndex(da_id_string);
 
 			temp_joint_state.setValue(i, current_model_state.substate(0, da_state_index));
+			
 			State da_state_in_joint_state = temp_joint_state.substate(num_robots, num_robots + 1);
+			
 			if (da_state_in_joint_state.varValues[0] == null) {
 				temp_joint_state.setValue(num_robots, current_model_state.substate(da_state_index, da_state_index + 1));
 			} else {
 				// check if there's a change
 				State da_state_in_robot = current_model_state.substate(da_state_index, da_state_index + 1);
-				if (!da_state_in_joint_state.equals(da_state_in_robot)) {
+				State dastateinjointstate = (State) da_state_in_joint_state.varValues[0];
+				
+				if (!dastateinjointstate.equals(da_state_in_robot)) {
 					// if there are competing DA states
 					// lets take the one whose disttoacc is the smallest ?
-					State dastateinjointstate = (State) da_state_in_joint_state.varValues[0];
+					
 
 					int da_state_in_joint_state_int = (int) dastateinjointstate.varValues[0];
 					int dastateinrobot = (int) da_state_in_robot.varValues[0];
@@ -105,7 +113,7 @@ public class MRuct {
 							accFound = true;
 						}
 						}
-						if (jsacc > rsacc) {
+						if (jsacc >= rsacc) {
 							temp_joint_state.setValue(num_robots, da_state_in_robot);
 						}
 					}
@@ -127,6 +135,7 @@ public class MRuct {
 		if(dist == 0)
 		{
 			uctPolicy.setAsAccState(state);
+			accFound=true;
 		}
 		return dist;
 	}
@@ -148,7 +157,9 @@ public class MRuct {
 
 	}
 
-	public void search(BitSet accStates) {
+	public ArrayList<Integer> search(BitSet accStates) {
+		ArrayList<Integer> accsFound = new ArrayList<Integer>();
+		
 		current_rollout_num = 0;
 		ArrayList<State> initialStates = getInitialStates();
 		// get the initial state
@@ -159,7 +170,9 @@ public class MRuct {
 			mainLog.println("Rollout Attempt: "+current_rollout_num);
 			// do a rollout
 			try {
-				rollout(initialStates, current_rollout_num,accStates);//rollout_stateactionstateonly(initialStates, current_rollout_num);
+				int res=rollout(initialStates, current_rollout_num,accStates);//rollout_stateactionstateonly(initialStates, current_rollout_num);
+				if(res != -1)
+					accsFound.add(res);
 			} catch (PrismException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -167,6 +180,7 @@ public class MRuct {
 			current_rollout_num++;
 		
 		}
+		return accsFound;
 	}
 
 	/**
@@ -400,7 +414,7 @@ public class MRuct {
 	 * 
 	 */
 
-	public void rollout(ArrayList<State> initialStates, int current_rollout_num,BitSet accStates) throws PrismException {
+	public int rollout(ArrayList<State> initialStates, int current_rollout_num,BitSet accStates) throws PrismException {
 
 		int current_depth = 0;
 		accFound = false;
@@ -409,6 +423,7 @@ public class MRuct {
 		
 		ArrayList<State> currentStates = initialStates;
 		State state = getJointState(currentStates,accStates);
+		initState = new State(state);
 		boolean doProb = false; 
 		boolean minimiseCosts= !doProb;
 		double initialCost = 0; 
@@ -419,7 +434,7 @@ public class MRuct {
 		while (current_depth < rollout_depth) {
 
 			uctPolicy.addState(state);
-
+			currentStates = getRobotStatesFromJointState(state);
 			// get all actions for this state
 			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
 			ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
@@ -431,9 +446,15 @@ public class MRuct {
 					uctPolicy.initialiseVisits(state, action);
 				}
 			}
+			
 			uctPolicy.printStateDetails(state);
 			//choose an action 
 			Object chosen_jointAction = uctPolicy.getBestAction(state, minimiseCosts);
+			boolean test = false;
+			if(state.toString().contains("((-1),(4),(6))"))
+				if(chosen_jointAction.toString().contains("failed,v4_8"))
+					test=true;
+					
 			mainLog.println("Chosen Action "+chosen_jointAction);
 			// now lets carry out this action
 			HashMap<Integer, HashMap<State, Double>> successors = getActionSuccessors(splitJointAction(chosen_jointAction), allPossibleActionsForState);
@@ -442,12 +463,13 @@ public class MRuct {
 			ArrayList<ArrayList<State>> jointSuccessors = getJointStateCombinations(successors);
 			ArrayList<State> succStates = getJointStates(jointSuccessors);
 			ArrayList<Double> probs = calculateJointStatesProbs(successors, jointSuccessors);
+			
 			// add all these to my mdp
 			uctPolicy.addAction(state,chosen_jointAction, succStates,probs);
 			// now we sample a successor maybe :P I dont know really
 			int state_choice = randomGen.nextInt(jointSuccessors.size());
 
-			ArrayList<State> successorStates = jointSuccessors.get(state_choice);
+//			ArrayList<State> successorStates = jointSuccessors.get(state_choice);
 
 			//now that we know the next state, we say its probability is the cost 
 //			if(!doProb)
@@ -460,18 +482,8 @@ public class MRuct {
 			simulatedPolicy.add(new AbstractMap.SimpleEntry<State, Object>(state,
 					chosen_jointAction));
 			
-//			//update things here 
-//			//comment this out later 
-//			double prevQ = uctPolicy.getQvalue(state, chosen_jointAction); 
-//			double stateActionVisits = (double)uctPolicy.getNumVisits(state, chosen_jointAction);
-//			double newQ = (stateActionVisits * prevQ 
-//					+ (cumulativeCost.get(current_depth+1)-cumulativeCost.get(current_depth)) )/(stateActionVisits+1);
-//			
-//			uctPolicy.updateQValue(state, chosen_jointAction, newQ);
-//			uctPolicy.increaseVisits(state, chosen_jointAction);
-			
-			currentStates = successorStates;
-			state = getJointState(currentStates,accStates);
+
+			state = succStates.get(state_choice);
 		
 			double stateCost =0;
 			boolean doBreak = false;
@@ -508,11 +520,11 @@ public class MRuct {
 				
 				doBreak = true; 
 			}
-			cumulativeCost.add(cumulativeCost.get(current_depth)+stateCost);
+			cumulativeCost.add(cumulativeCost.get(current_depth)+stateCost*probs.get(state_choice));
 			mainLog.println("Cost "+cumulativeCost.get(current_depth+1));
 			current_depth++;
-//			if (doBreak)
-//				break;
+			if (doBreak)
+				break;
 
 		}
 		// update things
@@ -530,16 +542,57 @@ public class MRuct {
 			uctPolicy.increaseVisits(state_i, action_i);
 		}
 		if(accFound) {
-		HashMap<State, Object> policysofar = uctPolicy.getBestPolicySoFar(minimiseCosts); 
+		HashMap<State, Object> policysofar = uctPolicy.getBestPolicySoFar(initState,minimiseCosts); 
 		mainLog.println(policysofar.toString());
 		mainLog.println(simulatedPolicy.toString());
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 		String filename = "no_door_example";
 		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_rollout" + current_rollout_num + ".dot");
+		MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP,uctPolicy.getStateIndex(initState),minimiseCosts);
+		policyTree.exportToDotFile(saveplace + filename + "_policy" + current_rollout_num + ".dot");
+		return current_rollout_num; 
 		}
 
-		
+		return -1;
 
+	}
+
+	//because sometimes a state just is a state so thats annoying
+	private int getIndividualState(State state, int ind,int subind)
+	{
+	 Object s = state.varValues[ind];
+	 int sint;
+	 if (s instanceof State )
+	 {
+		 sint = getIndividualState((State)s,subind,0);
+	 }
+	 else
+	 {
+		 sint = (int)s;
+	 }
+		return sint;
+	}
+	private ArrayList<State> getRobotStatesFromJointState(State state) {
+		// TODO edit this for multiple state variables but for now lets just go with the usual 
+		int numRobotStateVars = 2; 
+		int da_state_val = getIndividualState(state,num_robots,0);
+		int robot_state_val; 
+		ArrayList<State> robotStates = new ArrayList<State>(); 
+		State robotState; 
+		for(int i = 0; i<num_robots; i++)
+		{
+			robotState = new State(numRobotStateVars); 
+			
+			for(int j = 0; j<numRobotStateVars-1; j++)
+			{
+				robot_state_val = getIndividualState(state,i,j);
+			robotState.setValue(j, robot_state_val); 
+			}
+			robotState.setValue(numRobotStateVars-1, da_state_val);
+			robotStates.add(robotState);
+			
+		}
+		return robotStates;
 	}
 
 }
