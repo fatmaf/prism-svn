@@ -69,10 +69,15 @@ import simulator.ModulesFileModelGenerator;
  */
 public class MRmcts {
 	public static void main(String[] args) {
-		new MRmcts().run();
+		try {
+			new MRmcts().run();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	public void run() {
+	public void run() throws Exception {
 		try {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
@@ -130,9 +135,12 @@ public class MRmcts {
 			// the nodoorexample has 8 steps for 1 robot
 			// so lets do 10 steps + slack = 30
 			int rollout_depth = 30;
-
-			MRuct uct = new MRuct(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null, da.getDistsToAcc());
-			ArrayList<Integer> solfoundinrollout = uct.search(acc);
+			boolean minCost = true;
+			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
+					da.getDistsToAcc());
+//			uct.uctsearch(acc);
+//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
+			uct.monteCarloPlanning(acc, minCost);
 			long searchOverTime = System.currentTimeMillis();
 			if (uct.uctPolicy.accStates.cardinality() > 0) {
 				MDPModelChecker mdpMC = new MDPModelChecker(prism);
@@ -144,7 +152,7 @@ public class MRmcts {
 				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
 						uct.uctPolicy.getStateIndex(uct.initState), true);
 				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
-				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
+//				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
 			}
 
 			long endTime = System.currentTimeMillis();

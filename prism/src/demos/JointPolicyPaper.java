@@ -18,7 +18,7 @@ import prism.PrismException;
 import prism.PrismLog;
 import strat.MDStrategyArray;
 
-public class JointPolicy {
+public class JointPolicyPaper {
 	int numRobots;
 	int numTasks;
 	int numSharedStates;
@@ -39,10 +39,11 @@ public class JointPolicy {
 
 	public void setAsAccState(State state) {
 		int stateIndex = getStateIndex(state);
-		accStates.set(stateIndex);
+		if (stateIndex != -1)
+			accStates.set(stateIndex);
 	}
 
-	public JointPolicy(PrismLog log, int numRobots, int numTasks, int numSharedStates,
+	public JointPolicyPaper(PrismLog log, int numRobots, int numTasks, int numSharedStates,
 			ArrayList<String> sharedStatesNamesList, ArrayList<String> isolatedStatesNamesList) {
 		mainLog = log;
 		robotStateActionIndices = new HashMap<State, HashMap<Object, ArrayList<Integer>>>();
@@ -90,6 +91,27 @@ public class JointPolicy {
 			}
 		}
 		return actionInd;
+	}
+
+	public boolean addRobotStateActionIndices(State jointstate, Object jointAction, ArrayList<Object> actionList,
+			int[] actionsIndices) {
+		boolean added = false;
+		if (!robotStateActionIndices.containsKey(jointstate)) {
+			robotStateActionIndices.put(jointstate, new HashMap<Object, ArrayList<Integer>>());
+		}
+		if (!robotStateActionIndices.get(jointstate).containsKey(jointAction)) {
+			// now we make the arraylist
+			ArrayList<Integer> actionIndices = new ArrayList<Integer>();
+			for (int i = 0; i < numRobots; i++) {
+				int actionIndex = (actionsIndices[i] - 1);
+				actionIndices.add(actionIndex);
+			}
+			robotStateActionIndices.get(jointstate).put(jointAction, actionIndices);
+			added = true;
+
+		}
+		return added;
+
 	}
 
 	public boolean addRobotStateActionIndices(State jointstate, Object jointAction, ArrayList<Object> actionList,
@@ -207,24 +229,27 @@ public class JointPolicy {
 		if (stateActionIndices.containsKey(state))
 			state_index = stateIndices.get(state);
 		if (state_index != -1) {
-			
-			int action_choice = stateActionIndices.get(state).get(action);
-			int succ_state_index = -1;
-			double prob = (new Random()).nextDouble();
-			double cum_prob = 0;
-			Iterator<Entry<Integer, Double>> iter = jointMDP.getTransitionsIterator(state_index, action_choice);
-			while (iter.hasNext()) {
-				Entry<Integer, Double> entry = iter.next();
-				cum_prob += entry.getValue();
-				if (cum_prob >= prob) {
-					succ_state_index = entry.getKey();
-					break;
+			if (stateActionIndices.get(state).containsKey(action)) {
+				int action_choice = stateActionIndices.get(state).get(action);
+				int succ_state_index = -1;
+				double prob = (new Random()).nextDouble();
+				double cum_prob = 0;
+				Iterator<Entry<Integer, Double>> iter = jointMDP.getTransitionsIterator(state_index, action_choice);
+				while (iter.hasNext()) {
+					Entry<Integer, Double> entry = iter.next();
+					cum_prob += entry.getValue();
+					if (cum_prob >= prob) {
+						succ_state_index = entry.getKey();
+						break;
+					}
+
 				}
 
-			}
-			if (succ_state_index != -1) {
-				return jointMDP.getStatesList().get(succ_state_index);
-			}
+				if (succ_state_index != -1) {
+					return jointMDP.getStatesList().get(succ_state_index);
+				}
+			} else
+				return null;
 		}
 
 		return null;
@@ -322,8 +347,14 @@ public class JointPolicy {
 		return visit;
 	}
 
-	double getQvalue(State state, Object action) {
-		double qvalue = defaultQValue;
+	double getQvalue(State state, Object action, boolean minimiseCosts) {
+		// if we want to minimise costs
+		// we set the default value to really low
+		// so everyone explores
+
+		double qvalue = Double.MAX_VALUE;
+		if (minimiseCosts)
+			qvalue = Double.MIN_VALUE;
 		if (stateActionQvalues.containsKey(state)) {
 			if (stateActionQvalues.get(state).containsKey(action)) {
 				qvalue = stateActionQvalues.get(state).get(action);
@@ -337,15 +368,14 @@ public class JointPolicy {
 		return qvalue;
 	}
 
-	
-	double getQvalue(State state) {
+	double getQvalue(State state, boolean minimiseCost) {
 		double qvalue = defaultQValue;
 
 		if (stateActionQvalues.containsKey(state)) {
 			double sum = 0;
 
 			for (Object act : stateActionQvalues.get(state).keySet()) {
-				sum += getQvalue(state, act) * (double) getNumVisits(state, act);
+				sum += getQvalue(state, act, minimiseCost) * (double) getNumVisits(state, act);
 			}
 			if (sum != 0) {
 				sum = sum / (double) getNumVisits(state);
@@ -354,8 +384,6 @@ public class JointPolicy {
 		}
 		return qvalue;
 	}
-	
-
 
 	void updateQValue(State state, Object action, double qvalue) {
 
@@ -365,6 +393,22 @@ public class JointPolicy {
 		}
 		stateActionQvalues.get(state).put(action, qvalue);
 
+	}
+
+	protected void generateCombinations(ArrayList<Integer> numActionsPerRobot, ArrayList<int[]> res)
+			throws PrismException {
+		int[] counter = new int[numActionsPerRobot.size()];
+		for (int i = 0; i < counter.length; i++)
+			counter[i] = numActionsPerRobot.get(i);
+		int[] original = counter.clone();
+		int numP = generateCombinations(counter, 0, original.length - 1, original, 0, res);
+		int estimatedC = getNumberOfCombinations(original);
+		if (res.size() != estimatedC) {
+			mainLog.println(
+					"ERROR - the number of expected combinations was " + estimatedC + ", generated " + res.size());
+			throw new PrismException(
+					"ERROR - the number of expected combinations was " + estimatedC + ", generated " + res.size());
+		}
 	}
 
 	protected void generateCombinations(int counter[], int original[], ArrayList<int[]> res) throws PrismException {
@@ -432,9 +476,16 @@ public class JointPolicy {
 		double minCost = Double.MAX_VALUE;
 		if (!minimizeCost)
 			minCost = 0;
+		double defaultCost = Double.MAX_VALUE;
+		if (minimizeCost)
+			defaultCost = Double.MIN_VALUE;
 		boolean costCheck;
 		double exploration_bias = explorationBias;
 		if (stateActionVisits.containsKey(state)) {
+			mainLog.println("Vists/Values "+state.toString());
+			mainLog.println(stateActionVisits.get(state).toString());
+			mainLog.println(stateActionQvalues.get(state).toString());
+			
 			for (Object act : stateActionVisits.get(state).keySet()) {
 				numActions++;
 				// adding 1 so that I dont get undefined
@@ -442,13 +493,13 @@ public class JointPolicy {
 				double stateActionVisits = Math.log(getNumVisits(state, act));
 				double exploration_term = lnStateVisits / stateActionVisits;
 				if (stateActionVisits == 0)
-					exploration_term = Double.MAX_VALUE;
+					exploration_term = defaultCost;
 				if (Double.isNaN(exploration_term)) {
-					exploration_term = 0;
+					exploration_term = defaultCost;
 				}
 				double sqrt = Math.sqrt(exploration_term);
-				cost = getQvalue(state, act) - exploration_bias * sqrt;
-				if (cost == defaultQValue) {
+				cost = getQvalue(state, act, minimizeCost) - exploration_bias * sqrt;
+				if (cost == defaultCost) {
 					numActionsZeroQ++;
 				}
 				if (minimizeCost)
@@ -471,6 +522,8 @@ public class JointPolicy {
 //			else
 //			throw new PrismException("state not found");
 
+		if(bestAction!=null)
+		mainLog.println(state.toString()+" **"+bestAction.toString()); 
 		return bestAction;
 
 	}
@@ -553,7 +606,7 @@ public class JointPolicy {
 		return bestPolicySoFar;
 	}
 
-	public void printStateDetails(State state) {
+	public void printStateDetails(State state, boolean minimiseCost) {
 		// print everything about this state
 		String visits = "v:" + getNumVisits(state);
 		String actionvisits = "";
@@ -561,7 +614,7 @@ public class JointPolicy {
 		for (Object a : stateActionVisits.get(state).keySet()) {
 			actionvisits += " ";
 			actionvisits += a.toString() + ":" + getNumVisits(state, a);
-			qvalues += a.toString() + ":" + getQvalue(state, a);
+			qvalues += a.toString() + ":" + getQvalue(state, a, minimiseCost);
 
 		}
 		mainLog.println("State Info\n" + state);
