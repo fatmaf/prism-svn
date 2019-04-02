@@ -142,18 +142,18 @@ public class MRmcts {
 //			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			uct.monteCarloPlanning(acc, minCost);
 			long searchOverTime = System.currentTimeMillis();
-			if (uct.uctPolicy.accStates.cardinality() > 0) {
-				MDPModelChecker mdpMC = new MDPModelChecker(prism);
-				uct.uctPolicy.jointMDP.findDeadlocks(true);
-				ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, uct.uctPolicy.accStates,
-						false);
-				uct.uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "sol.dot", uct.uctPolicy.accStates);
-				mainLog.println("Result: " + Arrays.toString(res.soln));
-				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
-						uct.uctPolicy.getStateIndex(uct.initState), true);
-				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
-//				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
-			}
+//			if (uct.uctPolicy.accStates.cardinality() > 0) {
+//				MDPModelChecker mdpMC = new MDPModelChecker(prism);
+//				uct.uctPolicy.jointMDP.findDeadlocks(true);
+//				ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, uct.uctPolicy.accStates,
+//						false);
+//				uct.uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "sol.dot", uct.uctPolicy.accStates);
+//				mainLog.println("Result: " + Arrays.toString(res.soln));
+//				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
+//						uct.uctPolicy.getStateIndex(uct.initState), true);
+//				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
+////				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
+//			}
 
 			long endTime = System.currentTimeMillis();
 			mainLog.println("Search Time: " + (searchOverTime - startTime) / 1000.0 + "s" + "\nTotal Time:"

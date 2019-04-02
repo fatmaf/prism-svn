@@ -23,13 +23,13 @@ import prism.ProductModelGenerator;
  **/
 public class MRuctPaper {
 
-private static final double MINFAILCOST = 0;
+private double MINFAILCOST = 0;
 //	protected double termCritParam = 1e-8;
 //	public static final int UNK_STATE = -1;
 //	public static final int SINK_STATE = 0;
 //	public static final int ACC_STATE = 1;
 
-private static final double MAXFAILCOST = 1000;
+private double MAXFAILCOST=0;
 
 	private PrismLog mainLog;
 	private ArrayList<ProductModelGenerator> prodModGens;
@@ -67,6 +67,12 @@ private static final double MAXFAILCOST = 1000;
 		da_distToAcc = dadistToAcc;
 		uctPolicy = new JointPolicyPaper(mainLog, num_robots, 1, 0, null, null);
 		randomGen = new Random();
+		//so the maximum failure cost should be the number of steps 
+		//because with the max cost of other things being 1 you can never do worse 
+		//or even smaller ? 
+		//possibly 
+		MAXFAILCOST = 1;//10/0.2; 
+		MINFAILCOST= -MAXFAILCOST; 
 
 	}
 
@@ -148,7 +154,22 @@ private static final double MAXFAILCOST = 1000;
 		}
 		return dist;
 	}
-
+	
+	boolean isGoal(State state) {
+		// get the da state
+		State dastate = state.substate(num_robots, num_robots + 1);
+		dastate = (State) dastate.varValues[0];
+		int dastateint = (int) dastate.varValues[0];
+		double dist = da_distToAcc.get(dastateint);
+		if (dist == 0) {
+			mainLog.println(state.toString());
+			uctPolicy.setAsAccState(state);
+			accFound = true;
+			return true;
+		}
+		return false;
+	}
+	
 	ArrayList<State> getInitialStates() {
 		ArrayList<State> states = new ArrayList<State>();
 		// creating the initial state
@@ -887,6 +908,14 @@ private static final double MAXFAILCOST = 1000;
 			current_rollout_num++;
 
 		}
+		//lets do the policy tree stuff here 
+		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+		String filename = "no_door_example";
+		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_rollout" + current_rollout_num + ".dot");
+		MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP,
+				uctPolicy.getStateIndex(temp_joint_state), minCost);
+		policyTree.exportToDotFile(saveplace + filename + "_policy" + current_rollout_num + ".dot");
+		
 //		return accsFound;
 		return res;
 	}
@@ -897,6 +926,8 @@ private static final double MAXFAILCOST = 1000;
 		accFound = false;
 //		while (current_depth < rollout_depth) {	
 		search(null, state, current_depth, minCost);
+		if(accFound)
+			mainLog.println("Acc Found");
 //		}
 //		bestAction = uctPolicy.selectBestAction(state, current_depth);
 		return bestAction;
@@ -920,7 +951,7 @@ private static final double MAXFAILCOST = 1000;
 			double failcost = MINFAILCOST; 
 			if(minCost)
 				failcost = MAXFAILCOST;
-			cost_state = getStateCost(state)+1000;
+			cost_state = getStateCost(state)+failcost;
 			searchInfo += "=" + cost_state + "-terminal";
 			mainLog.println(searchInfo);
 			return cost_state;
@@ -953,6 +984,9 @@ private static final double MAXFAILCOST = 1000;
 		return cost_state;
 
 	}
+	
+	
+	
 
 	void initialiseVisits(State state) throws PrismException {
 		if (!uctPolicy.stateIndices.containsKey(state))
@@ -1012,13 +1046,13 @@ private static final double MAXFAILCOST = 1000;
 
 	}
 
-	private boolean isGoal (State state)
-	{
-		if (accFound)
-			return true;
-		else
-			return false;
-	}
+//	private boolean isGoal (State state)
+//	{
+//		if (accFound)
+//			return true;
+//		else
+//			return false;
+//	}
 	private boolean isTerminal(State pstate, State state) {
 		
 		if (pstate != null) {
