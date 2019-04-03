@@ -23,6 +23,7 @@ import prism.ProductModelGenerator;
  **/
 public class MRuctPaper {
 
+
 private double MINFAILCOST = 0;
 //	protected double termCritParam = 1e-8;
 //	public static final int UNK_STATE = -1;
@@ -909,12 +910,13 @@ private double MAXFAILCOST=0;
 
 		}
 		//lets do the policy tree stuff here 
-		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+		String saveplace = MRmcts.TESTSLOC;
+				//"/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 		String filename = "no_door_example";
-		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_rollout" + current_rollout_num + ".dot");
+		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_mctsmdp.dot");
 		MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP,
 				uctPolicy.getStateIndex(temp_joint_state), minCost);
-		policyTree.exportToDotFile(saveplace + filename + "_policy" + current_rollout_num + ".dot");
+		policyTree.exportToDotFile(saveplace + filename + "_policy.dot");
 		
 //		return accsFound;
 		return res;

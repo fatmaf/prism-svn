@@ -35,12 +35,15 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
+import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
 import cern.colt.Arrays;
 import explicit.LTLModelChecker;
+import explicit.LTLModelChecker.LTLProduct;
 import explicit.MDP;
 import explicit.MDPModelChecker;
 import explicit.MDPSimple;
@@ -48,9 +51,12 @@ import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
 import parser.State;
 import parser.ast.Expression;
+import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionProb;
+import parser.ast.ExpressionQuant;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
+import prism.ModelChecker;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -60,6 +66,8 @@ import prism.PrismLog;
 import prism.ProductModelGenerator;
 import prism.Result;
 import simulator.ModulesFileModelGenerator;
+import strat.MDStrategy;
+import strat.Strategy;
 
 /**
  * We get some rules to follow that and this these and those no one knows
@@ -68,6 +76,7 @@ import simulator.ModulesFileModelGenerator;
  *
  */
 public class MRmcts {
+	public static final String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/mcts/";
 	public static void main(String[] args) {
 		try {
 			new MRmcts().run();
@@ -80,7 +89,7 @@ public class MRmcts {
 	public void run() throws Exception {
 		try {
 
-			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 			String filename = "no_door_example";
 
 			// Create a log for PRISM output (hidden or stdout)
@@ -102,32 +111,68 @@ public class MRmcts {
 			LTLModelChecker ltlMC;// = new LTLModelChecker(prism);
 			AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
 
+			//we need to create a base policy too 
+			//so we have to do basic prism model checking 
+			MDP mdp=null;
 			int fileno = 0;
 			for (fileno = 0; fileno < filenames.size(); fileno++) {
 				List<Expression> labelExprs = new ArrayList<Expression>();
 				ModulesFile modulesFile = prism.parseModelFile(new File(filenames.get(fileno)));
 				prism.loadPRISMModel(modulesFile);
-//				if(expr == null) {
-				// have not investigated this
-				// but i can not use the same da to generate all models
+
+				// i can not use the same da to generate all models
 				// i get an outofbounds index error for the first state when i do get init state
 				// on that prod mod
 				// soo no to this if above
 				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
+//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
+//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
+				
 				expr = (ExpressionProb) propertiesFile.getProperty(0);
+
+				//
 
 				ltlMC = new LTLModelChecker(prism);
 				da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
+				
+				if(fileno == 0)
+				{
+					prism.buildModel();
+					mdp = (MDP) prism.getBuiltModelExplicit(); 
+					MDPModelChecker mc = new MDPModelChecker(prism); 
+					mc.setGenStrat(true);
+					mc.setExportAdv(true);
+					
+					Vector<BitSet> labelBS = new Vector<BitSet>();
+					ProbModelChecker pmc = new ProbModelChecker(prism); 
+					
+//					LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
+					DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr, labelBS, allowedAcceptance);
+					LTLProduct<MDP> prod=ltlMC.constructProductModel(tempda, mdp, labelBS, null);
+					MDP prodmdp = prod.getProductModel(); 
+					BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
+				
+					ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
+					Strategy strat = result.strat;
+					System.out.println(strat.toString());
+					
+//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
+				
+
+//					System.out.println(result.getResult()); 
+				}
 				da.setDistancesToAcc();
 				da.printDot(mainLog);
-				PrismFileLog out = new PrismFileLog(saveplace + "mrmctsda" + fileno + ".dot");
+				
+				PrismFileLog out = new PrismFileLog(TESTSLOC + "mrmctsda" + fileno + ".dot");
 				da.printDot(out);
 				out.close();
-//				}
+
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 				prodModGens.add(prodModelGen);
 			}
+			
 			// now do something with these
 			BitSet acc = da.getAccStates();
 			BitSet sinkStates = da.getSinkStates();
