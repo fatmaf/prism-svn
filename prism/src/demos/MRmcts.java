@@ -50,6 +50,7 @@ import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
 import parser.State;
+import parser.VarList;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionProb;
@@ -77,6 +78,7 @@ import strat.Strategy;
  */
 public class MRmcts {
 	public static final String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/mcts/";
+
 	public static void main(String[] args) {
 		try {
 			new MRmcts().run();
@@ -86,10 +88,39 @@ public class MRmcts {
 		}
 	}
 
+	public MDStrategy getSingleRobotSolution(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr,
+			AcceptanceType[] allowedAcceptance, ArrayList<List<State>> allRobotsStatesList, ArrayList<VarList> varlists)
+			throws PrismException {
+
+		prism.buildModel();
+		MDP mdp = (MDP) prism.getBuiltModelExplicit();
+
+		MDPModelChecker mc = new MDPModelChecker(prism);
+		mc.setGenStrat(true);
+		mc.setExportAdv(true);
+
+		Vector<BitSet> labelBS = new Vector<BitSet>();
+		ProbModelChecker pmc = new ProbModelChecker(prism);
+
+//		LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
+		DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr.getExpression(),
+				labelBS, allowedAcceptance);
+		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
+
+		MDP prodmdp = prod.getProductModel();
+		varlists.add(prodmdp.getVarList());
+		allRobotsStatesList.add(prodmdp.getStatesList());
+		BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
+
+		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
+		MDStrategy strat = (MDStrategy) (result.strat);
+		return strat;
+	}
+
 	public void run() throws Exception {
 		try {
 
-		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 			String filename = "no_door_example";
 
 			// Create a log for PRISM output (hidden or stdout)
@@ -105,15 +136,17 @@ public class MRmcts {
 			String propfilename = saveplace + filename + ".prop";
 			prism.setEngine(Prism.EXPLICIT);
 			ArrayList<ProductModelGenerator> prodModGens = new ArrayList<ProductModelGenerator>();
+			ArrayList<List<State>> allRobotsStatesList = new ArrayList<List<State>>();
 
 			ExpressionProb expr = null;
 			DA<BitSet, ? extends AcceptanceOmega> da = null;
 			LTLModelChecker ltlMC;// = new LTLModelChecker(prism);
 			AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
-
-			//we need to create a base policy too 
-			//so we have to do basic prism model checking 
-			MDP mdp=null;
+			ArrayList<MDStrategy> singleRobotSolutions = new ArrayList<MDStrategy>();
+			ArrayList<Boolean> flipedIndices = new ArrayList<Boolean>();
+			// we need to create a base policy too
+			// so we have to do basic prism model checking
+			MDP mdp = null;
 			int fileno = 0;
 			for (fileno = 0; fileno < filenames.size(); fileno++) {
 				List<Expression> labelExprs = new ArrayList<Expression>();
@@ -127,43 +160,27 @@ public class MRmcts {
 				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
 //				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
 //				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
-				
+
 				expr = (ExpressionProb) propertiesFile.getProperty(0);
 
 				//
 
 				ltlMC = new LTLModelChecker(prism);
 				da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
-				
-				if(fileno == 0)
-				{
-					prism.buildModel();
-					mdp = (MDP) prism.getBuiltModelExplicit(); 
-					MDPModelChecker mc = new MDPModelChecker(prism); 
-					mc.setGenStrat(true);
-					mc.setExportAdv(true);
-					
-					Vector<BitSet> labelBS = new Vector<BitSet>();
-					ProbModelChecker pmc = new ProbModelChecker(prism); 
-					
-//					LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
-					DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr, labelBS, allowedAcceptance);
-					LTLProduct<MDP> prod=ltlMC.constructProductModel(tempda, mdp, labelBS, null);
-					MDP prodmdp = prod.getProductModel(); 
-					BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
-				
-					ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
-					Strategy strat = result.strat;
-					System.out.println(strat.toString());
-					
+
+				ArrayList<VarList> varlists = new ArrayList<VarList>();
+
+				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList,
+						varlists);
+				singleRobotSolutions.add(strat);
+
 //					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
-				
 
 //					System.out.println(result.getResult()); 
-				}
+//				}
 				da.setDistancesToAcc();
 				da.printDot(mainLog);
-				
+
 				PrismFileLog out = new PrismFileLog(TESTSLOC + "mrmctsda" + fileno + ".dot");
 				da.printDot(out);
 				out.close();
@@ -171,8 +188,37 @@ public class MRmcts {
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 				prodModGens.add(prodModelGen);
+				// comparing indices of the mdp and prodmodgen stuff
+				VarList vl = varlists.get(0);
+				VarList pmdvl = prodModelGen.createVarList();
+				// lets match these
+				String dastring = "da";
+				int mdpdanum = -1;
+				for (int i = 0; i < vl.getNumVars(); i++) {
+					if (vl.getName(i).contains(dastring)) {
+						mdpdanum = i;
+						break;
+					}
+				}
+				int pmddanum = -1;
+				for (int i = 0; i < pmdvl.getNumVars(); i++) {
+					if (pmdvl.getName(i).contains(dastring)) {
+						pmddanum = i;
+						break;
+					}
+				}
+				if (mdpdanum != pmddanum) {
+					// do stuff here
+					// i have no idea what
+					flipedIndices.add(true);
+//					flipedIndices.add(false);
+				} else {
+					flipedIndices.add(false);
+//					flipedIndices.add(true);
+				}
+
 			}
-			
+
 			// now do something with these
 			BitSet acc = da.getAccStates();
 			BitSet sinkStates = da.getSinkStates();
@@ -182,7 +228,7 @@ public class MRmcts {
 			int rollout_depth = 30;
 			boolean minCost = true;
 			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc());
+					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices);
 //			uct.uctsearch(acc);
 //			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			uct.monteCarloPlanning(acc, minCost);

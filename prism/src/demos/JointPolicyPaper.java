@@ -103,7 +103,7 @@ public class JointPolicyPaper {
 			// now we make the arraylist
 			ArrayList<Integer> actionIndices = new ArrayList<Integer>();
 			for (int i = 0; i < numRobots; i++) {
-				int actionIndex = (actionsIndices[i] - 1);
+				int actionIndex = (actionsIndices[i] );
 				actionIndices.add(actionIndex);
 			}
 			robotStateActionIndices.get(jointstate).put(jointAction, actionIndices);
@@ -256,8 +256,16 @@ public class JointPolicyPaper {
 
 	}
 
-	protected boolean toExpand(State state) {
+	protected boolean toExpand(State state,boolean defaultPolicyNotRandom) {
 		boolean expand = false;
+		if(defaultPolicyNotRandom)
+		{
+			if(getNumVisits(state)> 0)
+				return false; 
+			else
+				return true; 
+		}
+		else {
 		if (stateActionVisits.containsKey(state)) {
 			for (Object act : stateActionVisits.get(state).keySet()) {
 				if (stateActionVisits.get(state).get(act) == 0) {
@@ -269,6 +277,7 @@ public class JointPolicyPaper {
 			expand = true;
 		}
 		return expand;
+		}
 	}
 
 	int getNumVisits(State state, Object action) {
