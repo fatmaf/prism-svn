@@ -10,15 +10,14 @@ import java.util.Map.Entry;
 import explicit.MDPSimple;
 
 import java.util.Random;
-import java.util.Set;
-import java.util.AbstractMap.SimpleEntry;
+
 
 import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
 import strat.MDStrategy;
-import strat.Strategy;
+
 
 /**
  * UCT for Multiple Robots Following Bruno's code and Planning with MDPs pg 112
@@ -196,34 +195,7 @@ public class MRuctPaper {
 		return states;
 
 	}
-	// building the whole tree
 
-	public ArrayList<Integer> uctsearchwithoutapolicy(BitSet accStates) {
-		ArrayList<Integer> accsFound = new ArrayList<Integer>();
-
-		current_rollout_num = 0;
-		ArrayList<State> initialStates = getInitialStates();
-		// get the initial state
-		State temp_joint_state = getJointState(initialStates, null);
-		mainLog.println("Joint State:" + temp_joint_state.toString());
-
-		while (current_rollout_num < max_num_rollouts) {
-			mainLog.println("Rollout Attempt: " + current_rollout_num);
-			// do a rollout
-			try {
-				int res = rollout(initialStates, current_rollout_num, accStates, false);// rollout_stateactionstateonly(initialStates,
-																						// current_rollout_num);
-				if (res != -1)
-					accsFound.add(res);
-			} catch (PrismException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			current_rollout_num++;
-
-		}
-		return accsFound;
-	}
 
 	/**
 	 * get actions for each robot's state
@@ -419,281 +391,9 @@ public class MRuctPaper {
 
 	}
 
-	public void rollout_stateactionstateonly(ArrayList<State> initialStates, int current_rollout_num)
-			throws PrismException {
 
-		int current_depth = 0;
-		ArrayList<Object> simulatedPolicy = new ArrayList<Object>();
-		ArrayList<State> currentStates = initialStates;
-		while (current_depth < rollout_depth) {
-
-			// atempting s,a,s' only
-			State state = getJointState(currentStates, null);
-			uctPolicy.addState(state);
-			// get all actions for this state
-			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
-			ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
-			for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
-				Object action = getJointActionName(allPossibleJointActions.get(actionNum));
-				if (!uctPolicy.stateVisited(state))
-					uctPolicy.initialiseVisits(state, action);
-				else
-					uctPolicy.increaseVisits(state, action);
-			}
-
-			int action_choice = randomGen.nextInt(allPossibleJointActions.size());
-			// now lets carry out this action
-			HashMap<Integer, HashMap<State, Double>> successors = getActionSuccessors(
-					allPossibleJointActions.get(action_choice), allPossibleActionsForState);
-			// now we've got to create successor state combinations
-			ArrayList<ArrayList<State>> jointSuccessors = getJointStateCombinations(successors);
-			ArrayList<State> succStates = getJointStates(jointSuccessors);
-			ArrayList<Double> probs = calculateJointStatesProbs(successors, jointSuccessors);
-			// add all these to my mdp
-			uctPolicy.addAction(state, getJointActionName(allPossibleJointActions.get(action_choice)), succStates,
-					probs);
-			// now we sample a successor maybe :P I dont know really
-			int state_choice = randomGen.nextInt(jointSuccessors.size());
-			// do we need to break
-			boolean dobreak = false;
-			if (state.equals(succStates.get(state_choice))) {
-				// break;
-				dobreak = true;
-			}
-			currentStates = jointSuccessors.get(state_choice);
-			simulatedPolicy.add(getJointActionName(allPossibleJointActions.get(action_choice)));
-			current_depth++;
-			if (dobreak)
-				break;
-
-		}
-		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-		String filename = "no_door_example";
-		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_rollout" + current_rollout_num + ".dot");
-
-	}
-
-	/**
-	 * UCT following algorithm 6.2 of Planning with MDPs Mausam et al
-	 * 
-	 * @param initialStates
-	 * @param current_rollout_num
-	 * @throws PrismException
-	 * 
-	 */
-
-	public int rollout(ArrayList<State> initialStates, int current_rollout_num, BitSet accStates, boolean expandAll)
-			throws PrismException {
-
-		int current_depth = 0;
-		accFound = false;
-		ArrayList<Entry<State, Object>> simulatedPolicy = new ArrayList<Entry<State, Object>>();
-		ArrayList<Double> cumulativeCost = new ArrayList<Double>();
-
-		ArrayList<State> currentStates = initialStates;
-		State state = getJointState(currentStates, accStates);
-		initState = new State(state);
-		boolean doProb = false;
-		boolean minimiseCosts = !doProb;
-		double initialCost = 0;
-		boolean dotrial = false;
-//		if(doProb)
-//			initialCost = 1.0;
-		cumulativeCost.add(initialCost);
-		// trial
-
-		// if we want to do the selection, expansion, backpropagation thing
-		// if we need to expand this state,
-		// we have to take an action in this state
-		// then add the successors of this action
-
-		int cum_cost_counter = current_depth;
-		while (current_depth < rollout_depth) {
-
-			boolean expandState = uctPolicy.toExpand(state,false);
-			if ((expandAll && expandState) || !expandAll) {
-				// check if this is a state we need to expand
-				uctPolicy.addState(state);
-
-			}
-			currentStates = getRobotStatesFromJointState(state);
-			// get all actions for this state
-			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
-			ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
-
-			if (!dotrial) {
-				// if state has not been visited before initialise actions
-				if (!uctPolicy.stateVisited(state)) {
-					for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
-						Object action = getJointActionName(allPossibleJointActions.get(actionNum));
-						uctPolicy.initialiseVisitsNoVisit(state, action);
-					}
-				}
-			}
-			uctPolicy.printStateDetails(state, minimiseCosts);
-			// choose an action
-			Object chosen_jointAction = uctPolicy.getBestAction(state, minimiseCosts);
-
-			mainLog.println("Chosen Action " + chosen_jointAction);
-			// now lets carry out this action
-			HashMap<Integer, HashMap<State, Double>> successors = getActionSuccessors(
-					splitJointAction(chosen_jointAction), allPossibleActionsForState);
-
-			// now we've got to create successor state combinations
-			ArrayList<ArrayList<State>> jointSuccessors = getJointStateCombinations(successors);
-			ArrayList<State> succStates = getJointStates(jointSuccessors);
-			ArrayList<Double> probs = calculateJointStatesProbs(successors, jointSuccessors);
-			int state_choice = randomGen.nextInt(jointSuccessors.size());
-
-			if (expandState && !dotrial) {
-				// add all these to my mdp
-				uctPolicy.addAction(state, chosen_jointAction, succStates, probs);
-				dotrial = true;
-				// or add just this state action pair
-				// uctPolicy.addAction(state, chosen_jointAction, succStates.get(state_choice),
-				// probs.get(state_choice));
-			}
-			// now we sample a successor maybe :P I dont know really
-
-//			ArrayList<State> successorStates = jointSuccessors.get(state_choice);
-
-			// now that we know the next state, we say its probability is the cost
-//			if(!doProb)
-//			cumulativeCost.add(cumulativeCost.get(current_depth)+probs.get(state_choice)*1); //if we were doing least steps for then things with lower prob would mean less steps so no 
-			// else
-			// doing prob
-			// cumulativeCost.add(cumulativeCost.get(current_depth)*probs.get(state_choice));
-
-			simulatedPolicy.add(new AbstractMap.SimpleEntry<State, Object>(state, chosen_jointAction));
-
-			state = succStates.get(state_choice);
-
-			double stateCost = 0;
-			boolean doBreak = false;
-			if (doProb) {
-				if (accFound)
-					stateCost = 1;// cumulativeCost.add(cumulativeCost.get(current_depth)+1);
-//				else
-//					cumulativeCost.add(cumulativeCost.get(current_depth));
-			} else {
-//				if(accFound)
-//					cumulativeCost.add(cumulativeCost.get(current_depth)+getStateCost(state));
-//				else
-				stateCost = getStateCost(state);// cumulativeCost.add(cumulativeCost.get(current_depth)+getStateCost(state));
-			}
-
-			// add the if goal here
-			// if currentStates = goal then wohooo
-			if (accFound) {
-				mainLog.println("Acc found");
-				doBreak = true;
-
-			}
-			// for now lets not loopback to the same state
-			if (simulatedPolicy.get(current_depth).getKey().equals(state)) {
-				stateCost += 10000;// a really high number;
-				// same states
-
-				doBreak = true;
-			}
-			if (cumulativeCost.size() <= cum_cost_counter + 1)
-				cumulativeCost.add(cumulativeCost.get(current_depth) + stateCost * probs.get(state_choice));
-			else {
-				double costSofar = cumulativeCost.get(cum_cost_counter);
-				costSofar += stateCost * probs.get(state_choice);
-				cumulativeCost.remove(cum_cost_counter);
-				cumulativeCost.add(costSofar);
-			}
-			mainLog.println("Cost " + cumulativeCost.get(current_depth + 1));
-			current_depth++;
-			if (doBreak)
-				break;
-			if (!dotrial)
-				cum_cost_counter++;
-
-		}
-		// update things
-		int simulatedPolicysize = simulatedPolicy.size();
-		for (int i = 0; i < simulatedPolicysize; i++) {
-			Entry<State, Object> stateAction = simulatedPolicy.get(i);
-			State state_i = stateAction.getKey();
-			Object action_i = stateAction.getValue();
-			double prevQ = uctPolicy.getQvalue(state_i, action_i, minimiseCosts);
-			double stateActionVisits = (double) uctPolicy.getNumVisits(state_i, action_i);
-			double newQ = (stateActionVisits * prevQ
-					+ (cumulativeCost.get(simulatedPolicysize - 1) - cumulativeCost.get(i))) / (stateActionVisits + 1);
-
-			uctPolicy.updateQValue(state_i, action_i, newQ);
-			uctPolicy.increaseVisits(state_i, action_i);
-		}
-		if (accFound) {
-			HashMap<State, Object> policysofar = uctPolicy.getBestPolicySoFar(initState, minimiseCosts);
-			mainLog.println(policysofar.toString());
-			mainLog.println(simulatedPolicy.toString());
-			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-			String filename = "no_door_example";
-			uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_rollout" + current_rollout_num + ".dot");
-			MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP,
-					uctPolicy.getStateIndex(initState), minimiseCosts);
-			policyTree.exportToDotFile(saveplace + filename + "_policy" + current_rollout_num + ".dot");
-			return current_rollout_num;
-		}
-
-		return -1;
-
-	}
-
-	/**
-	 * UCT following A Survey of Monte Carlo Tree Search Methods
-	 * 
-	 * @param initialStates
-	 * @param current_rollout_num
-	 * @throws PrismException
-	 * 
-	 */
-
-	private boolean isTerminal(State pstate, boolean selfLoop) {
-		if (accFound)
-			return true;
-		if (selfLoop)
-			return true;
-
-		return false;
-	}
-
-	private State bestChild(State state, boolean minimiseCosts, ArrayList<Entry<State, Object>> path)
-			throws PrismException {// basically best child
-		// this bit is from
-		// https://www.dtic.upf.edu/~hgeffner/uct-aaai-2012.pdf
-
-		Object chosen_jointAction = uctPolicy.getBestAction(state, minimiseCosts);
-		// the assumption that we have all the children for this state
-		path.add(new AbstractMap.SimpleEntry<State, Object>(state, chosen_jointAction));
-		return uctPolicy.simulateAction(state, chosen_jointAction);
-
-	}
-
-	private State treePolicy(State state, boolean minimiseCosts, ArrayList<Entry<State, Object>> path)
-			throws PrismException {
-		State succState = null;
-		State currState = state;
-		boolean selfLoop = false;
-		while (!isTerminal(currState, selfLoop) && current_depth < rollout_depth) {
-
-			if (uctPolicy.toExpand(currState,false)) {
-				return state;
-			} else {
-				succState = bestChild(currState, minimiseCosts, path);
-
-			}
-
-			if (currState.equals(succState))
-				selfLoop = true;
-			currState = succState;
-			current_depth++;
-		}
-		return currState;
-	}
+	
+	
 
 	public State simulateAction(State state, Object action) throws PrismException {
 		
@@ -763,109 +463,9 @@ public class MRuctPaper {
 		return succState;
 	}
 
-	public double defaultPolicy(State state, ArrayList<Entry<State, Object>> path) throws PrismException {
-		State succState = null;
-		State currState = state;
-		boolean selfLoop = false;
-		ArrayList<State> currentStates;
-		double reward = 0;
-		boolean initState = true;
-		while (!isTerminal(currState, selfLoop) && current_depth < rollout_depth) {
-			currentStates = getRobotStatesFromJointState(currState);
-			if (!uctPolicy.stateActionVisits.containsKey(currState)) {
-				// get all actions for this state
-				HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
-				ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
 
-				for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
-					Object action = getJointActionName(allPossibleJointActions.get(actionNum));
-					uctPolicy.initialiseVisitsNoVisit(currState, action);
-					uctPolicy.addRobotStateActionIndices(currState, action, allPossibleJointActions.get(actionNum),
-							allPossibleActionsForState);
-				}
-			}
-			reward += getStateCost(currState);
-			// otherwise just choose an action
-			Object action = uctPolicy.getDefaultPolicyAction(currState);
-			if (initState) {
-				path.add(new AbstractMap.SimpleEntry<State, Object>(currState, action));
-			}
-			succState = simulateAction(currState, action, initState);
-			if (currState.equals(succState))
-				selfLoop = true;
-			if (initState)
-				initState = false;
-			currState = succState;
 
-		}
-		current_depth++;
-		// dont know if this is right
-		return reward;
-	}
 
-	public void backpropagateReward(ArrayList<Entry<State, Object>> path, double reward, boolean minimiseCost) {
-		double rew = reward;
-		for (int i = path.size() - 1; i >= 0; i--) {
-
-			Entry<State, Object> sa = path.get(i);
-			State state = sa.getKey();
-			if (i != path.size() - 1) {
-				rew = getStateCost(state);
-			}
-			Object act = sa.getValue();
-			double qvalue = ((rew + uctPolicy.getQvalue(state, act, minimiseCost))
-					* (double) uctPolicy.getNumVisits(state, act)) / (double) uctPolicy.getNumVisits(state);
-
-			uctPolicy.updateQValue(state, act, qvalue);
-
-		}
-	}
-
-	public int uctsearch(ArrayList<State> initialStates, int current_rollout_num, BitSet accStates)
-			throws PrismException {
-
-		ArrayList<State> currentStates = initialStates;
-		State currentState = getJointState(currentStates, accStates);
-		ArrayList<Entry<State, Object>> stateActionsChosen = new ArrayList<Entry<State, Object>>();
-		boolean minimiseCosts = true;
-		currentState = treePolicy(currentState, minimiseCosts, stateActionsChosen);
-		double reward = defaultPolicy(currentState, stateActionsChosen);
-
-		// save states visited in tree
-		backpropagateReward(stateActionsChosen, reward, minimiseCosts);
-		// backup function
-		// TODO: backup function here
-
-		return -1;
-
-	}
-
-	public ArrayList<Integer> uctsearch(BitSet accStates) {
-		ArrayList<Integer> accsFound = new ArrayList<Integer>();
-
-		current_rollout_num = 0;
-		ArrayList<State> initialStates = getInitialStates();
-		// get the initial state
-		State temp_joint_state = getJointState(initialStates, null);
-		mainLog.println("Joint State:" + temp_joint_state.toString());
-
-		while (current_rollout_num < max_num_rollouts) {
-			mainLog.println("Rollout Attempt: " + current_rollout_num);
-			// do a rollout
-			try {
-				int res = uctsearch(initialStates, current_rollout_num, accStates);// rollout_stateactionstateonly(initialStates,
-																					// current_rollout_num);
-				if (res != -1)
-					accsFound.add(res);
-			} catch (PrismException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			current_rollout_num++;
-
-		}
-		return accsFound;
-	}
 
 	// because sometimes a state just is a state so thats annoying
 	private int getIndividualState(State state, int ind, int subind) {
@@ -902,7 +502,7 @@ public class MRuctPaper {
 	}
 
 	public Object monteCarloPlanning(BitSet accStates, boolean minCost) throws Exception {
-		ArrayList<Integer> accsFound = new ArrayList<Integer>();
+//		ArrayList<Integer> accsFound = new ArrayList<Integer>();
 
 		current_rollout_num = 0;
 		ArrayList<State> initialStates = getInitialStates();
@@ -938,7 +538,7 @@ public class MRuctPaper {
 		boolean addToTreeInTrial = false;
 		accFound = false;
 //		while (current_depth < rollout_depth) {	
-		search(null, state, current_depth, minCost,false);
+		search(null, state, current_depth, minCost,addToTreeInTrial);
 		if (accFound)
 			mainLog.println("Acc Found");
 //		}
