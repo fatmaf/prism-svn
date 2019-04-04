@@ -696,6 +696,7 @@ public class MRuctPaper {
 	}
 
 	public State simulateAction(State state, Object action) throws PrismException {
+		
 		return simulateAction(state, action, false);
 	}
 
@@ -934,9 +935,10 @@ public class MRuctPaper {
 	public Object monteCarloPlanning(State state, boolean minCost) throws Exception {
 		Object bestAction = null;
 		int current_depth = 0;
+		boolean addToTreeInTrial = false;
 		accFound = false;
 //		while (current_depth < rollout_depth) {	
-		search(null, state, current_depth, minCost);
+		search(null, state, current_depth, minCost,false);
 		if (accFound)
 			mainLog.println("Acc Found");
 //		}
@@ -944,7 +946,7 @@ public class MRuctPaper {
 		return bestAction;
 	}
 
-	public double search(State ps, State state, int depth, boolean minCost) throws Exception {
+	public double search(State ps, State state, int depth, boolean minCost,boolean addToTreeInTrial) throws Exception {
 		String searchInfo = "";
 		if (ps != null)
 			searchInfo += ps.toString() + "->";
@@ -976,7 +978,7 @@ public class MRuctPaper {
 //			if (!uctPolicy.stateIndices.containsKey(state))
 			initialiseVisits(state);
 			ArrayList<Entry<State, Object>> trialList = new ArrayList<Entry<State, Object>>();
-			cost_state = evaluate(ps, state, depth, true, trialList, minCost);
+			cost_state = evaluate(ps, state, depth, true, trialList, minCost,addToTreeInTrial);
 			// now lets update this state with the reward
 			searchInfo += "=" + cost_state + "-rollout";
 			mainLog.println(searchInfo);
@@ -984,9 +986,9 @@ public class MRuctPaper {
 			return cost_state;
 		}
 		Object action = selectAction(state, depth, false, minCost);
-		State succState = simulateAction(state, action);
+		State succState = simulateAction(state, action,true);
 		double reward = getStateCost(state);
-		double q = reward + search(state, succState, depth + 1, minCost);
+		double q = reward + search(state, succState, depth + 1, minCost,addToTreeInTrial);
 		updateValue(state, action, q, depth, minCost);
 		cost_state = q;
 		searchInfo += "=" + cost_state + "-selection";
@@ -1019,7 +1021,7 @@ public class MRuctPaper {
 						initaction = false;
 				}
 				if (initaction) {
-					mainLog.println(action.toString());
+					mainLog.println(action.toString()+" added");
 //			if (!uctPolicy.stateVisited(state))
 					uctPolicy.initialiseVisits(state, action);
 					uctPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum),
@@ -1085,7 +1087,7 @@ public class MRuctPaper {
 	}
 
 	private double evaluate(State pstate, State state, int depth, boolean firstState,
-			ArrayList<Entry<State, Object>> trial, boolean minCost) throws Exception {
+			ArrayList<Entry<State, Object>> trial, boolean minCost,boolean addToTreeInTrial) throws Exception {
 		double sumrew = 0;
 		State succState = null;
 		if (depth == rollout_depth)
@@ -1103,12 +1105,13 @@ public class MRuctPaper {
 			double reward = getStateCost(state);
 			Object action = selectAction(state, depth, true, minCost);
 			trial.add(new AbstractMap.SimpleEntry<State, Object>(state, action));
-			succState = simulateAction(state, action, firstState);
+			succState = simulateAction(state, action, (firstState||addToTreeInTrial));
 
-			sumrew = reward + evaluate(state, succState, depth + 1, false, trial, minCost);
-			if (firstState) {
+			sumrew = reward + evaluate(state, succState, depth + 1, false, trial, minCost,addToTreeInTrial);
+			if (firstState || addToTreeInTrial) {
 				updateValue(state, action, sumrew, depth, minCost);
 			}
+			
 		} catch (Exception e) {
 			mainLog.println("Error");
 			e.printStackTrace();

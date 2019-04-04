@@ -481,6 +481,7 @@ public class JointPolicyPaper {
 		int numActions = 0;
 		int numActionsZeroQ = 0;
 		Object bestAction = null;
+		ArrayList<Object> numActionsZeroQInd = new ArrayList<Object>();
 		double cost = 0;
 		double minCost = Double.MAX_VALUE;
 		if (!minimizeCost)
@@ -510,6 +511,7 @@ public class JointPolicyPaper {
 				cost = getQvalue(state, act, minimizeCost) - exploration_bias * sqrt;
 				if (cost == defaultCost) {
 					numActionsZeroQ++;
+					numActionsZeroQInd.add(act);
 				}
 				if (minimizeCost)
 					costCheck = cost < minCost;
@@ -526,6 +528,13 @@ public class JointPolicyPaper {
 				Random rand = new Random();
 				int choice = rand.nextInt(numActions);
 				bestAction = (stateActionVisits.get(state).keySet().toArray())[choice];
+			}
+			else if(numActionsZeroQ > 0 && minCost == defaultCost)
+			{
+				//choose for the random ones 
+				Random rand = new Random();
+				int choice = rand.nextInt(numActionsZeroQInd.size());
+				bestAction = numActionsZeroQInd.get(choice);
 			}
 		}
 //			else
