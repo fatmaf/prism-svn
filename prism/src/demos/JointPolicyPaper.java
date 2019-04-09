@@ -34,6 +34,7 @@ public class JointPolicyPaper {
 	protected BitSet visited;
 	protected HashMap<State, HashMap<Object, ArrayList<Integer>>> robotStateActionIndices;
 	protected BitSet accStates;
+	protected BitSet leafStates; 
 	double defaultQValue = 1;// Double.MAX_VALUE;
 	double explorationBias = 10;
 
@@ -42,7 +43,34 @@ public class JointPolicyPaper {
 		if (stateIndex != -1)
 			accStates.set(stateIndex);
 	}
-
+	public void setAsLeafState(State state)
+	{
+		int stateIndex = getStateIndex(state);
+		if (stateIndex != -1)
+		{
+			if(!leafStates.get(stateIndex))
+				leafStates.set(stateIndex);
+		}
+	}
+	public void setAsLeafState(ArrayList<State> states)
+	{
+		for(State s: states)
+			setAsLeafState(s);
+	}
+	public void removeFromLeafState(State state)
+	{
+		int stateIndex = getStateIndex(state);
+		if (stateIndex != -1)
+		{
+			if(leafStates.get(stateIndex))
+				leafStates.set(stateIndex,false);
+		}
+	}
+	public void removeFromLeafState(ArrayList<State> states)
+	{
+		for(State s: states)
+			removeFromLeafState(s);
+	}
 	public JointPolicyPaper(PrismLog log, int numRobots, int numTasks, int numSharedStates,
 			ArrayList<String> sharedStatesNamesList, ArrayList<String> isolatedStatesNamesList) {
 		mainLog = log;
@@ -60,6 +88,7 @@ public class JointPolicyPaper {
 		stateActionIndices = new HashMap<State, HashMap<Object, Integer>>();
 		jointMDP.setStatesList(new ArrayList<State>());
 		accStates = new BitSet();
+		leafStates = new BitSet();
 	}
 
 	int addState(State state) {
@@ -481,11 +510,12 @@ public class JointPolicyPaper {
 		int numActions = 0;
 		int numActionsZeroQ = 0;
 		Object bestAction = null;
+		boolean minCostInitialized = false; 
 		ArrayList<Object> numActionsZeroQInd = new ArrayList<Object>();
 		double cost = 0;
 		double minCost = Double.MAX_VALUE;
 		if (!minimizeCost)
-			minCost = 0;
+			minCost = Double.MIN_VALUE;
 		double defaultCost = Double.MAX_VALUE;
 		if (minimizeCost)
 			defaultCost = Double.MIN_VALUE;
@@ -495,8 +525,15 @@ public class JointPolicyPaper {
 			mainLog.println("Vists/Values "+state.toString());
 			mainLog.println(stateActionVisits.get(state).toString());
 			mainLog.println(stateActionQvalues.get(state).toString());
+			//let the minCost be the cost of the first action 
 			
 			for (Object act : stateActionVisits.get(state).keySet()) {
+				if(!minCostInitialized)
+				{
+					minCost = getQvalue(state, act, minimizeCost); 
+					bestAction = act; 
+					minCostInitialized = true; 
+				}
 				numActions++;
 				// adding 1 so that I dont get undefined
 				double lnStateVisits = Math.log(getNumVisits(state));

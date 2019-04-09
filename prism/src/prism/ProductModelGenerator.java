@@ -106,11 +106,19 @@ public class ProductModelGenerator implements ModelGenerator
 		bsLabels = new BitSet(numAPs);
 	}
 
+	
 	// Accessors
 	
 	public String getDAVarName()
 	{
 		return daVar;
+	}
+	//fatma added this 
+	//cuz I couldnt figure out how to get the label expressions otherwise 
+	//and I need them 
+	public int getNumLabelExprs()
+	{
+		return this.labelExprs.size(); 
 	}
 	
 	/**
@@ -395,7 +403,11 @@ public class ProductModelGenerator implements ModelGenerator
 	}
 
 	// Utility methods
-	
+	public boolean isExprTrue(int exprNum) throws PrismLangException
+	{
+		Expression expr = this.labelExprs.get(exprNum); 
+		return expr.evaluateBoolean(this.exploreState);
+	}
 	/**
 	 * Find the successor of state {@code q} in the DA, taking the edge whose labelling matches the state {@code s}.
 	 */
@@ -423,5 +435,6 @@ public class ProductModelGenerator implements ModelGenerator
 		double res = da.getDistsToAcc().get(daVal);
 		return res;
 	}
+	
 	
 }

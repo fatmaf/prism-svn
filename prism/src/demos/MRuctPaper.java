@@ -7,28 +7,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import acceptance.AcceptanceOmega;
+import automata.DA;
 import explicit.MDPSimple;
 
 import java.util.Random;
 
-
 import parser.State;
+import parser.ast.Expression;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
 import strat.MDStrategy;
 
-
 /**
  * UCT for Multiple Robots Following Bruno's code and Planning with MDPs pg 112
  **/
-public class MRuctPaper {
+public class MRuctPaper
+{
 
 	private double MINFAILCOST = 0;
-//	protected double termCritParam = 1e-8;
-//	public static final int UNK_STATE = -1;
-//	public static final int SINK_STATE = 0;
-//	public static final int ACC_STATE = 1;
+	//	protected double termCritParam = 1e-8;
+	//	public static final int UNK_STATE = -1;
+	//	public static final int SINK_STATE = 0;
+	//	public static final int ACC_STATE = 1;
 
 	private double MAXFAILCOST = 0;
 
@@ -50,14 +52,16 @@ public class MRuctPaper {
 	ArrayList<MDStrategy> defaultStrategies;
 	ArrayList<List<State>> allRobotsStatesList;
 	ArrayList<Boolean> varlistsMatch; //basically keeping track of whether the prodmodgen varlists and mdp varlists match. uff so much mehnat. 
+	boolean doProb = true;
+	DA<BitSet, ? extends AcceptanceOmega> da; //just to store stuff 
 
-	public MRuctPaper(PrismLog log, ArrayList<ProductModelGenerator> robotProdModelGens, int max_rollouts,
-			int rollout_depth, ArrayList<String> shared_state_names, List<Double> dadistToAcc,
-			ArrayList<MDStrategy> singleRobotSols, ArrayList<List<State>> allRobotsStatesList,
-			ArrayList<Boolean> flipedIndices)
+	public MRuctPaper(PrismLog log, ArrayList<ProductModelGenerator> robotProdModelGens, int max_rollouts, int rollout_depth,
+			ArrayList<String> shared_state_names, List<Double> dadistToAcc, ArrayList<MDStrategy> singleRobotSols, ArrayList<List<State>> allRobotsStatesList,
+			ArrayList<Boolean> flipedIndices, DA<BitSet, ? extends AcceptanceOmega> da)
 
 	{
-		this.varlistsMatch = flipedIndices; 
+		this.da = da;
+		this.varlistsMatch = flipedIndices;
 		this.allRobotsStatesList = allRobotsStatesList;
 		defaultStrategies = singleRobotSols;
 		jointStateRobotStateMapping = new HashMap<State, ArrayList<State>>();
@@ -85,17 +89,19 @@ public class MRuctPaper {
 
 	}
 
-	ArrayList<State> getJointStates(ArrayList<ArrayList<State>> succStates) {
+	ArrayList<State> getJointStates(ArrayList<ArrayList<State>> succStates) throws PrismException
+	{
 		ArrayList<State> jointStates = new ArrayList<State>();
 		for (int i = 0; i < succStates.size(); i++)
 			jointStates.add(getJointState(succStates.get(i), null));
 		return jointStates;
 	}
 
-	State getJointState(ArrayList<State> states, BitSet accStates) {
+	State getJointState(ArrayList<State> states, BitSet accStates) throws PrismException
+	{
 
 		State temp_joint_state = new State(num_robots + 1);
-
+		BitSet trueLabels = new BitSet();
 		for (int i = 0; i < num_robots; i++) {
 
 			State current_model_state = states.get(i);
@@ -103,7 +109,13 @@ public class MRuctPaper {
 			// knowing that the da value is the last one
 			// TODO: shared state stuff
 			int da_state_index = prodModGens.get(i).getVarIndex(da_id_string);
+			prodModGens.get(i).exploreState(current_model_state);
+			ProductModelGenerator pmg = prodModGens.get(i);
 
+			for (int labnum = 0; labnum < pmg.getNumLabelExprs(); labnum++) {
+				if (prodModGens.get(i).isExprTrue(labnum))
+					trueLabels.set(labnum);
+			}
 			temp_joint_state.setValue(i, current_model_state.substate(0, da_state_index));
 
 			State da_state_in_joint_state = temp_joint_state.substate(num_robots, num_robots + 1);
@@ -124,10 +136,10 @@ public class MRuctPaper {
 					if (!(dastateinrobot == da_state_in_joint_state_int)) {
 						double jsacc = da_distToAcc.get(da_state_in_joint_state_int);
 						double rsacc = da_distToAcc.get(dastateinrobot);
-//						if(jsacc == 0 || rsacc == 0)
-//						{accFound = true;
-//							
-//						}
+						//						if(jsacc == 0 || rsacc == 0)
+						//						{accFound = true;
+						//							
+						//						}
 						if (accStates != null) {
 							if (accStates.get(dastateinrobot) || accStates.get(da_state_in_joint_state_int)) {
 								accFound = true;
@@ -142,6 +154,19 @@ public class MRuctPaper {
 			}
 
 		}
+		//we may need to update the temp_joint_state 
+		//from the temp joint state get the da state 
+		int current_da_state = getIndividualState(temp_joint_state, num_robots, 0);
+		//now lets do the checking 
+
+		int updated_da_state = this.da.getEdgeDestByLabel(current_da_state, trueLabels);
+		if (current_da_state != updated_da_state) {
+			State newda = new State(1);
+			newda.setValue(0, updated_da_state);
+			//then we need to update it 
+			temp_joint_state.setValue(num_robots, newda);
+
+		}
 		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
 			ArrayList<State> cp = new ArrayList<State>();
 			cp.addAll(states);
@@ -150,7 +175,8 @@ public class MRuctPaper {
 		return temp_joint_state;
 	}
 
-	double getStateCost(State state) {
+	double getStateCost(State state)
+	{
 		// get the da state
 		State dastate = state.substate(num_robots, num_robots + 1);
 		dastate = (State) dastate.varValues[0];
@@ -160,11 +186,19 @@ public class MRuctPaper {
 			mainLog.println(state.toString());
 			uctPolicy.setAsAccState(state);
 			accFound = true;
+			if (doProb) {
+				dist = 1;
+			}
+		} else {
+			if (doProb)
+				dist = 0;
 		}
+
 		return dist;
 	}
 
-	boolean isGoal(State state) {
+	boolean isGoal(State state)
+	{
 		// get the da state
 		State dastate = state.substate(num_robots, num_robots + 1);
 		dastate = (State) dastate.varValues[0];
@@ -179,7 +213,8 @@ public class MRuctPaper {
 		return false;
 	}
 
-	ArrayList<State> getInitialStates() {
+	ArrayList<State> getInitialStates()
+	{
 		ArrayList<State> states = new ArrayList<State>();
 		// creating the initial state
 		for (int i = 0; i < num_robots; i++) {
@@ -196,21 +231,21 @@ public class MRuctPaper {
 
 	}
 
-
 	/**
 	 * get actions for each robot's state
 	 * 
 	 * @param states = list of states, one per robot, ordered
 	 * @return list of actions, one per robot , ordered
 	 */
-	HashMap<Integer, HashMap<Object, Integer>> getActions(ArrayList<State> states) {
+	HashMap<Integer, HashMap<Object, Integer>> getActions(ArrayList<State> states)
+	{
 		HashMap<Integer, HashMap<Object, Integer>> actions = new HashMap<Integer, HashMap<Object, Integer>>();
 		try {
 
 			for (int i = 0; i < states.size(); i++) {
 				HashMap<Object, Integer> robot_actions = new HashMap<Object, Integer>();
 				ProductModelGenerator prodModGen = prodModGens.get(i);
-				
+
 				// get the number of choices for this state
 				prodModGen.exploreState(states.get(i));
 				int numChoices = prodModGen.getNumChoices();
@@ -228,7 +263,8 @@ public class MRuctPaper {
 		return actions;
 	}
 
-	ArrayList<Object> getActionNamesFromRobotActionNums(int[] combination) throws PrismException {
+	ArrayList<Object> getActionNamesFromRobotActionNums(int[] combination) throws PrismException
+	{
 		ArrayList<Object> actionNames = new ArrayList<Object>();
 		for (int i = 0; i < combination.length; i++) {
 			ProductModelGenerator prodModGen = prodModGens.get(i);
@@ -239,7 +275,8 @@ public class MRuctPaper {
 		return actionNames;
 	}
 
-	ArrayList<Integer> getNumActionsPerRobot(ArrayList<State> states) throws PrismException {
+	ArrayList<Integer> getNumActionsPerRobot(ArrayList<State> states) throws PrismException
+	{
 
 		ArrayList<Integer> numActions = new ArrayList<Integer>();
 		for (int i = 0; i < states.size(); i++) {
@@ -254,8 +291,9 @@ public class MRuctPaper {
 		return numActions;
 	}
 
-	HashMap<Integer, HashMap<State, Double>> getActionSuccessors(ArrayList<Object> actions,
-			HashMap<Integer, HashMap<Object, Integer>> actionsMap) throws PrismException {
+	HashMap<Integer, HashMap<State, Double>> getActionSuccessors(ArrayList<Object> actions, HashMap<Integer, HashMap<Object, Integer>> actionsMap)
+			throws PrismException
+	{
 		HashMap<Integer, HashMap<State, Double>> succStates = new HashMap<Integer, HashMap<State, Double>>();
 		for (int i = 0; i < actions.size(); i++) {
 			Object action = actions.get(i);
@@ -277,8 +315,8 @@ public class MRuctPaper {
 		return succStates;
 	}
 
-	ArrayList<ArrayList<Object>> getJointActions(HashMap<Integer, HashMap<Object, Integer>> actions)
-			throws PrismException {
+	ArrayList<ArrayList<Object>> getJointActions(HashMap<Integer, HashMap<Object, Integer>> actions) throws PrismException
+	{
 		int[] numActionsPerRobot = new int[num_robots];
 		for (int i = 0; i < num_robots; i++) {
 			numActionsPerRobot[i] = actions.get(i).size();
@@ -311,7 +349,8 @@ public class MRuctPaper {
 		return jointActions;
 	}
 
-	Object getJointActionName(ArrayList<Object> jointAction) {
+	Object getJointActionName(ArrayList<Object> jointAction)
+	{
 		String name = "";
 		for (int i = 0; i < jointAction.size(); i++) {
 			if (jointAction.get(i) != null) {
@@ -324,7 +363,8 @@ public class MRuctPaper {
 		return name;
 	}
 
-	ArrayList<Object> splitJointAction(Object jointAction) {
+	ArrayList<Object> splitJointAction(Object jointAction)
+	{
 		String[] action_arr = jointAction.toString().split(",");
 		ArrayList<Object> actions = new ArrayList<Object>();
 		for (int i = 0; i < action_arr.length; i++)
@@ -332,8 +372,8 @@ public class MRuctPaper {
 		return actions;
 	}
 
-	ArrayList<Double> calculateJointStatesProbs(HashMap<Integer, HashMap<State, Double>> succStates,
-			ArrayList<ArrayList<State>> combinations) {
+	ArrayList<Double> calculateJointStatesProbs(HashMap<Integer, HashMap<State, Double>> succStates, ArrayList<ArrayList<State>> combinations)
+	{
 		double normaliser = 0;
 		boolean normalised = false;
 		ArrayList<Double> probs = new ArrayList<Double>();
@@ -355,8 +395,8 @@ public class MRuctPaper {
 		return probs;
 	}
 
-	ArrayList<ArrayList<State>> getJointStateCombinations(HashMap<Integer, HashMap<State, Double>> succStates)
-			throws PrismException {
+	ArrayList<ArrayList<State>> getJointStateCombinations(HashMap<Integer, HashMap<State, Double>> succStates) throws PrismException
+	{
 
 		int[] numStatesPerRobot = new int[num_robots];
 		for (int i = 0; i < num_robots; i++) {
@@ -391,16 +431,14 @@ public class MRuctPaper {
 
 	}
 
+	public State simulateAction(State state, Object action) throws PrismException
+	{
 
-	
-	
-
-	public State simulateAction(State state, Object action) throws PrismException {
-		
 		return simulateAction(state, action, false);
 	}
 
-	public State simulateAction(State state, Object action, boolean initState) throws PrismException {
+	public State simulateAction(State state, Object action, boolean initState) throws PrismException
+	{
 		State succState = null;
 
 		if (action != null) {
@@ -437,6 +475,8 @@ public class MRuctPaper {
 						// if its the first one we should add these to uctPolicy
 						if (initState) {
 							uctPolicy.addAction(state, action, jointsuccStates, probs);
+							//the joint succStates are leaf states now 
+							uctPolicy.setAsLeafState(jointsuccStates);
 						}
 						double rand = (new Random()).nextDouble();
 						double cprob = 0;
@@ -449,11 +489,11 @@ public class MRuctPaper {
 						}
 					} else {
 						throw new PrismException("Simulation: Action not in robot state action indices for state");
-//					return null;
+						//					return null;
 					}
 				} else {
 					throw new PrismException("Simulation: State not in robot state action indices");
-//				return null;
+					//				return null;
 				}
 
 			}
@@ -463,12 +503,9 @@ public class MRuctPaper {
 		return succState;
 	}
 
-
-
-
-
 	// because sometimes a state just is a state so thats annoying
-	private int getIndividualState(State state, int ind, int subind) {
+	private int getIndividualState(State state, int ind, int subind)
+	{
 		Object s = state.varValues[ind];
 		int sint;
 		if (s instanceof State) {
@@ -479,7 +516,8 @@ public class MRuctPaper {
 		return sint;
 	}
 
-	private ArrayList<State> getRobotStatesFromJointState(State state) {
+	private ArrayList<State> getRobotStatesFromJointState(State state)
+	{
 		// TODO edit this for multiple state variables but for now lets just go with the
 		// usual
 		int numRobotStateVars = 2;
@@ -501,8 +539,12 @@ public class MRuctPaper {
 		return robotStates;
 	}
 
-	public Object monteCarloPlanning(BitSet accStates, boolean minCost) throws Exception {
-//		ArrayList<Integer> accsFound = new ArrayList<Integer>();
+	public Object monteCarloPlanning(BitSet accStates, boolean minCost) throws Exception
+	{
+		//		ArrayList<Integer> accsFound = new ArrayList<Integer>();
+
+		if (doProb)
+			minCost = false;
 
 		current_rollout_num = 0;
 		ArrayList<State> initialStates = getInitialStates();
@@ -514,8 +556,8 @@ public class MRuctPaper {
 			mainLog.println("Rollout Attempt: " + current_rollout_num);
 			res = monteCarloPlanning(temp_joint_state, minCost);// rollout_stateactionstateonly(initialStates,
 			// current_rollout_num);
-//				if (res == null)
-////					accsFound.add(res);
+			//				if (res == null)
+			////					accsFound.add(res);
 			current_rollout_num++;
 
 		}
@@ -524,29 +566,30 @@ public class MRuctPaper {
 		// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 		String filename = "no_door_example";
 		uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "_mctsmdp.dot");
-		MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP,
-				uctPolicy.getStateIndex(temp_joint_state), minCost);
+		MDPSimple policyTree = uctPolicy.extractPolicyTreeAsDotFile(uctPolicy.jointMDP, uctPolicy.getStateIndex(temp_joint_state), minCost);
 		policyTree.exportToDotFile(saveplace + filename + "_policy.dot");
 
-//		return accsFound;
+		//		return accsFound;
 		return res;
 	}
 
-	public Object monteCarloPlanning(State state, boolean minCost) throws Exception {
+	public Object monteCarloPlanning(State state, boolean minCost) throws Exception
+	{
 		Object bestAction = null;
 		int current_depth = 0;
 		boolean addToTreeInTrial = false;
 		accFound = false;
-//		while (current_depth < rollout_depth) {	
-		search(null, state, current_depth, minCost,addToTreeInTrial);
+		//		while (current_depth < rollout_depth) {	
+		search(null, state, current_depth, minCost, addToTreeInTrial);
 		if (accFound)
 			mainLog.println("Acc Found");
-//		}
-//		bestAction = uctPolicy.selectBestAction(state, current_depth);
+		//		}
+		//		bestAction = uctPolicy.selectBestAction(state, current_depth);
 		return bestAction;
 	}
 
-	public double search(State ps, State state, int depth, boolean minCost,boolean addToTreeInTrial) throws Exception {
+	public double search(State ps, State state, int depth, boolean minCost, boolean addToTreeInTrial) throws Exception
+	{
 		String searchInfo = "";
 		if (ps != null)
 			searchInfo += ps.toString() + "->";
@@ -554,41 +597,54 @@ public class MRuctPaper {
 
 		double cost_state = 0;
 		if (isGoal(state)) {
+			uctPolicy.setAsLeafState(state);
+			cost_state = getStateCost(state);
 			searchInfo += "=" + cost_state + "-ACC";
 			mainLog.println(searchInfo);
 			return cost_state;
 		}
 		if (isTerminal(ps, state)) {
+			//remove from leaf states 
+			//because we're saying terminal = self loop
+			uctPolicy.removeFromLeafState(state);
 			// dont want deadends
 			double failcost = MINFAILCOST;
 			if (minCost)
 				failcost = MAXFAILCOST;
+			if (doProb)
+				failcost = 0;
 			cost_state = getStateCost(state) + failcost;
 			searchInfo += "=" + cost_state + "-terminal";
 			mainLog.println(searchInfo);
 			return cost_state;
 		}
 		if (depth == rollout_depth) {
+
+			uctPolicy.setAsLeafState(state);
 			cost_state = getStateCost(state);
 			searchInfo += "=" + cost_state + "-maxd";
 			mainLog.println(searchInfo);
 			return cost_state;
 		}
 		if (isLeaf(state)) {
-//			if (!uctPolicy.stateIndices.containsKey(state))
-			initialiseVisits(state);
+			//we're expanding this 
+			//so unset it 
+			uctPolicy.removeFromLeafState(state);
+			//			if (!uctPolicy.stateIndices.containsKey(state))
+			initialiseVisits(state, minCost);
 			ArrayList<Entry<State, Object>> trialList = new ArrayList<Entry<State, Object>>();
-			cost_state = evaluate(ps, state, depth, true, trialList, minCost,addToTreeInTrial);
+			cost_state = evaluate(ps, state, depth, true, trialList, minCost, addToTreeInTrial);
 			// now lets update this state with the reward
 			searchInfo += "=" + cost_state + "-rollout";
 			mainLog.println(searchInfo);
 			mainLog.println("Trial:\n" + trialList.toString());
 			return cost_state;
 		}
+		uctPolicy.removeFromLeafState(state);
 		Object action = selectAction(state, depth, false, minCost);
-		State succState = simulateAction(state, action,true);
+		State succState = simulateAction(state, action, true);
 		double reward = getStateCost(state);
-		double q = reward + search(state, succState, depth + 1, minCost,addToTreeInTrial);
+		double q = reward + search(state, succState, depth + 1, minCost, addToTreeInTrial);
 		updateValue(state, action, q, depth, minCost);
 		cost_state = q;
 		searchInfo += "=" + cost_state + "-selection";
@@ -597,7 +653,8 @@ public class MRuctPaper {
 
 	}
 
-	void initialiseVisits(State state) throws PrismException {
+	void initialiseVisits(State state, boolean minCost) throws PrismException
+	{
 		if (!uctPolicy.stateIndices.containsKey(state))
 			uctPolicy.addState(state);
 		boolean mayhaveaction = false;
@@ -621,22 +678,22 @@ public class MRuctPaper {
 						initaction = false;
 				}
 				if (initaction) {
-					mainLog.println(action.toString()+" added");
-//			if (!uctPolicy.stateVisited(state))
+					mainLog.println(action.toString() + " added");
+					//			if (!uctPolicy.stateVisited(state))
 					uctPolicy.initialiseVisits(state, action);
-					uctPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum),
-							allPossibleActionsForState);
+					uctPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState);
 				}
-//			else
-//				uctPolicy.increaseVisits(state, action);
-//			}
+				//			else
+				//				uctPolicy.increaseVisits(state, action);
+				//			}
 			}
 		}
 
-		uctPolicy.printStateDetails(state, true);
+		uctPolicy.printStateDetails(state, minCost);
 	}
 
-	private void updateValue(State state, Object action, double q, int depth, boolean minCost) {
+	private void updateValue(State state, Object action, double q, int depth, boolean minCost)
+	{
 		// update n(s,a)
 		// q(s,a) = q(a,s) + [q-q(a,s)]/n(s,a)
 		uctPolicy.increaseVisits(state, action);
@@ -648,21 +705,24 @@ public class MRuctPaper {
 				qudpate = Double.MIN_VALUE;
 			else
 				qudpate = Double.MAX_VALUE;
-		} else
-			qudpate += (q - uctPolicy.getQvalue(state, action, minCost))
-					/ (double) uctPolicy.getNumVisits(state, action);
+		} else {
+			double temp = (q - qudpate);
+			temp = temp / (double) uctPolicy.getNumVisits(state, action);
+			qudpate += temp;
+		}
 		uctPolicy.updateQValue(state, action, qudpate);
 
 	}
 
-//	private boolean isGoal (State state)
-//	{
-//		if (accFound)
-//			return true;
-//		else
-//			return false;
-//	}
-	private boolean isTerminal(State pstate, State state) {
+	//	private boolean isGoal (State state)
+	//	{
+	//		if (accFound)
+	//			return true;
+	//		else
+	//			return false;
+	//	}
+	private boolean isTerminal(State pstate, State state)
+	{
 
 		if (pstate != null) {
 			if (state.equals(pstate))
@@ -672,13 +732,14 @@ public class MRuctPaper {
 		return false;
 	}
 
-	private boolean isLeaf(State state) {
+	private boolean isLeaf(State state)
+	{
 		// its a leaf if
 		// it is not in the tree
 		// so basically the state hasnt been added
 		// which means it should not exist in the
 		// uctPolicy stateIndices
-		if (uctPolicy.toExpand(state,true))
+		if (uctPolicy.toExpand(state, true))
 			return true;
 		else
 
@@ -686,18 +747,21 @@ public class MRuctPaper {
 
 	}
 
-	private double evaluate(State pstate, State state, int depth, boolean firstState,
-			ArrayList<Entry<State, Object>> trial, boolean minCost,boolean addToTreeInTrial) throws Exception {
+	private double evaluate(State pstate, State state, int depth, boolean firstState, ArrayList<Entry<State, Object>> trial, boolean minCost,
+			boolean addToTreeInTrial) throws Exception
+	{
 		double sumrew = 0;
 		State succState = null;
 		if (depth == rollout_depth)
 			return getStateCost(state);
 		if (isGoal(state))
-			return 0.0;
+			return getStateCost(state);
 		if (isTerminal(pstate, state)) {
 			double failcost = MINFAILCOST;
 			if (minCost)
 				failcost = MAXFAILCOST;
+			if (doProb)
+				failcost = 0;
 			return getStateCost(state) + failcost;
 		}
 		// do a whole run
@@ -705,13 +769,13 @@ public class MRuctPaper {
 			double reward = getStateCost(state);
 			Object action = selectAction(state, depth, true, minCost);
 			trial.add(new AbstractMap.SimpleEntry<State, Object>(state, action));
-			succState = simulateAction(state, action, (firstState||addToTreeInTrial));
+			succState = simulateAction(state, action, (firstState || addToTreeInTrial));
 
-			sumrew = reward + evaluate(state, succState, depth + 1, false, trial, minCost,addToTreeInTrial);
+			sumrew = reward + evaluate(state, succState, depth + 1, false, trial, minCost, addToTreeInTrial);
 			if (firstState || addToTreeInTrial) {
 				updateValue(state, action, sumrew, depth, minCost);
 			}
-			
+
 		} catch (Exception e) {
 			mainLog.println("Error");
 			e.printStackTrace();
@@ -727,7 +791,8 @@ public class MRuctPaper {
 	}
 
 	// just writing this because the states seem to flip
-	boolean statesEqualFlip(State s1, State s2) {
+	boolean statesEqualFlip(State s1, State s2)
+	{
 		// flip one of these
 		Object[] v1 = s1.varValues;
 		Object[] v2 = s2.varValues;
@@ -745,20 +810,18 @@ public class MRuctPaper {
 
 	// TODO: it seems that the states are reversed
 	// dont know why it happens please fix it later
-	int findRobotStateIndex(State state, int rnum) {
+	int findRobotStateIndex(State state, int rnum)
+	{
 		List<State> statesList = allRobotsStatesList.get(rnum);
-		boolean check = false; 
+		boolean check = false;
 		for (int i = 0; i < statesList.size(); i++) {
 			State s = statesList.get(i);
-			if(this.varlistsMatch.get(rnum))
-			{
+			if (this.varlistsMatch.get(rnum)) {
 				check = statesEqualFlip(state, s);
-			}
-			else
-			{
+			} else {
 				check = s.equals(state);
 			}
-		
+
 			if (check) {
 				return i;
 			}
@@ -766,8 +829,9 @@ public class MRuctPaper {
 		return -1;
 	}
 
-	Object getActionUsingIndividualRobotPolicies(State state) throws PrismException {
-		boolean muse = false; 
+	Object getActionUsingIndividualRobotPolicies(State state) throws PrismException
+	{
+		boolean muse = false;
 		ArrayList<State> robotStates = this.getRobotStatesFromJointState(state);
 		ArrayList<Object> robotActions = new ArrayList<Object>();
 		int[] actionIndices = new int[this.num_robots];
@@ -777,34 +841,31 @@ public class MRuctPaper {
 			int index = findRobotStateIndex(robotStates.get(i), i);
 			if (index != -1) {
 				// strat.initialise(index);
-				if(strat.isChoiceDefined(index)) {
-				int actionIndex = strat.getChoiceIndex(index);
-				
-				Object action = strat.getChoiceAction(index);
-				if(action.toString().contains("*"))
-					muse = true; 
-				//if this action is * 
-				//we have to choose something else 
-				//basically get an action from the robots model 
-				//for this state 
-				//and then the label too 
-				
-				
-				robotActions.add(action);
-				actionIndices[i] = actionIndex;
-				}
-				else
-				{
-					//get a random action 
-					ProductModelGenerator prodModGen = this.prodModGens.get(i); 
-					prodModGen.exploreState(robotStates.get(i));
-					int numActions = prodModGen.getNumChoices(); 
-					int action_choice = (new Random()).nextInt(numActions); 
-					
-					Object action = prodModGen.getChoiceAction(action_choice); 
+				if (strat.isChoiceDefined(index)) {
+					int actionIndex = strat.getChoiceIndex(index);
+
+					Object action = strat.getChoiceAction(index);
+					if (action.toString().contains("*"))
+						muse = true;
+					//if this action is * 
+					//we have to choose something else 
+					//basically get an action from the robots model 
+					//for this state 
+					//and then the label too 
+
 					robotActions.add(action);
-					actionIndices[i] = action_choice; 
-//					throw new PrismException("Undefined choice"); 
+					actionIndices[i] = actionIndex;
+				} else {
+					//get a random action 
+					ProductModelGenerator prodModGen = this.prodModGens.get(i);
+					prodModGen.exploreState(robotStates.get(i));
+					int numActions = prodModGen.getNumChoices();
+					int action_choice = (new Random()).nextInt(numActions);
+
+					Object action = prodModGen.getChoiceAction(action_choice);
+					robotActions.add(action);
+					actionIndices[i] = action_choice;
+					//					throw new PrismException("Undefined choice"); 
 				}
 
 			} else {
@@ -813,15 +874,15 @@ public class MRuctPaper {
 				//so we have to do the random action thing again 
 				//talk about this 
 				//get a random action 
-				ProductModelGenerator prodModGen = this.prodModGens.get(i); 
+				ProductModelGenerator prodModGen = this.prodModGens.get(i);
 				prodModGen.exploreState(robotStates.get(i));
-				int numActions = prodModGen.getNumChoices(); 
-				int action_choice = (new Random()).nextInt(numActions); 
-				
-				Object action = prodModGen.getChoiceAction(action_choice); 
+				int numActions = prodModGen.getNumChoices();
+				int action_choice = (new Random()).nextInt(numActions);
+
+				Object action = prodModGen.getChoiceAction(action_choice);
 				robotActions.add(action);
-				actionIndices[i] = action_choice; 
-//				throw new PrismException("Can not select action according to base strategy - Robot State -1");
+				actionIndices[i] = action_choice;
+				//				throw new PrismException("Can not select action according to base strategy - Robot State -1");
 			}
 			// strat.initialise(s);
 
@@ -833,7 +894,8 @@ public class MRuctPaper {
 
 	}
 
-	private Object chooseRandomAction(State state, boolean minCost) throws PrismException {
+	private Object chooseRandomAction(State state, boolean minCost) throws PrismException
+	{
 		int numActions = uctPolicy.stateActionVisits.get(state).keySet().size();
 		// if this isn't the first visit then maybe we can do the exploration
 		// expolitation thing
@@ -851,7 +913,8 @@ public class MRuctPaper {
 
 	}
 
-	private Object chooseRandomActionNotVisited(State state) throws PrismException {
+	private Object chooseRandomActionNotVisited(State state) throws PrismException
+	{
 		// action not added to uctPolicy
 		ArrayList<State> currentStates = getRobotStatesFromJointState(state);
 		// get all actions
@@ -879,8 +942,8 @@ public class MRuctPaper {
 		return joint_action;
 	}
 
-	private Object selectAction(State state, int depth, boolean useRolloutPolicy, boolean minCost)
-			throws PrismException {
+	private Object selectAction(State state, int depth, boolean useRolloutPolicy, boolean minCost) throws PrismException
+	{
 		boolean useStrategy = true;
 		Object joint_action;
 		if (useRolloutPolicy) {

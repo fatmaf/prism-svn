@@ -121,7 +121,7 @@ public class MRmcts {
 		try {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-			String filename = "no_door_example";
+			String filename = "tiny_example";//"no_door_example";
 
 			// Create a log for PRISM output (hidden or stdout)
 			// PrismLog mainLog = new PrismDevNullLog();
@@ -187,6 +187,7 @@ public class MRmcts {
 
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
+				
 				prodModGens.add(prodModelGen);
 				// comparing indices of the mdp and prodmodgen stuff
 				VarList vl = varlists.get(0);
@@ -226,13 +227,37 @@ public class MRmcts {
 			// the nodoorexample has 8 steps for 1 robot
 			// so lets do 10 steps + slack = 30
 			int rollout_depth = 30;
-			boolean minCost = true;
+			boolean minCost = false;
 			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices);
+					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da);
 //			uct.uctsearch(acc);
 //			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			uct.monteCarloPlanning(acc, minCost);
 			long searchOverTime = System.currentTimeMillis();
+			if(uct.uctPolicy.accStates.cardinality()> 0)
+			{
+				//we can compute upper and lower bounds 
+				//upper bounds - all leaf states are also acc states 
+				//lower bounds just acc states 
+				uct.uctPolicy.jointMDP.findDeadlocks(true);
+				BitSet accStates = (BitSet)uct.uctPolicy.accStates.clone(); 
+				MDPModelChecker mdpMC = new MDPModelChecker(prism); 
+				ModelCheckerResult upperB = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, accStates, false);
+				
+				accStates.or(uct.uctPolicy.leafStates);
+				ModelCheckerResult lowerB = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, accStates, false);
+				mainLog.println(uct.uctPolicy.leafStates.toString());
+				//TODO: double check if this leaf state stuff works 
+				
+				mainLog.println("Result: " + Arrays.toString(upperB.soln));
+				mainLog.println("Result: " + Arrays.toString(lowerB.soln));
+				
+			}
+			//going to print out the state info 
+			for(State s: uct.uctPolicy.stateActionQvalues.keySet())
+			{
+				uct.uctPolicy.printStateDetails(s, minCost);
+			}
 //			if (uct.uctPolicy.accStates.cardinality() > 0) {
 //				MDPModelChecker mdpMC = new MDPModelChecker(prism);
 //				uct.uctPolicy.jointMDP.findDeadlocks(true);
