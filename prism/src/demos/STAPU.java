@@ -265,6 +265,7 @@ public class STAPU {
 		// 2); //cuz there is door too
 		// else
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+		
 		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly,true);
 
 		BitSet combinedEssentialStates = new BitSet();
@@ -295,6 +296,10 @@ public class STAPU {
 		for (int rew = 0; rew < rewards.size(); rew++) {
 			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
 					"rew" + rew, true);
+
+			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), null, "",
+					"teamMDPWithSwitches_Rewards" + rew, true);
+			
 		}
 		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
 		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
@@ -304,9 +309,6 @@ public class STAPU {
 		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc", true);
 
 
-		StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(1), null, "",
-				"teamMDPWithSwitches_Rewards" + 1, true);
-		
 		resSaver.setLocalStartTime();
 		resSaver.setScopeStartTime();
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches,
@@ -607,8 +609,9 @@ public class STAPU {
 
 		try {
 			runOneExample(
-					grid_3_example,
+//					grid_3_example,
 //					three_robot_one_door, 
+					two_robot_door_multiple_switches,
 					example_has_door_list,
 					example_num_door_list, 
 					example_num_robot_list,
