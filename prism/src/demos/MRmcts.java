@@ -117,7 +117,8 @@ public class MRmcts {
 		return strat;
 	}
 
-	public void run() throws Exception {
+	public void doUCT() throws Exception
+	{
 		try {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
@@ -281,5 +282,138 @@ public class MRmcts {
 			System.out.println("Error: " + e.getMessage());
 			System.exit(1);
 		}
+	}
+	public void doBRTDP() throws Exception
+	{
+		try {
+
+			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+			String filename = "tiny_example";//"no_door_example";
+
+			// Create a log for PRISM output (hidden or stdout)
+			// PrismLog mainLog = new PrismDevNullLog();
+			PrismLog mainLog = new PrismFileLog("stdout");
+			Long startTime = System.currentTimeMillis();
+			// Initialise PRISM engine
+			Prism prism = new Prism(mainLog);
+			prism.initialise();
+			ArrayList<String> filenames = new ArrayList<String>();
+			filenames.add(saveplace + filename + "0.prism");
+			filenames.add(saveplace + filename + "1.prism");
+			String propfilename = saveplace + filename + ".prop";
+			prism.setEngine(Prism.EXPLICIT);
+			ArrayList<ProductModelGenerator> prodModGens = new ArrayList<ProductModelGenerator>();
+			ArrayList<List<State>> allRobotsStatesList = new ArrayList<List<State>>();
+
+			ExpressionProb expr = null;
+			DA<BitSet, ? extends AcceptanceOmega> da = null;
+			LTLModelChecker ltlMC;// = new LTLModelChecker(prism);
+			AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
+			ArrayList<MDStrategy> singleRobotSolutions = new ArrayList<MDStrategy>();
+			ArrayList<Boolean> flipedIndices = new ArrayList<Boolean>();
+			// we need to create a base policy too
+			// so we have to do basic prism model checking
+			MDP mdp = null;
+			int fileno = 0;
+			for (fileno = 0; fileno < filenames.size(); fileno++) {
+				List<Expression> labelExprs = new ArrayList<Expression>();
+				ModulesFile modulesFile = prism.parseModelFile(new File(filenames.get(fileno)));
+				prism.loadPRISMModel(modulesFile);
+
+				// i can not use the same da to generate all models
+				// i get an outofbounds index error for the first state when i do get init state
+				// on that prod mod
+				// soo no to this if above
+				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
+//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
+//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
+
+				expr = (ExpressionProb) propertiesFile.getProperty(0);
+
+				//
+
+				ltlMC = new LTLModelChecker(prism);
+				da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
+
+				ArrayList<VarList> varlists = new ArrayList<VarList>();
+
+				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList,
+						varlists);
+				singleRobotSolutions.add(strat);
+
+//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
+
+//					System.out.println(result.getResult()); 
+//				}
+				da.setDistancesToAcc();
+				da.printDot(mainLog);
+
+				PrismFileLog out = new PrismFileLog(TESTSLOC + "mrmctsda" + fileno + ".dot");
+				da.printDot(out);
+				out.close();
+
+				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
+				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
+				
+				prodModGens.add(prodModelGen);
+				// comparing indices of the mdp and prodmodgen stuff
+				VarList vl = varlists.get(0);
+				VarList pmdvl = prodModelGen.createVarList();
+				// lets match these
+				String dastring = "da";
+				int mdpdanum = -1;
+				for (int i = 0; i < vl.getNumVars(); i++) {
+					if (vl.getName(i).contains(dastring)) {
+						mdpdanum = i;
+						break;
+					}
+				}
+				int pmddanum = -1;
+				for (int i = 0; i < pmdvl.getNumVars(); i++) {
+					if (pmdvl.getName(i).contains(dastring)) {
+						pmddanum = i;
+						break;
+					}
+				}
+				if (mdpdanum != pmddanum) {
+					// do stuff here
+					// i have no idea what
+					flipedIndices.add(true);
+//					flipedIndices.add(false);
+				} else {
+					flipedIndices.add(false);
+//					flipedIndices.add(true);
+				}
+
+			}
+
+			// now do something with these
+			BitSet acc = da.getAccStates();
+			BitSet sinkStates = da.getSinkStates();
+			int max_rollouts = 1000;
+			// the nodoorexample has 8 steps for 1 robot
+			// so lets do 10 steps + slack = 30
+			int rollout_depth = 30;
+			boolean minCost = false;
+			MRuctPaper brtdp = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
+					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da);
+//			uct.uctsearch(acc);
+//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
+			brtdp.doBRTDP(acc, false);
+
+			long endTime = System.currentTimeMillis();
+			mainLog.println("\nTotal Time:"
+					+ (endTime - startTime) / 1000.0 + "s");
+			// Close down PRISM
+			prism.closeDown();
+
+		} catch (PrismException | FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+	}
+	public void run() throws Exception {
+//	doUCT();
+		doBRTDP();
 	}
 }

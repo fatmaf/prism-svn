@@ -1,6 +1,7 @@
 package demos;
 
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import automata.DA;
 import explicit.MDPSimple;
 
 import java.util.Random;
+import java.util.Stack;
 
 import parser.State;
 import parser.ast.Expression;
@@ -55,6 +57,8 @@ public class MRuctPaper
 	boolean doProb = true;
 	DA<BitSet, ? extends AcceptanceOmega> da; //just to store stuff 
 
+	JointPolicyBRTDP brtdpPolicy;
+
 	public MRuctPaper(PrismLog log, ArrayList<ProductModelGenerator> robotProdModelGens, int max_rollouts, int rollout_depth,
 			ArrayList<String> shared_state_names, List<Double> dadistToAcc, ArrayList<MDStrategy> singleRobotSols, ArrayList<List<State>> allRobotsStatesList,
 			ArrayList<Boolean> flipedIndices, DA<BitSet, ? extends AcceptanceOmega> da)
@@ -79,6 +83,7 @@ public class MRuctPaper
 		}
 		da_distToAcc = dadistToAcc;
 		uctPolicy = new JointPolicyPaper(mainLog, num_robots, 1, 0, null, null);
+		brtdpPolicy = new JointPolicyBRTDP(mainLog, num_robots, 1, 0, null, null,da_distToAcc);
 		randomGen = new Random();
 		// so the maximum failure cost should be the number of steps
 		// because with the max cost of other things being 1 you can never do worse
@@ -175,26 +180,25 @@ public class MRuctPaper
 		return temp_joint_state;
 	}
 
-	double getStateCost(State state)
+	Entry<Double,Double> getStateCost(State state)
 	{
+	
 		// get the da state
 		State dastate = state.substate(num_robots, num_robots + 1);
 		dastate = (State) dastate.varValues[0];
 		int dastateint = (int) dastate.varValues[0];
 		double dist = da_distToAcc.get(dastateint);
+		double prob = 0; 
 		if (dist == 0) {
 			mainLog.println(state.toString());
 			uctPolicy.setAsAccState(state);
 			accFound = true;
 			if (doProb) {
-				dist = 1;
+				prob = 1;
 			}
-		} else {
-			if (doProb)
-				dist = 0;
-		}
+		} 
 
-		return dist;
+		return new AbstractMap.SimpleEntry<Double,Double>(prob,dist);
 	}
 
 	boolean isGoal(State state)
@@ -598,7 +602,12 @@ public class MRuctPaper
 		double cost_state = 0;
 		if (isGoal(state)) {
 			uctPolicy.setAsLeafState(state);
-			cost_state = getStateCost(state);
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			cost_state = stateCost;
+			if(doProb)		
+			cost_state = probCost;
 			searchInfo += "=" + cost_state + "-ACC";
 			mainLog.println(searchInfo);
 			return cost_state;
@@ -613,7 +622,13 @@ public class MRuctPaper
 				failcost = MAXFAILCOST;
 			if (doProb)
 				failcost = 0;
-			cost_state = getStateCost(state) + failcost;
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			cost_state = stateCost;
+			if(doProb)		
+			cost_state = probCost;
+			cost_state += failcost;
 			searchInfo += "=" + cost_state + "-terminal";
 			mainLog.println(searchInfo);
 			return cost_state;
@@ -621,7 +636,12 @@ public class MRuctPaper
 		if (depth == rollout_depth) {
 
 			uctPolicy.setAsLeafState(state);
-			cost_state = getStateCost(state);
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			cost_state = stateCost;
+			if(doProb)		
+			cost_state = probCost;
 			searchInfo += "=" + cost_state + "-maxd";
 			mainLog.println(searchInfo);
 			return cost_state;
@@ -643,7 +663,12 @@ public class MRuctPaper
 		uctPolicy.removeFromLeafState(state);
 		Object action = selectAction(state, depth, false, minCost);
 		State succState = simulateAction(state, action, true);
-		double reward = getStateCost(state);
+		Entry<Double, Double> probstatecost = getStateCost(state);
+		double probCost = probstatecost.getKey();
+		double stateCost = probstatecost.getValue();
+		double reward = stateCost;
+		if(doProb)
+			reward = probCost;
 		double q = reward + search(state, succState, depth + 1, minCost, addToTreeInTrial);
 		updateValue(state, action, q, depth, minCost);
 		cost_state = q;
@@ -753,20 +778,46 @@ public class MRuctPaper
 		double sumrew = 0;
 		State succState = null;
 		if (depth == rollout_depth)
-			return getStateCost(state);
-		if (isGoal(state))
-			return getStateCost(state);
+		{			Entry<Double, Double> probstatecost = getStateCost(state);
+		double probCost = probstatecost.getKey();
+		double stateCost = probstatecost.getValue();
+		if(doProb)
+			return probCost;
+		
+			return stateCost;
+		}
+		if (isGoal(state)) {
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			if(doProb)
+				return probCost;
+			
+				return stateCost;
+		}
 		if (isTerminal(pstate, state)) {
 			double failcost = MINFAILCOST;
 			if (minCost)
 				failcost = MAXFAILCOST;
 			if (doProb)
 				failcost = 0;
-			return getStateCost(state) + failcost;
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			if(doProb)
+				return probCost + failcost;
+			
+				return stateCost +failcost;
 		}
 		// do a whole run
 		try {
-			double reward = getStateCost(state);
+			Entry<Double, Double> probstatecost = getStateCost(state);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			
+			double reward = stateCost;
+			if(doProb)
+				reward = probCost;
 			Object action = selectAction(state, depth, true, minCost);
 			trial.add(new AbstractMap.SimpleEntry<State, Object>(state, action));
 			succState = simulateAction(state, action, (firstState || addToTreeInTrial));
@@ -972,6 +1023,262 @@ public class MRuctPaper
 			return uctPolicy.getBestAction(state, minCost);
 		}
 
+	}
+
+	private double updateUpperValue(State state, double probCost,double cost) throws PrismException
+	{
+		//step 1 
+		//get all the actions 
+		//check if we dont have actions stored already 
+		if (!brtdpPolicy.robotStateActionIndices.containsKey(state)) {
+			// action not added to uctPolicy
+
+			ArrayList<State> currentStates = getRobotStatesFromJointState(state);
+			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
+			ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
+			for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
+				Object action = getJointActionName(allPossibleJointActions.get(actionNum));
+
+				//add these robot action indices to our list 
+				brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState);
+				//so we have to add this action 
+				addStateActionToMDP(state, action);
+			}
+		}
+
+		//now that we have all the actions 
+		//		double stateCost = this.getStateCost(state); 
+		Entry<Double, Double> stateUpperV = brtdpPolicy.getMinMaxValue(state, probCost, cost,!doProb, true,brtdpPolicy.isGoal(state));
+		
+		brtdpPolicy.setProbCostValue(state, stateUpperV.getKey(),stateUpperV.getValue(), true);
+		return stateUpperV.getKey();
+
+	}
+
+	double updateLowerValue(State state, double probCost,double cost) throws PrismException
+	{
+		Entry<Double, Double> stateLowerV = brtdpPolicy.getMinMaxValue(state, probCost,cost, !doProb, false,isGoal(state));
+		brtdpPolicy.setProbCostValue(state, stateLowerV.getKey(),stateLowerV.getValue(), false);
+		return stateLowerV.getKey();
+	}
+
+	double updateLowerValueAction(State state, Object act, double probCost,double stateCost) throws PrismException
+	{
+		boolean isgoal = brtdpPolicy.isGoal(state);
+		double stateLowerV = brtdpPolicy.getProbValueIgnoreSelfLoop(state, false, isgoal);
+		double probqval = brtdpPolicy.getProbQValue(state, act, probCost, false, isgoal);
+		double costqval = brtdpPolicy.getCostQValue(state, act, stateCost, false); 
+		brtdpPolicy.setProbCostValue(state, probqval, costqval, false);
+		
+		return probqval;
+	}
+
+	Object getLowerValueAction(State state, double probCost,double cost) throws PrismException
+	{
+		if (!brtdpPolicy.robotStateActionIndices.containsKey(state))
+			throw new PrismException("State not added to robotStateActionIndices" + state.toString());
+		//		double stateCost = getStateCost(state); 
+		Object action = brtdpPolicy.getMinMaxAction(state, probCost,cost, !doProb, false);
+		return action;
+	}
+
+	void addStateActionToMDP(State state, Object action) throws PrismException
+	{
+		//add this state and action slowly 
+		//		//add this action to our list 
+		ArrayList<State> currentStates = getRobotStatesFromJointState(state);
+		ArrayList<Integer> actionIndices = brtdpPolicy.robotStateActionIndices.get(state).get(action);
+		HashMap<Integer, HashMap<State, Double>> succStates = new HashMap<Integer, HashMap<State, Double>>();
+		for (int i = 0; i < num_robots; i++) {
+			HashMap<State, Double> ahashmap = new HashMap<State, Double>();
+			int choice = actionIndices.get(i);
+			ProductModelGenerator pmg = prodModGens.get(i);
+			pmg.exploreState(currentStates.get(i));
+			int nt = pmg.getNumTransitions(choice);
+			for (int t = 0; t < nt; t++) {
+				double prob = pmg.getTransitionProbability(choice, t);
+				State succState1 = pmg.computeTransitionTarget(choice, t);
+				ahashmap.put(succState1, prob);
+
+			}
+			succStates.put(i, ahashmap);
+
+		}
+
+		ArrayList<ArrayList<State>> jointSuccessors = getJointStateCombinations(succStates);
+		ArrayList<State> jointsuccStates = getJointStates(jointSuccessors);
+		ArrayList<Double> probs = calculateJointStatesProbs(succStates, jointSuccessors);
+		// now we just choose one of these
+		// if its the first one we should add these to uctPolicy
+
+		brtdpPolicy.addAction(state, action, jointsuccStates, probs);
+
+	}
+
+	void BRTDPTrial(State state, Stack<State> traj, double tau) throws PrismException
+	{
+		//setting a max traj length 
+		//just a quick thing really 
+		int maxTrajectoryLen = 10; 
+		State currState = state;
+
+		double successorsDiff = 1000;
+		double stateDiff = brtdpPolicy.getProbValueDiff(state, brtdpPolicy.isGoal(state));
+		boolean comp = successorsDiff > (stateDiff / tau);
+		while (comp) {
+			traj.push(currState);
+			Entry<Double, Double> probstatecost = getStateCost(currState);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+//			double probCost = getStateCost(currState);
+			updateUpperValue(currState, probCost,stateCost);
+			Object action = getLowerValueAction(currState, probCost,stateCost);
+			updateLowerValueAction(currState, action, probCost,stateCost);
+			//now we have to get all the successors 
+			HashMap<State, Double> succs = brtdpPolicy.getSuccessors(currState, action);
+			if (succs == null) {
+				//we need to add the action and stuff 
+				addStateActionToMDP(currState, action);
+				succs = brtdpPolicy.getSuccessors(currState, action);
+			}
+			//so now we have all the successors 
+			//we have to do a loop thing 
+			double sumB = 0.0;
+			double b = 0.0;
+			double rand = new Random().nextDouble();
+			double sumProb = 0.0;
+			State chosenSuccState = null;
+			//assuming the states are ordered by prob 
+			HashMap<State,Double> statebs = new HashMap<State,Double>();
+			for (State s : succs.keySet()) {
+				double prob = succs.get(s);
+				double succStateDiff = brtdpPolicy.getProbValueDiff(s, isGoal(s));
+				b = prob * succStateDiff;
+				statebs.put(s,b);
+				sumB += b;
+//				if (sumProb < rand) {
+//					sumProb += prob;
+//					if (sumProb > rand) {
+//						chosenSuccState = s;
+//					}
+//				}
+//				if (rand == 0) { 
+//					if (chosenSuccState == null) {
+//						chosenSuccState = s;
+//					}
+//				}
+
+			}
+			if(sumB != 1.0) {
+			for(State s: statebs.keySet())
+			{
+			 b = statebs.get(s); 
+			 statebs.put(s, b/sumB); 
+			}}
+			
+			for(State s: statebs.keySet())
+			{
+				//assuming ordered by prob
+				if(sumProb < rand)
+				{
+					sumProb+=statebs.get(s); 
+					if(sumProb>rand)
+					{
+						chosenSuccState =s; 
+						break; 
+					}
+				}
+				if(rand == 0)
+				{
+					chosenSuccState =s; 
+					break; 
+				}
+			}
+				
+			//now we do the check 
+
+			successorsDiff = sumB;
+			stateDiff = brtdpPolicy.getProbValueDiff(state, isGoal(state));
+			comp = successorsDiff > (stateDiff / tau);
+			currState = chosenSuccState;
+			if(traj.size() > maxTrajectoryLen)
+				break;
+		}
+
+	}
+
+	void BRTDPBackup(Stack<State> traj) throws PrismException
+	{
+		//do stuff here 
+		while (!traj.isEmpty()) {
+			State s = traj.pop();
+			Entry<Double, Double> probstatecost = getStateCost(s);
+			double probCost = probstatecost.getKey();
+			double stateCost = probstatecost.getValue();
+			mainLog.println(s.toString()+":"+probCost+","+stateCost); 
+			brtdpPolicy.printStateValues(s);
+			this.updateUpperValue(s, probCost,stateCost);
+			this.updateLowerValue(s, probCost,stateCost);
+			brtdpPolicy.printStateValues(s);
+
+		}
+	}
+
+	void runBRTDPTrial(State state, double tau) throws PrismException
+	{
+
+		Stack<State> trajectory = new Stack<State>();
+
+		BRTDPTrial(state, trajectory, tau);
+		BRTDPBackup(trajectory);
+	}
+
+	//a clean brtdp implementation 
+	//for probs only 
+	//v_u = 1 
+	//v_l = 0
+	public Object doBRTDP(BitSet accStates, boolean minCost) throws Exception
+	{
+		//		ArrayList<Integer> accsFound = new ArrayList<Integer>();
+
+		if (doProb)
+			minCost = false;
+
+		current_rollout_num = 0;
+		ArrayList<State> initialStates = getInitialStates();
+		// get the initial state
+		State temp_joint_state = getJointState(initialStates, null);
+		mainLog.println("Joint State:" + temp_joint_state.toString());
+		Object res = null;
+		double alpha = 0.1; //change this later 
+		double tau = 50; //they used something between 10 and 100 
+		double stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state));
+		while (stateDiff > alpha) {
+			runBRTDPTrial(temp_joint_state, tau);
+			stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state));
+//			String saveplace = MRmcts.TESTSLOC;
+//			// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+//			String filename = "no_door_example";
+//			brtdpPolicy.jointMDP.exportToDotFile(saveplace + filename + "_brtdpmdp_"+stateDiff+".dot");
+//			MDPSimple policyTree = brtdpPolicy.extractPolicyTreeAsDotFile(brtdpPolicy.jointMDP, brtdpPolicy.getStateIndex(temp_joint_state), minCost);
+//			policyTree.exportToDotFile(saveplace + filename + "_brtdp_policy_"+stateDiff+".dot");
+		}
+		
+		
+		//		while (current_rollout_num < max_num_rollouts) {
+		//			mainLog.println("Rollout Attempt: " + current_rollout_num);
+		//			res = monteCarloPlanning(temp_joint_state, minCost);// rollout_stateactionstateonly(initialStates,
+		//			// current_rollout_num);
+		//			//				if (res == null)
+		//			////					accsFound.add(res);
+		//			current_rollout_num++;
+		//
+		//		}
+		//		// lets do the policy tree stuff here
+				
+
+		//		return accsFound;
+		return res;
 	}
 
 }
