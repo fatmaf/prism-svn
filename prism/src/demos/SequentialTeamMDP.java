@@ -379,11 +379,19 @@ public class SequentialTeamMDP {
 
 				Iterator<Map.Entry<Integer, Double>> iter;
 
+				//simple trick 
+				//remove any self loops 
+				//if the number of actions is 1 
+				boolean removeSelfLoop = (numChoices == 1); 
+				boolean hasSelfLoop = false; 
+				 
 				for (int j = 0; j < numChoices; j++) {
 					boolean addProgReward = false;
+					int ssCount = 0;
 					iter = agentMDP.getTransitionsIterator(s, j);
 					Distribution distr = new Distribution();
 					while (iter.hasNext()) {
+						ssCount++; 
 						Entry<Integer, Double> nextStatePair = iter.next();
 						int nextState = nextStatePair.getKey();
 						double nextStateProb = nextStatePair.getValue();
@@ -419,23 +427,37 @@ public class SequentialTeamMDP {
 						// expectedProgRewardValue = nextStateProb*acceptingStateRewardValue;
 						// }
 						distr.add(indexInTeamNextState, nextStateProb);
-
+						if(removeSelfLoop)
+						{
+							if(indexInTeamNextState == indexInTeamState)
+							{
+								if(ssCount == 1)
+								{
+									hasSelfLoop = true; 
+								}
+							}
+						}
+					}
+					if(removeSelfLoop && hasSelfLoop)
+					{
+						if(ssCount > 1)
+							hasSelfLoop = false; 
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
+					
 
 					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
-						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
-						// mainLog.println(s+" "+j+"
-						// "+singleAgentNestedMDP.productStateToMDPState.get(s));
-						 
+						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;				 
 						
-						
+						//if this has a self loop set the reward to 0
 						int singleAgentState = singleAgentNestedMDP.productStateToMDPState.get(s);
 						double rewardHere = rewardStruct
 								.getTransitionReward(singleAgentState, j);
+						if(removeSelfLoop && hasSelfLoop)
+							rewardHere = 0; 
 
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 

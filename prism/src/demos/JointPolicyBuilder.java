@@ -303,10 +303,11 @@ public class JointPolicyBuilder {
 		stateQ.add(initialState);
 		int state,ps,choice; 
 		Object action = null;
-		
+		BitSet discovered = new BitSet(); 
 		while(!stateQ.isEmpty())
 		{
 			state = stateQ.remove();
+			discovered.set(state);
 			if(stateLabels[state] == -1)
 			{stateLabels[state]=policyTree.addState();
 			statesList.add(mdp.getStatesList().get(state));
@@ -328,10 +329,16 @@ public class JointPolicyBuilder {
 						}
 					int cs = stateLabels[childstate];
 					distr.add(cs,stateProb);
+					if(!discovered.get(childstate))
 					stateQ.add(childstate);
 				}
 				policyTree.addActionLabelledChoice(ps, distr, action);	
 		
+			}
+			else
+			{
+				//well we dont have a choice so we just skip this 
+				
 			}
 				
 		}
