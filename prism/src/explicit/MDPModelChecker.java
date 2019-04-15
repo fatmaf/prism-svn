@@ -1126,6 +1126,16 @@ public class MDPModelChecker extends ProbModelChecker {
 				solnProb[i] = target.get(i) ? 1.0 : 0.0; // yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
 			else
 				solnProb[i] = probInitVal[i];
+			for(int rew = 0; rew<numRewards; rew++)
+			{
+				if(minRewards.get(rew))
+				{
+					solnReward.get(rew)[i]=0.0;
+//					solnReward.get(rew)[i]=target.get(i) ? 0.0 : statesToIgnoreForVI.get(i) ? 0.0 : 100; 
+				}
+				else
+					solnReward.get(rew)[i]=0.0; 
+			}
 			// if (probPreference != 0)
 			// {
 			// //then we care about the reward first
@@ -1143,19 +1153,22 @@ public class MDPModelChecker extends ProbModelChecker {
 			// }
 
 		}
-		int startRew = 0;
-		// if (probPreference != 0)
-		// startRew = 1;
-		for (int rew = startRew; rew < numRewards; rew++) {
-			if (rewardsInitVal == null)
-				Arrays.fill(solnReward.get(rew), initValCost);
-			else {
-				if (rewardsInitVal.get(rew) == null) {
-					Arrays.fill(solnReward.get(rew), initValCost);
-				}
-
-			}
-		}
+		//commenting this out for the new stuff 
+		
+//		int startRew = 0;
+//		// if (probPreference != 0)
+//		// startRew = 1;
+//		for (int rew = startRew; rew < numRewards; rew++) {
+//
+//			if (rewardsInitVal == null)
+//				Arrays.fill(solnReward.get(rew), initValCost);
+//			else {
+//				if (rewardsInitVal.get(rew) == null) {
+//					Arrays.fill(solnReward.get(rew), initValCost);
+//				}
+//
+//			}
+//		}
 
 		// Start iterations
 		iters = 0;
@@ -1203,10 +1216,14 @@ public class MDPModelChecker extends ProbModelChecker {
 					}
 				}
 			}
-			int[] pvarArr = { 193 };
+			int[] pvarArr = { 24,27,16 };
 
 			iters++;
 			done = true;
+			boolean meh = false; 
+			if(iters > 15)
+				meh = true;
+			
 			for (i = 0; i < n; i++) {
 				if (!statesToIgnoreForVI.get(i)) {// (unknown.get(i)) {
 
@@ -1224,8 +1241,10 @@ public class MDPModelChecker extends ProbModelChecker {
 							for (int pvar = 0; pvar < pvarArr.length; pvar++) {
 								pvarString += "(" + pvarArr[pvar] + " p" + solnProb[pvarArr[pvar]] + " a"
 										+ strat[pvarArr[pvar]] ;
-								if(strat[pvarArr[pvar]] >= 0 )
-									pvarString+=mdp.getAction(i, strat[pvarArr[pvar]]).toString();
+								if(strat[pvarArr[pvar]] >= 0 ) {
+									int actnum = strat[pvarArr[pvar]]; 
+									pvarString+=mdp.getAction(pvarArr[pvar], actnum).toString();
+								}
 								for(int rewsp = 0; rewsp < solnReward.size(); rewsp++)
 									pvarString+=" r"+rewsp+"-"+solnReward.get(rewsp)[pvarArr[pvar]]; 
 								
@@ -1590,6 +1609,8 @@ public class MDPModelChecker extends ProbModelChecker {
 		while (!done && iters < maxIters) {
 			iters++;
 			done = true;
+ 
+			
 			for (i = 0; i < n; i++) {
 				if (unknown.get(i)) {
 					numChoices = mdp.getNumChoices(i);
