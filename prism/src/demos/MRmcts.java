@@ -49,6 +49,7 @@ import explicit.MDPModelChecker;
 import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
+import explicit.StateValues;
 import parser.State;
 import parser.VarList;
 import parser.ast.Expression;
@@ -58,6 +59,7 @@ import parser.ast.ExpressionQuant;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import prism.ModelChecker;
+import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
 import prism.PrismException;
@@ -89,7 +91,8 @@ public class MRmcts {
 	}
 
 	public MDStrategy getSingleRobotSolution(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr,
-			AcceptanceType[] allowedAcceptance, ArrayList<List<State>> allRobotsStatesList, ArrayList<VarList> varlists)
+			AcceptanceType[] allowedAcceptance, ArrayList<List<State>> allRobotsStatesList,
+			ArrayList<VarList> varlists)
 			throws PrismException {
 
 		prism.buildModel();
@@ -115,6 +118,36 @@ public class MRmcts {
 		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
 		MDStrategy strat = (MDStrategy) (result.strat);
 		return strat;
+	}
+	public ArrayList<StateValues> getSingleRobotPartialSatSol(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr
+			) throws PrismException
+	{
+		prism.buildModel();
+		MDP mdp = (MDP) prism.getBuiltModelExplicit();
+
+		MDPModelChecker mc = new MDPModelChecker(prism);
+		mc.setGenStrat(true);
+		mc.setExportAdv(true);
+		
+		
+
+//		Vector<BitSet> labelBS = new Vector<BitSet>();
+//		ProbModelChecker pmc = new ProbModelChecker(prism);
+
+		ArrayList<StateValues> result = mc.checkPartialSatForBounds(mdp, expr, null);
+		return result; 
+//		LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
+//		DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr.getExpression(),
+//				labelBS, allowedAcceptance);
+//		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
+//
+//		MDP prodmdp = prod.getProductModel();
+//		varlists.add(prodmdp.getVarList());
+//		allRobotsStatesList.add(prodmdp.getStatesList());
+//		BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
+//
+//		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
+//		MDStrategy strat = (MDStrategy) (result.strat);
 	}
 
 	public void doUCT() throws Exception
@@ -339,6 +372,8 @@ public class MRmcts {
 
 				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList,
 						varlists);
+
+			
 				singleRobotSolutions.add(strat);
 
 //					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
@@ -354,6 +389,8 @@ public class MRmcts {
 
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
+				prism.loadModelGenerator(prismModelGen);
+				ArrayList<StateValues> meh = getSingleRobotPartialSatSol(prism, ltlMC, expr);
 				
 				prodModGens.add(prodModelGen);
 				// comparing indices of the mdp and prodmodgen stuff

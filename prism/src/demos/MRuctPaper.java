@@ -183,7 +183,7 @@ public class MRuctPaper
 	Entry<Double,Double> getStateCost(State state)
 	{
 	
-		// get the da state
+	
 		State dastate = state.substate(num_robots, num_robots + 1);
 		dastate = (State) dastate.varValues[0];
 		int dastateint = (int) dastate.varValues[0];
@@ -197,10 +197,44 @@ public class MRuctPaper
 				prob = 1;
 			}
 		} 
+		
 
+	
 		return new AbstractMap.SimpleEntry<Double,Double>(prob,dist);
 	}
 
+	double getRobotsReward(State state, Object act,boolean sumCost) throws PrismException
+	{
+		ArrayList<State> robotStates = getRobotStatesFromJointState(state); 
+		ArrayList<Object> robotActions = splitJointAction(act);
+		// get the da state
+		double cost = 0; 
+		if(sumCost) {
+		for(int i = 0; i<robotStates.size(); i++)
+			cost+= getRobotReward(i,robotStates.get(i),robotActions.get(i));
+		}
+		else
+		{
+			//max cost 
+			double minCost =getRobotReward(0,robotStates.get(0),robotActions.get(0));
+			for(int i = 1; i<robotStates.size(); i++)
+			{
+				cost = getRobotReward(i,robotStates.get(i),robotActions.get(i));
+				if(minCost > cost)
+					minCost = cost; 
+			}
+			cost = minCost; 
+		}
+		return cost; 
+	}
+	double getRobotReward(int rnum,State state,Object act) throws PrismException
+	{
+		//assuming there is just a single reward 
+		ProductModelGenerator pmg = this.prodModGens.get(rnum); 
+		double rew = pmg.getStateActionReward(0, state, act);
+		return rew; 
+	
+	}
 	boolean isGoal(State state)
 	{
 		// get the da state
@@ -225,6 +259,7 @@ public class MRuctPaper
 			State current_model_state = null;
 			try {
 				current_model_state = prodModGens.get(i).getInitialState();
+				
 			} catch (PrismException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1025,7 +1060,7 @@ public class MRuctPaper
 
 	}
 
-	private double updateUpperValue(State state, double probCost,double cost) throws PrismException
+	private double updateUpperValue(State state, double probCost,double cost,boolean sumCosts) throws PrismException
 	{
 		//step 1 
 		//get all the actions 
@@ -1042,13 +1077,14 @@ public class MRuctPaper
 				//add these robot action indices to our list 
 				brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState);
 				//so we have to add this action 
-				addStateActionToMDP(state, action);
+				addStateActionToMDP(state, action,sumCosts);
+				
 			}
 		}
 
 		//now that we have all the actions 
 		//		double stateCost = this.getStateCost(state); 
-		Entry<Double, Double> stateUpperV = brtdpPolicy.getMinMaxValue(state, probCost, cost,!doProb, true,brtdpPolicy.isGoal(state));
+		Entry<Double, Double> stateUpperV = brtdpPolicy.getMinMaxValue(state, probCost, !doProb, true,brtdpPolicy.isGoal(state));
 		
 		brtdpPolicy.setProbCostValue(state, stateUpperV.getKey(),stateUpperV.getValue(), true);
 		return stateUpperV.getKey();
@@ -1078,11 +1114,11 @@ public class MRuctPaper
 		if (!brtdpPolicy.robotStateActionIndices.containsKey(state))
 			throw new PrismException("State not added to robotStateActionIndices" + state.toString());
 		//		double stateCost = getStateCost(state); 
-		Object action = brtdpPolicy.getMinMaxAction(state, probCost,cost, !doProb, false);
+		Object action = brtdpPolicy.getMinMaxAction(state, probCost, !doProb, false);
 		return action;
 	}
 
-	void addStateActionToMDP(State state, Object action) throws PrismException
+	void addStateActionToMDP(State state, Object action,boolean sumCosts) throws PrismException
 	{
 		//add this state and action slowly 
 		//		//add this action to our list 
@@ -1112,10 +1148,12 @@ public class MRuctPaper
 		// if its the first one we should add these to uctPolicy
 
 		brtdpPolicy.addAction(state, action, jointsuccStates, probs);
+		double reward = this.getRobotsReward(state, action,sumCosts);
+		brtdpPolicy.addActionReward(state, action,reward );
 
 	}
 
-	void BRTDPTrial(State state, Stack<State> traj, double tau) throws PrismException
+	void BRTDPTrial(State state, Stack<State> traj, double tau,boolean sumCosts) throws PrismException
 	{
 		//setting a max traj length 
 		//just a quick thing really 
@@ -1131,14 +1169,14 @@ public class MRuctPaper
 			double probCost = probstatecost.getKey();
 			double stateCost = probstatecost.getValue();
 //			double probCost = getStateCost(currState);
-			updateUpperValue(currState, probCost,stateCost);
+			updateUpperValue(currState, probCost,stateCost,sumCosts);
 			Object action = getLowerValueAction(currState, probCost,stateCost);
 			updateLowerValueAction(currState, action, probCost,stateCost);
 			//now we have to get all the successors 
 			HashMap<State, Double> succs = brtdpPolicy.getSuccessors(currState, action);
 			if (succs == null) {
 				//we need to add the action and stuff 
-				addStateActionToMDP(currState, action);
+				addStateActionToMDP(currState, action,sumCosts);
 				succs = brtdpPolicy.getSuccessors(currState, action);
 			}
 			//so now we have all the successors 
@@ -1207,7 +1245,7 @@ public class MRuctPaper
 
 	}
 
-	void BRTDPBackup(Stack<State> traj) throws PrismException
+	void BRTDPBackup(Stack<State> traj,boolean sumCosts) throws PrismException
 	{
 		//do stuff here 
 		while (!traj.isEmpty()) {
@@ -1217,7 +1255,7 @@ public class MRuctPaper
 			double stateCost = probstatecost.getValue();
 			mainLog.println(s.toString()+":"+probCost+","+stateCost); 
 			brtdpPolicy.printStateValues(s);
-			this.updateUpperValue(s, probCost,stateCost);
+			this.updateUpperValue(s, probCost,stateCost,sumCosts);
 			this.updateLowerValue(s, probCost,stateCost);
 			brtdpPolicy.printStateValues(s);
 
@@ -1227,10 +1265,11 @@ public class MRuctPaper
 	void runBRTDPTrial(State state, double tau) throws PrismException
 	{
 
+		boolean sumCosts = false;  //do not sum robot costs, get the max cost instead 
 		Stack<State> trajectory = new Stack<State>();
 
-		BRTDPTrial(state, trajectory, tau);
-		BRTDPBackup(trajectory);
+		BRTDPTrial(state, trajectory, tau,sumCosts);
+		BRTDPBackup(trajectory,sumCosts);
 	}
 
 	//a clean brtdp implementation 
