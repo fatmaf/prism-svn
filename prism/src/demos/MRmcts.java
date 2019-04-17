@@ -59,6 +59,8 @@ import parser.ast.ExpressionQuant;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
 import prism.ModelChecker;
+import prism.ModelGenerator;
+import prism.ModelInfo;
 import prism.ModelType;
 import prism.Prism;
 import prism.PrismComponent;
@@ -119,35 +121,27 @@ public class MRmcts {
 		MDStrategy strat = (MDStrategy) (result.strat);
 		return strat;
 	}
-	public ArrayList<StateValues> getSingleRobotPartialSatSol(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr
+	public ArrayList<HashMap<State,Double>> getSingleRobotPartialSatSol(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr,
+			ModelInfo modelInfo, PropertiesFile propertiesFile, ModelGenerator modelGen,
+			ArrayList<VarList> varlist
 			) throws PrismException
 	{
 		prism.buildModel();
 		MDP mdp = (MDP) prism.getBuiltModelExplicit();
 
 		MDPModelChecker mc = new MDPModelChecker(prism);
+		
 		mc.setGenStrat(true);
 		mc.setExportAdv(true);
 		
-		
+		mc.setModulesFileAndPropertiesFile(modelInfo, propertiesFile, modelGen);
 
-//		Vector<BitSet> labelBS = new Vector<BitSet>();
-//		ProbModelChecker pmc = new ProbModelChecker(prism);
-
-		ArrayList<StateValues> result = mc.checkPartialSatForBounds(mdp, expr, null);
+	
+		ArrayList<HashMap<State,Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(),
+				null,varlist);
+		//mapping the result to values 
 		return result; 
-//		LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
-//		DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr.getExpression(),
-//				labelBS, allowedAcceptance);
-//		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
-//
-//		MDP prodmdp = prod.getProductModel();
-//		varlists.add(prodmdp.getVarList());
-//		allRobotsStatesList.add(prodmdp.getStatesList());
-//		BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
-//
-//		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
-//		MDStrategy strat = (MDStrategy) (result.strat);
+
 	}
 
 	public void doUCT() throws Exception
@@ -263,7 +257,7 @@ public class MRmcts {
 			int rollout_depth = 30;
 			boolean minCost = false;
 			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da);
+					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da,null);
 //			uct.uctsearch(acc);
 //			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			uct.monteCarloPlanning(acc, minCost);
@@ -322,7 +316,7 @@ public class MRmcts {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 			String filename = "tiny_example";//"no_door_example";
-
+			ArrayList<ArrayList<HashMap<State,Double>> > probCostBoundsInits = new  ArrayList<ArrayList<HashMap<State,Double>> >();
 			// Create a log for PRISM output (hidden or stdout)
 			// PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
@@ -388,13 +382,17 @@ public class MRmcts {
 				out.close();
 
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
+				
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 				prism.loadModelGenerator(prismModelGen);
-				ArrayList<StateValues> meh = getSingleRobotPartialSatSol(prism, ltlMC, expr);
+				ArrayList<VarList> vlt=new ArrayList<VarList>(); 
+				ArrayList<HashMap<State,Double>>  probCostValues = getSingleRobotPartialSatSol(prism, ltlMC, expr,
+						modulesFile,propertiesFile,prismModelGen,vlt);
+				probCostBoundsInits.add(probCostValues);
 				
 				prodModGens.add(prodModelGen);
 				// comparing indices of the mdp and prodmodgen stuff
-				VarList vl = varlists.get(0);
+				VarList vl = vlt.get(0);//varlists.get(0);
 				VarList pmdvl = prodModelGen.createVarList();
 				// lets match these
 				String dastring = "da";
@@ -433,7 +431,7 @@ public class MRmcts {
 			int rollout_depth = 30;
 			boolean minCost = false;
 			MRuctPaper brtdp = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da);
+					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da,probCostBoundsInits);
 //			uct.uctsearch(acc);
 //			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			brtdp.doBRTDP(acc, false);

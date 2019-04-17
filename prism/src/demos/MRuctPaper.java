@@ -1,7 +1,6 @@
 package demos;
 
 import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import java.util.Random;
 import java.util.Stack;
 
 import parser.State;
-import parser.ast.Expression;
 import prism.PrismException;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
@@ -41,7 +39,7 @@ public class MRuctPaper
 	private int rollout_depth;
 	private int max_num_rollouts;
 	private int current_rollout_num;
-	private int num_robots;
+	private static int num_robots;
 	private List<Double> da_distToAcc;
 	private boolean accFound = false;
 	private String da_id_string = "_da0";
@@ -53,19 +51,23 @@ public class MRuctPaper
 	JointPolicyPaper uctPolicy;
 	ArrayList<MDStrategy> defaultStrategies;
 	ArrayList<List<State>> allRobotsStatesList;
-	ArrayList<Boolean> varlistsMatch; //basically keeping track of whether the prodmodgen varlists and mdp varlists match. uff so much mehnat. 
+	static ArrayList<Boolean> varlistsDontMatch; //basically keeping track of whether the prodmodgen varlists and mdp varlists match. uff so much mehnat. 
 	boolean doProb = true;
 	DA<BitSet, ? extends AcceptanceOmega> da; //just to store stuff 
 
+	
 	JointPolicyBRTDP brtdpPolicy;
-
+	static ArrayList<ArrayList<HashMap<State,Double>> > probCostBoundsInits ;
 	public MRuctPaper(PrismLog log, ArrayList<ProductModelGenerator> robotProdModelGens, int max_rollouts, int rollout_depth,
-			ArrayList<String> shared_state_names, List<Double> dadistToAcc, ArrayList<MDStrategy> singleRobotSols, ArrayList<List<State>> allRobotsStatesList,
-			ArrayList<Boolean> flipedIndices, DA<BitSet, ? extends AcceptanceOmega> da)
+			ArrayList<String> shared_state_names, List<Double> dadistToAcc,
+			ArrayList<MDStrategy> singleRobotSols, ArrayList<List<State>> allRobotsStatesList,
+			ArrayList<Boolean> flipedIndices, DA<BitSet, ? extends AcceptanceOmega> da,
+			ArrayList<ArrayList<HashMap<State,Double>> > probCostBoundsInitsToCopy )
 
 	{
+		probCostBoundsInits = probCostBoundsInitsToCopy;	
 		this.da = da;
-		this.varlistsMatch = flipedIndices;
+		varlistsDontMatch = flipedIndices;
 		this.allRobotsStatesList = allRobotsStatesList;
 		defaultStrategies = singleRobotSols;
 		jointStateRobotStateMapping = new HashMap<State, ArrayList<State>>();
@@ -94,6 +96,54 @@ public class MRuctPaper
 
 	}
 
+	static State reverseState(State s)
+	{
+		Object[] sv = s.varValues;
+		int lensv = sv.length;
+		State rs = new State(sv.length); 
+		for(int i = lensv-1; i>=0; i--)
+		{
+		
+			rs.setValue((lensv-1)-i, sv[i]);
+		}
+		return rs; 
+	}
+	//get default prob cost 
+	static double getInitProbBound(State js)
+	{
+		ArrayList<State> robotStates = getRobotStatesFromJointState(js); 
+		//now get the first robots state for this 
+		State s = robotStates.get(0); 
+		if(varlistsDontMatch.get(0))
+		{
+			//flip it 
+			s = reverseState(s);
+			
+		}
+		
+		//get that states prob 
+		double prob = probCostBoundsInits.get(0).get(0).get(s);
+		return prob; 
+		
+	}
+	//get default prob cost 
+	static	double getInitCostBound(State js)
+		{
+			ArrayList<State> robotStates = getRobotStatesFromJointState(js); 
+			//now get the first robots state for this 
+			State s = robotStates.get(0); 
+			if(varlistsDontMatch.get(0))
+			{
+				//flip it 
+				s = reverseState(s);
+				
+			}
+			
+			//get that states prob 
+			double cost = probCostBoundsInits.get(0).get(1).get(s);
+			return cost; 
+			
+		}
 	ArrayList<State> getJointStates(ArrayList<ArrayList<State>> succStates) throws PrismException
 	{
 		ArrayList<State> jointStates = new ArrayList<State>();
@@ -411,10 +461,10 @@ public class MRuctPaper
 		return actions;
 	}
 
-	ArrayList<Double> calculateJointStatesProbs(HashMap<Integer, HashMap<State, Double>> succStates, ArrayList<ArrayList<State>> combinations)
+	ArrayList<Double> calculateJointStatesProbs(HashMap<Integer, HashMap<State, Double>> succStates, ArrayList<ArrayList<State>> combinations) throws PrismException
 	{
 		double normaliser = 0;
-		boolean normalised = false;
+
 		ArrayList<Double> probs = new ArrayList<Double>();
 		for (int i = 0; i < combinations.size(); i++) {
 			double probsHere = 1;
@@ -425,11 +475,11 @@ public class MRuctPaper
 			probs.add(probsHere);
 		}
 		if (normaliser != 1.0) {
-			normalised = true;
 			for (int i = 0; i < probs.size(); i++) {
 				probs.set(i, probs.get(i) / normaliser);
 			}
 			mainLog.println("Normalised!!!");
+			throw new PrismException("Probabilities normalised");
 		}
 		return probs;
 	}
@@ -543,7 +593,7 @@ public class MRuctPaper
 	}
 
 	// because sometimes a state just is a state so thats annoying
-	private int getIndividualState(State state, int ind, int subind)
+	private static int getIndividualState(State state, int ind, int subind)
 	{
 		Object s = state.varValues[ind];
 		int sint;
@@ -555,7 +605,7 @@ public class MRuctPaper
 		return sint;
 	}
 
-	private ArrayList<State> getRobotStatesFromJointState(State state)
+	static private ArrayList<State> getRobotStatesFromJointState(State state)
 	{
 		// TODO edit this for multiple state variables but for now lets just go with the
 		// usual
@@ -902,7 +952,7 @@ public class MRuctPaper
 		boolean check = false;
 		for (int i = 0; i < statesList.size(); i++) {
 			State s = statesList.get(i);
-			if (this.varlistsMatch.get(rnum)) {
+			if (varlistsDontMatch.get(rnum)) {
 				check = statesEqualFlip(state, s);
 			} else {
 				check = s.equals(state);
@@ -915,12 +965,12 @@ public class MRuctPaper
 		return -1;
 	}
 
+	
 	Object getActionUsingIndividualRobotPolicies(State state) throws PrismException
 	{
-		boolean muse = false;
-		ArrayList<State> robotStates = this.getRobotStatesFromJointState(state);
+		ArrayList<State> robotStates = getRobotStatesFromJointState(state);
 		ArrayList<Object> robotActions = new ArrayList<Object>();
-		int[] actionIndices = new int[this.num_robots];
+		int[] actionIndices = new int[num_robots];
 		for (int i = 0; i < robotStates.size(); i++) {
 			MDStrategy strat = this.defaultStrategies.get(i);
 			// we need the mapping
@@ -932,7 +982,7 @@ public class MRuctPaper
 
 					Object action = strat.getChoiceAction(index);
 					if (action.toString().contains("*"))
-						muse = true;
+						throw new PrismException("* action for this state");
 					//if this action is * 
 					//we have to choose something else 
 					//basically get an action from the robots model 
@@ -1101,7 +1151,7 @@ public class MRuctPaper
 	double updateLowerValueAction(State state, Object act, double probCost,double stateCost) throws PrismException
 	{
 		boolean isgoal = brtdpPolicy.isGoal(state);
-		double stateLowerV = brtdpPolicy.getProbValueIgnoreSelfLoop(state, false, isgoal);
+//		double stateLowerV = brtdpPolicy.getProbValueIgnoreSelfLoop(state, false, isgoal);
 		double probqval = brtdpPolicy.getProbQValue(state, act, probCost, false, isgoal);
 		double costqval = brtdpPolicy.getCostQValue(state, act, stateCost, false); 
 		brtdpPolicy.setProbCostValue(state, probqval, costqval, false);

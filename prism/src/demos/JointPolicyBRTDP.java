@@ -48,6 +48,9 @@ public class JointPolicyBRTDP
 	private double defaultProbLowerQ = 0.0;
 	private double defaultProbUpperQ = 1.0;
 	List<Double> dadists; 
+	
+
+	
 	public void setAsAccState(State state)
 	{
 		int stateIndex = getStateIndex(state);
@@ -88,6 +91,7 @@ public class JointPolicyBRTDP
 	public JointPolicyBRTDP(PrismLog log, int numRobots, int numTasks, int numSharedStates, ArrayList<String> sharedStatesNamesList,
 			ArrayList<String> isolatedStatesNamesList, List<Double> da_dists)
 	{
+		
 		mainLog = log;
 		robotStateActionIndices = new HashMap<State, HashMap<Object, ArrayList<Integer>>>();
 		visited = new BitSet();
@@ -685,6 +689,9 @@ public class JointPolicyBRTDP
 		else
 			stateV = this.stateValuesCostLowerBound;
 		double valToRet = 0;
+		//costs are an upper bound 
+		if(upperbound)
+			valToRet = MRuctPaper.getInitCostBound(state);
 		//because we're doing maxprob mincost 
 		//I dont have to initialise anything it can just be 0
 		if (!stateV.containsKey(state)) {
@@ -706,6 +713,7 @@ public class JointPolicyBRTDP
 
 	}
 
+	
 	public double getProbValue(State state, boolean upperbound, boolean isgoal, boolean selfLoop)
 	{
 		HashMap<State, Double> stateV = null;
@@ -738,7 +746,8 @@ public class JointPolicyBRTDP
 						valToRet = this.defaultProbUpperQ;
 					} else {
 
-						valToRet = this.defaultProbLowerQ;
+						valToRet = MRuctPaper.getInitProbBound(state);
+						//one robot performs worse than 2 so lower bound//this.defaultProbLowerQ;
 					}
 
 				}
@@ -774,7 +783,8 @@ public class JointPolicyBRTDP
 	public double getProbValueDiff(State state, boolean isgoal) throws PrismException //get the difference between the upper and lower bounds 
 	{
 		//boolean selfloop = false because we dont care
-		double diff = getProbValueIgnoreSelfLoop(state, true, isgoal) - getProbValueIgnoreSelfLoop(state, false, isgoal);
+		double diff = getProbValueIgnoreSelfLoop(state, true, isgoal)
+				- getProbValueIgnoreSelfLoop(state, false, isgoal);
 		if (diff < 0)
 			throw new PrismException("State diff negative!!! " + state.toString());
 		return diff;
@@ -1104,7 +1114,8 @@ public class JointPolicyBRTDP
 	public void printStateValues(State state)
 	{
 		boolean isgoal = isGoal(state);
-		String toprint = "P u:"+getProbValueIgnoreSelfLoop(state,true,isgoal)+", l:"+getProbValueIgnoreSelfLoop(state,false,isgoal);
+		String toprint = "P u:"+getProbValueIgnoreSelfLoop(state,true,isgoal)+
+				", l:"+getProbValueIgnoreSelfLoop(state,false,isgoal);
 		toprint+="\nC u:"+getCostValue(state,true,isgoal)+", l:"+getCostValue(state,false,isgoal); 
 		mainLog.println(toprint);
 		

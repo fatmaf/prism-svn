@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +44,7 @@ import common.IterableStateSet;
 import common.StopWatch;
 import common.IterableBitSet;
 import common.IntSet;
-
+import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
 import parser.ast.DeclarationIntUnbounded;
@@ -397,7 +398,8 @@ public class MDPModelChecker extends ProbModelChecker
 	}
 	
 
-	public ArrayList<StateValues> checkPartialSatForBounds(MDP model, Expression expr, BitSet statesOfInterest) throws PrismException
+	public ArrayList<HashMap<State,Double>> checkPartialSatForBounds(MDP model, Expression expr, 
+			BitSet statesOfInterest,ArrayList<VarList> varlist) throws PrismException
 	{
 		LTLModelChecker mcLtl;		
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
@@ -406,7 +408,7 @@ public class MDPModelChecker extends ProbModelChecker
 		MDP productMdp;
 		DA<BitSet, ? extends AcceptanceOmega> da;
 		Vector<BitSet> labelBS;
-		ArrayList<StateValues> result = new ArrayList<StateValues>();
+		ArrayList<HashMap<State,Double>> result = new ArrayList<HashMap<State,Double>>();
 		
 		// For LTL model checking routines
 		mcLtl = new LTLModelChecker(this);
@@ -435,7 +437,7 @@ public class MDPModelChecker extends ProbModelChecker
 		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
-			result.add(new StateValues(TypeInt.getInstance(), model));
+//			result.add(new StateValues(TypeInt.getInstance(), model));
 			return  result;  
 		}
 		//calculate distances to accepting states
@@ -509,6 +511,8 @@ public class MDPModelChecker extends ProbModelChecker
 		
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
 		ModelCheckerPartialSatResult res = mcProduct.computeNestedValIter(productMdp, acc, progRewards, prodCosts, progStates);
+	
+		
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 		// Mapping probabilities in the original model
 		probs = product.projectToOriginalModel(probsProduct);		
@@ -549,8 +553,21 @@ public class MDPModelChecker extends ProbModelChecker
             costsProduct.print(out, false, false, false, false);
             out.close();
         }
-		result.add(probs); 
-		result.add(costs);
+        List<State> statesList = productMdp.getStatesList();
+    	HashMap<State,Double> probValues = new HashMap<State,Double>();
+		HashMap<State,Double> costValues = new HashMap<State,Double>();
+		for(int i = 0; i<statesList.size(); i++)
+		{
+			State s = statesList.get(i); 
+			probValues.put(s, (double)probsProduct.getValue(i));
+			costValues.put(s,(double)costsProduct.getValue(i));
+		}
+		 varlist.add(productMdp.getVarList()); 
+
+
+		result.add(probValues); 
+		result.add(costValues);
+		
 		return result;
 		
 	}
