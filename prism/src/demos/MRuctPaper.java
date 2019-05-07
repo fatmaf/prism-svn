@@ -16,6 +16,7 @@ import java.util.Stack;
 
 import parser.State;
 import prism.PrismException;
+import prism.PrismFileLog;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
 import strat.MDStrategy;
@@ -122,8 +123,26 @@ public class MRuctPaper
 		}
 		
 		//get that states prob 
-		double prob = probCostBoundsInits.get(0).get(0).get(s);
-		return prob; 
+		//minProb 
+		//since prob is a lower bound do the max 
+		double currentprob = probCostBoundsInits.get(0).get(0).get(s);
+		double prob = 0.0; 
+		for(int i = 1; i<robotStates.size(); i++)
+		{
+			 s = robotStates.get(i); 
+				if(varlistsDontMatch.get(i))
+				{
+					//flip it 
+					s = reverseState(s);
+					
+				}
+				prob = probCostBoundsInits.get(i).get(0).get(s);
+				if(prob > currentprob)
+					currentprob = prob; 
+				
+		}
+		
+		return currentprob; 
 		
 	}
 	//get default prob cost 
@@ -131,16 +150,42 @@ public class MRuctPaper
 		{
 			ArrayList<State> robotStates = getRobotStatesFromJointState(js); 
 			//now get the first robots state for this 
-			State s = robotStates.get(0); 
-			if(varlistsDontMatch.get(0))
+			int i = 0; 
+			double cost = 0.0; 
+			double currentCost = 0.0; 
+			
+			State s = robotStates.get(i); 
+			if(varlistsDontMatch.get(i))
 			{
 				//flip it 
 				s = reverseState(s);
 				
 			}
 			
-			//get that states prob 
-			double cost = probCostBoundsInits.get(0).get(1).get(s);
+			//get that states cost
+			cost = probCostBoundsInits.get(i).get(1).get(s);
+			//do min cost always 
+			for(i = 1 ; i<robotStates.size(); i++)
+			{
+				 s = robotStates.get(i); 
+				if(varlistsDontMatch.get(i))
+				{
+					//flip it 
+					s = reverseState(s);
+					
+				}
+				
+				//get that states cost
+				currentCost = probCostBoundsInits.get(i).get(1).get(s);
+				//why am I doing max cost and not min 
+				//because we have failure states - and this is from the trimmed single robot solution 
+				//so for failure states, one of the robots may have a cost 0 while the other one might have not 0 
+				//the actual bound is not 0 , its the other robots 
+				//this works in tandem with the prob selection really, 
+				//cuz we're choosing the higher prob one which is good, cuz the higher prob one does not fail!! 
+				if(cost < currentCost)
+					cost = currentCost; 
+			}
 			return cost; 
 			
 		}
@@ -266,14 +311,14 @@ public class MRuctPaper
 		else
 		{
 			//max cost 
-			double minCost =getRobotReward(0,robotStates.get(0),robotActions.get(0));
+			double currentCost =getRobotReward(0,robotStates.get(0),robotActions.get(0));
 			for(int i = 1; i<robotStates.size(); i++)
 			{
 				cost = getRobotReward(i,robotStates.get(i),robotActions.get(i));
-				if(minCost > cost)
-					minCost = cost; 
+				if(currentCost < cost)
+					currentCost = cost; 
 			}
-			cost = minCost; 
+			cost = currentCost; 
 		}
 		return cost; 
 	}
@@ -1110,8 +1155,10 @@ public class MRuctPaper
 
 	}
 
-	private double updateUpperValue(State state, double probCost,double cost,boolean sumCosts) throws PrismException
+	private double updateUpperValue(State state, double probCost,double cost,boolean sumCosts,boolean printVal) throws PrismException
 	{
+		if(printVal)
+			mainLog.println("Updating Upper Values");
 		//step 1 
 		//get all the actions 
 		//check if we dont have actions stored already 
@@ -1134,37 +1181,55 @@ public class MRuctPaper
 
 		//now that we have all the actions 
 		//		double stateCost = this.getStateCost(state); 
-		Entry<Double, Double> stateUpperV = brtdpPolicy.getMinMaxValue(state, probCost, !doProb, true,brtdpPolicy.isGoal(state));
-		
-		brtdpPolicy.setProbCostValue(state, stateUpperV.getKey(),stateUpperV.getValue(), true);
+		Entry<Double, Double> stateUpperV = brtdpPolicy.getMinMaxValue(state, probCost, 
+				!doProb, true,brtdpPolicy.isGoal(state),printVal);
+		if(printVal)
+			mainLog.println("Updating Upper Bounds with "+stateUpperV.toString());
+		double updatedProb = stateUpperV.getKey(); 
+		double updatedCost = stateUpperV.getValue();
+		brtdpPolicy.setProbCostValue(state, updatedProb,updatedCost, true);
 		return stateUpperV.getKey();
 
 	}
 
-	double updateLowerValue(State state, double probCost,double cost) throws PrismException
+	double updateLowerValue(State state, double probCost,double cost,boolean printVal) throws PrismException
 	{
-		Entry<Double, Double> stateLowerV = brtdpPolicy.getMinMaxValue(state, probCost,cost, !doProb, false,isGoal(state));
+		if(printVal)
+			mainLog.println("Updating Lower Value");
+		Entry<Double, Double> stateLowerV = brtdpPolicy.getMinMaxValue(state, probCost,cost,
+				!doProb, false,isGoal(state),printVal);
+		if(printVal)
+			mainLog.println("Updated Lower Bounds "+stateLowerV.toString());
 		brtdpPolicy.setProbCostValue(state, stateLowerV.getKey(),stateLowerV.getValue(), false);
+		
 		return stateLowerV.getKey();
 	}
 
-	double updateLowerValueAction(State state, Object act, double probCost,double stateCost) throws PrismException
+	double updateLowerValueAction(State state, Object act, double probCost,double stateCost,boolean printVal) throws PrismException
 	{
+		if(printVal)
+			mainLog.println("Updating Lower Value Action");
 		boolean isgoal = brtdpPolicy.isGoal(state);
 //		double stateLowerV = brtdpPolicy.getProbValueIgnoreSelfLoop(state, false, isgoal);
-		double probqval = brtdpPolicy.getProbQValue(state, act, probCost, false, isgoal);
-		double costqval = brtdpPolicy.getCostQValue(state, act, stateCost, false); 
+		double probqval = brtdpPolicy.getProbQValue(state, act, probCost, false, isgoal,printVal);
+		double costqval = brtdpPolicy.getCostQValue(state, act, stateCost, false,printVal); 
+		if(printVal)
+			mainLog.println("Updated Lower Bounds with "+act.toString()+":"+probqval+"="+costqval);
 		brtdpPolicy.setProbCostValue(state, probqval, costqval, false);
 		
 		return probqval;
 	}
 
-	Object getLowerValueAction(State state, double probCost,double cost) throws PrismException
+	Object getLowerValueAction(State state, double probCost,double cost,boolean printVal) throws PrismException
 	{
+		if(printVal)
+			mainLog.println("Getting Lower Action");
 		if (!brtdpPolicy.robotStateActionIndices.containsKey(state))
 			throw new PrismException("State not added to robotStateActionIndices" + state.toString());
 		//		double stateCost = getStateCost(state); 
-		Object action = brtdpPolicy.getMinMaxAction(state, probCost, !doProb, false);
+		Object action = brtdpPolicy.getMinMaxAction(state, probCost, !doProb, false,printVal);
+		if(printVal)
+			mainLog.println("Chose action - "+action.toString());
 		return action;
 	}
 
@@ -1205,23 +1270,51 @@ public class MRuctPaper
 
 	void BRTDPTrial(State state, Stack<State> traj, double tau,boolean sumCosts) throws PrismException
 	{
+		boolean printVal = true; 
+		if(MRmcts.TURNOFFALLWRITES)
+			printVal = false; 
 		//setting a max traj length 
 		//just a quick thing really 
 		int maxTrajectoryLen = 10; 
 		State currState = state;
 
 		double successorsDiff = 1000;
-		double stateDiff = brtdpPolicy.getProbValueDiff(state, brtdpPolicy.isGoal(state));
+		double stateDiff = brtdpPolicy.getProbValueDiff(state, brtdpPolicy.isGoal(state),true);
 		boolean comp = successorsDiff > (stateDiff / tau);
 		while (comp) {
+			
+			if(printVal) {
+				mainLog.println("*************************************************************");
+				mainLog.println("*************************************************************");
+				brtdpPolicy.printAllStatesValues();
+				mainLog.println("*************************************************************");
+				mainLog.println("*************************************************************");
+			mainLog.println("=============================================================");
+			mainLog.println("=============================================================");
+			}
 			traj.push(currState);
 			Entry<Double, Double> probstatecost = getStateCost(currState);
 			double probCost = probstatecost.getKey();
 			double stateCost = probstatecost.getValue();
 //			double probCost = getStateCost(currState);
-			updateUpperValue(currState, probCost,stateCost,sumCosts);
-			Object action = getLowerValueAction(currState, probCost,stateCost);
-			updateLowerValueAction(currState, action, probCost,stateCost);
+			if (printVal)
+			{	
+				mainLog.println(currState.toString()+":"+probCost+","+stateCost); 
+			brtdpPolicy.printStateValues(currState);
+			mainLog.println("=============================================================");
+			}
+			updateUpperValue(currState, probCost,stateCost,sumCosts,printVal);
+			if(printVal)
+			mainLog.println("=============================================================");
+			Object action = getLowerValueAction(currState, probCost,stateCost,printVal);
+			if(printVal)
+			mainLog.println("=============================================================");
+			updateLowerValueAction(currState, action, probCost,stateCost,printVal);
+			if(printVal) {
+			mainLog.println("=============================================================");
+			brtdpPolicy.printStateValues(currState);
+			mainLog.println("=============================================================");
+			}
 			//now we have to get all the successors 
 			HashMap<State, Double> succs = brtdpPolicy.getSuccessors(currState, action);
 			if (succs == null) {
@@ -1240,7 +1333,7 @@ public class MRuctPaper
 			HashMap<State,Double> statebs = new HashMap<State,Double>();
 			for (State s : succs.keySet()) {
 				double prob = succs.get(s);
-				double succStateDiff = brtdpPolicy.getProbValueDiff(s, isGoal(s));
+				double succStateDiff = brtdpPolicy.getProbValueDiff(s, isGoal(s),printVal);
 				b = prob * succStateDiff;
 				statebs.put(s,b);
 				sumB += b;
@@ -1286,9 +1379,13 @@ public class MRuctPaper
 			//now we do the check 
 
 			successorsDiff = sumB;
-			stateDiff = brtdpPolicy.getProbValueDiff(state, isGoal(state));
+			stateDiff = brtdpPolicy.getProbValueDiff(state, isGoal(state),printVal);
 			comp = successorsDiff > (stateDiff / tau);
 			currState = chosenSuccState;
+			if(printVal) {
+			mainLog.println("=============================================================");
+			mainLog.println("=============================================================");
+			}
 			if(traj.size() > maxTrajectoryLen)
 				break;
 		}
@@ -1297,16 +1394,22 @@ public class MRuctPaper
 
 	void BRTDPBackup(Stack<State> traj,boolean sumCosts) throws PrismException
 	{
+		boolean printVal = true; 
+		if(MRmcts.TURNOFFALLWRITES)
+			printVal = false; 
 		//do stuff here 
 		while (!traj.isEmpty()) {
 			State s = traj.pop();
 			Entry<Double, Double> probstatecost = getStateCost(s);
 			double probCost = probstatecost.getKey();
 			double stateCost = probstatecost.getValue();
+			if(printVal) {
 			mainLog.println(s.toString()+":"+probCost+","+stateCost); 
 			brtdpPolicy.printStateValues(s);
-			this.updateUpperValue(s, probCost,stateCost,sumCosts);
-			this.updateLowerValue(s, probCost,stateCost);
+			}
+			this.updateUpperValue(s, probCost,stateCost,sumCosts,printVal);
+			this.updateLowerValue(s, probCost,stateCost,printVal);
+			if(printVal)
 			brtdpPolicy.printStateValues(s);
 
 		}
@@ -1316,9 +1419,15 @@ public class MRuctPaper
 	{
 
 		boolean sumCosts = false;  //do not sum robot costs, get the max cost instead 
+		
+		//if sumcosts is true then our upper bound for cost will change 
+		//well even now it will not be a true upper bound cuz the other one is moving still 
+		//so we have to do something about this 
 		Stack<State> trajectory = new Stack<State>();
 
+		mainLog.println("BRTDP Trial");
 		BRTDPTrial(state, trajectory, tau,sumCosts);
+		mainLog.println("BRTDP Backup");
 		BRTDPBackup(trajectory,sumCosts);
 	}
 
@@ -1333,6 +1442,9 @@ public class MRuctPaper
 		if (doProb)
 			minCost = false;
 
+		boolean printVal = true; 
+		if(MRmcts.TURNOFFALLWRITES)
+			printVal = false; 
 		current_rollout_num = 0;
 		ArrayList<State> initialStates = getInitialStates();
 		// get the initial state
@@ -1341,16 +1453,48 @@ public class MRuctPaper
 		Object res = null;
 		double alpha = 0.1; //change this later 
 		double tau = 50; //they used something between 10 and 100 
-		double stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state));
+		
+		double stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state),printVal);
+		double oldStateDiff = 100; 
+		String saveplace = MRmcts.TESTSLOC;
+		// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
+		String filename = "no_door_example";
+		int iter = -1; 
 		while (stateDiff > alpha) {
+			iter++;
 			runBRTDPTrial(temp_joint_state, tau);
-			stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state));
-//			String saveplace = MRmcts.TESTSLOC;
-//			// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-//			String filename = "no_door_example";
-//			brtdpPolicy.jointMDP.exportToDotFile(saveplace + filename + "_brtdpmdp_"+stateDiff+".dot");
-//			MDPSimple policyTree = brtdpPolicy.extractPolicyTreeAsDotFile(brtdpPolicy.jointMDP, brtdpPolicy.getStateIndex(temp_joint_state), minCost);
-//			policyTree.exportToDotFile(saveplace + filename + "_brtdp_policy_"+stateDiff+".dot");
+			oldStateDiff = stateDiff;
+			stateDiff = brtdpPolicy.getProbValueDiff(temp_joint_state, isGoal(temp_joint_state),printVal);
+			
+			String stateDiffString = ""+stateDiff;
+			
+			stateDiffString = stateDiffString.replace(".", "_");
+			mainLog.println("State Diff "+stateDiff);
+			brtdpPolicy.exportAllStatesValues(saveplace + filename + "_brtdpmdp_values_"+stateDiffString+"_"+iter+".txt");
+			
+			if((stateDiff - oldStateDiff) == 0)
+			{
+				//there is really no change 
+				mainLog.println("No difference in the state difference - so we're done");
+				if(iter > 30)
+				break; 
+			}
+
+//			mainLog.println("Printing State Values for "+stateDiffString); 
+//			brtdpPolicy.printAllStatesValues();
+			
+
+//			brtdpPolicy.jointMDP.exportToDotFile(saveplace + filename + "_brtdpmdp_"+stateDiffString+".dot");
+			PrismFileLog out = new PrismFileLog(saveplace + filename + "_brtdpmdp_"+stateDiffString+".dot");
+			brtdpPolicy.jointMDP.exportToDotFile(out, null, true);
+			out.close();
+			MDPSimple policyTree = brtdpPolicy.extractPolicyTreeAsDotFile(brtdpPolicy.jointMDP, brtdpPolicy.getStateIndex(temp_joint_state), minCost);
+//			policyTree.exportToDotFile(saveplace + filename + "_brtdp_policy_"+stateDiffString+".dot");
+			out = new PrismFileLog(saveplace + filename + "_brtdp_policy_"+stateDiffString+".dot");
+			policyTree.exportToDotFile(out, null, true);
+			out.close();
+		
+
 		}
 		
 		

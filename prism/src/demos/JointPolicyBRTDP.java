@@ -1,5 +1,7 @@
 package demos;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
@@ -41,16 +43,15 @@ public class JointPolicyBRTDP
 	protected HashMap<State, HashMap<Object, Integer>> stateActionIndices;
 	protected BitSet visited;
 	protected HashMap<State, HashMap<Object, ArrayList<Integer>>> robotStateActionIndices;
-	protected HashMap<State,HashMap<Object, Double>> stateActionCosts; 
+	protected HashMap<State, HashMap<Object, Double>> stateActionCosts;
 	protected BitSet accStates;
 	protected BitSet leafStates;
 	double explorationBias = 10;
 	private double defaultProbLowerQ = 0.0;
 	private double defaultProbUpperQ = 1.0;
-	List<Double> dadists; 
-	
+	private double defaultCostLowerQ = 0.0;
+	List<Double> dadists;
 
-	
 	public void setAsAccState(State state)
 	{
 		int stateIndex = getStateIndex(state);
@@ -91,7 +92,7 @@ public class JointPolicyBRTDP
 	public JointPolicyBRTDP(PrismLog log, int numRobots, int numTasks, int numSharedStates, ArrayList<String> sharedStatesNamesList,
 			ArrayList<String> isolatedStatesNamesList, List<Double> da_dists)
 	{
-		
+
 		mainLog = log;
 		robotStateActionIndices = new HashMap<State, HashMap<Object, ArrayList<Integer>>>();
 		visited = new BitSet();
@@ -110,8 +111,8 @@ public class JointPolicyBRTDP
 		this.stateValuesProbLowerBound = new HashMap<State, Double>();
 		stateValuesCostUpperBound = new HashMap<State, Double>();
 		stateValuesCostLowerBound = new HashMap<State, Double>();
-		dadists = da_dists; 
-		stateActionCosts = new HashMap<State, HashMap<Object, Double>>(); 
+		dadists = da_dists;
+		stateActionCosts = new HashMap<State, HashMap<Object, Double>>();
 	}
 
 	int addState(State state)
@@ -190,22 +191,24 @@ public class JointPolicyBRTDP
 		return added;
 
 	}
+
 	boolean isGoal(State state)
 	{
 		int stateIndex = this.getStateIndex(state);
-		
+
 		// get the da state
 		State dastate = state.substate(this.numRobots, this.numRobots + 1);
 		dastate = (State) dastate.varValues[0];
 		int dastateint = (int) dastate.varValues[0];
 		double dist = this.dadists.get(dastateint);
 		if (dist == 0) {
-			
+
 			accStates.set(stateIndex);
 			return true;
 		}
 		return false;
 	}
+
 	int addAction(State state, Object action, State succState, double prob)
 	{
 		int actionInd = getActionIndex(state, action);
@@ -244,24 +247,22 @@ public class JointPolicyBRTDP
 
 	}
 
-	void addActionReward(State state, Object action,double reward) throws PrismException
+	void addActionReward(State state, Object action, double reward) throws PrismException
 	{
-		
-		if(stateActionCosts.containsKey(state))
-		{
-			if(!stateActionCosts.get(state).containsKey(action))
-				stateActionCosts.get(state).put(action, reward); 
+
+		if (stateActionCosts.containsKey(state)) {
+			if (!stateActionCosts.get(state).containsKey(action))
+				stateActionCosts.get(state).put(action, reward);
 			else
-				throw new PrismException("Trying to add same state action for reward!!"); 
-			
-		}
-		else
-		{
-			HashMap<Object,Double> actionReward = new HashMap<Object,Double>(); 
-			actionReward.put(action, reward); 
+				throw new PrismException("Trying to add same state action for reward!!");
+
+		} else {
+			HashMap<Object, Double> actionReward = new HashMap<Object, Double>();
+			actionReward.put(action, reward);
 			stateActionCosts.put(state, actionReward);
 		}
 	}
+
 	int addAction(State state, Object action, List<State> succStates, List<Double> probs)
 	{
 		int actionInd = getActionIndex(state, action);
@@ -638,7 +639,7 @@ public class JointPolicyBRTDP
 	//		return diff; 
 	//	}
 
-	public double getProbQValue(State state, Object action, double cost, boolean upperbound, boolean isgoal) throws PrismException
+	public double getProbQValue(State state, Object action, double cost, boolean upperbound, boolean isgoal, boolean printVal) throws PrismException
 	{
 		HashMap<State, Double> succStates = this.getSuccessors(state, action);
 		boolean self_loop = false;
@@ -650,38 +651,52 @@ public class JointPolicyBRTDP
 					if (s.equals(state))
 						self_loop = true;
 				}
-				sum += prob * getProbValue(s, upperbound, isGoal(s), self_loop);
+				sum += prob * getProbValue(s, upperbound, isGoal(s), self_loop, printVal);
 
 			}
 		} else {
 			//hmmm we have a problem here maybe 
 			throw new PrismException("State: " + state.toString() + " action: " + action.toString() + " has no successors!!");
 		}
-		return cost + sum;
+		//for probability it cant be cost + sum
+		//can it be ? 
+		//TODO: double check this 
 
+		//return cost + sum;
+		return sum; //cuz its probabilities so we dont need the cost 
 	}
 
-	public double getCostQValue(State state, Object action, double cost, boolean upperbound) throws PrismException
+	public double getCostQValue(State state, Object action, double cost, boolean upperbound, boolean printVal) throws PrismException
 	{
 		HashMap<State, Double> succStates = this.getSuccessors(state, action);
-
+		boolean self_loop = false; 
 		double sum = 0;
 		if (succStates != null) {
 			for (State s : succStates.keySet()) {
 				double prob = succStates.get(s);
-
-				sum += prob * getCostValue(s, upperbound,isGoal(s));
+				if (prob == 1.0) {
+					if (s.equals(state))
+						self_loop = true;
+				}
+				sum += prob * getCostValue(s, upperbound, isGoal(s), printVal);
 
 			}
 		} else {
 			//hmmm we have a problem here maybe 
 			throw new PrismException("State: " + state.toString() + " action: " + action.toString() + " has no successors!!");
 		}
+		//if this is a self_loop action then the cost should be disregarded 
+		//this is a bit of a hack isnt it 
+		//think about transient loops ??? 
+		//lets come back to this 
+		//TODO: Check EC stuff for this
+		if(self_loop)
+			cost = 0.0; 
 		return cost + sum;
 
 	}
 
-	public double getCostValue(State state, boolean upperbound,boolean isgoal)
+	public double getCostValue(State state, boolean upperbound, boolean isgoal, boolean printVal)
 	{
 		HashMap<State, Double> stateV = null;
 		if (upperbound)
@@ -690,14 +705,29 @@ public class JointPolicyBRTDP
 			stateV = this.stateValuesCostLowerBound;
 		double valToRet = 0;
 		//costs are an upper bound 
-		if(upperbound)
-			valToRet = MRuctPaper.getInitCostBound(state);
-		//because we're doing maxprob mincost 
-		//I dont have to initialise anything it can just be 0
 		if (!stateV.containsKey(state)) {
+			if (upperbound) {
+				valToRet = MRuctPaper.getInitCostBound(state);
+				//because we're doing maxprob mincost 
+				//I dont have to initialise anything it can just be 0
+				//this is a bit of a dilemma - how do we do this cost stuff 
+
+			} else {
+				valToRet = this.defaultCostLowerQ;
+			}
 			stateV.put(state, valToRet);
 		}
 		valToRet = stateV.get(state);
+		if (printVal) {
+			String printText = state.toString() + "c:";
+			if (upperbound)
+				printText += "u";
+			else
+				printText += "l";
+
+			printText += valToRet;
+			mainLog.println(printText);
+		}
 		return valToRet;
 	}
 
@@ -713,8 +743,7 @@ public class JointPolicyBRTDP
 
 	}
 
-	
-	public double getProbValue(State state, boolean upperbound, boolean isgoal, boolean selfLoop)
+	public double getProbValue(State state, boolean upperbound, boolean isgoal, boolean selfLoop, boolean printVal)
 	{
 		HashMap<State, Double> stateV = null;
 		if (upperbound)
@@ -754,15 +783,26 @@ public class JointPolicyBRTDP
 				stateV.put(state, valToRet);
 			}
 		}
+		//
+		if (printVal) {
+			String printText = state.toString() + "p:";
+			if (upperbound)
+				printText += "u";
+			else
+				printText += "l";
+
+			printText += valToRet;
+			mainLog.println(printText);
+		}
 		return valToRet;
 	}
 
-	
 	public void setProbCostValue(State state, double probvalue, double costvalue, boolean upperbound)
 	{
-		setProbValue(state,probvalue,upperbound);
-		setCostValue(state,upperbound,costvalue);
+		setProbValue(state, probvalue, upperbound);
+		setCostValue(state, upperbound, costvalue);
 	}
+
 	public void setProbValue(State state, double value, boolean upperbound)
 	{
 		HashMap<State, Double> stateV = null;
@@ -774,76 +814,82 @@ public class JointPolicyBRTDP
 
 	}
 
-	double getProbValueIgnoreSelfLoop(State state, boolean upperbound, boolean isgoal)
+	double getProbValueIgnoreSelfLoop(State state, boolean upperbound, boolean isgoal, boolean printVal)
 	{
 		//setting the selfloop variable to false because we dont care 
-		return getProbValue(state, upperbound, isgoal, false);
+		return getProbValue(state, upperbound, isgoal, false, printVal);
 	}
 
-	public double getProbValueDiff(State state, boolean isgoal) throws PrismException //get the difference between the upper and lower bounds 
+	public double getProbValueDiff(State state, boolean isgoal, boolean printVal) throws PrismException //get the difference between the upper and lower bounds 
 	{
 		//boolean selfloop = false because we dont care
-		double diff = getProbValueIgnoreSelfLoop(state, true, isgoal)
-				- getProbValueIgnoreSelfLoop(state, false, isgoal);
+		double diff = getProbValueIgnoreSelfLoop(state, true, isgoal, printVal) - getProbValueIgnoreSelfLoop(state, false, isgoal, printVal);
 		if (diff < 0)
 			throw new PrismException("State diff negative!!! " + state.toString());
 		return diff;
 	}
-	
-	public Entry<Double,Double> getMinMaxValue(State state, double probCost, boolean minCost, boolean upperBound, boolean isgoal) throws PrismException
+
+	public Entry<Double, Double> getMinMaxValue(State state, double probCost, boolean minCost, boolean upperBound, boolean isgoal, boolean printVal)
+			throws PrismException
 	{
 		//so basically we can get all the actions here 
 		if (this.robotStateActionIndices.containsKey(state)) {
 			ArrayList<Object> actions = new ArrayList<Object>();
 			actions.addAll(robotStateActionIndices.get(state).keySet());
+
+			return getMinMaxValue(state, actions, probCost, minCost, upperBound, isgoal, printVal);
+		} else {
+			throw new PrismException("state not in list!!" + state.toString());
+		}
+	}
+
+	public Entry<Double, Double> getMinMaxValue(State state, double probCost, double cost, boolean minCost, boolean upperBound, boolean isgoal,
+			boolean printVal) throws PrismException
+	{
+		//so basically we can get all the actions here 
+		if (this.robotStateActionIndices.containsKey(state)) {
+			ArrayList<Object> actions = new ArrayList<Object>();
+			actions.addAll(robotStateActionIndices.get(state).keySet());
+			return getMinMaxValue(state, actions, probCost, cost, minCost, upperBound, isgoal, printVal);
+		} else {
+			throw new PrismException("state not in list!!" + state.toString());
+		}
+	}
+
+	double getStateActionCost(State state, Object act) throws PrismException
+	{
+		if (this.stateActionCosts.containsKey(state)) {
+			if (this.stateActionCosts.get(state).containsKey(act)) {
+				return this.stateActionCosts.get(state).get(act);
+			}
+		}
+		throw new PrismException("No costs preset for " + state.toString() + " " + act.toString() + " Error!!");
+	}
+
+	public Entry<Double, Double> getMinMaxValue(State state, ArrayList<Object> actions, double probcost, boolean minCost, boolean upperBound, boolean isgoal,
+			boolean printVal) throws PrismException
+	{
+
+		boolean setcost = true;
+		double probVal = 0;
+		double costVal = 0;
+		//duplication doesnt matter here cuz its just a value 
+
+		for (int i = 0; i < actions.size(); i++) {
 			
-			return getMinMaxValue(state, actions, probCost, minCost, upperBound, isgoal);
-		} else {
-			throw new PrismException("state not in list!!" + state.toString());
-		}
-	}
-
-
-	public Entry<Double,Double> getMinMaxValue(State state, double probCost,double cost, boolean minCost, boolean upperBound, boolean isgoal) throws PrismException
-	{
-		//so basically we can get all the actions here 
-		if (this.robotStateActionIndices.containsKey(state)) {
-			ArrayList<Object> actions = new ArrayList<Object>();
-			actions.addAll(robotStateActionIndices.get(state).keySet());
-			return getMinMaxValue(state, actions, probCost, cost,minCost, upperBound, isgoal);
-		} else {
-			throw new PrismException("state not in list!!" + state.toString());
-		}
-	}
-
-	double getStateActionCost(State state,Object act) throws PrismException
-	{
-		if(this.stateActionCosts.containsKey(state))
-		{
-			if(this.stateActionCosts.get(state).containsKey(act))
-			{
-				return this.stateActionCosts.get(state).get(act); 
-			}
-		}
-		throw new PrismException("No costs preset for "+state.toString()+" "+act.toString()+" Error!!"); 
-	}
-	public Entry<Double,Double> getMinMaxValue(State state, ArrayList<Object> actions, double probcost, boolean minCost, boolean upperBound, boolean isgoal) throws PrismException
-	{
-
-		boolean setcost = true;
-		double probVal = 0;
-		double costVal = 0; 
-		//duplication doesnt matter here cuz its just a value 
-
-		for (int i = 0; i < actions.size(); i++) {
 			Object act = actions.get(i);
 			//			double cost = costs.get(i);
-			double cost = getStateActionCost(state,act); 
-			double probqval = getProbQValue(state, act, probcost, upperBound, isgoal);
-			double costqval = getCostQValue(state,act,cost,upperBound);
+			double cost = getStateActionCost(state, act);
+			double probqval = getProbQValue(state, act, probcost, upperBound, isgoal, printVal);
+			double costqval = getCostQValue(state, act, cost, upperBound, printVal);
+			if (printVal)
+			{	
+				mainLog.println(actions.get(i).toString()+":Q["+probqval+","+costqval+"]");
+			
+			}
 			if (setcost) {
 				probVal = probqval;
-				costVal = costqval; 
+				costVal = costqval;
 				setcost = false;
 			} else {
 				boolean check;
@@ -854,12 +900,9 @@ public class JointPolicyBRTDP
 				if (check) {
 					probVal = probqval;
 					costVal = costqval;
-				}
-				else
-				{
-					if(probVal == probqval)
-					{
-						if(costVal > costqval)
+				} else {
+					if (probVal == probqval) {
+						if (costVal > costqval) //choose the lowest cost here ???? //hmmm 
 						{
 							costVal = costqval;
 						}
@@ -868,26 +911,29 @@ public class JointPolicyBRTDP
 
 			}
 		}
-		return new AbstractMap.SimpleEntry<Double,Double>(probVal,costVal);
+		return new AbstractMap.SimpleEntry<Double, Double>(probVal, costVal);
 
 	}
 
-	public Entry<Double,Double> getMinMaxValue(State state, ArrayList<Object> actions, double probcost,double cost, boolean minCost, boolean upperBound, boolean isgoal) throws PrismException
+	public Entry<Double, Double> getMinMaxValue(State state, ArrayList<Object> actions, double probcost, double cost, boolean minCost, boolean upperBound,
+			boolean isgoal, boolean printVal) throws PrismException
 	{
 
 		boolean setcost = true;
 		double probVal = 0;
-		double costVal = 0; 
+		double costVal = 0;
 		//duplication doesnt matter here cuz its just a value 
 
 		for (int i = 0; i < actions.size(); i++) {
 			Object act = actions.get(i);
 			//			double cost = costs.get(i);
-			double probqval = getProbQValue(state, act, probcost, upperBound, isgoal);
-			double costqval = getCostQValue(state,act,cost,upperBound);
+			double probqval = getProbQValue(state, act, probcost, upperBound, isgoal, printVal);
+			double costqval = getCostQValue(state, act, cost, upperBound, printVal);
+			if(printVal)
+				mainLog.println(actions.get(i).toString()+":Q["+probqval+","+costqval+"]");
 			if (setcost) {
 				probVal = probqval;
-				costVal = costqval; 
+				costVal = costqval;
 				setcost = false;
 			} else {
 				boolean check;
@@ -898,13 +944,9 @@ public class JointPolicyBRTDP
 				if (check) {
 					probVal = probqval;
 					costVal = costqval;
-				}
-				else
-				{
-					if(probVal == probqval)
-					{
-						if(costVal > costqval)
-						{
+				} else {
+					if (probVal == probqval) {
+						if (costVal > costqval) {
 							costVal = costqval;
 						}
 					}
@@ -912,25 +954,24 @@ public class JointPolicyBRTDP
 
 			}
 		}
-		return new AbstractMap.SimpleEntry<Double,Double>(probVal,costVal);
+		return new AbstractMap.SimpleEntry<Double, Double>(probVal, costVal);
 
 	}
 
-	public Object getMinMaxAction(State state, double probcost, boolean minCost, boolean upperBound) throws PrismException
+	public Object getMinMaxAction(State state, double probcost, boolean minCost, boolean upperBound, boolean printVal) throws PrismException
 
 	{
 		//so basically we can get all the actions here 
 		if (this.robotStateActionIndices.containsKey(state)) {
 			ArrayList<Object> actions = new ArrayList<Object>();
 			actions.addAll(robotStateActionIndices.get(state).keySet());
-			return getMinMaxAction(state, actions, probcost, minCost, upperBound);
+			return getMinMaxAction(state, actions, probcost, minCost, upperBound, printVal);
 		} else {
 			throw new PrismException("state not in list!!" + state.toString());
 		}
 	}
 
-
-	public Object getMinMaxAction(State state, ArrayList<Object> actions, double probcost, boolean minCost, boolean upperBound)
+	public Object getMinMaxAction(State state, ArrayList<Object> actions, double probcost, boolean minCost, boolean upperBound, boolean printVal)
 			throws PrismException
 	{
 
@@ -942,10 +983,13 @@ public class JointPolicyBRTDP
 
 		for (int i = 0; i < actions.size(); i++) {
 			Object act = actions.get(i);
+			
 			//			double cost = costs.get(i);
-			double cost = getStateActionCost(state,act); 
-			double probqval = getProbQValue(state, act, probcost, minCost, upperBound);
-			double costqval = getCostQValue(state, act, cost, upperBound);
+			double cost = getStateActionCost(state, act);
+			double probqval = getProbQValue(state, act, probcost, minCost, upperBound, printVal);
+			double costqval = getCostQValue(state, act, cost, upperBound, printVal);
+			if (printVal)
+				mainLog.println(actions.get(i).toString()+":Q["+probqval+","+costqval+"]");
 			if (actionRet == null) {
 				probVal = probqval;
 				actionRet = act;
@@ -980,16 +1024,16 @@ public class JointPolicyBRTDP
 
 			}
 		}
-//		if (duplicateRetVals.size() > 1) {
-//			//randomly choose an action here 
-//			int actionChoice = new Random().nextInt(duplicateRetVals.size());
-//			actionRet = duplicateRetVals.get(actionChoice);
-//		}
+		//		if (duplicateRetVals.size() > 1) {
+		//			//randomly choose an action here 
+		//			int actionChoice = new Random().nextInt(duplicateRetVals.size());
+		//			actionRet = duplicateRetVals.get(actionChoice);
+		//		}
 		return actionRet;
 
 	}
 
-	public Object getMinMaxAction(State state, ArrayList<Object> actions, double probcost, double cost, boolean minCost, boolean upperBound)
+	public Object getMinMaxAction(State state, ArrayList<Object> actions, double probcost, double cost, boolean minCost, boolean upperBound, boolean printVal)
 			throws PrismException
 	{
 
@@ -1002,8 +1046,8 @@ public class JointPolicyBRTDP
 		for (int i = 0; i < actions.size(); i++) {
 			Object act = actions.get(i);
 			//			double cost = costs.get(i);
-			double probqval = getProbQValue(state, act, probcost, minCost, upperBound);
-			double costqval = getCostQValue(state, act, cost, upperBound);
+			double probqval = getProbQValue(state, act, probcost, minCost, upperBound, printVal);
+			double costqval = getCostQValue(state, act, cost, upperBound, printVal);
 			if (actionRet == null) {
 				probVal = probqval;
 				actionRet = act;
@@ -1038,11 +1082,11 @@ public class JointPolicyBRTDP
 
 			}
 		}
-//		if (duplicateRetVals.size() > 1) {
-//			//randomly choose an action here 
-//			int actionChoice = new Random().nextInt(duplicateRetVals.size());
-//			actionRet = duplicateRetVals.get(actionChoice);
-//		}
+		//		if (duplicateRetVals.size() > 1) {
+		//			//randomly choose an action here 
+		//			int actionChoice = new Random().nextInt(duplicateRetVals.size());
+		//			actionRet = duplicateRetVals.get(actionChoice);
+		//		}
 		return actionRet;
 
 	}
@@ -1111,14 +1155,42 @@ public class JointPolicyBRTDP
 		}
 		return storet;
 	}
+
+	public void exportAllStatesValues(String filename) throws IOException
+	{
+		FileWriter fileWriter = new FileWriter(filename);
+		//just go over all the states we have and print their values 
+		fileWriter.write("\n");
+		for (State s : stateValuesProbUpperBound.keySet()) {
+			fileWriter.write(getStateValues(s) + "\n");
+		}
+		fileWriter.close();
+	}
+
+	public void printAllStatesValues()
+	{
+		//just go over all the states we have and print their values 
+		for (State s : stateValuesProbUpperBound.keySet()) {
+			printStateValues(s);
+		}
+	}
+
 	public void printStateValues(State state)
 	{
-		boolean isgoal = isGoal(state);
-		String toprint = "P u:"+getProbValueIgnoreSelfLoop(state,true,isgoal)+
-				", l:"+getProbValueIgnoreSelfLoop(state,false,isgoal);
-		toprint+="\nC u:"+getCostValue(state,true,isgoal)+", l:"+getCostValue(state,false,isgoal); 
+		String toprint = getStateValues(state);
 		mainLog.println(toprint);
-		
+
+	}
+
+	public String getStateValues(State state)
+	{
+		boolean isgoal = isGoal(state);
+
+		String toprint = state.toString() + "[P u:" + getProbValueIgnoreSelfLoop(state, true, isgoal, false) + ", l:"
+				+ getProbValueIgnoreSelfLoop(state, false, isgoal, false) + "]";
+		toprint += "[C u:" + getCostValue(state, true, isgoal, false) + ", l:" + getCostValue(state, false, isgoal, false) + "]";
+		return toprint;
+
 	}
 	//
 	//	public Object getDefaultPolicyAction(State state)
@@ -1205,67 +1277,67 @@ public class JointPolicyBRTDP
 	//
 	//	}
 
-		public MDPSimple extractPolicyTreeAsDotFile(MDPSimple mdp, int initialState, boolean minimiseCosts)
-		{
-	
-			MDPSimple policyTree = new MDPSimple();
-			List<State> statesList = new ArrayList<State>();
-			int[] stateLabels = new int[mdp.getNumStates()];
-			Arrays.fill(stateLabels, -1);
-			Queue<Integer> stateQ = new LinkedList<Integer>();
-			stateQ.add(initialState);
-			int state, ps, choice;
-			Object action = null;
-			BitSet visited = new BitSet();
-	
-			while (!stateQ.isEmpty()) {
-				state = stateQ.remove();
-				if (!visited.get(state)) {
-					visited.set(state);
-					if (stateLabels[state] == -1) {
-						stateLabels[state] = policyTree.addState();
-						statesList.add(mdp.getStatesList().get(state));
-					}
-					ps = stateLabels[state];
-					State statestate = getStateFromIndex(state);
-					try {
-						action = this.getMinMaxAction(statestate, 0.0, false, true);//getBestAction(statestate, minimiseCosts);
-					} catch (PrismException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					if (action != null) {
-						if (stateActionIndices.containsKey(statestate)) {
-							if (stateActionIndices.get(statestate).containsKey(action)) {
-								choice = stateActionIndices.get(statestate).get(action);
-								if (choice > -1) {
-									Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(state, choice);
-									Distribution distr = new Distribution();
-									while (tranIter.hasNext()) {
-										Entry<Integer, Double> csp = tranIter.next();
-										int childstate = csp.getKey();
-										double stateProb = csp.getValue();
-										if (stateLabels[childstate] == -1) {
-											stateLabels[childstate] = policyTree.addState();
-											statesList.add(mdp.getStatesList().get(childstate));
-										}
-										int cs = stateLabels[childstate];
-										distr.add(cs, stateProb);
-										stateQ.add(childstate);
+	public MDPSimple extractPolicyTreeAsDotFile(MDPSimple mdp, int initialState, boolean minimiseCosts)
+	{
+
+		MDPSimple policyTree = new MDPSimple();
+		List<State> statesList = new ArrayList<State>();
+		int[] stateLabels = new int[mdp.getNumStates()];
+		Arrays.fill(stateLabels, -1);
+		Queue<Integer> stateQ = new LinkedList<Integer>();
+		stateQ.add(initialState);
+		int state, ps, choice;
+		Object action = null;
+		BitSet visited = new BitSet();
+
+		while (!stateQ.isEmpty()) {
+			state = stateQ.remove();
+			if (!visited.get(state)) {
+				visited.set(state);
+				if (stateLabels[state] == -1) {
+					stateLabels[state] = policyTree.addState();
+					statesList.add(mdp.getStatesList().get(state));
+				}
+				ps = stateLabels[state];
+				State statestate = getStateFromIndex(state);
+				try {
+					action = this.getMinMaxAction(statestate, 0.0, false, true, false);//getBestAction(statestate, minimiseCosts);
+				} catch (PrismException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if (action != null) {
+					if (stateActionIndices.containsKey(statestate)) {
+						if (stateActionIndices.get(statestate).containsKey(action)) {
+							choice = stateActionIndices.get(statestate).get(action);
+							if (choice > -1) {
+								Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(state, choice);
+								Distribution distr = new Distribution();
+								while (tranIter.hasNext()) {
+									Entry<Integer, Double> csp = tranIter.next();
+									int childstate = csp.getKey();
+									double stateProb = csp.getValue();
+									if (stateLabels[childstate] == -1) {
+										stateLabels[childstate] = policyTree.addState();
+										statesList.add(mdp.getStatesList().get(childstate));
 									}
-									policyTree.addActionLabelledChoice(ps, distr, action);
+									int cs = stateLabels[childstate];
+									distr.add(cs, stateProb);
+									stateQ.add(childstate);
 								}
-	
+								policyTree.addActionLabelledChoice(ps, distr, action.toString() + getStateValues(statesList.get(ps)));
 							}
+
 						}
 					}
-	
 				}
+
 			}
-			policyTree.setStatesList(statesList);
-	
-			return policyTree;
 		}
+		policyTree.setStatesList(statesList);
+
+		return policyTree;
+	}
 
 	//	HashMap<State, Object> getBestPolicySoFar(State initialState, boolean minimiseCosts)
 	//	{

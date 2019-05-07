@@ -46,33 +46,23 @@ import explicit.LTLModelChecker;
 import explicit.LTLModelChecker.LTLProduct;
 import explicit.MDP;
 import explicit.MDPModelChecker;
-import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
-import explicit.StateValues;
 import parser.State;
 import parser.VarList;
 import parser.ast.Expression;
-import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionProb;
-import parser.ast.ExpressionQuant;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
-import prism.ModelChecker;
 import prism.ModelGenerator;
 import prism.ModelInfo;
-import prism.ModelType;
 import prism.Prism;
-import prism.PrismComponent;
 import prism.PrismException;
 import prism.PrismFileLog;
-import prism.PrismLangException;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
-import prism.Result;
 import simulator.ModulesFileModelGenerator;
 import strat.MDStrategy;
-import strat.Strategy;
 
 /**
  * We get some rules to follow that and this these and those no one knows
@@ -80,10 +70,13 @@ import strat.Strategy;
  * No one knows
  *
  */
-public class MRmcts {
+public class MRmcts
+{
 	public static final String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/mcts/";
+	public static final boolean TURNOFFALLWRITES = false;
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		try {
 			new MRmcts().run();
 		} catch (Exception e) {
@@ -92,10 +85,9 @@ public class MRmcts {
 		}
 	}
 
-	public MDStrategy getSingleRobotSolution(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr,
-			AcceptanceType[] allowedAcceptance, ArrayList<List<State>> allRobotsStatesList,
-			ArrayList<VarList> varlists)
-			throws PrismException {
+	public MDStrategy getSingleRobotSolution(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr, AcceptanceType[] allowedAcceptance,
+			ArrayList<List<State>> allRobotsStatesList, ArrayList<VarList> varlists) throws PrismException
+	{
 
 		prism.buildModel();
 		MDP mdp = (MDP) prism.getBuiltModelExplicit();
@@ -107,9 +99,8 @@ public class MRmcts {
 		Vector<BitSet> labelBS = new Vector<BitSet>();
 		ProbModelChecker pmc = new ProbModelChecker(prism);
 
-//		LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
-		DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr.getExpression(),
-				labelBS, allowedAcceptance);
+		//		LTLProduct<MDP> prod = ltlMC.constructProductMDP(pmc, mdp, expr.getExpression(), null, allowedAcceptance);
+		DA<BitSet, ? extends AcceptanceOmega> tempda = ltlMC.constructDAForLTLFormula(pmc, mdp, expr.getExpression(), labelBS, allowedAcceptance);
 		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
 
 		MDP prodmdp = prod.getProductModel();
@@ -121,26 +112,23 @@ public class MRmcts {
 		MDStrategy strat = (MDStrategy) (result.strat);
 		return strat;
 	}
-	public ArrayList<HashMap<State,Double>> getSingleRobotPartialSatSol(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr,
-			ModelInfo modelInfo, PropertiesFile propertiesFile, ModelGenerator modelGen,
-			ArrayList<VarList> varlist
-			) throws PrismException
+
+	public ArrayList<HashMap<State, Double>> getSingleRobotPartialSatSol(Prism prism, LTLModelChecker ltlMC, ExpressionProb expr, ModelInfo modelInfo,
+			PropertiesFile propertiesFile, ModelGenerator modelGen, ArrayList<VarList> varlist) throws PrismException
 	{
 		prism.buildModel();
 		MDP mdp = (MDP) prism.getBuiltModelExplicit();
 
 		MDPModelChecker mc = new MDPModelChecker(prism);
-		
+
 		mc.setGenStrat(true);
 		mc.setExportAdv(true);
-		
+
 		mc.setModulesFileAndPropertiesFile(modelInfo, propertiesFile, modelGen);
 
-	
-		ArrayList<HashMap<State,Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(),
-				null,varlist);
+		ArrayList<HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist);
 		//mapping the result to values 
-		return result; 
+		return result;
 
 	}
 
@@ -186,8 +174,8 @@ public class MRmcts {
 				// on that prod mod
 				// soo no to this if above
 				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
-//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
-//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
+				//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
+				//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
 
 				expr = (ExpressionProb) propertiesFile.getProperty(0);
 
@@ -198,14 +186,13 @@ public class MRmcts {
 
 				ArrayList<VarList> varlists = new ArrayList<VarList>();
 
-				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList,
-						varlists);
+				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList, varlists);
 				singleRobotSolutions.add(strat);
 
-//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
+				//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
 
-//					System.out.println(result.getResult()); 
-//				}
+				//					System.out.println(result.getResult()); 
+				//				}
 				da.setDistancesToAcc();
 				da.printDot(mainLog);
 
@@ -215,7 +202,7 @@ public class MRmcts {
 
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
-				
+
 				prodModGens.add(prodModelGen);
 				// comparing indices of the mdp and prodmodgen stuff
 				VarList vl = varlists.get(0);
@@ -240,10 +227,10 @@ public class MRmcts {
 					// do stuff here
 					// i have no idea what
 					flipedIndices.add(true);
-//					flipedIndices.add(false);
+					//					flipedIndices.add(false);
 				} else {
 					flipedIndices.add(false);
-//					flipedIndices.add(true);
+					//					flipedIndices.add(true);
 				}
 
 			}
@@ -256,52 +243,49 @@ public class MRmcts {
 			// so lets do 10 steps + slack = 30
 			int rollout_depth = 30;
 			boolean minCost = false;
-			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da,null);
-//			uct.uctsearch(acc);
-//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
+			MRuctPaper uct = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null, da.getDistsToAcc(), singleRobotSolutions,
+					allRobotsStatesList, flipedIndices, da, null);
+			//			uct.uctsearch(acc);
+			//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			uct.monteCarloPlanning(acc, minCost);
 			long searchOverTime = System.currentTimeMillis();
-			if(uct.uctPolicy.accStates.cardinality()> 0)
-			{
+			if (uct.uctPolicy.accStates.cardinality() > 0) {
 				//we can compute upper and lower bounds 
 				//upper bounds - all leaf states are also acc states 
 				//lower bounds just acc states 
 				uct.uctPolicy.jointMDP.findDeadlocks(true);
-				BitSet accStates = (BitSet)uct.uctPolicy.accStates.clone(); 
-				MDPModelChecker mdpMC = new MDPModelChecker(prism); 
+				BitSet accStates = (BitSet) uct.uctPolicy.accStates.clone();
+				MDPModelChecker mdpMC = new MDPModelChecker(prism);
 				ModelCheckerResult upperB = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, accStates, false);
-				
+
 				accStates.or(uct.uctPolicy.leafStates);
 				ModelCheckerResult lowerB = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, accStates, false);
 				mainLog.println(uct.uctPolicy.leafStates.toString());
 				//TODO: double check if this leaf state stuff works 
-				
+
 				mainLog.println("Result: " + Arrays.toString(upperB.soln));
 				mainLog.println("Result: " + Arrays.toString(lowerB.soln));
-				
+
 			}
 			//going to print out the state info 
-			for(State s: uct.uctPolicy.stateActionQvalues.keySet())
-			{
+			for (State s : uct.uctPolicy.stateActionQvalues.keySet()) {
 				uct.uctPolicy.printStateDetails(s, minCost);
 			}
-//			if (uct.uctPolicy.accStates.cardinality() > 0) {
-//				MDPModelChecker mdpMC = new MDPModelChecker(prism);
-//				uct.uctPolicy.jointMDP.findDeadlocks(true);
-//				ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, uct.uctPolicy.accStates,
-//						false);
-//				uct.uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "sol.dot", uct.uctPolicy.accStates);
-//				mainLog.println("Result: " + Arrays.toString(res.soln));
-//				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
-//						uct.uctPolicy.getStateIndex(uct.initState), true);
-//				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
-////				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
-//			}
+			//			if (uct.uctPolicy.accStates.cardinality() > 0) {
+			//				MDPModelChecker mdpMC = new MDPModelChecker(prism);
+			//				uct.uctPolicy.jointMDP.findDeadlocks(true);
+			//				ModelCheckerResult res = mdpMC.computeReachProbs(uct.uctPolicy.jointMDP, uct.uctPolicy.accStates,
+			//						false);
+			//				uct.uctPolicy.jointMDP.exportToDotFile(saveplace + filename + "sol.dot", uct.uctPolicy.accStates);
+			//				mainLog.println("Result: " + Arrays.toString(res.soln));
+			//				MDPSimple policyTree = uct.uctPolicy.extractPolicyTreeAsDotFile(uct.uctPolicy.jointMDP,
+			//						uct.uctPolicy.getStateIndex(uct.initState), true);
+			//				policyTree.exportToDotFile(saveplace + filename + "_policy_sol.dot");
+			////				mainLog.println("Accepting States found in rollouts: " + Arrays.toString(solfoundinrollout.toArray()));
+			//			}
 
 			long endTime = System.currentTimeMillis();
-			mainLog.println("Search Time: " + (searchOverTime - startTime) / 1000.0 + "s" + "\nTotal Time:"
-					+ (endTime - startTime) / 1000.0 + "s");
+			mainLog.println("Search Time: " + (searchOverTime - startTime) / 1000.0 + "s" + "\nTotal Time:" + (endTime - startTime) / 1000.0 + "s");
 			// Close down PRISM
 			prism.closeDown();
 
@@ -310,13 +294,14 @@ public class MRmcts {
 			System.exit(1);
 		}
 	}
+
 	public void doBRTDP() throws Exception
 	{
 		try {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 			String filename = "tiny_example";//"no_door_example";
-			ArrayList<ArrayList<HashMap<State,Double>> > probCostBoundsInits = new  ArrayList<ArrayList<HashMap<State,Double>> >();
+			ArrayList<ArrayList<HashMap<State, Double>>> probCostBoundsInits = new ArrayList<ArrayList<HashMap<State, Double>>>();
 			// Create a log for PRISM output (hidden or stdout)
 			// PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
@@ -326,7 +311,7 @@ public class MRmcts {
 			prism.initialise();
 			ArrayList<String> filenames = new ArrayList<String>();
 			filenames.add(saveplace + filename + "0.prism");
-			filenames.add(saveplace + filename + "1.prism");
+//			filenames.add(saveplace + filename + "1.prism");
 			String propfilename = saveplace + filename + ".prop";
 			prism.setEngine(Prism.EXPLICIT);
 			ArrayList<ProductModelGenerator> prodModGens = new ArrayList<ProductModelGenerator>();
@@ -352,8 +337,8 @@ public class MRmcts {
 				// on that prod mod
 				// soo no to this if above
 				PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propfilename));
-//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
-//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
+				//				ExpressionFunc exprfunc = (ExpressionFunc) propertiesFile.getProperty(0);
+				//				ExpressionQuant exprq = (ExpressionQuant) propertiesFile.getProperty(0); 
 
 				expr = (ExpressionProb) propertiesFile.getProperty(0);
 
@@ -364,32 +349,30 @@ public class MRmcts {
 
 				ArrayList<VarList> varlists = new ArrayList<VarList>();
 
-				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList,
-						varlists);
+				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList, varlists);
 
-			
 				singleRobotSolutions.add(strat);
 
-//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
+				//					Result result = mc.check(mdp, expr);//mc.computeReachProbs((MDP)prodmdp.getProductModel(), target, min)
 
-//					System.out.println(result.getResult()); 
-//				}
+				//					System.out.println(result.getResult()); 
+				//				}
 				da.setDistancesToAcc();
 				da.printDot(mainLog);
-
-				PrismFileLog out = new PrismFileLog(TESTSLOC + "mrmctsda" + fileno + ".dot");
-				da.printDot(out);
-				out.close();
-
+				if (!this.TURNOFFALLWRITES) {
+					PrismFileLog out = new PrismFileLog(TESTSLOC + "mrmctsda" + fileno + ".dot");
+					da.printDot(out);
+					out.close();
+				}
 				ModulesFileModelGenerator prismModelGen = new ModulesFileModelGenerator(modulesFile, prism);
-				
+
 				ProductModelGenerator prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 				prism.loadModelGenerator(prismModelGen);
-				ArrayList<VarList> vlt=new ArrayList<VarList>(); 
-				ArrayList<HashMap<State,Double>>  probCostValues = getSingleRobotPartialSatSol(prism, ltlMC, expr,
-						modulesFile,propertiesFile,prismModelGen,vlt);
+				ArrayList<VarList> vlt = new ArrayList<VarList>();
+				ArrayList<HashMap<State, Double>> probCostValues = getSingleRobotPartialSatSol(prism, ltlMC, expr, modulesFile, propertiesFile, prismModelGen,
+						vlt);
 				probCostBoundsInits.add(probCostValues);
-				
+
 				prodModGens.add(prodModelGen);
 				// comparing indices of the mdp and prodmodgen stuff
 				VarList vl = vlt.get(0);//varlists.get(0);
@@ -414,10 +397,10 @@ public class MRmcts {
 					// do stuff here
 					// i have no idea what
 					flipedIndices.add(true);
-//					flipedIndices.add(false);
+					//					flipedIndices.add(false);
 				} else {
 					flipedIndices.add(false);
-//					flipedIndices.add(true);
+					//					flipedIndices.add(true);
 				}
 
 			}
@@ -430,15 +413,14 @@ public class MRmcts {
 			// so lets do 10 steps + slack = 30
 			int rollout_depth = 30;
 			boolean minCost = false;
-			MRuctPaper brtdp = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null,
-					da.getDistsToAcc(), singleRobotSolutions, allRobotsStatesList,flipedIndices,da,probCostBoundsInits);
-//			uct.uctsearch(acc);
-//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
+			MRuctPaper brtdp = new MRuctPaper(prism.getLog(), prodModGens, max_rollouts, rollout_depth, null, da.getDistsToAcc(), singleRobotSolutions,
+					allRobotsStatesList, flipedIndices, da, probCostBoundsInits);
+			//			uct.uctsearch(acc);
+			//			ArrayList<Integer> solfoundinrollout = uct.uctsearchwithoutapolicy(acc);
 			brtdp.doBRTDP(acc, false);
 
 			long endTime = System.currentTimeMillis();
-			mainLog.println("\nTotal Time:"
-					+ (endTime - startTime) / 1000.0 + "s");
+			mainLog.println("\nTotal Time:" + (endTime - startTime) / 1000.0 + "s");
 			// Close down PRISM
 			prism.closeDown();
 
@@ -447,8 +429,10 @@ public class MRmcts {
 			System.exit(1);
 		}
 	}
-	public void run() throws Exception {
-//	doUCT();
+
+	public void run() throws Exception
+	{
+		//	doUCT();
 		doBRTDP();
 	}
 }
