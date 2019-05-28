@@ -34,10 +34,12 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.PrimitiveIterator;
+import java.util.Queue;
 import java.util.Vector;
 
 import common.IterableStateSet;
@@ -65,6 +67,7 @@ import prism.PrismNotSupportedException;
 import prism.PrismSettings;
 import prism.PrismUtils;
 import strat.MDStrategyArray;
+import strat.Strategy;
 import strat.MDStrategy;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceReach;
@@ -399,7 +402,7 @@ public class MDPModelChecker extends ProbModelChecker
 	
 
 	public ArrayList<HashMap<State,Double>> checkPartialSatForBounds(MDP model, Expression expr, 
-			BitSet statesOfInterest,ArrayList<VarList> varlist) throws PrismException
+			BitSet statesOfInterest,ArrayList<VarList> varlist,boolean saveAdv, String fn) throws PrismException
 	{
 		LTLModelChecker mcLtl;		
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
@@ -517,6 +520,7 @@ public class MDPModelChecker extends ProbModelChecker
 		// Mapping probabilities in the original model
 		probs = product.projectToOriginalModel(probsProduct);		
 		//Get final prob result
+		
 		double maxProb=probs.getDoubleArray()[model.getFirstInitialState()];
 		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
 		
@@ -556,22 +560,97 @@ public class MDPModelChecker extends ProbModelChecker
         List<State> statesList = productMdp.getStatesList();
     	HashMap<State,Double> probValues = new HashMap<State,Double>();
 		HashMap<State,Double> costValues = new HashMap<State,Double>();
+		
 		for(int i = 0; i<statesList.size(); i++)
 		{
 			State s = statesList.get(i); 
 			probValues.put(s, (double)probsProduct.getValue(i));
 			costValues.put(s,(double)costsProduct.getValue(i));
+			
 		}
 		 varlist.add(productMdp.getVarList()); 
 
 
 		result.add(probValues); 
 		result.add(costValues);
-		
+
+		if(saveAdv)
+		{
+			Iterable<Integer> initStatesIterable = productMdp.getInitialStates();
+			Iterator<Integer> initStateIter = initStatesIterable.iterator();
+			while(initStateIter.hasNext()) {
+				int is = initStateIter.next();
+				MDPSimple pol = extractPolicyTreeAsDotFile(productMdp,is,res.strat);
+				PrismFileLog out = new PrismFileLog(fn + is + ".dot");
+				pol.exportToDotFile(out, null, true);
+				out.close();	
+			}
+			
+		}
 		return result;
 		
 	}
-	
+	public MDPSimple extractPolicyTreeAsDotFile(MDP mdp, int initialState,Strategy strat)
+	{
+
+		MDPSimple policyTree = new MDPSimple();
+		List<State> statesList = new ArrayList<State>();
+		int[] stateLabels = new int[mdp.getNumStates()];
+		Arrays.fill(stateLabels, -1);
+		Queue<Integer> stateQ = new LinkedList<Integer>();
+		stateQ.add(initialState);
+		int state, ps, choice;
+		Object action = null;
+		BitSet visited = new BitSet();
+
+		while (!stateQ.isEmpty()) {
+			state = stateQ.remove();
+			if (!visited.get(state)) {
+				visited.set(state);
+				if (stateLabels[state] == -1) {
+					stateLabels[state] = policyTree.addState();
+					statesList.add(mdp.getStatesList().get(state));
+				}
+				ps = stateLabels[state];
+				strat.initialise(state);
+				action = strat.getChoiceAction();
+				choice = -1;
+				if (action != null) {
+					int numchoices = mdp.getNumChoices(state);
+					for (int i = 0; i < numchoices; i++) {
+						if (action.equals(mdp.getAction(state, i))) {
+							choice = i;
+							break;
+						}
+					}
+
+					if (choice > -1) {
+						Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(state, choice);
+						Distribution distr = new Distribution();
+						while (tranIter.hasNext()) {
+							Entry<Integer, Double> csp = tranIter.next();
+							int childstate = csp.getKey();
+							double stateProb = csp.getValue();
+							if (stateLabels[childstate] == -1) {
+								stateLabels[childstate] = policyTree.addState();
+								statesList.add(mdp.getStatesList().get(childstate));
+							}
+							int cs = stateLabels[childstate];
+							distr.add(cs, stateProb);
+							stateQ.add(childstate);
+						}
+						policyTree.addActionLabelledChoice(ps, distr, action.toString());
+					}
+
+				}
+			}
+		}
+
+		policyTree.setStatesList(statesList);
+
+		return policyTree;
+	}
+
 	public BitSet progressionTrim(LTLModelChecker.LTLProduct<MDP> product, MDPRewardsSimple progRewards, MDPRewardsSimple prodCosts)
 	{
 		MDP productModel = product.getProductModel();
@@ -1469,7 +1548,7 @@ public class MDPModelChecker extends ProbModelChecker
 	 * @param strat Storage for (memoryless) strategy choice indices (ignored if null)
 	 * Note: if 'known' is specified (i.e. is non-null, 'init' must also be given and is used for the exact values.  
 	 */
-	protected ModelCheckerPartialSatResult computeNestedValIter(MDP trimProdMdp, BitSet target, MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates)
+	public ModelCheckerPartialSatResult computeNestedValIter(MDP trimProdMdp, BitSet target, MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates)
 			throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
