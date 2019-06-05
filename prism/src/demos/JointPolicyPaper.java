@@ -16,7 +16,6 @@ import explicit.MDPSimple;
 import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
-import strat.MDStrategyArray;
 
 public class JointPolicyPaper {
 	int numRobots;
