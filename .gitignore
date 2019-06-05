@@ -36,3 +36,8 @@ prism/\.project
 # Eclipse project custom settings
 \.settings/
 prism/\.settings/
+
+#results folder files
+prism/tests/results/*.txt
+prism/tests/results/*.dot
+prism/tests/results/*.pdf
