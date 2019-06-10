@@ -3,7 +3,7 @@
 mdp
 
        const int failstate = -1;
-       const double p = 0.7;
+       const double p = 0.8;
        const double ps = 1.0;
 
 

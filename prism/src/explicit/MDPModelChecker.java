@@ -560,12 +560,14 @@ public class MDPModelChecker extends ProbModelChecker
         List<State> statesList = productMdp.getStatesList();
     	HashMap<State,Double> probValues = new HashMap<State,Double>();
 		HashMap<State,Double> costValues = new HashMap<State,Double>();
+		HashMap<State,Double> progValues = new HashMap<State,Double>();
 		
 		for(int i = 0; i<statesList.size(); i++)
 		{
 			State s = statesList.get(i); 
 			probValues.put(s, (double)probsProduct.getValue(i));
 			costValues.put(s,(double)costsProduct.getValue(i));
+			progValues.put(s, (double)rewsProduct.getValue(i)); 
 			
 		}
 		 varlist.add(productMdp.getVarList()); 
@@ -573,6 +575,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		result.add(probValues); 
 		result.add(costValues);
+		result.add(progValues);
 
 		if(saveAdv)
 		{

@@ -347,7 +347,7 @@ public class MRmcts
 		try {
 
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-			String filename = "tiny_example_permtrap";//"no_door_example";
+			String filename = "tiny_example_permtrap_noun";//"no_door_example";
 			ArrayList<ArrayList<HashMap<State, Double>>> probCostBoundsInits = new ArrayList<ArrayList<HashMap<State, Double>>>();
 			// Create a log for PRISM output (hidden or stdout)
 			// PrismLog mainLog = new PrismDevNullLog();
@@ -511,23 +511,25 @@ public class MRmcts
 			//			double epsilon = 10e-5;
 			//			TURNOFFALLWRITES=true;
 			//			for(int i = 0; i<100; i++) {
-			int i = 0;
+//			int i = 0;
 
 			brtdp.doBRTDP(filename, TESTSLOC, acc, false, maxStates);
+			
+			
 
-			brtdp.brtdpPolicy.clearRewards();
-			brtdp.brtdpPolicy.createCostRewardStructure();
-			brtdp.brtdpPolicy.createProgressionRewards();
-			brtdp.brtdpPolicy.progressionTrim();
-			brtdp.brtdpPolicy.jointMDP.findDeadlocks(true);
-			HashMap<State, HashMap<String, Double>> resStuff = null;
-			resStuff = doPartialSatNVI(prism, filename + "_" + i + "l", brtdp.brtdpPolicy.jointMDP, brtdp.brtdpPolicy.accStates, brtdp.brtdpPolicy.progRewards,
-					brtdp.brtdpPolicy.costRewards, brtdp.brtdpPolicy.progStates, resStuff, false);
-			BitSet upperBoundSet = (BitSet) brtdp.brtdpPolicy.accStates.clone();
-			upperBoundSet.or(brtdp.brtdpPolicy.leafStates);
-			resStuff = doPartialSatNVI(prism, filename + "_" + i + "u", brtdp.brtdpPolicy.jointMDP, upperBoundSet, brtdp.brtdpPolicy.progRewards,
-					brtdp.brtdpPolicy.costRewards, brtdp.brtdpPolicy.progStates, resStuff, true);
-			brtdp.brtdpPolicy.resetStateSolved();
+//			brtdp.brtdpPolicy.clearRewards();
+//			brtdp.brtdpPolicy.createCostRewardStructure();
+//			brtdp.brtdpPolicy.createProgressionRewards();
+//			brtdp.brtdpPolicy.progressionTrim();
+//			brtdp.brtdpPolicy.jointMDP.findDeadlocks(true);
+//			HashMap<State, HashMap<String, Double>> resStuff = null;
+//			resStuff = doPartialSatNVI(prism, filename + "_" + i + "l", brtdp.brtdpPolicy.jointMDP, brtdp.brtdpPolicy.accStates, brtdp.brtdpPolicy.progRewards,
+//					brtdp.brtdpPolicy.costRewards, brtdp.brtdpPolicy.progStates, resStuff, false);
+//			BitSet upperBoundSet = (BitSet) brtdp.brtdpPolicy.accStates.clone();
+//			upperBoundSet.or(brtdp.brtdpPolicy.leafStates);
+//			resStuff = doPartialSatNVI(prism, filename + "_" + i + "u", brtdp.brtdpPolicy.jointMDP, upperBoundSet, brtdp.brtdpPolicy.progRewards,
+//					brtdp.brtdpPolicy.costRewards, brtdp.brtdpPolicy.progStates, resStuff, true);
+//			brtdp.brtdpPolicy.resetStateSolved();
 			//			if(brtdp.brtdpPolicy.doStateValuesDiff(epsilon))
 			//				break;
 			//			brtdp.brtdpPolicy.saveOldStateValues();
@@ -546,7 +548,7 @@ public class MRmcts
 			long endTime = System.currentTimeMillis();
 			mainLog.println("\nTotal Time:" + (endTime - startTime) / 1000.0 + "s");
 			// Close down PRISM
-			doPartialSatOnly(saveplace,filename+"_prod",prism);
+//			doPartialSatOnly(saveplace,filename+"_prod",prism);
 			prism.closeDown();
 
 		} catch (PrismException | FileNotFoundException e) {

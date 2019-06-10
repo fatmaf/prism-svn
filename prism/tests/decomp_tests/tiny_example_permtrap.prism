@@ -10,7 +10,7 @@ mdp
 
 module world
 
-       s:[failstate..8] init 0;
+       s:[failstate..8] init 2;//init 0;
        
        //the last state is a fail state
        [v0_2] (s=0) -> (s'=2);

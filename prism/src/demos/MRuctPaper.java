@@ -33,6 +33,10 @@ import strat.MDStrategy;
 public class MRuctPaper
 {
 
+	int DASTATEINDEX;
+	int SSSTATEINDEX;
+	static int TSTATEINDEX;
+	static int ACTSTATEINDEX;
 	double EPSILON = 10e-6;
 	private int numTrials = 0;
 	private PrismLog mainLog;
@@ -64,6 +68,7 @@ public class MRuctPaper
 			ArrayList<Boolean> flipedIndices, DA<BitSet, ? extends AcceptanceOmega> da, ArrayList<ArrayList<HashMap<State, Double>>> probCostBoundsInitsToCopy)
 
 	{
+
 		deadendStates = new ArrayList<State>();
 		notDeadendStates = new ArrayList<State>();
 		probCostBoundsInits = probCostBoundsInitsToCopy;
@@ -111,6 +116,15 @@ public class MRuctPaper
 				}
 				sharedStateIndicesForRobots.add(sharedStateIndicesForRobot);
 			}
+			SSSTATEINDEX = num_robots;
+			DASTATEINDEX = SSSTATEINDEX + 1;
+			TSTATEINDEX = DASTATEINDEX + 1;
+			ACTSTATEINDEX = TSTATEINDEX + 1;
+		} else {
+			SSSTATEINDEX = -1;
+			DASTATEINDEX = num_robots;
+			TSTATEINDEX = DASTATEINDEX + 1;
+			ACTSTATEINDEX = TSTATEINDEX + 1;
 		}
 
 	}
@@ -146,9 +160,7 @@ public class MRuctPaper
 						if (progVals.get(robotState) <= 0) {
 							numDeadends++;
 						}
-					}
-					else
-					{
+					} else {
 						//if this state does not exist then we can't get to the goal with this state 
 						//then its a deadend 
 						numDeadends++;
@@ -214,7 +226,7 @@ public class MRuctPaper
 
 	}
 
-	static double getInitProgBound(State js,boolean lower)
+	static double getInitProgBound(State js, boolean lower)
 	{
 		ArrayList<State> robotStates = getRobotStatesFromJointState(js);
 		int boundNum = 2;
@@ -246,14 +258,12 @@ public class MRuctPaper
 			}
 			if (progVals.containsKey(s))
 				prog = progVals.get(s);
-			 
-			if(lower) {
-			if (prog > currentprog)
-				currentprog = prog;
-			}
-			else
-			{
-				currentprog+=prog;
+
+			if (lower) {
+				if (prog > currentprog)
+					currentprog = prog;
+			} else {
+				currentprog += prog;
 			}
 		}
 
@@ -313,16 +323,16 @@ public class MRuctPaper
 		}
 		//		//		if (isdeadend)
 		//		//			cost = 0;
-//		cost = 1000;
+		//		cost = 1000;
 		return cost;
 
 	}
 
-	ArrayList<State> getJointStates(ArrayList<ArrayList<State>> succStates) throws PrismException
+	ArrayList<State> getJointStates(ArrayList<ArrayList<State>> succStates, State tstate, State astate) throws PrismException
 	{
 		ArrayList<State> jointStates = new ArrayList<State>();
 		for (int i = 0; i < succStates.size(); i++)
-			jointStates.add(getJointState(succStates.get(i), null));
+			jointStates.add(getJointState(succStates.get(i), null, tstate, astate));
 		return jointStates;
 	}
 
@@ -425,18 +435,20 @@ public class MRuctPaper
 		return combinedState;
 	}
 
-	State getJointState(ArrayList<State> states, BitSet accStates) throws PrismException
+	State getJointState(ArrayList<State> states, BitSet accStates, State tstate, State astate) throws PrismException
 	{
 		if (shared_state_names == null)
-			return getJointStateNoSS(states, accStates);
+			return getJointStateNoSS(states, accStates, tstate, astate);
 		else
-			return getJointStateWithSS(states, accStates);
+			return getJointStateWithSS(states, accStates, tstate, astate);
 	}
 
-	State getJointStateWithSS(ArrayList<State> states, BitSet accStates) throws PrismException
+	State getJointStateWithSS(ArrayList<State> states, BitSet accStates, State expectedTState, State expectedAState) throws PrismException
 	{
 
-		State temp_joint_state = new State(num_robots + 2);
+		int state_size = num_robots + 2; //all the variables in the shared states are just in one state 
+
+		State temp_joint_state = new State(state_size);
 		BitSet trueLabels = new BitSet();
 		ArrayList<State> brokenRobotStates = new ArrayList<State>();
 		for (int i = 0; i < num_robots; i++) {
@@ -485,6 +497,28 @@ public class MRuctPaper
 			temp_joint_state.setValue(num_robots + 1, newda);
 
 		}
+
+		//just adding a 0 
+		if (TSTATEINDEX != -1) {
+			State tstate = expectedTState;
+			if (tstate == null) {
+				tstate = new State(num_robots);
+				for (int i = 0; i < num_robots; i++)
+					tstate.setValue(i, 0.0);
+
+			}
+			temp_joint_state.setValue(TSTATEINDEX, tstate);
+		}
+
+		if (ACTSTATEINDEX != -1) {
+			State astate = expectedAState;
+			if (astate == null) {
+				astate = new State(num_robots);
+				for (int i = 0; i < num_robots; i++)
+					astate.setValue(i, "");
+			}
+		}
+
 		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
 			ArrayList<State> cp = new ArrayList<State>();
 			cp.addAll(states);
@@ -574,10 +608,11 @@ public class MRuctPaper
 
 	}
 
-	State getJointStateNoSS(ArrayList<State> states, BitSet accStates) throws PrismException
+	State getJointStateNoSS(ArrayList<State> states, BitSet accStates, State expectedTState, State expectedAState) throws PrismException
 	{
 
-		State temp_joint_state = new State(num_robots + 1);
+		int state_size = num_robots + 1 + 1 + 1; //da, time
+		State temp_joint_state = new State(state_size);
 		BitSet trueLabels = new BitSet();
 		for (int i = 0; i < num_robots; i++) {
 
@@ -596,10 +631,10 @@ public class MRuctPaper
 
 			temp_joint_state.setValue(i, current_model_state.substate(0, da_state_index));
 
-			State da_state_in_joint_state = temp_joint_state.substate(num_robots, num_robots + 1);
+			State da_state_in_joint_state = temp_joint_state.substate(this.DASTATEINDEX, this.DASTATEINDEX + 1);
 
 			if (da_state_in_joint_state.varValues[0] == null) {
-				temp_joint_state.setValue(num_robots, current_model_state.substate(da_state_index, da_state_index + 1));
+				temp_joint_state.setValue(this.DASTATEINDEX, current_model_state.substate(da_state_index, da_state_index + 1));
 			} else {
 				// check if there's a change
 				State da_state_in_robot = current_model_state.substate(da_state_index, da_state_index + 1);
@@ -623,7 +658,7 @@ public class MRuctPaper
 							}
 						}
 						if (jsacc >= rsacc) {
-							temp_joint_state.setValue(num_robots, da_state_in_robot);
+							temp_joint_state.setValue(this.DASTATEINDEX, da_state_in_robot);
 						}
 					}
 
@@ -633,7 +668,7 @@ public class MRuctPaper
 		}
 		//we may need to update the temp_joint_state 
 		//from the temp joint state get the da state 
-		int current_da_state = getIndividualState(temp_joint_state, num_robots, 0);
+		int current_da_state = getIndividualState(temp_joint_state, this.DASTATEINDEX, 0);
 		//now lets do the checking 
 
 		int updated_da_state = this.da.getEdgeDestByLabel(current_da_state, trueLabels);
@@ -641,9 +676,30 @@ public class MRuctPaper
 			State newda = new State(1);
 			newda.setValue(0, updated_da_state);
 			//then we need to update it 
-			temp_joint_state.setValue(num_robots, newda);
+			temp_joint_state.setValue(this.DASTATEINDEX, newda);
 
 		}
+		//just adding a 0 
+		if (TSTATEINDEX != -1) {
+			State tstate = expectedTState;
+			if (tstate == null) {
+				tstate = new State(num_robots);
+				for (int i = 0; i < num_robots; i++)
+					tstate.setValue(i, 0.0);
+
+			}
+			temp_joint_state.setValue(TSTATEINDEX, tstate);
+		}
+		if (ACTSTATEINDEX != -1) {
+			State astate = expectedAState;
+			if (astate == null) {
+				astate = new State(num_robots);
+				for (int i = 0; i < num_robots; i++)
+					astate.setValue(i, "");
+			}
+			temp_joint_state.setValue(ACTSTATEINDEX, astate);
+		}
+
 		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
 			ArrayList<State> cp = new ArrayList<State>();
 			cp.addAll(states);
@@ -677,8 +733,8 @@ public class MRuctPaper
 		ArrayList<Object> robotActions = splitJointAction(act);
 		// get the da state
 		double cost = 0;
-		if(state.toString().contains("-1),(-1"))
-			cost = 0; 
+		if (state.toString().contains("-1),(-1"))
+			cost = 0;
 		if (!isDeadend(state) && !brtdpPolicy.isGoal(state)) {
 			if (sumCost) {
 				for (int i = 0; i < robotStates.size(); i++)
@@ -778,6 +834,27 @@ public class MRuctPaper
 		return actions;
 	}
 
+	HashMap<Integer, HashMap<Object, Double>> getRobotActionCosts(ArrayList<State> states, HashMap<Integer, HashMap<Object, Integer>> actions)
+			throws PrismException
+	{
+		HashMap<Integer, HashMap<Object, Double>> actioncosts = new HashMap<Integer, HashMap<Object, Double>>();
+		//for each state, for each action 
+		for (int i = 0; i < states.size(); i++) {
+			ProductModelGenerator prodModGen = prodModGens.get(i);
+			HashMap<Object, Integer> robotActions = actions.get(i);
+			State robotState = states.get(i);
+			prodModGen.exploreState(robotState);
+			HashMap<Object, Double> robotActionCosts = new HashMap<Object, Double>();
+			for (Object act : robotActions.keySet()) {
+				double rew = prodModGen.getStateActionReward(0, robotState, act);
+				robotActionCosts.put(act, rew);
+			}
+			actioncosts.put(i, robotActionCosts);
+
+		}
+		return actioncosts;
+	}
+
 	ArrayList<Object> getActionNamesFromRobotActionNums(int[] combination) throws PrismException
 	{
 		ArrayList<Object> actionNames = new ArrayList<Object>();
@@ -830,6 +907,14 @@ public class MRuctPaper
 		return succStates;
 	}
 
+	/*
+	 * The real money is here sorry 
+	 * so this is where the magic needs to happen 
+	 * when we're creating combinations, we need the action durations 
+	 * which are costs 
+	 * and then we're not going to touch the generate combinations function 
+	 * but we'll touch the other stuff 
+	 */
 	ArrayList<ArrayList<Object>> getJointActions(HashMap<Integer, HashMap<Object, Integer>> actions) throws PrismException
 	{
 		int[] numActionsPerRobot = new int[num_robots];
@@ -855,13 +940,128 @@ public class MRuctPaper
 		}
 		for (int[] r : res) {
 			ArrayList<Object> action = new ArrayList<Object>();
+
 			for (int i = 0; i < r.length; i++) {
 				robotKeySet = actionsKeySet.get(i);
-				action.add(robotKeySet.get(r[i] - 1));
+				//so this is the magic really 
+				Object act = robotKeySet.get(r[i] - 1);
+				action.add(act);
+
 			}
+
 			jointActions.add(action);
 		}
 		return jointActions;
+	}
+
+	ArrayList<Object> getJointActionsTStates(ArrayList<ArrayList<Object>> jointActions, HashMap<Integer, HashMap<Object, Double>> actionCosts,
+			State pTState, State pAState) throws PrismException
+	{
+		ArrayList<Object> toret = new ArrayList<Object>();
+		ArrayList<State> tstates = new ArrayList<State>();
+		ArrayList<State> astates = new ArrayList<State>();
+		ArrayList<Object> actionsToSkip = new ArrayList<Object>();
+		ArrayList<ArrayList<Object>> updatedActions = new ArrayList<ArrayList<Object>>();
+		boolean skipAction = false;
+
+		for (ArrayList<Object> ja : jointActions) {
+			skipAction = false;
+			//for each joint action 
+			double[] actionCostsHere = new double[ja.size()];
+			double smallestCost = -1;
+			for (int i = 0; i < ja.size(); i++) {
+				Object pAct = pAState.varValues[i];
+				Object jaAct = ja.get(i);
+				if (pAct.toString() != "") {
+					if (!pAct.toString().contains(jaAct.toString())) {
+						actionsToSkip.add(ja);
+						skipAction = true;
+					}
+				}
+				Object act = ja.get(i);
+				if (actionCosts != null) {
+					double cost = actionCosts.get(i).get(act);
+					actionCostsHere[i] = cost;
+					if (smallestCost == -1) {
+						smallestCost = cost;
+					} else {
+						if (cost < smallestCost) {
+							smallestCost = cost;
+						}
+					}
+				}
+			}
+
+			//			if (actionCosts != null) {
+			//				//create the action's time state here 
+			State tstate = new State(num_robots);
+			State aState = new State(num_robots);
+
+			for (int i = 0; i < actionCostsHere.length; i++) {
+				//updating smallest cost 
+				double t = (double) pTState.varValues[i];
+				if (actionCostsHere[i] - (t + smallestCost) < 0)
+					smallestCost = (t + smallestCost) - actionCostsHere[i];
+			}
+			if (smallestCost == 0)
+				mainLog.println("time step = 0!! ");
+
+			for (int i = 0; i < actionCostsHere.length; i++) {
+				double t = (double) pTState.varValues[i];
+				double tn = t + smallestCost;
+				double ac = 0.0;
+				if (tn == actionCostsHere[i]) {
+					ac = 0.0;
+
+					aState.setValue(i, "");
+
+				} else {
+					if (tn > actionCostsHere[i]) {
+						if (!skipAction) {
+							throw new PrismException(tn + ">" + actionCostsHere[i] + ":" + ja.toString() + " " + pTState.toString() + "," + pAState.toString());
+						}
+					} else {
+						ac = t + smallestCost;
+						aState.setValue(i, ja.get(i));
+
+					}
+				}
+				//				double ac = actionCostsHere[i] - (smallestCost + t);
+
+				//				if(ac == 0)
+				//					ac = 0.0; 
+				if (ac < 0) {
+					//					mainLog.println
+					throw new PrismException("time less than 0" + ac);
+				}
+
+				//				if (ac == 0)
+				tstate.setValue(i, ac);
+				//				else
+				//				{
+				//					
+				////					tstate.setValue(i, 1);
+				//				}
+			}
+			if(!skipAction) {
+			tstates.add(tstate);
+			astates.add(aState);
+			updatedActions.add(ja);
+			}
+			//		}
+
+		}
+
+		toret.add(tstates);
+		toret.add(astates);
+		toret.add(updatedActions);
+		if (actionsToSkip.size() > 0) {
+			
+			mainLog.println(actionsToSkip);
+			
+		}
+		return toret;
+
 	}
 
 	Object getJointActionName(ArrayList<Object> jointAction)
@@ -1072,6 +1272,16 @@ public class MRuctPaper
 
 		}
 		return robotStates;
+	}
+
+	static private State getTStateFromJointState(State state)
+	{
+		return (State) state.varValues[TSTATEINDEX];
+	}
+
+	static private State getAStateFromJointState(State state)
+	{
+		return (State) state.varValues[ACTSTATEINDEX];
 	}
 
 	//	public Object monteCarloPlanning(BitSet accStates, boolean minCost) throws Exception
@@ -1558,35 +1768,92 @@ public class MRuctPaper
 	void addStateAction(State state, Object action, boolean sumCosts) throws PrismException
 	{
 		ArrayList<State> currentStates = getRobotStatesFromJointState(state);
+		State tstate = getTStateFromJointState(state);
+		State astate = getAStateFromJointState(state);
 		HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
+		HashMap<Integer, HashMap<Object, Double>> allPossibleActionsForStateCosts = getRobotActionCosts(currentStates, allPossibleActionsForState);
 		ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
+		ArrayList<Object> atstates = 
+				getJointActionsTStates(allPossibleJointActions, allPossibleActionsForStateCosts, tstate, astate);
+		ArrayList<State> tstates = (ArrayList<State>)atstates.get(0);
+		ArrayList<State> astates = (ArrayList<State>)atstates.get(1);
+		ArrayList<ArrayList<Object>> updatedJointActions = (ArrayList<ArrayList<Object>>)atstates.get(2);
+		
+		allPossibleJointActions  = updatedJointActions;
+		
+		//hmmmm 
+		//print all these tstates here 
+		mainLog.println(tstates);
 		for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
 			Object act = getJointActionName(allPossibleJointActions.get(actionNum));
 
 			if (act.toString().contains(action.toString())) {
+				State tstateAction = tstates.get(actionNum);
+				State astateAction = astates.get(actionNum);
 				//add these robot action indices to our list 
-				boolean added = brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState);
+				boolean added = brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum),
+						allPossibleActionsForState,
+						tstateAction);
 				//so we have to add this action 
-				if (added)
-					addStateActionToMDP(state, action, sumCosts);
+				if (added) {
+
+					addStateActionToMDP(state, action, sumCosts, tstateAction, astateAction);
+				}
 			}
 
 		}
 	}
 
+	/**
+	 * Basically this is the money 
+	 * @param state
+	 * @param sumCosts
+	 * @throws PrismException
+	 */
 	void addStateActions(State state, boolean sumCosts) throws PrismException
 	{
+		if (state.toString().contains("(0),(4),(2),(0.0,1.0),(,v4_6)"))
+			mainLog.println("Pause here");
 		ArrayList<State> currentStates = getRobotStatesFromJointState(state);
+
+		State currentTState = getTStateFromJointState(state);
+		State currentAState = getAStateFromJointState(state);
 		HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState = getActions(currentStates);
+		HashMap<Integer, HashMap<Object, Double>> allPossibleActionsForStateCosts = getRobotActionCosts(currentStates, allPossibleActionsForState);
+		//TODO: come back here!!! 
 		ArrayList<ArrayList<Object>> allPossibleJointActions = getJointActions(allPossibleActionsForState);
+
+//		ArrayList<ArrayList<State>> atstates =
+//				getJointActionsTStates(allPossibleJointActions, allPossibleActionsForStateCosts, currentTState, currentAState);
+//		//clean up the joint actions and the a and t states 
+//
+//		ArrayList<State> tstates = atstates.get(0);
+//		ArrayList<State> astates = atstates.get(1);
+//		
+		ArrayList<Object> atstates = 
+				getJointActionsTStates(allPossibleJointActions, allPossibleActionsForStateCosts, currentTState, currentAState);
+		ArrayList<State> tstates = (ArrayList<State>)atstates.get(0);
+		ArrayList<State> astates = (ArrayList<State>)atstates.get(1);
+		ArrayList<ArrayList<Object>> updatedJointActions = (ArrayList<ArrayList<Object>>)atstates.get(2);
+		
+		allPossibleJointActions  = updatedJointActions;
+		
+		//hmmmm 
+		//print all these tstates here 
+		mainLog.println(tstates);
+
 		for (int actionNum = 0; actionNum < allPossibleJointActions.size(); actionNum++) {
 			Object action = getJointActionName(allPossibleJointActions.get(actionNum));
-
+			State tstate = tstates.get(actionNum);
+			State astate = astates.get(actionNum);
 			//add these robot action indices to our list 
-			boolean added = brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState);
+			boolean added = brtdpPolicy.addRobotStateActionIndices(state, action, allPossibleJointActions.get(actionNum), allPossibleActionsForState, tstate);
 			//so we have to add this action 
-			if (added)
-				addStateActionToMDP(state, action, sumCosts);
+			if (added) {
+
+				addStateActionToMDP(state, action, sumCosts, tstate, astate);
+
+			}
 
 		}
 	}
@@ -1618,7 +1885,7 @@ public class MRuctPaper
 
 	}
 
-	double updateLowerValue(State state,boolean sumCosts, boolean printVal) throws PrismException
+	double updateLowerValue(State state, boolean sumCosts, boolean printVal) throws PrismException
 	{
 		if (printVal)
 			mainLog.println("Updating Lower Value");
@@ -1666,6 +1933,7 @@ public class MRuctPaper
 
 		return probqval;
 	}
+
 	Object getLowerValueAction(State state, boolean printVal) throws PrismException
 	{
 		if (printVal)
@@ -1695,7 +1963,13 @@ public class MRuctPaper
 		return action;
 	}
 
-	void addStateActionToMDP(State state, Object action, boolean sumCosts) throws PrismException
+	/*
+	 * okay no this is the money pit 
+	 * THIS IS TRUE 
+	 * we do things here 
+	 */
+
+	void addStateActionToMDP(State state, Object action, boolean sumCosts, State updatedTState, State updatedAState) throws PrismException
 	{
 		//add this state and action slowly 
 		//		//add this action to our list 
@@ -1710,23 +1984,45 @@ public class MRuctPaper
 
 		HashMap<Integer, HashMap<State, Double>> succStates = new HashMap<Integer, HashMap<State, Double>>();
 		for (int i = 0; i < num_robots; i++) {
-			HashMap<State, Double> ahashmap = new HashMap<State, Double>();
-			int choice = actionIndices.get(i);
-			ProductModelGenerator pmg = prodModGens.get(i);
-			pmg.exploreState(currentStates.get(i));
-			int nt = pmg.getNumTransitions(choice);
-			for (int t = 0; t < nt; t++) {
-				double prob = pmg.getTransitionProbability(choice, t);
-				State succState1 = pmg.computeTransitionTarget(choice, t);
-				ahashmap.put(succState1, prob);
+			boolean dontupdatestate = false;
+			if (updatedTState != null) {
+				double tstate = (double) updatedTState.varValues[i];
+				if (tstate != 0) {
+					//					mainLog.println("figure out what to do here");
 
+					dontupdatestate = true;
+				} else {
+					String astate = updatedAState.varValues[i].toString();
+					if (astate != "")
+						dontupdatestate = true;
+				}
+				//get the time here and then dont explore it for the robot which hasnt completed its task 
+				//and thats it really 
+				//this changes the combinations we'll get too 
+				//so we'll have to change those 
+			}
+			HashMap<State, Double> ahashmap = new HashMap<State, Double>();
+			if (!dontupdatestate) {
+
+				int choice = actionIndices.get(i);
+				ProductModelGenerator pmg = prodModGens.get(i);
+				pmg.exploreState(currentStates.get(i));
+				int nt = pmg.getNumTransitions(choice);
+				for (int t = 0; t < nt; t++) {
+					double prob = pmg.getTransitionProbability(choice, t);
+					State succState1 = pmg.computeTransitionTarget(choice, t);
+					ahashmap.put(succState1, prob);
+
+				}
+			} else {
+				ahashmap.put(currentStates.get(i), 1.0);
 			}
 			succStates.put(i, ahashmap);
 
 		}
 
 		ArrayList<ArrayList<State>> jointSuccessors = getJointStateCombinations(succStates);
-		ArrayList<State> jointsuccStates = getJointStates(jointSuccessors);
+		ArrayList<State> jointsuccStates = getJointStates(jointSuccessors, updatedTState, updatedAState);
 		ArrayList<Double> probs = calculateJointStatesProbs(succStates, jointSuccessors);
 		// now we just choose one of these
 		// if its the first one we should add these to uctPolicy
@@ -1807,19 +2103,19 @@ public class MRuctPaper
 				brtdpPolicy.printStateValues(currState);
 				mainLog.println("=============================================================");
 			}
-//			updateLowerValue(currState, sumCosts, printVal);
+			//			updateLowerValue(currState, sumCosts, printVal);
 			updateUpperValue(currState, sumCosts, printVal);
 			brtdpPolicy.exportAllStatesValues(MRmcts.TESTSLOC + "values_" + numTrials + "-" + traj.size() + "_0.txt");
 			if (printVal)
 				mainLog.println("=============================================================");
-			Object action = 
-//					getUpperValueAction(currState,printVal);//
+			Object action =
+					//					getUpperValueAction(currState,printVal);//
 					getLowerValueAction(currState, printVal);
 			brtdpPolicy.exportAllStatesValues(MRmcts.TESTSLOC + "values_" + numTrials + "-" + traj.size() + "_1.txt");
 			if (printVal)
 				mainLog.println("=============================================================");
 			updateLowerValueAction(currState, action, printVal);
-//			updateUpperValueAction(currState, action,printVal);
+			//			updateUpperValueAction(currState, action,printVal);
 			brtdpPolicy.exportAllStatesValues(MRmcts.TESTSLOC + "values_" + numTrials + "-" + traj.size() + "_2.txt");
 			if (printVal) {
 				mainLog.println("=============================================================");
@@ -1830,7 +2126,7 @@ public class MRuctPaper
 			HashMap<State, Double> succs = brtdpPolicy.getSuccessors(currState, action);
 			if (succs == null) {
 				//we need to add the action and stuff 
-				addStateActionToMDP(currState, action, sumCosts);
+				addStateActionToMDP(currState, action, sumCosts, null, null);
 				succs = brtdpPolicy.getSuccessors(currState, action);
 			}
 			if (succs != null) {
@@ -1922,11 +2218,11 @@ public class MRuctPaper
 					break;
 			}
 		}
-//		while (!traj.isEmpty()) {
-//			//backup everyone else too 
-//			State s = traj.pop();
-//			doStateBackup(s, sumCosts, printVal);
-//		}
+		//		while (!traj.isEmpty()) {
+		//			//backup everyone else too 
+		//			State s = traj.pop();
+		//			doStateBackup(s, sumCosts, printVal);
+		//		}
 	}
 
 	double residual(State s, boolean upperBound, boolean sumCosts, boolean allCosts) throws PrismException
@@ -1962,44 +2258,35 @@ public class MRuctPaper
 		} else {
 			res = probQVal - probValue;
 		}
-		if(allCosts) {
-			if(res == 0)
-			{
-				if(upperBound)
-				{
-					res = progValue - progQVal; 
-				}
-				else
-				{
+		if (allCosts) {
+			if (res == 0) {
+				if (upperBound) {
+					res = progValue - progQVal;
+				} else {
 					res = progQVal - progValue;
 				}
-				if(res == 0)
-				{
-					if (upperBound)
-					{
-						res = costValue - costQVal; 
-						
-					}
-					else
-					{
-						res = costQVal - costValue; 
+				if (res == 0) {
+					if (upperBound) {
+						res = costValue - costQVal;
+
+					} else {
+						res = costQVal - costValue;
 					}
 				}
 			}
 		}
-//		if (bothCosts) {
-//			if (res == 0) {
-//				if (upperBound) {
-//					res = costValue - costQVal;
-//				} else
-//					res = costQVal - costValue;
-//			}
-//		}
+		//		if (bothCosts) {
+		//			if (res == 0) {
+		//				if (upperBound) {
+		//					res = costValue - costQVal;
+		//				} else
+		//					res = costQVal - costValue;
+		//			}
+		//		}
 		if (res < 0) {
-//			throw new PrismException
-			mainLog.println
-			("residual less than 0:" + res + " - " + s.toString() + ", u:" + upperBound);
-			res = res *-1; 
+			//			throw new PrismException
+			mainLog.println("residual less than 0:" + res + " - " + s.toString() + ", u:" + upperBound);
+			res = res * -1;
 		}
 		return res;
 	}
@@ -2017,7 +2304,7 @@ public class MRuctPaper
 			s = open.pop();
 			closed.push(s);
 			if (
-			    //    residual(s, true, sumCosts,considerBothCostsInRes) > absError | 
+			//    residual(s, true, sumCosts,considerBothCostsInRes) > absError | 
 			residual(s, false, sumCosts, considerBothCostsInRes) > absError) {
 				retVal = false;
 				continue;
@@ -2032,7 +2319,7 @@ public class MRuctPaper
 					if (bestAction != null) {
 						if (!bestAction.toString().contains("*")) {
 							//we need to add the action and stuff 
-							addStateActionToMDP(s, bestAction, sumCosts);
+							addStateActionToMDP(s, bestAction, sumCosts, null, null);
 							succs = brtdpPolicy.getSuccessors(s, bestAction);
 						}
 					}
@@ -2076,7 +2363,7 @@ public class MRuctPaper
 			brtdpPolicy.printStateValues(s);
 		}
 		this.updateUpperValue(s, sumCosts, printVal);
-		this.updateLowerValue(s, sumCosts,printVal);
+		this.updateLowerValue(s, sumCosts, printVal);
 		if (printVal)
 			brtdpPolicy.printStateValues(s);
 	}
@@ -2115,7 +2402,7 @@ public class MRuctPaper
 
 		ArrayList<State> initialStates = getInitialStates();
 		// get the initial state
-		State temp_joint_state = getJointState(initialStates, null);
+		State temp_joint_state = getJointState(initialStates, null, null, null);
 		mainLog.println("Joint State:" + temp_joint_state.toString());
 		Object res = null;
 		double alpha = 0.1; //change this later 
@@ -2171,51 +2458,21 @@ public class MRuctPaper
 			//				break;
 		}
 
-		//now lets use the brtdpPolicy jointMDP to find a solution 
-		//do I have the goal states encountered ? Yes 
-		//create the costs structure 
+		PrismFileLog out = new PrismFileLog(saveplace + filename + "_brtdpmdp_final.dot");
+		brtdpPolicy.jointMDP.exportToDotFile(out, null, true);
+		out.close();
+		MDPSimple policyTree = extractPolicyTreeAsDotFile(brtdpPolicy.jointMDP, brtdpPolicy.getStateIndex(temp_joint_state), minCost, true, sumCosts);
 
-		//		MDP productMDP = (MDP)productModel;
-		//		int numStates = productMDP.getNumStates();
-		//		MDPRewardsSimple rewSimple = new MDPRewardsSimple(numStates);
-		//		double currentStateDistance;
-		//		Iterator<Entry<Integer, Double>> transitions;
-		//		Entry<Integer, Double> transition;
-		//		double rewardValue;
-		//		int nextState;
-		//		
-		//		for (int productState = 0; productState < numStates; productState++) {
-		//			currentStateDistance = distsToAcc.get(getAutomatonState(productState));
-		//			int numChoices = productMDP.getNumChoices(productState);
-		//			for (int i = 0; i < numChoices; i++) {
-		//				transitions = productMDP.getTransitionsIterator(productState, i);
-		//				rewardValue=0.0;
-		//				while(transitions.hasNext()) {
-		//					transition = transitions.next();
-		//					nextState = transition.getKey();
-		//					rewardValue = rewardValue + transition.getValue()*
-		//	Math.max(currentStateDistance - distsToAcc.get(getAutomatonState(nextState)), 0.0);
-		//				}
-		//				rewSimple.setTransitionReward(productState, i, rewardValue);
-		//			}
-		//		}				
-		//		return rewSimple;
-		//do NVI over this okay ? 
-		//too much work 
-		//have to expose the partialsat stuff 
+		out = new PrismFileLog(saveplace + filename + "_brtdp_policy_final_u.dot");
+		policyTree.exportToDotFile(out, null, true);
+		out.close();
+		policyTree = extractPolicyTreeAsDotFile(brtdpPolicy.jointMDP, brtdpPolicy.getStateIndex(temp_joint_state), minCost, false, sumCosts);
 
-		//		while (current_rollout_num < max_num_rollouts) {
-		//			mainLog.println("Rollout Attempt: " + current_rollout_num);
-		//			res = monteCarloPlanning(temp_joint_state, minCost);// rollout_stateactionstateonly(initialStates,
-		//			// current_rollout_num);
-		//			//				if (res == null)
-		//			////					accsFound.add(res);
-		//			current_rollout_num++;
-		//
-		//		}
-		//		// lets do the policy tree stuff here
+		out = new PrismFileLog(saveplace + filename + "_brtdp_policy_final_l.dot");
+		policyTree.exportToDotFile(out, null, true);
+		out.close();
 
-		//		return accsFound;
+		mainLog.println("Max Iterations "+iter);
 		return res;
 	}
 

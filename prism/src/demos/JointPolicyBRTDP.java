@@ -205,7 +205,7 @@ public class JointPolicyBRTDP
 	}
 
 	public boolean addRobotStateActionIndices(State jointstate, Object jointAction, ArrayList<Object> actionList,
-			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState)
+			HashMap<Integer, HashMap<Object, Integer>> allPossibleActionsForState, State tstate)
 	{
 		boolean added = false;
 		if (!robotStateActionIndices.containsKey(jointstate)) {
@@ -215,7 +215,15 @@ public class JointPolicyBRTDP
 			// now we make the arraylist
 			ArrayList<Integer> actionIndices = new ArrayList<Integer>();
 			for (int i = 0; i < numRobots; i++) {
-				int actionIndex = allPossibleActionsForState.get(i).get(actionList.get(i));
+				double t = 0.0;
+				if(tstate !=null)
+				{
+					t = (double)tstate.varValues[i];
+				}
+				
+				int actionIndex = -1; 
+				if(t== 0.0)
+					actionIndex = allPossibleActionsForState.get(i).get(actionList.get(i));
 				actionIndices.add(actionIndex);
 			}
 			robotStateActionIndices.get(jointstate).put(jointAction, actionIndices);

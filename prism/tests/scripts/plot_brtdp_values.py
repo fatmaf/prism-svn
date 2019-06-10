@@ -201,12 +201,15 @@ def plot_errorStatesOnly(allBounds):
         sstr = str(state)
 
         mp = not lb_higher_ub_lower(sb.upperP,sb.lowerP)
+        mp = True
         m = mp
         if mp:
             mr = not lb_higher_ub_lower(sb.upperR,sb.lowerR)
+            mr = True
             m = m and mr
             if mr:
                 mc = not lb_higher_ub_lower(sb.upperC,sb.lowerC)
+                mc = True
                 m = m and mc
                 if mc:
                     mup = non_increasing(sb.upperP)
