@@ -403,6 +403,11 @@ public class ProductModelGenerator implements ModelGenerator
 	}
 
 	// Utility methods
+	/*
+	 * Added to check if an expression is true for a state 
+	 * islabel true didnt work here 
+	 * fatma
+	 */
 	public boolean isExprTrue(int exprNum) throws PrismLangException
 	{
 		Expression expr = this.labelExprs.get(exprNum); 

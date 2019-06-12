@@ -76,7 +76,7 @@ public class MRuctPaper
 		varlistsDontMatch = flipedIndices;
 		this.allRobotsStatesList = allRobotsStatesList;
 		defaultStrategies = singleRobotSols;
-		jointStateRobotStateMapping = new HashMap<State, ArrayList<State>>();
+//		jointStateRobotStateMapping = new HashMap<State, ArrayList<State>>();
 		num_robots = robotProdModelGens.size();
 		prodModGens = robotProdModelGens;
 		mainLog = log;
@@ -519,11 +519,11 @@ public class MRuctPaper
 			}
 		}
 
-		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
-			ArrayList<State> cp = new ArrayList<State>();
-			cp.addAll(states);
-			jointStateRobotStateMapping.put(temp_joint_state, cp);
-		}
+//		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
+//			ArrayList<State> cp = new ArrayList<State>();
+//			cp.addAll(states);
+//			jointStateRobotStateMapping.put(temp_joint_state, cp);
+//		}
 		return temp_joint_state;
 	}
 
@@ -700,11 +700,11 @@ public class MRuctPaper
 			temp_joint_state.setValue(ACTSTATEINDEX, astate);
 		}
 
-		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
-			ArrayList<State> cp = new ArrayList<State>();
-			cp.addAll(states);
-			jointStateRobotStateMapping.put(temp_joint_state, cp);
-		}
+//		if (!jointStateRobotStateMapping.containsKey(temp_joint_state)) {
+//			ArrayList<State> cp = new ArrayList<State>();
+//			cp.addAll(states);
+//			jointStateRobotStateMapping.put(temp_joint_state, cp);
+//		}
 		return temp_joint_state;
 	}
 

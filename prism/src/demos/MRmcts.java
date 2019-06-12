@@ -397,7 +397,9 @@ public class MRmcts
 
 				ArrayList<VarList> varlists = new ArrayList<VarList>();
 
-				MDStrategy strat = getSingleRobotSolution(prism, ltlMC, expr, allowedAcceptance, allRobotsStatesList, varlists);
+				MDStrategy strat = getSingleRobotSolution(prism,
+						ltlMC, expr, allowedAcceptance,
+						allRobotsStatesList, varlists);
 
 				singleRobotSolutions.add(strat);
 
