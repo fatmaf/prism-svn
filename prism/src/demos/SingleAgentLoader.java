@@ -26,6 +26,7 @@ import parser.ast.Expression;
 import parser.ast.ExpressionProb;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
+import parser.ast.RewardStruct;
 import prism.ModelGenerator;
 import prism.ModelInfo;
 import prism.Prism;
@@ -61,7 +62,7 @@ public class SingleAgentLoader
 	List<Double> distToAcc;
 	BitSet daAccStates;
 
-	private HashMap<Integer, Integer> solVarsToProdModGenVars;
+	private HashMap<Integer, Integer> prodModGenVarsToSolVars;
 	private HashMap<State, State> prodModGenStateToSolState;
 	private ModulesFile modulesFile;
 	private ExpressionProb expr;
@@ -90,6 +91,7 @@ public class SingleAgentLoader
 			mainLog.println("Remember to run the setup function");
 			mainLog.println("Set printmessages off to turn off these messages");
 		}
+		this.stateActionIndices = new HashMap<State, HashMap<Object, Integer>>();
 	}
 
 	public void setPrintMessagesOn()
@@ -228,7 +230,7 @@ public class SingleAgentLoader
 
 	State getSolutionState(State prodModGenState)
 	{
-		if (solVarsToProdModGenVars != null) {
+		if (prodModGenVarsToSolVars != null) {
 			if (this.prodModGenStateToSolState == null)
 				prodModGenStateToSolState = new HashMap<State, State>();
 			if (prodModGenStateToSolState.containsKey(prodModGenState)) {
@@ -237,7 +239,7 @@ public class SingleAgentLoader
 				State solState = new State(solutionVarList.getNumVars());
 
 				for (int i = 0; i < prodModGenState.varValues.length; i++) {
-					solState.setValue(solVarsToProdModGenVars.get(i), prodModGenState.varValues[i]);
+					solState.setValue(prodModGenVarsToSolVars.get(i), prodModGenState.varValues[i]);
 				}
 				prodModGenStateToSolState.put(prodModGenState, solState);
 				return solState;
@@ -301,7 +303,7 @@ public class SingleAgentLoader
 		if (solutionDAVarNum != -1 && prodModelDAVarNum != -1) {
 			if (solutionDAVarNum != prodModelDAVarNum) {
 				updateSharedStateIndices(prodModelGenVarList);
-				solVarsToProdModGenVars = new HashMap<Integer, Integer>();
+				prodModGenVarsToSolVars = new HashMap<Integer, Integer>();
 				for (int i = 0; i < solutionVarList.getNumVars(); i++) {
 					String name = solutionVarList.getName(i);
 					if (name.contains("da")) {
@@ -312,7 +314,7 @@ public class SingleAgentLoader
 					int prodModelGenVarIndex = prodModelGenVarList.getIndex(name);
 					if (name.contentEquals("_da0"))
 						this.daStateIndex = prodModelGenVarIndex;
-					solVarsToProdModGenVars.put(i, prodModelGenVarIndex);
+					prodModGenVarsToSolVars.put(prodModelGenVarIndex,i );
 
 				}
 				synced = false;
@@ -406,7 +408,7 @@ public class SingleAgentLoader
 	public State getSharedState(State s)
 	{
 
-		if (this.sharedStateIndices != null) {
+		if (hasSharedStates()) {
 			State ss = new State(sharedStateIndices.size());
 			for (int i = 0; i < this.sharedStateIndices.size(); i++) {
 				int ssI = sharedStateIndices.get(i);
@@ -420,24 +422,34 @@ public class SingleAgentLoader
 
 	public State getPrivateState(State s) throws PrismException
 	{
-		if (this.sharedStateIndices == null) {
-			return s;
-		} else {
-			int psSize = solutionVarList.getNumVars() - sharedStateIndices.size();
-			State ps = new State(psSize);
-			int psi = 0;
-			for (int i = 0; i < solutionVarList.getNumVars(); i++) {
-				if (!sharedStateIndices.contains(i)) {
-					Object psV = s.varValues[i];
-					ps.setValue(psi, psV);
-					psi++;
-				}
-			}
-			if (psi != psSize) {
-				throw new PrismException("Error in getting the private state?");
-			}
-			return ps;
+
+		int psSize = solutionVarList.getNumVars() - 1;
+		if (hasSharedStates()) {
+			psSize = psSize - sharedStateIndices.size();
 		}
+		State ps = new State(psSize);
+		int psi = 0;
+		boolean isPS;
+		for (int i = 0; i < solutionVarList.getNumVars(); i++) {
+			isPS = true;
+			if (hasSharedStates()) {
+				if (sharedStateIndices.contains(i))
+					isPS = false;
+
+			}
+			if (i == this.daStateIndex)
+				isPS = false;
+			if (isPS) {
+				Object psV = s.varValues[i];
+				ps.setValue(psi, psV);
+				psi++;
+			}
+		}
+		if (psi != psSize) {
+			throw new PrismException("Error in getting the private state?");
+		}
+		return ps;
+
 	}
 
 	public State createRobotState(State ps, State ss, State da) throws PrismException
@@ -509,7 +521,7 @@ public class SingleAgentLoader
 	HashMap<Object, Integer> getActionsForState(State s) throws PrismException
 	{
 		HashMap<Object, Integer> actionIndices = null;
-		if (this.stateActionIndices.containsKey(s)) {
+		if (stateActionIndices.containsKey(s)) {
 			actionIndices = stateActionIndices.get(s);
 
 		} else {
@@ -527,22 +539,21 @@ public class SingleAgentLoader
 		return actionIndices;
 	}
 
-	ArrayList<Entry<State,Double>> getStateActionSuccessors(State s, Object a) throws PrismException
+	ArrayList<Entry<State, Double>> getStateActionSuccessors(State s, Object a) throws PrismException
 	{
-		int choiceNum = getStateActionChoiceNum(s,a);
-		int numTransitions = getNumTransitions(s,a,choiceNum); 
-		ArrayList<Entry<State,Double>> succStates = new ArrayList<Entry<State,Double>>(); 
-		for(int i = 0; i< numTransitions; i++)
-		{
-			double prob = prodModelGen.getTransitionProbability(choiceNum,i); 
+		int choiceNum = getStateActionChoiceNum(s, a);
+		int numTransitions = getNumTransitions(s, a, choiceNum);
+		ArrayList<Entry<State, Double>> succStates = new ArrayList<Entry<State, Double>>();
+		for (int i = 0; i < numTransitions; i++) {
+			double prob = prodModelGen.getTransitionProbability(choiceNum, i);
 			State succState = prodModelGen.computeTransitionTarget(choiceNum, i);
-			succStates.add(new AbstractMap.SimpleEntry<State,Double>(succState,prob));
+			succStates.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
 		}
 		//TODO: what to do if there are no sucessors ?? 
 		//just putting this here 
-		if(succStates.size() == 0)
-			succStates.add(new AbstractMap.SimpleEntry<State,Double>(s,1.0));
-		return succStates; 
+		if (succStates.size() == 0)
+			succStates.add(new AbstractMap.SimpleEntry<State, Double>(s, 1.0));
+		return succStates;
 	}
 
 	int getStateActionChoiceNum(State s, Object a) throws PrismException
@@ -573,9 +584,9 @@ public class SingleAgentLoader
 	int getNumTransitions(State s, Object a, int c) throws PrismException
 	{
 		int numTrans = -1;
-		int choiceNum = c; 
-		if(c == -1)
-		choiceNum = getStateActionChoiceNum(s, a);
+		int choiceNum = c;
+		if (c == -1)
+			choiceNum = getStateActionChoiceNum(s, a);
 
 		if (prodModelGen.getExploreState() != s)
 			prodModelGen.exploreState(s);
@@ -583,6 +594,31 @@ public class SingleAgentLoader
 		numTrans = prodModelGen.getNumTransitions(choiceNum);
 
 		return numTrans;
+
+	}
+
+	double getStateReward(State s, String rew) throws PrismException
+	{
+		int rewInt = prodModelGen.getRewardStructIndex(rew);
+		return getStateReward(s, rewInt);
+	}
+
+	double getStateReward(State s, int rew) throws PrismException
+	{
+		//		RewardStruct rewStruct = prodModelGen.getRewardStruct(rew); 
+		return prodModelGen.getStateReward(rew, s);
+
+	}
+
+	double getStateActionReward(State s, Object a, int rew) throws PrismException
+	{
+		return prodModelGen.getStateActionReward(rew, s, a);
+	}
+
+	double getStateActionReward(State s, Object a, String rew) throws PrismException
+	{
+		int rewInd = prodModelGen.getRewardStructIndex(rew);
+		return getStateActionReward(s, a, rewInd);
 	}
 
 }

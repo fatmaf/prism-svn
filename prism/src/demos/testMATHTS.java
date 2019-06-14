@@ -4,6 +4,8 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Stack;
 
 import acceptance.AcceptanceOmega;
 import automata.DA;
@@ -30,11 +32,60 @@ public class testMATHTS
 		loadSingleAgent();
 	}
 
+	public void testMAPMG(PrismLog mainLog,
+			ArrayList<SingleAgentLoader> sals, 
+			DA<BitSet, ? extends AcceptanceOmega> da,
+			String saveplace, String fn) throws PrismException
+	{
+		boolean buildMDP = true; 
+		MultiAgentProductModelGenerator jpmg = 
+				new MultiAgentProductModelGenerator(mainLog,sals,da,buildMDP); 
+		ArrayList<State> initStates = jpmg.createInitialStateFromRobotInitStates();
+		Stack<State> toVisit = new Stack<State>();
+		Stack<State> visited = new Stack<State>();
+		toVisit.addAll(initStates);
+		boolean checkhere = false; 
+		while(!toVisit.isEmpty())
+		{
+			State js = toVisit.pop();
+			visited.add(js);
+			//get the actions 
+			ArrayList<Object> jas = jpmg.getJointActions(js);
+			mainLog.println("Printing actions");
+			for(int i = 0; i<jas.size(); i++)
+			{
+				Object ja = jas.get(i);
+				mainLog.println(ja.toString()); 
+				if(ja.toString().contains("cd"))
+					checkhere = true; 
+				//get successors 
+				ArrayList<Entry<State, Double>> successors = jpmg.getSuccessors(js, ja);
+				for(int j = 0; j<successors.size(); j++)
+				{
+					State ss = successors.get(j).getKey();
+					if(!toVisit.contains(ss) && !visited.contains(ss))
+					{
+						toVisit.add(ss);
+					}
+					mainLog.println(successors.get(j).toString());
+				}
+			}
+		}
+		jpmg.saveBuiltMDP(saveplace, fn+"_all");
+		//now lets test the policy creator 
+		//and the random action selection thing 
+		RandomActionSelection randomActionSelector = new RandomActionSelection(jpmg.getBuiltMDP());
+		PolicyCreator pc = new PolicyCreator(); 
+		pc.createPolicy(jpmg.getBuiltMDP(), randomActionSelector); 
+		pc.savePolicy(saveplace, fn+"_policy");
+		
+		
+	}
 	public void loadSingleAgent() throws PrismException, FileNotFoundException
 	{
 
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-		String filename = "tiny_example_permtrap_noun";//"no_door_example";	
+		String filename = "tiny_example_door";//"tiny_example_permtrap_noun";//"no_door_example";	
 		String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/";
 
 		// Create a log for PRISM output (hidden or stdout)
@@ -56,7 +107,8 @@ public class testMATHTS
 		DA<BitSet, ? extends AcceptanceOmega> da=null; 
 		ArrayList<SingleAgentLoader> sals = new ArrayList<SingleAgentLoader>();
 		ArrayList<String> ssl = new ArrayList<String>(); 
-		ssl.add("s");
+		ssl.add("door");
+		ssl = null;
 		for (int i = 0; i < filenames.size(); i++) {
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename, TESTSLOC,ssl);
@@ -83,8 +135,7 @@ public class testMATHTS
 			//not tested the create robot state function 
 
 		}
-		MultiAgentProductModelGenerator jpmg = 
-				new MultiAgentProductModelGenerator(mainLog,sals,da); 
+		testMAPMG(mainLog,sals,da,TESTSLOC,filename); 
 		
 
 	}
