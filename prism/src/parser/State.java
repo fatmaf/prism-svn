@@ -115,7 +115,7 @@ public class State implements Comparable<State>
 		}
 		return substate;
 	}
-	
+
 	/**
 	 * Clear: set all values to null
 	 */
@@ -179,7 +179,7 @@ public class State implements Comparable<State>
 	{
 		return compareTo(s, 0);
 	}
-	
+
 	/**
 	 * Compare this state to another state {@code s} (in the style of {@link #compareTo(State)},
 	 * first comparing variables with index greater than or equal to {@code j},
@@ -189,20 +189,20 @@ public class State implements Comparable<State>
 	{
 		int i, c, n;
 		Object svv[], o1, o2;
-		
+
 		// Can't compare to null
 		if (s == null)
 			throw new NullPointerException();
-		
+
 		// States of different size are incomparable 
 		svv = s.varValues;
 		n = varValues.length;
 		if (n != svv.length)
 			throw new ClassCastException("States are different sizes");
-		
-		if (j > n-1)
+
+		if (j > n - 1)
 			throw new ClassCastException("Variable index is incorrect");
-		
+
 		// Go through variables j...n-1
 		for (i = j; i < n; i++) {
 			o1 = varValues[i];
@@ -219,11 +219,17 @@ public class State implements Comparable<State>
 					return c;
 				else
 					continue;
+			} else if (o1 instanceof State && o1 instanceof State) {
+				c = ((State) o1).compareTo(((State) o2));
+				if (c != 0)
+					return c;
+				else
+					continue;
 			} else {
 				throw new ClassCastException("Can't compare " + o1.getClass() + " and " + o2.getClass());
 			}
 		}
-		
+
 		// Go through variables 0...j
 		for (i = 0; i < j; i++) {
 			o1 = varValues[i];
@@ -244,7 +250,7 @@ public class State implements Comparable<State>
 				throw new ClassCastException("Can't compare " + o1.getClass() + " and " + o2.getClass());
 			}
 		}
-		
+
 		return 0;
 	}
 

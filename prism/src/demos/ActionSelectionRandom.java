@@ -10,12 +10,12 @@ import prism.PrismException;
 /*
  * Randomly selections actions from a given MDP 
  */
-public class RandomActionSelection implements ActionSelection
+public class ActionSelectionRandom implements ActionSelection
 {
 	MDPSimple mdp; 
 	Random rgen;
 
-	public RandomActionSelection(MDPSimple mdp)
+	public ActionSelectionRandom(MDPSimple mdp)
 	{
 		this.mdp = mdp; 
 		rgen= new Random();
@@ -55,6 +55,13 @@ public class RandomActionSelection implements ActionSelection
 		int actIndex = rgen.nextInt(numActions);
 		// TODO Auto-generated method stub
 		return actIndex;
+	}
+
+	@Override
+	public Object selectActionBound(DecisionNode d, boolean upperBound) throws PrismException
+	{
+		// TODO Auto-generated method stub
+		return selectAction(d.getState());
 	}
 
 	

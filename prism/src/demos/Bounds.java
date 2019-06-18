@@ -8,6 +8,18 @@ public class Bounds{
 		upper = 0; 
 		lower = 0; 
 	}
+	public Bounds add(Bounds b)
+	{
+		return new Bounds(upper+b.getUpper(),lower+b.getLower());
+	}
+	public Bounds add(double b)
+	{
+		return new Bounds(upper+b,lower+b);
+	}
+	public Bounds multiply(double m)
+	{
+		return new Bounds(upper*m, lower*m);
+	}
 	public Bounds(double u, double l)
 	{
 		upper = u; 
@@ -28,6 +40,10 @@ public class Bounds{
 	public void setLower(double lower)
 	{
 		this.lower = lower;
+	}
+	public double diff()
+	{
+		return upper-lower; 
 	}
 	
 }

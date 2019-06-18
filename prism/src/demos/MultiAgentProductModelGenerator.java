@@ -17,6 +17,7 @@ import java.util.Set;
 import acceptance.AcceptanceOmega;
 import automata.DA;
 import explicit.MDPSimple;
+import param.Function;
 import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
@@ -46,9 +47,7 @@ public class MultiAgentProductModelGenerator
 		SUM, MAX, MIN
 	}
 
-	public MultiAgentProductModelGenerator(PrismLog mainLog,
-			ArrayList<SingleAgentLoader> sals, 
-			DA<BitSet, ? extends AcceptanceOmega> da,boolean buildMDP)
+	public MultiAgentProductModelGenerator(PrismLog mainLog, ArrayList<SingleAgentLoader> sals, DA<BitSet, ? extends AcceptanceOmega> da, boolean buildMDP)
 	{
 		printMessages = true;
 		hasSharedStates = false;
@@ -84,8 +83,8 @@ public class MultiAgentProductModelGenerator
 		}
 		daStateInd = stateSize - 1;
 
-		if(buildMDP)
-		mdpCreator = new MDPCreator(mainLog);
+		if (buildMDP)
+			mdpCreator = new MDPCreator(mainLog);
 		if (printMessages)
 			mainLog.println(message);
 	}
@@ -99,15 +98,15 @@ public class MultiAgentProductModelGenerator
 	{
 		this.printMessages = false;
 	}
+
 	public ArrayList<State> createInitialStateFromRobotInitStates() throws PrismException
 	{
 		//get the init states of all the robots 
 		ArrayList<List<State>> initStates = new ArrayList<List<State>>();
 		ArrayList<Integer> numStates = new ArrayList<Integer>();
 		ArrayList<State> jointInitStates = new ArrayList<State>();
-		for(int i = 0; i<numAgents; i++)
-		{
-			List<State> initStatesForRobot = getAgent(i).prodModelGen.getInitialStates(); 
+		for (int i = 0; i < numAgents; i++) {
+			List<State> initStatesForRobot = getAgent(i).prodModelGen.getInitialStates();
 			initStates.add(initStatesForRobot);
 			numStates.add(initStatesForRobot.size());
 		}
@@ -120,28 +119,26 @@ public class MultiAgentProductModelGenerator
 			int[] currentCombination = combinations.get(i);
 
 			for (int r = 0; r < currentCombination.length; r++) {
-				State robotState= initStates.get(r).get(currentCombination[r]-1);
+				State robotState = initStates.get(r).get(currentCombination[r] - 1);
 
 				robotStates.add(robotState);
 
-
-
 			}
-			State initJS = createJointState(null,robotStates);
-			if(buildMDP) {
-			mdpCreator.setInitialState(initJS);}
+			State initJS = createJointState(null, robotStates);
+			if (buildMDP) {
+				mdpCreator.setInitialState(initJS);
+			}
 			jointInitStates.add(initJS);
 		}
-		if(printMessages)
-		{
-			mainLog.println("Initial States: "); 
-			for(int i = 0; i<jointInitStates.size(); i++)
-			{
+		if (printMessages) {
+			mainLog.println("Initial States: ");
+			for (int i = 0; i < jointInitStates.size(); i++) {
 				mainLog.println(jointInitStates.get(i).toString());
 			}
 		}
 		return jointInitStates;
 	}
+
 	//cuz i cant be bothered to type the whole thing
 	//get a single agent loader
 	SingleAgentLoader getAgent(int i)
@@ -186,10 +183,10 @@ public class MultiAgentProductModelGenerator
 
 	State processSharedStates(State pSS, ArrayList<State> sharedStates)
 	{
-		State referenceState; 
-		if(pSS == null)
+		State referenceState;
+		if (pSS == null)
 			referenceState = sharedStates.get(0);
-		else 
+		else
 			referenceState = pSS;
 		Object[] rSV = referenceState.varValues;
 		State currentState = new State(referenceState);
@@ -248,10 +245,10 @@ public class MultiAgentProductModelGenerator
 		State jsDAState = processDAStates(robotStates);
 		js.setValue(daStateInd, jsDAState);
 		if (hasSharedStates) {
-			State pSS = null; 
-			if(ps!= null)
-				pSS= getSSState(ps);
-			State sharedState = processSharedStates(pSS,sharedStates);
+			State pSS = null;
+			if (ps != null)
+				pSS = getSSState(ps);
+			State sharedState = processSharedStates(pSS, sharedStates);
 			js.setValue(sharedStateInd, sharedState);
 		}
 
@@ -285,10 +282,11 @@ public class MultiAgentProductModelGenerator
 	{
 		Object[] jsV = js.varValues;
 		State daState = (State) jsV[daStateInd];
-		jsV = daState.varValues; 
-		int daStateInt = (int)jsV[0]; 
+		jsV = daState.varValues;
+		int daStateInt = (int) jsV[0];
 		return daStateInt;
 	}
+
 	State getDAState(State js)
 	{
 		Object[] jsV = js.varValues;
@@ -326,24 +324,24 @@ public class MultiAgentProductModelGenerator
 		}
 		return robotStates;
 	}
+
 	ArrayList<Object> getJointActions(State js) throws PrismException
 	{
 		//get all the joint actions for this state 
 		ArrayList<State> robotStates = getRobotStatesFromJointState(js);
-		
+
 		//for each robot State 
 		//get all the actions 
-		ArrayList<HashMap<Object, Integer>> robotsActions = new ArrayList<HashMap<Object, Integer>>(); 
+		ArrayList<HashMap<Object, Integer>> robotsActions = new ArrayList<HashMap<Object, Integer>>();
 		ArrayList<ArrayList<Object>> allRobotActions = new ArrayList<ArrayList<Object>>();
 		ArrayList<Integer> numRobotActions = new ArrayList<Integer>();
-		for(int i = 0; i<numAgents; i++)
-		{
+		for (int i = 0; i < numAgents; i++) {
 			State robotState = robotStates.get(i);
-			HashMap<Object, Integer> robotActions = getAgent(i).getActionsForState(robotState); 
+			HashMap<Object, Integer> robotActions = getAgent(i).getActionsForState(robotState);
 			robotsActions.add(robotActions);
-			int size = robotActions.size(); 
-//			if(size == 0)
-//				size =1 ; 
+			int size = robotActions.size();
+			//			if(size == 0)
+			//				size =1 ; 
 			numRobotActions.add(size);
 			ArrayList<Object> thisRobotsActions = new ArrayList<Object>();
 			thisRobotsActions.addAll(robotActions.keySet());
@@ -351,24 +349,20 @@ public class MultiAgentProductModelGenerator
 		}
 		//now we get all the combinations 
 		ArrayList<Object> jointActions = new ArrayList<Object>();
-		ArrayList<int[]> jointActionsCombinations = generateCombinations(numRobotActions); 
-		for(int i = 0; i<jointActionsCombinations.size(); i++)
-		{
+		ArrayList<int[]> jointActionsCombinations = generateCombinations(numRobotActions);
+		for (int i = 0; i < jointActionsCombinations.size(); i++) {
 			ArrayList<Object> actionsForThisCombination = new ArrayList<Object>();
-			int[] currentCombination = jointActionsCombinations.get(i); 
-			for(int r = 0; r<currentCombination.length; r++)
-			{
-				actionsForThisCombination.add(allRobotActions.get(r).get(currentCombination[r]-1));
+			int[] currentCombination = jointActionsCombinations.get(i);
+			for (int r = 0; r < currentCombination.length; r++) {
+				actionsForThisCombination.add(allRobotActions.get(r).get(currentCombination[r] - 1));
 			}
-			Object ja = createJointActionFromRobotActions(actionsForThisCombination); 
+			Object ja = createJointActionFromRobotActions(actionsForThisCombination);
 			jointActions.add(ja);
-			
-			
+
 		}
 		return jointActions;
 	}
 
-	
 	ArrayList<Entry<State, Double>> getSuccessors(State js, Object ja) throws PrismException
 	{
 		ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
@@ -388,7 +382,7 @@ public class MultiAgentProductModelGenerator
 			int[] currentCombination = successorCombinations.get(i);
 			double stateProbability = 1.0;
 			for (int r = 0; r < currentCombination.length; r++) {
-				Entry<State, Double> robotStateProb = robotSuccessors.get(r).get(currentCombination[r]-1);
+				Entry<State, Double> robotStateProb = robotSuccessors.get(r).get(currentCombination[r] - 1);
 				State robotState = robotStateProb.getKey();
 				robotStates.add(robotState);
 
@@ -396,12 +390,11 @@ public class MultiAgentProductModelGenerator
 				stateProbability *= prob;
 
 			}
-			State successorJS = createJointState(js,robotStates);
+			State successorJS = createJointState(js, robotStates);
 			successors.add(new AbstractMap.SimpleEntry<State, Double>(successorJS, stateProbability));
 		}
 
-		if(buildMDP)
-		{
+		if (buildMDP) {
 			mdpCreator.addAction(js, ja, successors);
 		}
 		return successors;
@@ -409,25 +402,103 @@ public class MultiAgentProductModelGenerator
 
 	double getDADistanceCost(State s)
 	{
-		int daState = getDAStateAsInt(s); 
+		int daState = getDAStateAsInt(s);
 		return da.getDistsToAcc().get(daState);
 	}
-	
+
 	double getProgressionReward(State s, Object a) throws PrismException
 	{
-		ArrayList<Entry<State, Double>> successors = getSuccessors(s,a);
-		double currentStateDistance = getDADistanceCost(s); 
-		double rew = 0; 
-		double successorStateDistance; 
-		
-		for(Entry<State,Double> sa: successors)
-		{
-			successorStateDistance = getDADistanceCost(sa.getKey()); 
-			rew+= sa.getValue() * (Math.max(currentStateDistance-successorStateDistance, 0.0));
+		ArrayList<Entry<State, Double>> successors = getSuccessors(s, a);
+		double currentStateDistance = getDADistanceCost(s);
+		double rew = 0;
+		double successorStateDistance;
+
+		for (Entry<State, Double> sa : successors) {
+			successorStateDistance = getDADistanceCost(sa.getKey());
+			rew += sa.getValue() * (Math.max(currentStateDistance - successorStateDistance, 0.0));
 		}
-		return rew; 
-		
+		return rew;
+
 	}
+
+	double getSolutionValue(State s, Objectives obj, RewardCalculation calcMethod) throws PrismException
+	{
+		double reward;
+		ArrayList<State> robotStates = getRobotStatesFromJointState(s);
+
+		switch (calcMethod) {
+		case SUM:
+			reward = getSolutionValueSum(robotStates, obj);
+			break;
+		case MAX:
+			reward = getSolutionValueMax(robotStates, obj);
+			break;
+		case MIN:
+			reward = getSolutionValueMin(robotStates, obj);
+			break;
+		default:
+			throw new PrismException("Calculation Method not implemented");
+
+		}
+
+		return reward;
+	}
+
+	private double getSolutionValueMin(ArrayList<State> robotStates, Objectives obj) throws PrismException
+	{
+		State robotState = robotStates.get(0);
+		double val = getAgent(0).getSolutionValue(robotState, obj);
+		for (int i = 1; i < numAgents; i++) {
+			robotState = robotStates.get(i);
+			double rval = getAgent(i).getSolutionValue(robotState, obj);
+			if (rval < val)
+				val = rval;
+		}
+		// TODO Auto-generated method stub
+		return val;
+	}
+
+	private double getSolutionValueMax(ArrayList<State> robotStates, Objectives obj) throws PrismException
+	{
+		State robotState = robotStates.get(0);
+		double val = getAgent(0).getSolutionValue(robotState, obj);
+		for (int i = 1; i < numAgents; i++) {
+			robotState = robotStates.get(i);
+			double rval = getAgent(i).getSolutionValue(robotState, obj);
+			if (rval > val)
+				val = rval;
+		}
+		// TODO Auto-generated method stub
+		return val;
+	}
+
+	private double getSolutionValueSum(ArrayList<State> robotStates, Objectives obj) throws PrismException
+	{
+		State robotState = robotStates.get(0);
+		double val = getAgent(0).getSolutionValue(robotState, obj);
+		for (int i = 1; i < numAgents; i++) {
+			robotState = robotStates.get(i);
+			double rval = getAgent(i).getSolutionValue(robotState, obj);
+			val += rval;
+		}
+		// TODO Auto-generated method stub
+		return val;
+	}
+
+//	double getProgressionReward(State s, Object a)
+//	{
+//		double rew = 0.0;
+//		double currentStateDistance = this.getDADistanceCost(s);
+//		ArrayList<Entry<State, Double>> succs = getSuccessors(s, a);
+//		if (succs != null) {
+//			for (Entry<State, Double> succ : succs) {
+//				double succStateDistance = getDADistanceCost(succ.getKey());
+//				rew += succ.getValue() * Math.max(currentStateDistance - succStateDistance, 0.0);
+//			}
+//		}
+//		return rew;
+//	}
+
 	double getStateReward(State s, String rew, RewardCalculation calculationMethod) throws PrismException
 	{
 		double reward;
@@ -631,10 +702,12 @@ public class MultiAgentProductModelGenerator
 		}
 		return numC;
 	}
+
 	public MDPSimple getBuiltMDP()
 	{
 		return mdpCreator.mdp;
 	}
+
 	public void saveBuiltMDP(String sl, String fn)
 	{
 		mdpCreator.saveMDP(sl, fn);

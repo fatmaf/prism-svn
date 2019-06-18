@@ -27,6 +27,25 @@ public class testMATHTS
 		}
 	}
 
+	public void testTHTS(MultiAgentProductModelGenerator jpmg,PrismLog ml) throws PrismException 
+	{
+		ArrayList<Objectives> tieBreakingOrder = new ArrayList<Objectives>(); 
+		tieBreakingOrder.add(Objectives.Probability); 
+		tieBreakingOrder.add(Objectives.Progression); 
+		tieBreakingOrder.add(Objectives.Cost);
+		ActionSelection actionSelection = new ActionSelectionGreedy(tieBreakingOrder);
+		OutcomeSelection outcomeSelection = null;
+		HeuristicFunction heuristicFunction = new HeuristicFunctionPartSat(jpmg);
+		BackupFunction backupFunction = null;
+		
+		TrialBHeuristicSearch thts = new TrialBHeuristicSearch(ml,jpmg,
+				actionSelection,
+				outcomeSelection,
+				heuristicFunction,
+				backupFunction
+				);
+		thts.doTHTS();
+	}
 	public void run() throws FileNotFoundException, PrismException
 	{
 		loadSingleAgent();
@@ -74,10 +93,11 @@ public class testMATHTS
 		jpmg.saveBuiltMDP(saveplace, fn+"_all");
 		//now lets test the policy creator 
 		//and the random action selection thing 
-		RandomActionSelection randomActionSelector = new RandomActionSelection(jpmg.getBuiltMDP());
+		ActionSelectionRandom randomActionSelector = new ActionSelectionRandom(jpmg.getBuiltMDP());
 		PolicyCreator pc = new PolicyCreator(); 
 		pc.createPolicy(jpmg.getBuiltMDP(), randomActionSelector); 
 		pc.savePolicy(saveplace, fn+"_policy");
+		testTHTS(jpmg,mainLog);
 		
 		
 	}
@@ -108,7 +128,7 @@ public class testMATHTS
 		ArrayList<SingleAgentLoader> sals = new ArrayList<SingleAgentLoader>();
 		ArrayList<String> ssl = new ArrayList<String>(); 
 		ssl.add("door");
-		ssl = null;
+//		ssl = null;
 		for (int i = 0; i < filenames.size(); i++) {
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename, TESTSLOC,ssl);
