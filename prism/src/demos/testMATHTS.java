@@ -27,24 +27,28 @@ public class testMATHTS
 		}
 	}
 
-	public void testTHTS(MultiAgentProductModelGenerator jpmg,PrismLog ml) throws PrismException 
+	public void testTHTS(MultiAgentProductModelGenerator jpmg,PrismLog ml,String sv, String fn) throws PrismException 
 	{
 		ArrayList<Objectives> tieBreakingOrder = new ArrayList<Objectives>(); 
 		tieBreakingOrder.add(Objectives.Probability); 
 		tieBreakingOrder.add(Objectives.Progression); 
 		tieBreakingOrder.add(Objectives.Cost);
 		ActionSelection actionSelection = new ActionSelectionGreedy(tieBreakingOrder);
-		OutcomeSelection outcomeSelection = null;
+		OutcomeSelection outcomeSelection = new OutcomeSelectionBounds();
 		HeuristicFunction heuristicFunction = new HeuristicFunctionPartSat(jpmg);
-		BackupFunction backupFunction = null;
+		BackupFunction backupFunction = new BackupFunctionFullBellman(jpmg,tieBreakingOrder);
 		
 		TrialBHeuristicSearch thts = new TrialBHeuristicSearch(ml,jpmg,
 				actionSelection,
 				outcomeSelection,
 				heuristicFunction,
-				backupFunction
+				backupFunction,
+				tieBreakingOrder, 
+				sv, 
+				fn
 				);
-		thts.doTHTS();
+		Object a = thts.doTHTS();
+		ml.println(a.toString());
 	}
 	public void run() throws FileNotFoundException, PrismException
 	{
@@ -97,7 +101,7 @@ public class testMATHTS
 		PolicyCreator pc = new PolicyCreator(); 
 		pc.createPolicy(jpmg.getBuiltMDP(), randomActionSelector); 
 		pc.savePolicy(saveplace, fn+"_policy");
-		testTHTS(jpmg,mainLog);
+		testTHTS(jpmg,mainLog,saveplace,fn);
 		
 		
 	}
@@ -105,7 +109,7 @@ public class testMATHTS
 	{
 
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-		String filename = "tiny_example_door";//"tiny_example_permtrap_noun";//"no_door_example";	
+		String filename = "tiny_example_permtrap_noun";//"no_door_example";	
 		String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/";
 
 		// Create a log for PRISM output (hidden or stdout)
@@ -128,7 +132,7 @@ public class testMATHTS
 		ArrayList<SingleAgentLoader> sals = new ArrayList<SingleAgentLoader>();
 		ArrayList<String> ssl = new ArrayList<String>(); 
 		ssl.add("door");
-//		ssl = null;
+		ssl = null;
 		for (int i = 0; i < filenames.size(); i++) {
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename, TESTSLOC,ssl);

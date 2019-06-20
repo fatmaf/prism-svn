@@ -45,5 +45,27 @@ public class Bounds{
 	{
 		return upper-lower; 
 	}
+	public double subtractUpper(double m)
+	{
+		return upper - m; 
+	}
+	public double subractLower(double m)
+	{
+		return lower - m; 
+	}
+	public double subtractUpper(Bounds m)
+	{
+		return subtractUpper(m.getUpper());
+	}
+	public double subtractLower(Bounds m)
+	{
+		return subractLower(m.getLower());
+	}
+	@Override
+	public String toString()
+	{
+		return "[" + upper + "," + lower + "]";
+	}
+	
 	
 }

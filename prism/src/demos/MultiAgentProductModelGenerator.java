@@ -712,5 +712,22 @@ public class MultiAgentProductModelGenerator
 	{
 		mdpCreator.saveMDP(sl, fn);
 	}
+	public boolean isGoal(State s)
+	{
+		double daDist = this.getDADistanceCost(s); 
+		return (daDist == 0);
+	}
+	public boolean isDeadend(State s) throws PrismException
+	{
+		int numProg0  = 0; 
+		ArrayList<State> robotStates = this.getRobotStatesFromJointState(s);
+		for(int i = 0; i<numAgents; i++)
+		{
+			State rs = robotStates.get(i);
+			if(getAgent(i).isDeadend(rs))
+				numProg0++;
+		}
+		return (numProg0==numAgents);
+	}
 
 }

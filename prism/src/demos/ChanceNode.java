@@ -21,6 +21,7 @@ public class ChanceNode extends THTSNode
 		action = a; 
 		children = null; 
 		solved = false; 
+		numVisits = 0;
 
 	}
 	public ChanceNode(THTSNode parent, State s, Object a)
@@ -66,6 +67,47 @@ public class ChanceNode extends THTSNode
 		// TODO Auto-generated method stub
 		return children == null;
 	}
+	@Override
+	public boolean equals(THTSNode n)
+	{
+		boolean equal = false; 
+		if(n instanceof  ChanceNode)
+		{
+			
+			//sate action parent 
+			if(this.getState().compareTo(n.getState())==0)
+			{
+				if(this.getAction() == ((ChanceNode)n).getAction())
+				{
+					equal = true;
+				}
+			}
+		}
+		return equal;
+	}
 	
+	@Override
+	public String toString()
+	{
+		String str= "CN[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + 
+				", n=" + numVisits + ", solved=" + solved ;
+		if(parent == null)
+		{
+			str+=", abu=" + parent;
+		}
+		else
+		{
+			str+=", abu=" + parent.getState();
+		}
 
+			str+="a="+action;
+			str+="]";
+		
+		return str; 
+	}
+	@Override
+	public String getShortName()
+	{
+		return this.getState().toString()+this.getAction().toString();
+	}
 }

@@ -1,49 +1,62 @@
 package demos;
 
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
+import java.util.Map.Entry;
 
-import parser.State;
 import prism.PrismException;
 
-/*
- * select action greedily 
- */
-public class ActionSelectionGreedy implements ActionSelection
+public class Helper
 {
-
-	ArrayList<Objectives> tieBreakingOrder;
-
-	public ActionSelectionGreedy(ArrayList<Objectives> tieBreakingOrder)
+	public static boolean compareObjectives(Objectives obj, double newv, double oldv)
 	{
-		this.tieBreakingOrder = tieBreakingOrder;
+		boolean toret = false;
+		switch (obj) {
+		case Probability:
+			toret = newv > oldv;
+			break;
+		case Progression:
+			toret = newv > oldv;
+			break;
+		case Cost:
+			toret = newv < oldv;
+			break;
+
+		}
+		return toret;
 	}
 
-	@Override
-	public Object selectAction(State s) throws PrismException
+	public static boolean equalObjectives(Objectives obj, double newv, double oldv)
 	{
-		// TODO Auto-generated method stub
-		return null;
-	}
+		boolean toret = false;
+		switch (obj) {
+		case Probability:
+			toret = newv == oldv;
+			break;
+		case Progression:
+			toret = newv == oldv;
+			break;
+		case Cost:
+			toret = newv == oldv;
+			break;
 
-	@Override
-	public int selectAction(int s) throws PrismException
-	{
-		// TODO Auto-generated method stub
-		return -1;
+		}
+		return toret;
 	}
-
-	@Override
-	public Object selectActionBound(DecisionNode d, boolean upperBound) throws PrismException
+	
+	
+	public static Entry<Object,ArrayList<Bounds>> updatedBoundsAndAction(DecisionNode d, boolean upperBound,
+			ArrayList<Objectives> tieBreakingOrder) throws PrismException
 	{
 		//for each objective we need a bound thing 
 		ArrayList<Bounds> bestQ = new ArrayList<Bounds>();
 
 		Object bestA = null;
-		boolean saveTheRest = false;
 		if(d.isLeafNode())
-			return bestA;
+			return new AbstractMap.SimpleEntry<Object,ArrayList<Bounds>>(bestA,bestQ);
+		boolean saveTheRest = false;
 		if (upperBound) {
-			
 			for (Object a : d.getChildren().keySet()) {
 				saveTheRest = false;
 				ChanceNode c = d.getChild(a);
@@ -119,8 +132,9 @@ public class ActionSelectionGreedy implements ActionSelection
 			}
 
 		}
+		Entry<Object,ArrayList<Bounds>> res = new AbstractMap.SimpleEntry<Object,ArrayList<Bounds>>(bestA,bestQ);
 		// TODO Auto-generated method stub
-		return bestA;
+		return res;
 	}
 
 

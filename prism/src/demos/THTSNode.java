@@ -14,9 +14,23 @@ public abstract class THTSNode
 	Bounds progValues;
 	HashMap<Integer, Bounds> rewsValues;
 	THTSNode parent; 
-	int numVisits = 0; 
+	int numVisits ; 
 	boolean solved; 
 
+	public abstract boolean equals(THTSNode n);
+	
+	public boolean isSolved()
+	{
+		return solved; 
+	}
+	public void setSolved()
+	{
+		solved = true; 
+	}
+	public void setUnsolved()
+	{
+		solved = false; 
+	}
 	public int visited()
 	{
 		return numVisits; 
@@ -111,5 +125,24 @@ public abstract class THTSNode
 	}
 	public abstract THTSNodeType nodeType();
 	public abstract boolean isLeafNode();
+
+	public abstract String getShortName(); 
+	@Override
+	public String toString()
+	{
+		String str= "N[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + 
+				", n=" + numVisits + ", solved=" + solved ;
+		if(parent == null)
+		{
+			str+=", abu=" + parent;
+		}
+		else
+		{
+			str+=", abu=" + parent.getState();
+		}
+		str+="]";
+		
+		return str; 
+	}
 
 }

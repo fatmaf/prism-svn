@@ -21,9 +21,21 @@ public class HeuristicFunctionPartSat implements HeuristicFunction
 	@Override
 	public void calculateBounds(State s) throws PrismException
 	{
+		double maxP = 1.0; 
 
-		prob = new Bounds(1.0, maProdModGen.getSolutionValue(s, Objectives.Probability, RewardCalculation.MAX));
-		prog = new Bounds(1.0, maProdModGen.getSolutionValue(s, Objectives.Progression, RewardCalculation.MAX));
+		double maxPr = 1.0; 
+	
+		if(maProdModGen.isDeadend(s))
+		{	maxPr = 0.0; 
+		maxP = 0.0;
+		}
+		if(maProdModGen.isGoal(s))
+		{
+			maxPr = 0.0; 
+			maxP = 1.0; 
+		}
+		prob = new Bounds(maxP, maProdModGen.getSolutionValue(s, Objectives.Probability, RewardCalculation.MAX));
+		prog = new Bounds(maxPr, maProdModGen.getSolutionValue(s, Objectives.Progression, RewardCalculation.MAX));
 
 		Bounds cost = new Bounds(maProdModGen.getSolutionValue(s, Objectives.Cost, RewardCalculation.SUM), 0.0);
 
@@ -40,7 +52,7 @@ public class HeuristicFunctionPartSat implements HeuristicFunction
 		prob = new Bounds();
 		prog = new Bounds();
 		int numRews = dns.get(0).getRews().size();
-		ArrayList<Bounds> costs = new ArrayList<Bounds>();
+		 costs = new ArrayList<Bounds>();
 		Bounds cost;
 		for (DecisionNode dn : dns) {
 			prob = prob.add(dn.getProbValueTimesTranProb());

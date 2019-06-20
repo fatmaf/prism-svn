@@ -23,6 +23,53 @@ public class PolicyCreator
 		mdpCreator = new MDPCreator();
 	}
 
+	public MDPSimple createPolicy(DecisionNode rootNode, ActionSelection actSel, boolean upperbound) throws PrismException
+	{
+		Stack<THTSNode> toVisit = new Stack<THTSNode>();
+		Stack<THTSNode> visited = new Stack<THTSNode>();
+		THTSNode currNode = rootNode;
+		DecisionNode currDecNode = rootNode;
+		ChanceNode currChanceNode = null;
+		boolean onChanceNode = false;
+		toVisit.add(currNode);
+		while (!toVisit.isEmpty()) {
+			currNode = toVisit.pop();
+			visited.add(currNode);
+			if (currNode instanceof DecisionNode) {
+				currDecNode = (DecisionNode) currNode;
+				onChanceNode = false;
+			} else {
+				currChanceNode = (ChanceNode) currNode;
+				onChanceNode = true;
+			}
+
+			if (onChanceNode) {
+				//we have the action and the state 
+				//now we just get the successors and add all of them 
+				//but we also need to save these so we can add them to the MDP 
+				ArrayList<DecisionNode> successorDecNodes = currChanceNode.getChildren();
+				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				for (DecisionNode succDecNode : successorDecNodes) {
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succDecNode.getState(), succDecNode.transitionProbability));
+					if (!toVisit.contains(succDecNode) && !visited.contains(succDecNode)) {
+						toVisit.add(succDecNode);
+					}
+				}
+				mdpCreator.addAction(currChanceNode.getState(), currChanceNode.getAction(), successors);
+
+			} else {
+				Object action = actSel.selectActionBound(currDecNode, upperbound);
+				currChanceNode = currDecNode.getChild(action);
+				if (currChanceNode != null) {
+					if (!toVisit.contains(currChanceNode) && !visited.contains(currChanceNode)) {
+						toVisit.add(currChanceNode);
+					}
+				}
+			}
+		}
+		return mdpCreator.mdp;
+	}
+
 	public MDPSimple createPolicy(MDPSimple mdp, ActionSelection actionSelection) throws PrismException
 	{
 		int initialState = mdp.getFirstInitialState();
@@ -61,9 +108,10 @@ public class PolicyCreator
 		}
 		return mdpCreator.mdp;
 	}
+
 	void savePolicy(String saveLocation, String name)
 	{
-		mdpCreator.saveMDP(saveLocation,name);
-		
+		mdpCreator.saveMDP(saveLocation, name);
+
 	}
 }
