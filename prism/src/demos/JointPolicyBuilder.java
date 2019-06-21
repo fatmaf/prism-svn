@@ -409,9 +409,9 @@ public class JointPolicyBuilder {
 						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
 
 						double probVar = currentJointStateProbPair.getValue();
-						String textToCheck = "0,0,0,0,0,4,5,-1";
-						if (currentJointState.toString().contains(textToCheck))
-							mainLog.println("check here");
+//						String textToCheck = "0,0,0,0,0,4,5,-1";
+//						if (currentJointState.toString().contains(textToCheck))
+//							mainLog.println("check here");
 						if (numFailedInState > numFailedInInitialState) {
 							// the assumption is we have seen fail states before
 							if (stateIndex != StatesHelper.BADVALUE) {
@@ -483,7 +483,7 @@ public class JointPolicyBuilder {
 						followingPath = true; 
 						if(statesDiscovered == null)
 							{
-							extractPolicyTreeAsDotFile(strat, mdp, robotStatesInSeqTeamMDP[0]);
+//							extractPolicyTreeAsDotFile(strat, mdp, robotStatesInSeqTeamMDP[0]);
 							statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, robotStatesInSeqTeamMDP,
 									followingPath/* follow a path cuz you dont know anything */,false /*don't use all robot states*/);
 						mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
@@ -517,7 +517,7 @@ public class JointPolicyBuilder {
 							if (getNewTaskAllocation(statesDiscovered, modifiedRobotStatesInSeqTeamMDP,
 									followingPath /* we have to follow the path */,skipAutomataStatesInTA,mdp.getStatesList(), mdp.getVarList()))
 							{
-								extractPolicyTreeAsDotFile(strat, mdp,  modifiedRobotStatesInSeqTeamMDP[0]);
+//								extractPolicyTreeAsDotFile(strat, mdp,  modifiedRobotStatesInSeqTeamMDP[0]);
 								statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, /*robotStatesInSeqTeamMDP*/modifiedRobotStatesInSeqTeamMDP,
 										followingPath/* follow a path cuz you dont know anything */,true/*use all robot states*/);
 								mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
@@ -636,11 +636,11 @@ public class JointPolicyBuilder {
 						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue,
 								action, 1.0);
 						jointStatesDiscovered.set(statesMap.get(currentJointState));
-						saveMDP(jointMDP, "new");
+//						saveMDP(jointMDP, "new");
 					}
 				}
 			}
-			saveMDP(jointMDP, "new");
+//			saveMDP(jointMDP, "new");
 		}
 
 	}
@@ -846,7 +846,7 @@ public class JointPolicyBuilder {
 			}
 
 		}
-		mainLog.println(statesToDoStuffWith.toString());
+//		mainLog.println(statesToDoStuffWith.toString());
 
 		return statesToDoStuffWith; //these are the states we want to avoid. 
 	}
@@ -917,6 +917,10 @@ public class JointPolicyBuilder {
 		StatesHelper.saveMDP(mdp, null, "", name + "jointPolicy", true);
 		StatesHelper.saveMDPstatra(mdp, "", name + "jointPolicy", true);
 
+	}
+	public void saveJointPolicyMDP()
+	{
+		saveMDP(this.jointMDP,"final");
 	}
 
 	public int findStateIndex(State s) {
@@ -1345,7 +1349,7 @@ public class JointPolicyBuilder {
 						}
 					} else {
 						// if (currentState.action.contains("switch"))
-						mainLog.println(statesDiscovered.toString());
+//						mainLog.println(statesDiscovered.toString());
 						break;
 					}
 				}
@@ -1462,7 +1466,7 @@ public class JointPolicyBuilder {
 					} else {
 						// if (currentState.action.contains("switch"))
 						endStates.add(currentState);
-						mainLog.println(statesDiscovered.toString());
+//						mainLog.println(statesDiscovered.toString());
 						break;
 					}
 				}
@@ -1510,7 +1514,7 @@ public class JointPolicyBuilder {
 		for (int i = 0; i < states.length; i++) {
 			boolean forceNull = false;
 			String currentAction = "";
-			this.extractPolicyTreeAsDotFile(strat, mdp, modifiedStates[i]);
+//			this.extractPolicyTreeAsDotFile(strat, mdp, modifiedStates[i]);
 			if (actionChoices.get(modifiedStates[i]).getKey() != null)
 				currentAction = actionChoices.get(modifiedStates[i]).getKey().toString();
 			if (currentAction.contains("switch"))

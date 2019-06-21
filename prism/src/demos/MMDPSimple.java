@@ -287,8 +287,8 @@ public class MMDPSimple {
 		ArrayList<ArrayList<Integer>> taskAllocation = findTaskAllocation(switchInfo, initialStateInSeqTeamMDP,
 				lastState, seqTeamMDP.teamMDPWithSwitches.getStatesList());
 
-		for (int ar = 0; ar < taskAllocation.size(); ar++)
-			mainLog.println(ar + ":" + taskAllocation.get(ar).toString());
+//		for (int ar = 0; ar < taskAllocation.size(); ar++)
+//			mainLog.println(ar + ":" + taskAllocation.get(ar).toString());
 
 		// Arrays.toString(taskAllocation));
 		HashMap<Integer, State> robotTaskStates = new HashMap<Integer, State>();
@@ -339,7 +339,7 @@ public class MMDPSimple {
 
 			ArrayList<ArrayList<Entry<Integer, Double>>> robotStatesIteratorList = new ArrayList<ArrayList<Entry<Integer, Double>>>();
 			int[] numSuccessors = new int[nRobots];
-			mainLog.println(updatedCurrentRobotStates.toString());
+//			mainLog.println(updatedCurrentRobotStates.toString());
 			String jointAction = "";
 			Object action;
 			for (int i = 0; i < nRobots; i++) {
@@ -359,7 +359,7 @@ public class MMDPSimple {
 				jointAction = jointAction + "_r" + i + "_" + action.toString();
 
 			}
-			mainLog.println(jointAction);
+//			mainLog.println(jointAction);
 
 			// i got this
 			// everything is alright
@@ -822,14 +822,14 @@ public class MMDPSimple {
 
 		if (!simulateOnly) {
 			// printing stuff
-			for (String key : allPathStates.keySet()) {
-				mainLog.println(key + ":" + allPathStates.get(key) + " - " + allPathProbs.get(key));
-			}
-			for (int i = 0; i < robotLastStateInitStatePairs.size(); i++) {
-				for (int j = 0; j < robotLastStateInitStatePairs.get(i).size(); j++) {
-					mainLog.println(i + "->" + robotLastStateInitStatePairs.get(i).get(j));
-				}
-			}
+//			for (String key : allPathStates.keySet()) {
+//				mainLog.println(key + ":" + allPathStates.get(key) + " - " + allPathProbs.get(key));
+//			}
+//			for (int i = 0; i < robotLastStateInitStatePairs.size(); i++) {
+//				for (int j = 0; j < robotLastStateInitStatePairs.get(i).size(); j++) {
+//					mainLog.println(i + "->" + robotLastStateInitStatePairs.get(i).get(j));
+//				}
+//			}
 
 			String firstPath = getMostProbablePath(allPathProbs, acceptingPaths, allOtherPaths, failingPaths);
 			// check initial allStateNumbers
@@ -854,17 +854,17 @@ public class MMDPSimple {
 			ArrayList<String> allOtherPaths, ArrayList<String> failingPaths) {
 		String firstPath = null;
 		LinkedHashMap<String, Double> sortedAllPathProbs = sortHashMapByValues(allPathProbs, true);
-		mainLog.println("Sorted Paths:" + sortedAllPathProbs.toString());
+//		mainLog.println("Sorted Paths:" + sortedAllPathProbs.toString());
 		if (acceptingPaths.size() > 0) {
-			mainLog.println("Accepting Paths: " + acceptingPaths.toString());
+//			mainLog.println("Accepting Paths: " + acceptingPaths.toString());
 			firstPath = findFirstStringFromSortedListInList(sortedAllPathProbs, acceptingPaths);
 		} else {
 			if (allOtherPaths.size() > 0) {
-				mainLog.println("Other Paths: " + allOtherPaths.toString());
+//				mainLog.println("Other Paths: " + allOtherPaths.toString());
 				firstPath = findFirstStringFromSortedListInList(sortedAllPathProbs, allOtherPaths);
 			} else {
 				if (failingPaths.size() > 0) {
-					mainLog.println("Failing Paths: " + failingPaths.toString());
+//					mainLog.println("Failing Paths: " + failingPaths.toString());
 					firstPath = findFirstStringFromSortedListInList(sortedAllPathProbs, failingPaths);
 				}
 			}
@@ -1173,10 +1173,10 @@ public class MMDPSimple {
 															// paths.get(key).get(r));
 					}
 				}
-				mainLog.println(key);
-				mainLog.println(paths.get(key));
-				mainLog.println(Arrays.toString(pathInitialStates.get(key)));
-				mainLog.println(Arrays.toString(pathLastStates.get(key)));
+//				mainLog.println(key);
+//				mainLog.println(paths.get(key));
+//				mainLog.println(Arrays.toString(pathInitialStates.get(key)));
+//				mainLog.println(Arrays.toString(pathLastStates.get(key)));
 			}
 			initialStates = pathInitialStates.get(firstPath);
 			lastStates = pathLastStates.get(firstPath);
@@ -1383,10 +1383,10 @@ public class MMDPSimple {
 						firstPath = switchPathName;
 						switchPath = false;
 					}
-					if (switchPath) {
-						mainLog.println("chosen path");
-						mainLog.println(paths.get(switchPathName));
-					}
+//					if (switchPath) {
+//						mainLog.println("chosen path");
+//						mainLog.println(paths.get(switchPathName));
+//					}
 				}
 			}
 			// find state in joint policy mdp
@@ -1422,7 +1422,7 @@ public class MMDPSimple {
 			// switchPath = false;
 			if (switchPath) {
 
-				mainLog.println("Need to switch path now - magic please :P");
+//				mainLog.println("Need to switch path now - magic please :P");
 
 				// TODO: put shit here that works
 				// just shift everyone to that path
@@ -1444,7 +1444,7 @@ public class MMDPSimple {
 					// on this path get the stcount state for each robot
 					BitSet stateIsolated = (BitSet) paths.get(switchPathName).get(r).clone();
 					stateIsolated.and(allStateNumbers.get(stcount).get(r));
-					mainLog.println(stateIsolated.toString());
+//					mainLog.println(stateIsolated.toString());
 					numSuccessorStates[r] = stateIsolated.cardinality();
 					// so now lets put all the states in the bitset stateIsolated in the list
 					// o but how do we the associated probabilities ?

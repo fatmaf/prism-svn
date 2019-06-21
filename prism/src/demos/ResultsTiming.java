@@ -2,6 +2,7 @@ package demos;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 import prism.PrismFileLog;
 import prism.PrismLog;
@@ -10,7 +11,8 @@ import prism.PrismLog;
  * A class to store results and any timing information we might want 
  * Hopefully something we can reuse
  */
-public class ResultsTiming {
+public class ResultsTiming
+{
 
 	private HashMap<Integer, Long> productCreation = new HashMap<Integer, Long>();
 	private HashMap<Integer, Long> reallocations = new HashMap<Integer, Long>();
@@ -45,11 +47,16 @@ public class ResultsTiming {
 	private int numModel = 0;
 
 	public enum varIDs {
-		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode, totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, modelloadingtimes, totalmodelloadingtime, teammdptimeonly
+		numrobots, numtasks, numreallocstates, teammdpstates, 
+		teammdptransitions, numreallocationsincode, totalcomputationtime, 
+		totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
+		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, 
+		numdoors, modelloadingtimes, totalmodelloadingtime, teammdptimeonly
 
 	}
 
-	public ResultsTiming(PrismLog mainLog, String res_trial_name) {
+	public ResultsTiming(PrismLog mainLog, String res_trial_name)
+	{
 		this.mainLog = mainLog;
 		this.res_trial_name = res_trial_name;
 	}
@@ -75,54 +82,60 @@ public class ResultsTiming {
 		json_text += createJsonStyleString("teamMDPStates", teamMDPStates) + comma;
 		json_text += createJsonStyleString("teamMDPTransitions", teamMDPTransitions) + comma;
 		json_text += createJsonStyleString("NumReallocations", numReallocInCode) + comma;
-//		json_text += createJsonStyleString("Total Time", totalComputationTime) + comma;
+		//		json_text += createJsonStyleString("Total Time", totalComputationTime) + comma;
 		json_text += createJsonStyleString("Team MDP Time", totalTeamMDPCreationTime) + comma;
 		json_text += createJsonStyleString("Nested Product Time", allNestedProductCreationTime) + comma;
 		json_text += createJsonStyleString("All Reallocations Time", allReallocationsTime) + comma;
-		json_text += createJsonStyleString("Total Time", System.currentTimeMillis() - global_start_time);
+		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
 		resLog = new PrismFileLog(StatesHelper.getLocation() + "_trial_" + res_trial_name + ".json");
 		resLog.print(json_text);
 		resLog.close();
 	}
 
-	public String createJsonStyleString(String varname, HashMap<Integer, Long> varvalues, boolean dosum) {
+	public String createJsonStyleString(String varname, HashMap<Integer, Long> varvalues, boolean dosum)
+	{
 		long sum = 0;
 		String comma = ",";
 		String text = "n/a";
 		if (varvalues != null) {
-			text = '"'+varname +'"'+ ":[ ";
+			text = '"' + varname + '"' + ":[ ";
 			for (int key : varvalues.keySet()) {
 				text += "{" + createJsonStyleString(key, varvalues.get(key)) + "}" + comma;
 				if (dosum)
 					sum += varvalues.get(key);
 			}
 			if (dosum)
-				text += "{"+createJsonStyleString("sum", sum)+"}";
+				text += "{" + createJsonStyleString("sum", sum) + "}";
 			else
-				text = text.substring(0, text.length()-1);
+				text = text.substring(0, text.length() - 1);
 			text += "]";
 		}
 		return text;
 	}
 
-	public String createJsonStyleString(String varname, String varvalue) {
+	public String createJsonStyleString(String varname, String varvalue)
+	{
 		return '"' + varname + '"' + ':' + '"' + varvalue + '"';
 	}
 
-	public String createJsonStyleString(int varname, long varvalue) {
+	public String createJsonStyleString(int varname, long varvalue)
+	{
 		return ("" + '"' + varname + '"' + ':' + '"' + varvalue + '"');
 	}
 
-	public String createJsonStyleString(String varname, long varvalue) {
+	public String createJsonStyleString(String varname, long varvalue)
+	{
 		return '"' + varname + '"' + ':' + '"' + varvalue + '"';
 	}
 
-	public String createJsonStyleString(String varname, int varvalue) {
+	public String createJsonStyleString(String varname, int varvalue)
+	{
 		return '"' + varname + '"' + ':' + '"' + varvalue + '"';
 	}
 
-	private boolean hasTimedOut(long startTime, long endTime, String text, varIDs varid) {
+	private boolean hasTimedOut(long startTime, long endTime, String text, varIDs varid)
+	{
 		long time = endTime - startTime;
 
 		printTime(time, text, varid);
@@ -133,64 +146,76 @@ public class ResultsTiming {
 			return false;
 	}
 
-	private void recordTime(long startTime, long endTime, String text, varIDs varid) {
+	private void recordTime(long startTime, long endTime, String text, varIDs varid)
+	{
 		long time = endTime - startTime;
 
 		printTime(time, text, varid);
 
 	}
 
-	public void recordInits(int value, String text, varIDs varid) {
+	public void recordInits(int value, String text, varIDs varid)
+	{
 		mainLog.println(time_identifiers + text + ":" + value + " " + time_identifiers);
 		if (varid != null)
 			saveData(value, varid);
 	}
 
-	public void setGlobalStartTime() {
-		this.global_start_time = System.currentTimeMillis();
+	public void setGlobalStartTime()
+	{
+		this.global_start_time = System.nanoTime();
 	}
 
-	public void setLocalStartTime() {
-		this.local_start_time = System.currentTimeMillis();
+	public void setLocalStartTime()
+	{
+		this.local_start_time = System.nanoTime();
 	}
 
-	public void setScopeStartTime() {
-		this.scope_start_time = System.currentTimeMillis();
+	public void setScopeStartTime()
+	{
+		this.scope_start_time = System.nanoTime();
 	}
 
-	public void recordTime(String text, varIDs varid, boolean scope_time) {
-		long endTime = System.currentTimeMillis();
+	public void recordTime(String text, varIDs varid, boolean scope_time)
+	{
+		long endTime = System.nanoTime();
 		if (scope_time)
 			recordTime(scope_start_time, endTime, text, varid);
 		else
 			recordTime(local_start_time, endTime, text, varid);
 	}
 
-	public void recordTime(long startTime, String text, varIDs varid) {
-		long endTime = System.currentTimeMillis();
+	public void recordTime(long startTime, String text, varIDs varid)
+	{
+		long endTime = System.nanoTime();
 		recordTime(startTime, endTime, text, varid);
 
 	}
 
-	public boolean hasTimedOut(long startTime, String text, varIDs varid) {
-		long endTime = System.currentTimeMillis();
+	public boolean hasTimedOut(long startTime, String text, varIDs varid)
+	{
+		long endTime = System.nanoTime();
 		return hasTimedOut(startTime, endTime, text, varid);
 
 	}
 
-	private void printTime(long time, String text, varIDs varid) {
+	private void printTime(long time, String text, varIDs varid)
+	{
 
 		if (text == "")
 			text = "Time";
-		if ((time > 1))
-			mainLog.println(time_identifiers + text + ": " +time +"ms (" + time / 1000.000 + " seconds /" + time / (1000.000 * 60.000)
-					+ " mins)" + time_identifiers);
+		if ((time > 1)) {
+			mainLog.println(time_identifiers + text + ": " + time + "ns (" + TimeUnit.SECONDS.convert(time, TimeUnit.NANOSECONDS) + " seconds /"
+					+ TimeUnit.MINUTES.convert(time, TimeUnit.NANOSECONDS) + " mins)" + time_identifiers);
+		}
+
 		if (varid != null) {
 			saveData(time, varid);
 		}
 	}
 
-	public void saveData(int num, varIDs varid) {
+	public void saveData(int num, varIDs varid)
+	{
 		switch (varid) {
 		case numrobots:
 			numRobots = num;
@@ -219,7 +244,8 @@ public class ResultsTiming {
 		}
 	}
 
-	public void saveData(long time, varIDs varid) {
+	public void saveData(long time, varIDs varid)
+	{
 		switch (varid) {
 		case numrobots:
 			numRobots = (int) time;
@@ -283,12 +309,14 @@ public class ResultsTiming {
 		}
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
 		// TODO Auto-generated method stub
 
 	}
 
-	public void recordValues(int value, String text, varIDs varid) {
+	public void recordValues(int value, String text, varIDs varid)
+	{
 		mainLog.println(time_identifiers + text + ":" + value + " " + time_identifiers);
 		if (varid != null)
 			saveData(value, varid);
