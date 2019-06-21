@@ -100,7 +100,7 @@ public class testMATHTS
 		ActionSelectionRandom randomActionSelector = new ActionSelectionRandom(jpmg.getBuiltMDP());
 		PolicyCreator pc = new PolicyCreator(); 
 		pc.createPolicy(jpmg.getBuiltMDP(), randomActionSelector); 
-		pc.savePolicy(saveplace, fn+"_policy");
+		pc.savePolicy(saveplace, fn+"_random_policy");
 		testTHTS(jpmg,mainLog,saveplace,fn);
 		
 		
@@ -109,7 +109,7 @@ public class testMATHTS
 	{
 
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
-		String filename = "tiny_example_permtrap_noun";//"no_door_example";	
+		String filename = "tiny_example_permtrap";//"no_door_example";	
 		String TESTSLOC = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/";
 
 		// Create a log for PRISM output (hidden or stdout)

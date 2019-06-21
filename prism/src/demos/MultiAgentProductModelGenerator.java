@@ -727,7 +727,14 @@ public class MultiAgentProductModelGenerator
 			if(getAgent(i).isDeadend(rs))
 				numProg0++;
 		}
-		return (numProg0==numAgents);
+		boolean deadend = (numProg0==numAgents);
+		//I dont really need this but its good for when we dont have like initialised stuff 
+		boolean sinkState = da.isSinkState(this.getDAStateAsInt(s)); 
+		
+		if(deadend | sinkState)
+			return true; 
+		else 
+			return false; 
 	}
 
 }

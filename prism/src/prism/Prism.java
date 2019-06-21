@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dv.DoubleVector;
-import explicit.BRTDPModelChecker;
+//import explicit.BRTDPModelChecker;
 import explicit.CTMC;
 import explicit.CTMCModelChecker;
 import explicit.ConstructModel;
@@ -73,7 +73,7 @@ import simulator.SimulatorEngine;
 import simulator.method.SimulationMethod;
 import sparse.PrismSparse;
 import strat.Strategy;
-import explicit.MCTSModelChecker;
+//import explicit.MCTSModelChecker;
 
 /**
  * Main class for all PRISM's core functionality.
@@ -2946,18 +2946,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 			fauMC = new FastAdaptiveUniformisationModelChecker(this, currentModulesFile, propertiesFile);
 			return fauMC.check(prop.getExpression());
 		}
-		// For MCTS
-		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("MCTS")) {
-			MCTSModelChecker mctsMC;
-			mctsMC = new MCTSModelChecker(this, currentModulesFile, propertiesFile);
-			return mctsMC.check(prop.getExpression());
-		}
-		// For BRTDP
-		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("BRTDP")) {
-			BRTDPModelChecker brtdpMC;
-			brtdpMC = new BRTDPModelChecker(this, currentModulesFile, propertiesFile);
-			return brtdpMC.check(prop.getExpression());
-		}
+//		// For MCTS
+//		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("MCTS")) {
+//			MCTSModelChecker mctsMC;
+//			mctsMC = new MCTSModelChecker(this, currentModulesFile, propertiesFile);
+//			return mctsMC.check(prop.getExpression());
+//		}
+//		// For BRTDP
+//		if (currentModelType == ModelType.MDP && settings.getString(PrismSettings.PRISM_MDP_SOLN_METHOD).equals("BRTDP")) {
+//			BRTDPModelChecker brtdpMC;
+//			brtdpMC = new BRTDPModelChecker(this, currentModulesFile, propertiesFile);
+//			return brtdpMC.check(prop.getExpression());
+//		}
 		// Auto-switch engine if required
 		if (currentModelType == ModelType.MDP && !Expression.containsMultiObjective(prop.getExpression())) {
 			if (getMDPSolnMethod() != Prism.MDP_VALITER && !getExplicit()) {

@@ -31,6 +31,7 @@ import prism.ModelGenerator;
 import prism.ModelInfo;
 import prism.Prism;
 import prism.PrismException;
+import prism.PrismFileLog;
 import prism.PrismLangException;
 import prism.PrismLog;
 import prism.ProductModelGenerator;
@@ -53,8 +54,8 @@ public class SingleAgentLoader
 	String agentLabel;
 	public ProductModelGenerator prodModelGen;
 	String latestSolutionInvoked;
-	ArrayList<HashMap<State, Double>> partialSatSolution;
-	HashMap<Objectives, Integer> rewStructNameIndex;
+	HashMap<Objectives, HashMap<State, Double>> partialSatSolution;
+//	HashMap<Objectives, Integer> rewStructNameIndex;
 	HashMap<State, HashMap<Object, Integer>> stateActionIndices;
 	boolean printMessages;
 	ArrayList<Integer> sharedStateIndices;
@@ -141,18 +142,24 @@ public class SingleAgentLoader
 		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
 
 		MDP prodmdp = prod.getProductModel();
+		
 		solutionVarList = prodmdp.getVarList();
 		solutionStateList = prodmdp.getStatesList();
 		updateSharedStateIndices(solutionVarList);
-		BitSet acc = ((AcceptanceReach) prod.getAcceptance()).getGoalStates();
+		BitSet acc = tempda.getAccStates();
 
 		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
+
+		PrismLog out = new PrismFileLog(resLoc+"pmdp.dot"); 
+		prodmdp.exportToDotFile(out, null, true);
+		out.close();
+		
 		MDStrategy strat = (MDStrategy) (result.strat);
 		this.reachProbsSolution = strat;
 		return strat;
 	}
 
-	public ArrayList<HashMap<State, Double>> solveUsingPartialSatisfaction() throws PrismException
+	public HashMap<Objectives, HashMap<State, Double>> solveUsingPartialSatisfaction() throws PrismException
 	{
 		if (printMessages) {
 			mainLog.println("Solving " + agentLabel + " using partial satisfaction");
@@ -175,16 +182,35 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		ArrayList<HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace);
+		PolicyCreator pc = new PolicyCreator();
+		HashMap<String, HashMap<State, Double>> result =
+				mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
 		updateSharedStateIndices(solutionVarList);
-		partialSatSolution = result;
-		this.rewStructNameIndex = new HashMap<Objectives, Integer>();
-		rewStructNameIndex.put(Objectives.Cost, 1);
-		rewStructNameIndex.put(Objectives.Progression, 2);
-		rewStructNameIndex.put(Objectives.Probability, 0);
+		
+		partialSatSolution = new HashMap<Objectives, HashMap<State, Double>>();
+		Objectives obj; 
+		for(String r: result.keySet())
+		{
+			if(r.contentEquals("cost"))
+				obj = Objectives.Cost; 
+			else if (r.contentEquals("prog"))
+				obj = Objectives.Progression; 
+			else if (r.contentEquals("prob"))
+				obj = Objectives.Probability; 
+			else 
+				throw new PrismException("Hain?");
+			
+			partialSatSolution.put(obj,result.get(r));
 
-		return result;
+		}
+
+//		this.rewStructNameIndex = new HashMap<Objectives, Integer>();
+//		rewStructNameIndex.put(Objectives.Cost, 1);
+//		rewStructNameIndex.put(Objectives.Progression, 2);
+//		rewStructNameIndex.put(Objectives.Probability, 0);
+		pc.savePolicy(savePlace, "_partsat");
+		return partialSatSolution;
 
 	}
 
@@ -222,6 +248,10 @@ public class SingleAgentLoader
 		DA<BitSet, ? extends AcceptanceOmega> da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
 		da.setDistancesToAcc();
 		daAccStates = da.getAccStates();
+		PrismLog out = new PrismFileLog(resLoc+"da.dot");
+		//printing the da 
+		da.print(out, "dot");
+		out.close();
 		prodModelGen = new ProductModelGenerator(prismModelGen, da, labelExprs);
 		prism.loadModelGenerator(prismModelGen);
 		return da;
@@ -261,8 +291,8 @@ public class SingleAgentLoader
 	{
 		State solState = getSolutionState(prodModGenState);
 		if (solState != null) {
-			int costIndex = this.rewStructNameIndex.get(objective);
-			HashMap<State, Double> solutionValues = this.partialSatSolution.get(costIndex);
+//			int costIndex = this.rewStructNameIndex.get(objective);
+			HashMap<State, Double> solutionValues = this.partialSatSolution.get(objective);
 			if (solutionValues.containsKey(solState))
 				return solutionValues.get(solState);
 		}

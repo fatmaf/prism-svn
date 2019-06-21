@@ -34,7 +34,6 @@ import java.lang.Math;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
@@ -46,6 +45,7 @@ import prism.PrismNotSupportedException;
 import prism.PrismPrintStreamLog;
 import acceptance.AcceptanceOmega;
 import acceptance.AcceptanceRabin;
+import acceptance.AcceptanceRabin.RabinPair;
 import acceptance.AcceptanceReach;
 
 /**
@@ -107,7 +107,6 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 			invertedEdges.add(new ArrayList<Edge>());
 		}
 	}
-	
 
 	public void setAcceptance(Acceptance acceptance)
 	{
@@ -479,7 +478,6 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		}
 		// We are fine with an empty apList or an apList that lacks some of the expected Li.
 	}
-
 	/*
 	 *  Calculate the distance to a target state 
 	 */
@@ -556,16 +554,64 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	/**
 	 * Sets the list of distances (weighed by number of transitions) to an accepting state (if the acceptance type is AcceptanceReach)
 	 */
-	public void setDistancesToAcc()
-	{		//TODO METER ISTO EM FUNCAO DO SET ACIMA
-		BitSet acc = null;
+	public List<Double> setDistancesToAcc()
+	{		
+		
+		BitSet acc;
 		//Check if its a DFA
-		if (!(acceptance instanceof AcceptanceReach)) {
-			acc = ((AcceptanceRabin)acceptance).get(0).getK(); //TODO - iterar for todoas as componentes
-		} else {
+		if (acceptance instanceof AcceptanceReach) {
 			acc = ((AcceptanceReach)acceptance).getGoalStates();
+		} else if (acceptance instanceof AcceptanceRabin) {
+				acc = getRabinAccStates();
+			} else {
+				return null;
 		}
 		
+//		//initialise distances list
+//		distsToAcc = new ArrayList<Double>(size);
+//
+//		int i, j;
+//		Deque<Integer> queue = new ArrayDeque<Integer>();
+//		for(i = 0; i < size; i++) {
+//			if(acc.get(i)) {
+//				distsToAcc.add(0.0);
+//				queue.add(i);
+//			}
+//			else {
+//				distsToAcc.add(new Double(size));
+//			}
+//		}
+//		
+//		//Calculate distances
+//		int currentState;
+//		int numEdges;
+//		Double newDist;
+//		Double minDist=Double.MAX_VALUE;
+//		while(!queue.isEmpty()) {
+//			currentState=queue.poll();
+//			for (i = 0; i < size; i++) {
+//				numEdges = getNumEdges(i,currentState);
+//				if (numEdges > 0) {
+//					newDist=distsToAcc.get(currentState)+1.0/numEdges;
+//					if (newDist < distsToAcc.get(i)) {
+//						queue.add(i);
+//						distsToAcc.set(i,newDist);
+//						minDist=Math.min(minDist, newDist);
+//					}
+//				}
+//			}
+//		}
+//
+//		BitSet reachableStatesI, reachableStatesJ;
+//		for (i=0; i < size; i++) {
+//			reachableStatesI=getReachableStates(i);
+//			for (j=0; j < size; j++) {
+//				reachableStatesJ=getReachableStates(j);
+//				if (reachableStatesI.get(j) && reachableStatesJ.get(i)) {
+//					distsToAcc.set(i, Math.max(distsToAcc.get(i), distsToAcc.get(j)));
+//				}
+//			}
+//		}
 		//initialise distances list
 		sinkStates = new BitSet(size);
 		distsToAcc = new ArrayList<Double>(size);
@@ -621,21 +667,27 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 			}
 			distsToAcc.set(i, distsToAcc.get(i)/initDist);
 		}
+		return distsToAcc;
 	}
 	
-	/*
-	 * Return the accepting states of this DA as a BitSet
-	 */
-	public BitSet getAccStates() {
+	public BitSet getRabinAccStates()
+	{	
+		BitSet acc = new BitSet();
+		AcceptanceRabin acceptance = (AcceptanceRabin)getAcceptance();
+		for (RabinPair pair : acceptance ) {
+			acc.or(pair.getK());
+		}
+//		System.out.println("GET ACC");
+		return acc;
+	}
+	
+	public BitSet getAccStates()
+	{
 		BitSet daAcc = new BitSet(size);
 		if (getAcceptance() instanceof AcceptanceReach) {
 			daAcc = ((AcceptanceReach)getAcceptance()).getGoalStates();
-		} else {
-			AcceptanceRabin acceptance = (AcceptanceRabin)getAcceptance();
-			for (int accComponentIndex = 0; accComponentIndex < acceptance.size(); accComponentIndex++) {
-				daAcc.or(acceptance.get(accComponentIndex).getK());
-			}
-		}
+		} else
+			daAcc = getRabinAccStates();
 		return daAcc;
 	}
 
@@ -666,6 +718,10 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 	
 	public BitSet getSinkStates() {
 		return sinkStates;
+	}
+	public boolean isSinkState(int src)
+	{
+		return sinkStates.get(src);
 	}
 
 }
