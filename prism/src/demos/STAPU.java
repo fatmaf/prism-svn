@@ -56,7 +56,7 @@ public class STAPU {
 	// long timeout = 100 * 60 * 1000;
 	public PrismLog mainLog;
 	Prism prismC;
-	MMDPSimple jointPolicy;
+//	MMDPSimple jointPolicy;
 
 	boolean hasDoor = true;
 	ResultsTiming resSaver;
@@ -102,24 +102,24 @@ public class STAPU {
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
 
-			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-			StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
+//			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
+//			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
+//			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
+//			StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
 				res.daList.get(otherDAs).updateStateNumbers(product);
-				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
-						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
-				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
-						name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
+//				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
+//						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
+//				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
+//						name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
 			}
-			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-					name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
+//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
+//					name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
 			res.updateProductToMDPStateMapping(product);
-			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
+//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
+//					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
 		res.setDAListAndFinalProduct(product);
@@ -147,13 +147,13 @@ public class STAPU {
 		mc.setGenStrat(true);
 		// mc.genStrat = true;
 		// lets set them all to true
-		ModelCheckerResult anotherSol = mc.computeUntilProbs(mdp, statesToRemainIn, target, false);
-		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat" + mdp.getFirstInitialState(),
-				true);
-		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
-		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
-		if (mdp.getFirstInitialState() != -1)
-			mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
+//		ModelCheckerResult anotherSol = mc.computeUntilProbs(mdp, statesToRemainIn, target, false);
+//		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat" + mdp.getFirstInitialState(),
+//				true);
+//		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
+//		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
+//		if (mdp.getFirstInitialState() != -1)
+//			mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
 
 		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn, rewards, null,
 				minRewards, target, probPreference, probInitVal);
@@ -227,7 +227,7 @@ public class STAPU {
 				model = models.get(i);
 				modulesFile = modulesFiles.get(i);
 			}
-			StatesHelper.saveMDP((MDP) model, null, "", "mdp" + i, true);
+//			StatesHelper.saveMDP((MDP) model, null, "", "mdp" + i, true);
 
 			int initState = model.getFirstInitialState();
 		
@@ -293,20 +293,20 @@ public class STAPU {
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
 
 		
-		for (int rew = 0; rew < rewards.size(); rew++) {
-			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
-					"rew" + rew, true);
-
-			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), null, "",
-					"teamMDPWithSwitches_Rewards" + rew, true);
-			
-		}
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
-		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
-				true);
-		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
-		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess", true);
-		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc", true);
+//		for (int rew = 0; rew < rewards.size(); rew++) {
+//			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
+//					"rew" + rew, true);
+//
+//			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), null, "",
+//					"teamMDPWithSwitches_Rewards" + rew, true);
+//			
+//		}
+//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
+//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
+//				true);
+//		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
+//		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess", true);
+//		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc", true);
 
 
 		resSaver.setLocalStartTime();
@@ -315,10 +315,10 @@ public class STAPU {
 				seqTeamMDP.acceptingStates, seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
 		
-		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
+//		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
 		// solution.strat.exportInducedModel(mainLogRef);
 		// solution.strat.exportActions(mainLogRef);
-		mainLog.println(seqTeamMDP.acceptingStates.toString());
+//		mainLog.println(seqTeamMDP.acceptingStates.toString());
 
 		// add to joint policy
 		// MMDPSimple
@@ -361,7 +361,7 @@ public class STAPU {
 				
 				// get first failed robot
 				numPlanning++;
-				resSaver.recordValues(numPlanning, "Realloc "+numPlanning, varIDs.numreallocationsincode);
+				resSaver.recordValues(numPlanning, "Realloc", varIDs.numreallocationsincode);
 				resSaver.setScopeStartTime();
 				
 				int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(stateToExplore,
@@ -378,20 +378,20 @@ public class STAPU {
 
 					statesToAvoid.or(seqTeamMDP.statesToAvoid);
 				}
-				if (stateToExploreAndBitSet.getValue() != null) {
-					String stateVal = stateToExplore.toString();
-					stateVal = stateVal.replace(",", "_");
-					stateVal = stateVal.replace(")", "");
-					stateVal = stateVal.replace("(", "");
-					StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs" + stateVal, true);
-				}
-				if (stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
-					mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
+//				if (stateToExploreAndBitSet.getValue() != null) {
+//					String stateVal = stateToExplore.toString();
+//					stateVal = stateVal.replace(",", "_");
+//					stateVal = stateVal.replace(")", "");
+//					stateVal = stateVal.replace("(", "");
+//					StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs" + stateVal, true);
+//				}
+//				if (stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
+//					mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
 
 				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 						statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 				
-				resSaver.recordTime("Solution Time "+numPlanning, varIDs.reallocations, true);
+				resSaver.recordTime("Solution Time", varIDs.reallocations, true);
 				resSaver.setScopeStartTime();
 				jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches,
 						stateToExplore);
@@ -399,7 +399,7 @@ public class STAPU {
 			}
 		}
 		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime,false);
-		
+		jointPolicyBuilder.saveJointPolicyMDP();
 		mainLog.println("All done");
 		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
@@ -611,7 +611,8 @@ public class STAPU {
 			runOneExample(
 //					grid_3_example,
 //					three_robot_one_door, 
-					two_robot_door_multiple_switches,
+//					two_robot_door_multiple_switches,
+					no_door_example,
 					example_has_door_list,
 					example_num_door_list, 
 					example_num_robot_list,
@@ -753,11 +754,12 @@ public class STAPU {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (TimeoutException e) {
-			mainLog.println("Timed out - " + (resSaver.timeout / (1000)) + " seconds, "
-					+ (resSaver.timeout / (1000 * 60)) + " mins");
+			mainLog.println("Timed out - " + 
+		TimeUnit.SECONDS.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " seconds, "
+					+ TimeUnit.MINUTES.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " mins");
 			// TODO Auto-generated catch block
-			if (jointPolicy != null)
-				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
+//			if (jointPolicy != null)
+//				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
 			e.printStackTrace();
 		} // awaits termination
 

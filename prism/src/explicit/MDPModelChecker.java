@@ -1015,8 +1015,8 @@ public class MDPModelChecker extends ProbModelChecker {
 		boolean min = false;
 		int numRewards = rewards.size();
 
-		boolean debugDetails = true;
-		int debugGranularity = 1; // 1 = fine, 2 okay, 3 coarse
+		boolean debugDetails = false;
+		int debugGranularity = 3; // 1 = fine, 2 okay, 3 coarse
 
 		timerGlobal = System.currentTimeMillis();
 
@@ -1189,7 +1189,7 @@ public class MDPModelChecker extends ProbModelChecker {
 			statesToIgnoreForVI.flip(0, unknown.size());
 		}
 
-		boolean turnOffRewPrint = false;//true;
+		boolean turnOffRewPrint =true;
 
 		while (!done && iters < maxIters) {
 			
