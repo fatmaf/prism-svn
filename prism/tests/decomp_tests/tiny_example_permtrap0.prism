@@ -1,0 +1,85 @@
+
+
+mdp
+
+       const int failstate = -1;
+       const double p = 0.8;
+       const double ps = 1.0;
+       
+
+
+module world
+
+       s:[failstate..8] init 0;
+       
+       //the last state is a fail state
+       [v0_2] (s=0) -> (s'=2);
+       [v2_0] (s=2) -> (s'=0);
+       
+       [v2_3] (s=2) -> p:(s'=3) + (1-p):(s'=failstate);
+       [v3_2] (s=3) -> p:(s'=2) + (1-p):(s'=failstate);
+
+       [v2_5] (s=2) -> p:(s'=5) + (1-p):(s'=failstate);
+       [v5_2] (s=5) -> p:(s'=2) + (1-p):(s'=failstate);
+       
+//       [v3_4] (s=3) -> (s'=4);
+//       [v4_3] (s=4) -> (s'=3);
+       [v3_4_7] (s=3) -> p:(s'=4) + (1-p):(s'=7);
+       [v4_3_7] (s=4) -> p:(s'=3) + (1-p):(s'=7);
+
+       [v3_7] (s=3) -> (s'=7);
+       [v7_8] (s=7) -> (s'=8);
+       [v8_7] (s=8) -> (s'=7);
+       
+       [v4_6] (s=4) -> p:(s'=6) + (1-p):(s'=failstate);
+       [v6_4] (s=6) -> p:(s'=4) + (1-p):(s'=failstate);
+
+       [v1_4] (s=1) -> (s'=4);
+       [v4_1] (s=4) -> (s'=1);
+
+       
+       [failed] (s=failstate) -> (s'=failstate);
+
+endmodule 
+
+label "v0" = s=0; 
+label "v1" = s=1; 
+label "v2" = s=2; 
+label "v3" = s=3; 
+label "v4" = s=4;
+label "v5" = s=5; 
+label "v6" = s=6;
+//label "v7" = s=7;
+//label "v8" = s=8;
+//label "v9" = s=9; 
+
+
+rewards "time"
+//for future use to replace with regexp m-x replace-regexp <ret> ->.+ <ret>  :1.0;
+
+       [v0_2] (s=0) :1.0;
+       [v2_0] (s=2) :1.0;
+       
+       [v2_3] (s=2) :1.0;
+       [v3_2] (s=3) :1.0;
+
+       [v2_5] (s=2) :1.0;
+       [v5_2] (s=5) :1.0;
+       
+       [v3_4_7] (s=3) :1.0;
+       [v4_3_7] (s=4) :1.0;
+       
+       [v4_6] (s=4) :1.0;
+       [v6_4] (s=6) :1.0;
+
+       [v1_4] (s=1) :1.0;
+       [v4_1] (s=4) :1.0;
+
+       
+       [failed] (s=failstate) :1.0;
+
+
+
+endrewards
+
+

@@ -1,0 +1,869 @@
+
+
+mdp
+
+       const int failstate = -1;
+       const double p = 0.8;
+       const double ps = 1.0;
+       const closed = 0;
+       const open = 1;
+       const unknown = -1; 
+
+
+module world
+
+       s1:[failstate..6] init 0;
+       s2:[failstate..6] init 1;
+       door:[unknown .. open] init unknown;
+       
+       //the last state is a fail state
+       [v0_2_v0_2] (s1=0) & (s2=0) -> (s1'=2) & (s2'=2);
+       //
+       [v2_0_v0_2] (s1=2) & (s2=0) -> (s1'=0) & (s2'=2);
+
+       [v2_cd_v0_2] (s1=2) & (door=unknown) & (s2=0) -> p:(door'=open) & (s2'=2) + (1-p):(door'=closed) & (s2'=2);
+       [v2_3_v0_2] (s1=2) & (door=open) & (s2=0) -> p:(s1'=3) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+       [v3_2_v0_2] (s1=3) & (door=open) & (s2=0) -> p:(s1'=2) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+       
+
+       [v2_5_v0_2] (s1=2) & (s2=0) -> p:(s1'=5) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+       [v5_2_v0_2] (s1=5) & (s2=0) -> p:(s1'=2) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+
+       [v3_cd_v0_2] (s1=3) & (door=unknown) & (s2=0) -> p:(door'=open) & (s2'=2) + (1-p):(door'=closed) & (s2'=2);
+       [v3_4_v0_2] (s1=3) & (s2=0) -> (s1'=4) & (s2'=2);
+       [v4_3_v0_2] (s1=4) & (s2=0) -> (s1'=3) & (s2'=2);
+       
+       [v4_6_v0_2] (s1=4) & (s2=0) -> p:(s1'=6) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+       [v6_4_v0_2] (s1=6) & (s2=0) -> p:(s1'=4) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=2);
+
+       [v1_4_v0_2] (s1=1) & (s2=0) -> (s1'=4) & (s2'=2);
+       [v4_1_v0_2] (s1=4) & (s2=0) -> (s1'=1) & (s2'=2);
+
+       
+       [failed_v0_2] (s1=failstate) & (s2=0) -> (s1'=failstate) & (s2'=2);
+
+
+       [v0_2_v2_0] (s1=0) & (s2=2) -> (s1'=2) & (s2'=0);
+       [v2_0_v2_0] (s1=2) & (s2=2) -> (s1'=0) & (s2'=0);
+       //
+
+       [v2_cd_v2_0] (s1=2) & (door=unknown) & (s2=2) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v2_3_v2_0] (s1=2) & (door=open) & (s2=2) -> p:(s1'=3) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       [v3_2_v2_0] (s1=3) & (door=open) & (s2=2) -> p:(s1'=2) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       
+
+       [v2_5_v2_0] (s1=2) & (s2=2) -> p:(s1'=5) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       [v5_2_v2_0] (s1=5) & (s2=2) -> p:(s1'=2) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+
+       [v3_cd_v2_0] (s1=3) & (door=unknown) & (s2=2) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v3_4_v2_0] (s1=3) & (s2=2) -> (s1'=4) & (s2'=0);
+       [v4_3_v2_0] (s1=4) & (s2=2) -> (s1'=3) & (s2'=0);
+       
+       [v4_6_v2_0] (s1=4) & (s2=2) -> p:(s1'=6) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       [v6_4_v2_0] (s1=6) & (s2=2) -> p:(s1'=4) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+
+       [v1_4_v2_0] (s1=1) & (s2=2) -> (s1'=4) & (s2'=0);
+       [v4_1_v2_0] (s1=4) & (s2=2) -> (s1'=1) & (s2'=0);
+
+       
+       [failed_v2_0] (s1=failstate) & (s2=2) -> (s1'=failstate) & (s2'=0);
+
+
+       [v0_2_v2_cd] (s1=0) & (s2=2) & (door=unknown) -> p:(s1'=2) & (door'=open) + (1-p): (s1'=2) & (door'=closed);
+       [v2_0_v2_cd] (s1=2) & (s2=2) & (door=unknown) -> p:(s1'=0) & (door'=open) + (1-p): (s1'=0) & (door'=closed);
+       //
+
+       [v2_cd_v2_cd] (s1=2) & (door=unknown) & (s2=2) -> p:(door'=open) + (1-p):(door'=closed);
+       //
+//       [v2_3_v2_cd] (s1=2) & (door=open) & (s2=2) -> p:(s1'=3) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+//      [v3_2_v2_cd] (s1=3) & (door=open) & (s2=2) -> p:(s1'=2) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       
+
+       [v2_5_v2_cd] (s1=2) & (s2=2) & (door=unknown) ->p*p:(s1'=5) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=5) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+       [v5_2_v2_cd] (s1=5) & (s2=2) & (door=unknown) ->p*p:(s1'=2) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=2) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+
+       [v3_cd_v2_cd] (s1=3) & (door=unknown) & (s2=2) -> p:(door'=open) + (1-p):(door'=closed);
+       [v3_4_v2_cd] (s1=3) & (s2=2) & (door=unknown) -> p:(s1'=4) & (door'=open) + (1-p):(s1'=4) & (door'=closed);
+       [v4_3_v2_cd] (s1=4) & (s2=2) & (door=unknown) -> p:(s1'=3) & (door'=open) + (1-p):(s1'=3) & (door'=closed);
+       
+       [v4_6_v2_cd] (s1=4) & (s2=2) & (door=unknown) -> p*p:(s1'=6) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=6) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+       [v6_4_v2_cd] (s1=6) & (s2=2) & (door=unknown) -> p*p:(s1'=4) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=4) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+
+       [v1_4_v2_cd] (s1=1) & (s2=2) & (door=unknown) -> p:(s1'=4) & (door'=open) + (1-p): (s1'=4) & (door'=closed);
+       [v4_1_v2_cd] (s1=4) & (s2=2) & (door=unknown) -> p:(s1'=1) & (door'=open) + (1-p): (s1'=1) & (door'=closed);
+
+       
+       [failed_v2_cd] (s1=failstate) & (s2=2) & (door=unknown) -> p:(s1'=failstate) & (door'=open) + (1-p): (s1'=failstate) & (door'=closed);
+
+
+
+       [v0_2_v2_3] (s1=0) & (s2=2)  & (door=open) -> p:(s1'=2) & (s2'=3) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v2_3] (s1=2) & (s2=2)  & (door=open) -> p:(s1'=0) & (s2'=3) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+//     [v2_cd_v2_3] (s1=2) & (door=unknown) & (s2=2) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       //
+       [v2_3_v2_3] (s1=2) & (door=open) & (s2=2) -> p*p:(s1'=3) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v2_3] (s1=3) & (door=open) & (s2=2) -> p*p:(s1'=2) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v2_3] (s1=2) & (s2=2)  & (door=open) -> p*p:(s1'=5) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v2_3] (s1=5) & (s2=2)  & (door=open) -> p*p:(s1'=2) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+//       [v3_cd_v2_3] (s1=3) & (door=unknown) & (s2=2) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v3_4_v2_3] (s1=3) & (s2=2)  & (door=open) -> p:(s1'=4) & (s2'=3) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v2_3] (s1=4) & (s2=2)  & (door=open) -> p:(s1'=3) & (s2'=3) + (1-p):(s1'=3) & (s2'=failstate);
+       
+       [v4_6_v2_3] (s1=4) & (s2=2)  & (door=open) -> p*p:(s1'=6) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v2_3] (s1=6) & (s2=2)  & (door=open) -> p*p:(s1'=4) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v2_3] (s1=1) & (s2=2)  & (door=open) -> p:(s1'=4) & (s2'=3) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v2_3] (s1=4) & (s2=2)  & (door=open) -> p:(s1'=1) & (s2'=3) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v2_3] (s1=failstate) & (s2=2)  & (door=open) -> p:(s1'=failstate) & (s2'=3) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+
+       [v0_2_v3_2] (s1=0) & (s2=3)  & (door=open) -> p:(s1'=2) & (s2'=2) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v3_2] (s1=2) & (s2=3)  & (door=open) -> p:(s1'=0) & (s2'=2) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+//     [v2_cd_v3_2] (s1=2) & (door=unknown) & (s2=3) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       //
+       [v2_3_v3_2] (s1=2) & (door=open) & (s2=3) -> p*p:(s1'=3) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v3_2] (s1=3) & (door=open) & (s2=3) -> p*p:(s1'=2) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+
+       [v2_5_v3_2] (s1=2) & (s2=3)  & (door=open) -> p*p:(s1'=5) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v3_2] (s1=5) & (s2=3)  & (door=open) -> p*p:(s1'=2) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+//       [v3_cd_v3_2] (s1=3) & (door=unknown) & (s2=3) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v3_4_v3_2] (s1=3) & (s2=3)  & (door=open) -> p:(s1'=4) & (s2'=2) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v3_2] (s1=4) & (s2=3)  & (door=open) -> p:(s1'=3) & (s2'=2) + (1-p):(s1'=3) & (s2'=failstate);
+       
+       [v4_6_v3_2] (s1=4) & (s2=3)  & (door=open) -> p*p:(s1'=6) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v3_2] (s1=6) & (s2=3)  & (door=open) -> p*p:(s1'=4) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v3_2] (s1=1) & (s2=3)  & (door=open) -> p:(s1'=4) & (s2'=2) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v3_2] (s1=4) & (s2=3)  & (door=open) -> p:(s1'=1) & (s2'=2) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v3_2] (s1=failstate) & (s2=3)  & (door=open) -> p:(s1'=failstate) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+ 
+
+       [v0_2_v3_cd] (s1=0) & (s2=3) & (door=unknown) -> p:(s1'=2) & (door'=open) + (1-p): (s1'=2) & (door'=closed);
+       [v2_0_v3_cd] (s1=2) & (s2=3) & (door=unknown) -> p:(s1'=0) & (door'=open) + (1-p): (s1'=0) & (door'=closed);
+       //
+
+       [v2_cd_v3_cd] (s1=2) & (door=unknown) & (s2=3) -> p:(door'=open) + (1-p):(door'=closed);
+       //
+//       [v2_3_v3_cd] (s1=2) & (door=open) & (s2=3) -> p:(s1'=3) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+//      [v3_2_v3_cd] (s1=3) & (door=open) & (s2=3) -> p:(s1'=2) & (s2'=0) + (1-p):(s1'=failstate) & (s2'=0);
+       
+
+       [v2_5_v3_cd] (s1=2) & (s2=3) & (door=unknown) ->p*p:(s1'=5) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=5) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+       [v5_2_v3_cd] (s1=5) & (s2=3) & (door=unknown) ->p*p:(s1'=2) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=2) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+
+       [v3_cd_v3_cd] (s1=3) & (door=unknown) & (s2=3) -> p:(door'=open) + (1-p):(door'=closed);
+       //
+       [v3_4_v3_cd] (s1=3) & (s2=3) & (door=unknown) -> p:(s1'=4) & (door'=open) + (1-p):(s1'=4) & (door'=closed);
+       [v4_3_v3_cd] (s1=4) & (s2=3) & (door=unknown) -> p:(s1'=3) & (door'=open) + (1-p):(s1'=3) & (door'=closed);
+       
+       [v4_6_v3_cd] (s1=4) & (s2=3) & (door=unknown) -> p*p:(s1'=6) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=6) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+       [v6_4_v3_cd] (s1=6) & (s2=3) & (door=unknown) -> p*p:(s1'=4) & (door'=open) + (1-p)*p:(s1'=failstate) & (door'=open) + (1-p)*p:(door'=closed)&(s1'=4) + (1-p)*(1-p):(door'=closed)&(s1'=failstate);
+
+       [v1_4_v3_cd] (s1=1) & (s2=3) & (door=unknown) -> p:(s1'=4) & (door'=open) + (1-p): (s1'=4) & (door'=closed);
+       [v4_1_v3_cd] (s1=4) & (s2=3) & (door=unknown) -> p:(s1'=1) & (door'=open) + (1-p): (s1'=1) & (door'=closed);
+
+       
+       [failed_v3_cd] (s1=failstate) & (s2=3) & (door=unknown) -> p:(s1'=failstate) & (door'=open) + (1-p): (s1'=failstate) & (door'=closed);
+
+
+       [v0_2_v3_4] (s1=0) & (s2=3)    -> p:(s1'=2) & (s2'=4) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v3_4] (s1=2) & (s2=3)    -> p:(s1'=0) & (s2'=4) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+//     [v2_cd_v3_4] (s1=2) & (door=unknown) & (s2=3) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       //
+       [v2_3_v3_4] (s1=2) & (door=open) & (s2=3) -> p*p:(s1'=3) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v3_4] (s1=3) & (door=open) & (s2=3) -> p*p:(s1'=2) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v3_4] (s1=2) & (s2=3)    -> p*p:(s1'=5) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v3_4] (s1=5) & (s2=3)    -> p*p:(s1'=2) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+//       [v3_cd_v3_4] (s1=3) & (door=unknown) & (s2=3) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v3_4_v3_4] (s1=3) & (s2=3)    -> p:(s1'=4) & (s2'=4) + (1-p):(s1'=4) & (s2'=failstate);
+       //
+       [v4_3_v3_4] (s1=4) & (s2=3)    -> p:(s1'=3) & (s2'=4) + (1-p):(s1'=3) & (s2'=failstate);
+       
+       [v4_6_v3_4] (s1=4) & (s2=3)    -> p*p:(s1'=6) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v3_4] (s1=6) & (s2=3)    -> p*p:(s1'=4) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v3_4] (s1=1) & (s2=3)    -> p:(s1'=4) & (s2'=4) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v3_4] (s1=4) & (s2=3)    -> p:(s1'=1) & (s2'=4) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v3_4] (s1=failstate) & (s2=3)    -> p:(s1'=failstate) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+       [v0_2_v4_3] (s1=0) & (s2=4)    -> p:(s1'=2) & (s2'=3) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v4_3] (s1=2) & (s2=4)    -> p:(s1'=0) & (s2'=3) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+//     [v2_cd_v4_3] (s1=2) & (door=unknown) & (s2=4) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       //
+       [v2_3_v4_3] (s1=2) & (door=open) & (s2=4) -> p*p:(s1'=3) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v4_3] (s1=3) & (door=open) & (s2=4) -> p*p:(s1'=2) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v4_3] (s1=2) & (s2=4)    -> p*p:(s1'=5) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v4_3] (s1=5) & (s2=4)    -> p*p:(s1'=2) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+//       [v3_cd_v4_3] (s1=3) & (door=unknown) & (s2=4) -> p:(door'=open) & (s2'=0) + (1-p):(door'=closed) & (s2'=0);
+       [v3_4_v4_3] (s1=3) & (s2=4)    -> p:(s1'=4) & (s2'=3) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v4_3] (s1=4) & (s2=4)    -> p:(s1'=3) & (s2'=3) + (1-p):(s1'=3) & (s2'=failstate);
+       //
+       
+       [v4_6_v4_3] (s1=4) & (s2=4)    -> p*p:(s1'=6) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v4_3] (s1=6) & (s2=4)    -> p*p:(s1'=4) & (s2'=3) + (1-p)*p:(s1'=failstate) & (s2'=3) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v4_3] (s1=1) & (s2=4)    -> p:(s1'=4) & (s2'=3) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v4_3] (s1=4) & (s2=4)    -> p:(s1'=1) & (s2'=3) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v4_3] (s1=failstate) & (s2=4)    -> p:(s1'=failstate) & (s2'=3) + (1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+
+       [v0_2_v1_4] (s1=0) & (s2=1) -> (s1'=2) & (s2'=4);
+       //
+       [v2_0_v1_4] (s1=2) & (s2=1) -> (s1'=0) & (s2'=4);
+
+       [v2_cd_v1_4] (s1=2) & (door=unknown) & (s2=1) -> p:(door'=open) & (s2'=4) + (1-p):(door'=closed) & (s2'=4);
+       [v2_3_v1_4] (s1=2) & (door=open) & (s2=1) -> p:(s1'=3) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+       [v3_2_v1_4] (s1=3) & (door=open) & (s2=1) -> p:(s1'=2) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+       
+
+       [v2_5_v1_4] (s1=2) & (s2=1) -> p:(s1'=5) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+       [v5_2_v1_4] (s1=5) & (s2=1) -> p:(s1'=2) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+
+       [v3_cd_v1_4] (s1=3) & (door=unknown) & (s2=1) -> p:(door'=open) & (s2'=4) + (1-p):(door'=closed) & (s2'=4);
+       [v3_4_v1_4] (s1=3) & (s2=1) -> (s1'=4) & (s2'=4);
+       [v4_3_v1_4] (s1=4) & (s2=1) -> (s1'=3) & (s2'=4);
+       
+       [v4_6_v1_4] (s1=4) & (s2=1) -> p:(s1'=6) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+       [v6_4_v1_4] (s1=6) & (s2=1) -> p:(s1'=4) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=4);
+
+       [v1_4_v1_4] (s1=1) & (s2=1) -> (s1'=4) & (s2'=4);
+       [v4_1_v1_4] (s1=4) & (s2=1) -> (s1'=1) & (s2'=4);
+
+       
+       [failed_v1_4] (s1=failstate) & (s2=1) -> (s1'=failstate) & (s2'=4);
+
+       [v0_2_v4_1] (s1=0) & (s2=4) -> (s1'=2) & (s2'=1);
+       [v2_0_v4_1] (s1=2) & (s2=4) -> (s1'=0) & (s2'=1);
+
+       [v2_cd_v4_1] (s1=2) & (door=unknown) & (s2=4) -> p:(door'=open) & (s2'=1) + (1-p):(door'=closed) & (s2'=1);
+       [v2_3_v4_1] (s1=2) & (door=open) & (s2=4) -> p:(s1'=3) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+       [v3_2_v4_1] (s1=3) & (door=open) & (s2=4) -> p:(s1'=2) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+       
+
+       [v2_5_v4_1] (s1=2) & (s2=4) -> p:(s1'=5) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+       [v5_2_v4_1] (s1=5) & (s2=4) -> p:(s1'=2) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+
+       [v3_cd_v4_1] (s1=3) & (door=unknown) & (s2=4) -> p:(door'=open) & (s2'=1) + (1-p):(door'=closed) & (s2'=1);
+       [v3_4_v4_1] (s1=3) & (s2=4) -> (s1'=4) & (s2'=1);
+       [v4_3_v4_1] (s1=4) & (s2=4) -> (s1'=3) & (s2'=1);
+       
+       [v4_6_v4_1] (s1=4) & (s2=4) -> p:(s1'=6) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+       [v6_4_v4_1] (s1=6) & (s2=4) -> p:(s1'=4) & (s2'=1) + (1-p):(s1'=failstate) & (s2'=1);
+
+       [v1_4_v4_1] (s1=1) & (s2=4) -> (s1'=4) & (s2'=1);
+       [v4_1_v4_1] (s1=4) & (s2=4) -> (s1'=1) & (s2'=1);
+//
+       
+       [failed_v4_1] (s1=failstate) & (s2=4) -> (s1'=failstate) & (s2'=1);
+
+
+       [v0_2_failstate] (s1=0) & (s2=failstate) -> (s1'=2) & (s2'=failstate);
+       [v2_0_failstate] (s1=2) & (s2=failstate) -> (s1'=0) & (s2'=failstate);
+
+       [v2_cd_failstate] (s1=2) & (door=unknown) & (s2=failstate) -> p:(door'=open) & (s2'=failstate) + (1-p):(door'=closed) & (s2'=failstate);
+       [v2_3_failstate] (s1=2) & (door=open) & (s2=failstate) -> p:(s1'=3) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+       [v3_2_failstate] (s1=3) & (door=open) & (s2=failstate) -> p:(s1'=2) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_failstate] (s1=2) & (s2=failstate) -> p:(s1'=5) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_failstate] (s1=5) & (s2=failstate) -> p:(s1'=2) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+       [v3_cd_failstate] (s1=3) & (door=unknown) & (s2=failstate) -> p:(door'=open) & (s2'=failstate) + (1-p):(door'=closed) & (s2'=failstate);
+       [v3_4_failstate] (s1=3) & (s2=failstate) -> (s1'=4) & (s2'=failstate);
+       [v4_3_failstate] (s1=4) & (s2=failstate) -> (s1'=3) & (s2'=failstate);
+       
+       [v4_6_failstate] (s1=4) & (s2=failstate) -> p:(s1'=6) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_failstate] (s1=6) & (s2=failstate) -> p:(s1'=4) & (s2'=failstate) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+       [v1_4_failstate] (s1=1) & (s2=failstate) -> (s1'=4) & (s2'=failstate);
+       [v4_1_failstate] (s1=4) & (s2=failstate) -> (s1'=1) & (s2'=failstate);
+       
+       [failed_failstate] (s1=failstate) & (s2=failstate) -> (s1'=failstate) & (s2'=failstate);
+       //
+
+      [v0_2_v2_5] (s1=0) & (s2=2)    -> p:(s1'=2) & (s2'=5) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v2_5] (s1=2) & (s2=2)    -> p:(s1'=0) & (s2'=5) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+      [v2_cd_v2_5] (s1=2) & (door=unknown) & (s2=2) -> p*p:(door'=open) & (s2'=5) + (1-p)*p:(door'=closed) & (s2'=5) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       //
+       [v2_3_v2_5] (s1=2) & (door=open) & (s2=2) -> p*p:(s1'=3) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v2_5] (s1=3) & (door=open) & (s2=2) -> p*p:(s1'=2) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v2_5] (s1=2) & (s2=2)    -> p*p:(s1'=5) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v2_5] (s1=5) & (s2=2)    -> p*p:(s1'=2) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v3_cd_v2_5] (s1=3) & (door=unknown) & (s2=2) -> p*p:(door'=open) & (s2'=5) + (1-p)*p:(door'=closed) & (s2'=5) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       [v3_4_v2_5] (s1=3) & (s2=2)    -> p:(s1'=4) & (s2'=5) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v2_5] (s1=4) & (s2=2)    -> p:(s1'=3) & (s2'=5) + (1-p):(s1'=3) & (s2'=failstate);
+       //
+       
+       [v4_6_v2_5] (s1=4) & (s2=2)    -> p*p:(s1'=6) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v2_5] (s1=6) & (s2=2)    -> p*p:(s1'=4) & (s2'=5) + (1-p)*p:(s1'=failstate) & (s2'=5) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v2_5] (s1=1) & (s2=2)    -> p:(s1'=4) & (s2'=5) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v2_5] (s1=4) & (s2=2)    -> p:(s1'=1) & (s2'=5) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v2_5] (s1=failstate) & (s2=2)    -> p:(s1'=failstate) & (s2'=5) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+
+      [v0_2_v5_2] (s1=0) & (s2=5)    -> p:(s1'=2) & (s2'=2) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v5_2] (s1=2) & (s2=5)    -> p:(s1'=0) & (s2'=2) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+      [v2_cd_v5_2] (s1=2) & (door=unknown) & (s2=5) -> p*p:(door'=open) & (s2'=2) + (1-p)*p:(door'=closed) & (s2'=2) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       //
+       [v2_3_v5_2] (s1=2) & (door=open) & (s2=5) -> p*p:(s1'=3) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v5_2] (s1=3) & (door=open) & (s2=5) -> p*p:(s1'=2) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v5_2] (s1=2) & (s2=5)    -> p*p:(s1'=5) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v5_2] (s1=5) & (s2=5)    -> p*p:(s1'=2) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v3_cd_v5_2] (s1=3) & (door=unknown) & (s2=5) -> p*p:(door'=open) & (s2'=2) + (1-p)*p:(door'=closed) & (s2'=2) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       [v3_4_v5_2] (s1=3) & (s2=5)    -> p:(s1'=4) & (s2'=2) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v5_2] (s1=4) & (s2=5)    -> p:(s1'=3) & (s2'=2) + (1-p):(s1'=3) & (s2'=failstate);
+       //
+       
+       [v4_6_v5_2] (s1=4) & (s2=5)    -> p*p:(s1'=6) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v5_2] (s1=6) & (s2=5)    -> p*p:(s1'=4) & (s2'=2) + (1-p)*p:(s1'=failstate) & (s2'=2) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v5_2] (s1=1) & (s2=5)    -> p:(s1'=4) & (s2'=2) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v5_2] (s1=4) & (s2=5)    -> p:(s1'=1) & (s2'=2) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v5_2] (s1=failstate) & (s2=5)    -> p:(s1'=failstate) & (s2'=2) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+      [v0_2_v4_6] (s1=0) & (s2=4)    -> p:(s1'=2) & (s2'=6) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v4_6] (s1=2) & (s2=4)    -> p:(s1'=0) & (s2'=6) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+      [v2_cd_v4_6] (s1=2) & (door=unknown) & (s2=4) -> p*p:(door'=open) & (s2'=6) + (1-p)*p:(door'=closed) & (s2'=6) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       //
+       [v2_3_v4_6] (s1=2) & (door=open) & (s2=4) -> p*p:(s1'=3) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v4_6] (s1=3) & (door=open) & (s2=4) -> p*p:(s1'=2) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v4_6] (s1=2) & (s2=4)    -> p*p:(s1'=5) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v4_6] (s1=5) & (s2=4)    -> p*p:(s1'=2) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v3_cd_v4_6] (s1=3) & (door=unknown) & (s2=4) -> p*p:(door'=open) & (s2'=6) + (1-p)*p:(door'=closed) & (s2'=6) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       [v3_4_v4_6] (s1=3) & (s2=4)    -> p:(s1'=4) & (s2'=6) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v4_6] (s1=4) & (s2=4)    -> p:(s1'=3) & (s2'=6) + (1-p):(s1'=3) & (s2'=failstate);
+       //
+       
+       [v4_6_v4_6] (s1=4) & (s2=4)    -> p*p:(s1'=6) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v4_6] (s1=6) & (s2=4)    -> p*p:(s1'=4) & (s2'=6) + (1-p)*p:(s1'=failstate) & (s2'=6) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v4_6] (s1=1) & (s2=4)    -> p:(s1'=4) & (s2'=6) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v4_6] (s1=4) & (s2=4)    -> p:(s1'=1) & (s2'=6) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v4_6] (s1=failstate) & (s2=4)    -> p:(s1'=failstate) & (s2'=6) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+
+      [v0_2_v6_4] (s1=0) & (s2=6)    -> p:(s1'=2) & (s2'=4) + (1-p):(s1'=2) & (s2'=failstate);
+       [v2_0_v6_4] (s1=2) & (s2=6)    -> p:(s1'=0) & (s2'=4) + (1-p):(s1'=0) & (s2'=failstate);
+       //
+
+      [v2_cd_v6_4] (s1=2) & (door=unknown) & (s2=6) -> p*p:(door'=open) & (s2'=4) + (1-p)*p:(door'=closed) & (s2'=4) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       //
+       [v2_3_v6_4] (s1=2) & (door=open) & (s2=6) -> p*p:(s1'=3) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=3) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       //
+       [v3_2_v6_4] (s1=3) & (door=open) & (s2=6) -> p*p:(s1'=2) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+
+       [v2_5_v6_4] (s1=2) & (s2=6)    -> p*p:(s1'=5) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=5) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v5_2_v6_4] (s1=5) & (s2=6)    -> p*p:(s1'=2) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=2) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v3_cd_v6_4] (s1=3) & (door=unknown) & (s2=6) -> p*p:(door'=open) & (s2'=4) + (1-p)*p:(door'=closed) & (s2'=4) + p*(1-p):(door'=open) & (s2'=failstate) + (1-p)*(1-p):(door'=closed) &(s2'=failstate);
+       [v3_4_v6_4] (s1=3) & (s2=6)    -> p:(s1'=4) & (s2'=4) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_3_v6_4] (s1=4) & (s2=6)    -> p:(s1'=3) & (s2'=4) + (1-p):(s1'=3) & (s2'=failstate);
+       //
+       
+       [v4_6_v6_4] (s1=4) & (s2=6)    -> p*p:(s1'=6) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=6) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       [v6_4_v6_4] (s1=6) & (s2=6)    -> p*p:(s1'=4) & (s2'=4) + (1-p)*p:(s1'=failstate) & (s2'=4) + (1-p)*p:(s1'=4) & (s2'=failstate) + (1-p)*(1-p):(s1'=failstate) & (s2'=failstate);
+       
+       [v1_4_v6_4] (s1=1) & (s2=6)    -> p:(s1'=4) & (s2'=4) + (1-p):(s1'=4) & (s2'=failstate);
+       [v4_1_v6_4] (s1=4) & (s2=6)    -> p:(s1'=1) & (s2'=4) + (1-p):(s1'=1) & (s2'=failstate);
+
+       
+       [failed_v6_4] (s1=failstate) & (s2=6)    -> p:(s1'=failstate) & (s2'=4) + (1-p):(s1'=failstate) & (s2'=failstate);
+
+endmodule 
+
+label "v0" = s1=0; 
+label "v1" = s1=1; 
+label "v2" = s1=2; 
+label "v3" = s1=3; 
+label "v4" = s1=4;
+label "v5" = s1=5; 
+label "v6" = s1=6;
+
+label "w0" = s2=0; 
+label "w1" = s2=1; 
+label "w2" = s2=2; 
+label "w3" = s2=3; 
+label "w4" = s2=4;
+label "w5" = s2=5; 
+label "w6" = s2=6;
+//label "w7" = s=7;
+//label "w8" = s=8;
+//label "w9" = s=9; 
+
+
+rewards "time"
+//for future use to replace with regexp m-x replace-regexp <ret> ->.+ <ret>  :1.0;
+
+       //the last state is a fail state
+       [v0_2_v0_2] (s1=0) & (s2=0)  :1.0;
+       //
+       [v2_0_v0_2] (s1=2) & (s2=0)  :1.0;
+
+       [v2_cd_v0_2] (s1=2) & (door=unknown) & (s2=0)  :1.0;
+       [v2_3_v0_2] (s1=2) & (door=open) & (s2=0)  :1.0;
+       [v3_2_v0_2] (s1=3) & (door=open) & (s2=0)  :1.0;
+       
+
+       [v2_5_v0_2] (s1=2) & (s2=0)  :1.0;
+       [v5_2_v0_2] (s1=5) & (s2=0)  :1.0;
+
+       [v3_cd_v0_2] (s1=3) & (door=unknown) & (s2=0)  :1.0;
+       [v3_4_v0_2] (s1=3) & (s2=0)  :1.0;
+       [v4_3_v0_2] (s1=4) & (s2=0)  :1.0;
+       
+       [v4_6_v0_2] (s1=4) & (s2=0)  :1.0;
+       [v6_4_v0_2] (s1=6) & (s2=0)  :1.0;
+
+       [v1_4_v0_2] (s1=1) & (s2=0)  :1.0;
+       [v4_1_v0_2] (s1=4) & (s2=0)  :1.0;
+
+       
+       [failed_v0_2] (s1=failstate) & (s2=0)  :1.0;
+
+
+       [v0_2_v2_0] (s1=0) & (s2=2)  :1.0;
+       [v2_0_v2_0] (s1=2) & (s2=2)  :1.0;
+       //
+
+       [v2_cd_v2_0] (s1=2) & (door=unknown) & (s2=2)  :1.0;
+       [v2_3_v2_0] (s1=2) & (door=open) & (s2=2)  :1.0;
+       [v3_2_v2_0] (s1=3) & (door=open) & (s2=2)  :1.0;
+       
+
+       [v2_5_v2_0] (s1=2) & (s2=2)  :1.0;
+       [v5_2_v2_0] (s1=5) & (s2=2)  :1.0;
+
+       [v3_cd_v2_0] (s1=3) & (door=unknown) & (s2=2)  :1.0;
+       [v3_4_v2_0] (s1=3) & (s2=2)  :1.0;
+       [v4_3_v2_0] (s1=4) & (s2=2)  :1.0;
+       
+       [v4_6_v2_0] (s1=4) & (s2=2)  :1.0;
+       [v6_4_v2_0] (s1=6) & (s2=2)  :1.0;
+
+       [v1_4_v2_0] (s1=1) & (s2=2)  :1.0;
+       [v4_1_v2_0] (s1=4) & (s2=2)  :1.0;
+
+       
+       [failed_v2_0] (s1=failstate) & (s2=2)  :1.0;
+
+
+       [v0_2_v2_cd] (s1=0) & (s2=2) & (door=unknown)  :1.0;
+       [v2_0_v2_cd] (s1=2) & (s2=2) & (door=unknown)  :1.0;
+       //
+
+       [v2_cd_v2_cd] (s1=2) & (door=unknown) & (s2=2)  :1.0;
+       //
+//       [v2_3_v2_cd] (s1=2) & (door=open) & (s2=2)  :1.0;
+//      [v3_2_v2_cd] (s1=3) & (door=open) & (s2=2)  :1.0;
+       
+
+       [v2_5_v2_cd] (s1=2) & (s2=2) & (door=unknown)  :1.0;
+       [v5_2_v2_cd] (s1=5) & (s2=2) & (door=unknown)  :1.0;
+
+       [v3_cd_v2_cd] (s1=3) & (door=unknown) & (s2=2)  :1.0;
+       [v3_4_v2_cd] (s1=3) & (s2=2) & (door=unknown)  :1.0;
+       [v4_3_v2_cd] (s1=4) & (s2=2) & (door=unknown)  :1.0;
+       
+       [v4_6_v2_cd] (s1=4) & (s2=2) & (door=unknown)  :1.0;
+       [v6_4_v2_cd] (s1=6) & (s2=2) & (door=unknown)  :1.0;
+
+       [v1_4_v2_cd] (s1=1) & (s2=2) & (door=unknown)  :1.0;
+       [v4_1_v2_cd] (s1=4) & (s2=2) & (door=unknown)  :1.0;
+
+       
+       [failed_v2_cd] (s1=failstate) & (s2=2) & (door=unknown)  :1.0;
+
+
+
+       [v0_2_v2_3] (s1=0) & (s2=2)  & (door=open)  :1.0;
+       [v2_0_v2_3] (s1=2) & (s2=2)  & (door=open)  :1.0;
+       //
+
+//     [v2_cd_v2_3] (s1=2) & (door=unknown) & (s2=2)  :1.0;
+       //
+       [v2_3_v2_3] (s1=2) & (door=open) & (s2=2)  :1.0;
+       //
+       [v3_2_v2_3] (s1=3) & (door=open) & (s2=2)  :1.0;
+       
+
+       [v2_5_v2_3] (s1=2) & (s2=2)  & (door=open)  :1.0;
+       [v5_2_v2_3] (s1=5) & (s2=2)  & (door=open)  :1.0;
+       
+//       [v3_cd_v2_3] (s1=3) & (door=unknown) & (s2=2)  :1.0;
+       [v3_4_v2_3] (s1=3) & (s2=2)  & (door=open)  :1.0;
+       [v4_3_v2_3] (s1=4) & (s2=2)  & (door=open)  :1.0;
+       
+       [v4_6_v2_3] (s1=4) & (s2=2)  & (door=open)  :1.0;
+       [v6_4_v2_3] (s1=6) & (s2=2)  & (door=open)  :1.0;
+       
+       [v1_4_v2_3] (s1=1) & (s2=2)  & (door=open)  :1.0;
+       [v4_1_v2_3] (s1=4) & (s2=2)  & (door=open)  :1.0;
+
+       
+       [failed_v2_3] (s1=failstate) & (s2=2)  & (door=open)  :1.0;
+
+
+       [v0_2_v3_2] (s1=0) & (s2=3)  & (door=open)  :1.0;
+       [v2_0_v3_2] (s1=2) & (s2=3)  & (door=open)  :1.0;
+       //
+
+//     [v2_cd_v3_2] (s1=2) & (door=unknown) & (s2=3)  :1.0;
+       //
+       [v2_3_v3_2] (s1=2) & (door=open) & (s2=3)  :1.0;
+       //
+       [v3_2_v3_2] (s1=3) & (door=open) & (s2=3)  :1.0;
+       //
+
+       [v2_5_v3_2] (s1=2) & (s2=3)  & (door=open)  :1.0;
+       [v5_2_v3_2] (s1=5) & (s2=3)  & (door=open)  :1.0;
+       
+//       [v3_cd_v3_2] (s1=3) & (door=unknown) & (s2=3)  :1.0;
+       [v3_4_v3_2] (s1=3) & (s2=3)  & (door=open)  :1.0;
+       [v4_3_v3_2] (s1=4) & (s2=3)  & (door=open)  :1.0;
+       
+       [v4_6_v3_2] (s1=4) & (s2=3)  & (door=open)  :1.0;
+       [v6_4_v3_2] (s1=6) & (s2=3)  & (door=open)  :1.0;
+       
+       [v1_4_v3_2] (s1=1) & (s2=3)  & (door=open)  :1.0;
+       [v4_1_v3_2] (s1=4) & (s2=3)  & (door=open)  :1.0;
+
+       
+       [failed_v3_2] (s1=failstate) & (s2=3)  & (door=open)  :1.0;
+
+       [v0_2_v3_cd] (s1=0) & (s2=3) & (door=unknown)  :1.0;
+       [v2_0_v3_cd] (s1=2) & (s2=3) & (door=unknown)  :1.0;
+       //
+
+       [v2_cd_v3_cd] (s1=2) & (door=unknown) & (s2=3)  :1.0;
+       //
+//       [v2_3_v3_cd] (s1=2) & (door=open) & (s2=3)  :1.0;
+//      [v3_2_v3_cd] (s1=3) & (door=open) & (s2=3)  :1.0;
+       
+
+       [v2_5_v3_cd] (s1=2) & (s2=3) & (door=unknown)  :1.0;
+       [v5_2_v3_cd] (s1=5) & (s2=3) & (door=unknown)  :1.0;
+
+       [v3_cd_v3_cd] (s1=3) & (door=unknown) & (s2=3)  :1.0;
+       //
+       [v3_4_v3_cd] (s1=3) & (s2=3) & (door=unknown)  :1.0;
+       [v4_3_v3_cd] (s1=4) & (s2=3) & (door=unknown)  :1.0;
+       
+       [v4_6_v3_cd] (s1=4) & (s2=3) & (door=unknown)  :1.0;
+       [v6_4_v3_cd] (s1=6) & (s2=3) & (door=unknown)  :1.0;
+
+       [v1_4_v3_cd] (s1=1) & (s2=3) & (door=unknown)  :1.0;
+       [v4_1_v3_cd] (s1=4) & (s2=3) & (door=unknown)  :1.0;
+
+       
+       [failed_v3_cd] (s1=failstate) & (s2=3) & (door=unknown)  :1.0;
+
+
+       [v0_2_v3_4] (s1=0) & (s2=3)     :1.0;
+       [v2_0_v3_4] (s1=2) & (s2=3)     :1.0;
+       //
+
+//     [v2_cd_v3_4] (s1=2) & (door=unknown) & (s2=3)  :1.0;
+       //
+       [v2_3_v3_4] (s1=2) & (door=open) & (s2=3)  :1.0;
+       //
+       [v3_2_v3_4] (s1=3) & (door=open) & (s2=3)  :1.0;
+       
+
+       [v2_5_v3_4] (s1=2) & (s2=3)     :1.0;
+       [v5_2_v3_4] (s1=5) & (s2=3)     :1.0;
+       
+//       [v3_cd_v3_4] (s1=3) & (door=unknown) & (s2=3)  :1.0;
+       [v3_4_v3_4] (s1=3) & (s2=3)     :1.0;
+       //
+       [v4_3_v3_4] (s1=4) & (s2=3)     :1.0;
+       
+       [v4_6_v3_4] (s1=4) & (s2=3)     :1.0;
+       [v6_4_v3_4] (s1=6) & (s2=3)     :1.0;
+       
+       [v1_4_v3_4] (s1=1) & (s2=3)     :1.0;
+       [v4_1_v3_4] (s1=4) & (s2=3)     :1.0;
+
+       
+       [failed_v3_4] (s1=failstate) & (s2=3)     :1.0;
+
+       [v0_2_v4_3] (s1=0) & (s2=4)     :1.0;
+       [v2_0_v4_3] (s1=2) & (s2=4)     :1.0;
+       //
+
+//     [v2_cd_v4_3] (s1=2) & (door=unknown) & (s2=4)  :1.0;
+       //
+       [v2_3_v4_3] (s1=2) & (door=open) & (s2=4)  :1.0;
+       //
+       [v3_2_v4_3] (s1=3) & (door=open) & (s2=4)  :1.0;
+       
+
+       [v2_5_v4_3] (s1=2) & (s2=4)     :1.0;
+       [v5_2_v4_3] (s1=5) & (s2=4)     :1.0;
+       
+//       [v3_cd_v4_3] (s1=3) & (door=unknown) & (s2=4)  :1.0;
+       [v3_4_v4_3] (s1=3) & (s2=4)     :1.0;
+       [v4_3_v4_3] (s1=4) & (s2=4)     :1.0;
+       //
+       
+       [v4_6_v4_3] (s1=4) & (s2=4)     :1.0;
+       [v6_4_v4_3] (s1=6) & (s2=4)     :1.0;
+       
+       [v1_4_v4_3] (s1=1) & (s2=4)     :1.0;
+       [v4_1_v4_3] (s1=4) & (s2=4)     :1.0;
+
+       
+       [failed_v4_3] (s1=failstate) & (s2=4)     :1.0;
+       
+
+       [v0_2_v4_6] (s1=0) & (s2=4)     :1.0;
+       [v2_0_v4_6] (s1=2) & (s2=4)     :1.0;
+       //
+
+      [v2_cd_v4_6] (s1=2) & (door=unknown) & (s2=4)  :1.0;
+       //
+       [v2_3_v4_6] (s1=2)  & (door=open)  & (s2=4)  :1.0;
+       //
+       [v3_2_v4_6] (s1=3) & (door=open) & (s2=4)  :1.0;
+       
+
+       [v2_5_v4_6] (s1=2) & (s2=4)     :1.0;
+       [v5_2_v4_6] (s1=5) & (s2=4)     :1.0;
+       
+       [v3_cd_v4_6] (s1=3) & (door=unknown) & (s2=4)  :1.0;
+       [v3_4_v4_6] (s1=3) & (s2=4)     :1.0;
+       [v4_3_v4_6] (s1=4) & (s2=4)     :1.0;
+       //
+       
+       [v4_6_v4_6] (s1=4) & (s2=4)     :1.0;
+       //
+       [v6_4_v4_6] (s1=6) & (s2=4)     :1.0;
+       
+       [v1_4_v4_6] (s1=1) & (s2=4)     :1.0;
+       [v4_1_v4_6] (s1=4) & (s2=4)     :1.0;
+
+       
+       [failed_v4_6] (s1=failstate) & (s2=4)     :1.0;
+       
+       [v0_2_v6_4] (s1=0) & (s2=6)     :1.0;
+       [v2_0_v6_4] (s1=2) & (s2=6)     :1.0;
+       //
+
+      [v2_cd_v6_4] (s1=2) & (door=unknown) & (s2=6)  :1.0;
+       //
+       [v2_3_v6_4] (s1=2)  & (door=open)  & (s2=6)  :1.0;
+       //
+       [v3_2_v6_4] (s1=3) & (door=open) & (s2=6)  :1.0;
+       
+
+       [v2_5_v6_4] (s1=2) & (s2=6)     :1.0;
+       [v5_2_v6_4] (s1=5) & (s2=6)     :1.0;
+       
+       [v3_cd_v6_4] (s1=3) & (door=unknown) & (s2=6)  :1.0;
+       [v3_4_v6_4] (s1=3) & (s2=6)     :1.0;
+       [v4_3_v6_4] (s1=4) & (s2=6)     :1.0;
+       //
+       
+       [v4_6_v6_4] (s1=4) & (s2=6)     :1.0;
+       //
+       [v6_4_v6_4] (s1=6) & (s2=6)     :1.0;
+       //
+       [v1_4_v6_4] (s1=1) & (s2=6)     :1.0;
+       [v4_1_v6_4] (s1=4) & (s2=6)     :1.0;
+
+       
+       [failed_v6_4] (s1=failstate) & (s2=6)     :1.0;
+
+       [v0_2_v1_4] (s1=0) & (s2=1)  :1.0;
+       //
+       [v2_0_v1_4] (s1=2) & (s2=1)  :1.0;
+
+       [v2_cd_v1_4] (s1=2) & (door=unknown) & (s2=1)  :1.0;
+       [v2_3_v1_4] (s1=2) & (door=open) & (s2=1)  :1.0;
+       [v3_2_v1_4] (s1=3) & (door=open) & (s2=1)  :1.0;
+       
+
+       [v2_5_v1_4] (s1=2) & (s2=1)  :1.0;
+       [v5_2_v1_4] (s1=5) & (s2=1)  :1.0;
+
+       [v3_cd_v1_4] (s1=3) & (door=unknown) & (s2=1)  :1.0;
+       [v3_4_v1_4] (s1=3) & (s2=1)  :1.0;
+       [v4_3_v1_4] (s1=4) & (s2=1)  :1.0;
+       
+       [v4_6_v1_4] (s1=4) & (s2=1)  :1.0;
+       [v6_4_v1_4] (s1=6) & (s2=1)  :1.0;
+
+       [v1_4_v1_4] (s1=1) & (s2=1)  :1.0;
+       [v4_1_v1_4] (s1=4) & (s2=1)  :1.0;
+
+       
+       [failed_v1_4] (s1=failstate) & (s2=1)  :1.0;
+
+       [v0_2_v4_1] (s1=0) & (s2=4)  :1.0;
+       [v2_0_v4_1] (s1=2) & (s2=4)  :1.0;
+
+       [v2_cd_v4_1] (s1=2) & (door=unknown) & (s2=4)  :1.0;
+       [v2_3_v4_1] (s1=2) & (door=open) & (s2=4)  :1.0;
+       [v3_2_v4_1] (s1=3) & (door=open) & (s2=4)  :1.0;
+       
+
+       [v2_5_v4_1] (s1=2) & (s2=4)  :1.0;
+       [v5_2_v4_1] (s1=5) & (s2=4)  :1.0;
+
+       [v3_cd_v4_1] (s1=3) & (door=unknown) & (s2=4)  :1.0;
+       [v3_4_v4_1] (s1=3) & (s2=4)  :1.0;
+       [v4_3_v4_1] (s1=4) & (s2=4)  :1.0;
+       
+       [v4_6_v4_1] (s1=4) & (s2=4)  :1.0;
+       [v6_4_v4_1] (s1=6) & (s2=4)  :1.0;
+
+       [v1_4_v4_1] (s1=1) & (s2=4)  :1.0;
+       [v4_1_v4_1] (s1=4) & (s2=4)  :1.0;
+//
+       
+       [failed_v4_1] (s1=failstate) & (s2=4)  :1.0;
+
+
+       [v0_2_failstate] (s1=0) & (s2=failstate)  :1.0;
+       [v2_0_failstate] (s1=2) & (s2=failstate)  :1.0;
+
+       [v2_cd_failstate] (s1=2) & (door=unknown) & (s2=failstate)  :1.0;
+       [v2_3_failstate] (s1=2) & (door=open) & (s2=failstate)  :1.0;
+       [v3_2_failstate] (s1=3) & (door=open) & (s2=failstate)  :1.0;
+       
+
+       [v2_5_failstate] (s1=2) & (s2=failstate)  :1.0;
+       [v5_2_failstate] (s1=5) & (s2=failstate)  :1.0;
+
+       [v3_cd_failstate] (s1=3) & (door=unknown) & (s2=failstate)  :1.0;
+       [v3_4_failstate] (s1=3) & (s2=failstate)  :1.0;
+       [v4_3_failstate] (s1=4) & (s2=failstate)  :1.0;
+       
+       [v4_6_failstate] (s1=4) & (s2=failstate)  :1.0;
+       [v6_4_failstate] (s1=6) & (s2=failstate)  :1.0;
+
+       [v1_4_failstate] (s1=1) & (s2=failstate)  :1.0;
+       [v4_1_failstate] (s1=4) & (s2=failstate)  :1.0;
+       
+       [failed_failstate] (s1=failstate) & (s2=failstate)  :1.0;
+       //
+
+      [v0_2_v2_5] (s1=0) & (s2=2)     :1.0;
+       [v2_0_v2_5] (s1=2) & (s2=2)     :1.0;
+       //
+
+      [v2_cd_v2_5] (s1=2) & (door=unknown) & (s2=2)  :1.0;
+       //
+       [v2_3_v2_5] (s1=2) & (door=open) & (s2=2)  :1.0;
+       //
+       [v3_2_v2_5] (s1=3) & (door=open) & (s2=2)  :1.0;
+       
+
+       [v2_5_v2_5] (s1=2) & (s2=2)     :1.0;
+       [v5_2_v2_5] (s1=5) & (s2=2)     :1.0;
+       
+       [v3_cd_v2_5] (s1=3) & (door=unknown) & (s2=2)  :1.0;
+       [v3_4_v2_5] (s1=3) & (s2=2)     :1.0;
+       [v4_3_v2_5] (s1=4) & (s2=2)     :1.0;
+       //
+       
+       [v4_6_v2_5] (s1=4) & (s2=2)     :1.0;
+       [v6_4_v2_5] (s1=6) & (s2=2)     :1.0;
+       
+       [v1_4_v2_5] (s1=1) & (s2=2)     :1.0;
+       [v4_1_v2_5] (s1=4) & (s2=2)     :1.0;
+
+       
+       [failed_v2_5] (s1=failstate) & (s2=2)     :1.0;
+
+
+      [v0_2_v5_2] (s1=0) & (s2=5)     :1.0;
+       [v2_0_v5_2] (s1=2) & (s2=5)     :1.0;
+       //
+
+      [v2_cd_v5_2] (s1=2) & (door=unknown) & (s2=5)  :1.0;
+       //
+       [v2_3_v5_2] (s1=2) & (door=open) & (s2=5)  :1.0;
+       //
+       [v3_2_v5_2] (s1=3) & (door=open) & (s2=5)  :1.0;
+       
+
+       [v2_5_v5_2] (s1=2) & (s2=5)     :1.0;
+       [v5_2_v5_2] (s1=5) & (s2=5)     :1.0;
+       
+       [v3_cd_v5_2] (s1=3) & (door=unknown) & (s2=5)  :1.0;
+       [v3_4_v5_2] (s1=3) & (s2=5)     :1.0;
+       [v4_3_v5_2] (s1=4) & (s2=5)     :1.0;
+       //
+       
+       [v4_6_v5_2] (s1=4) & (s2=5)     :1.0;
+       [v6_4_v5_2] (s1=6) & (s2=5)     :1.0;
+       
+       [v1_4_v5_2] (s1=1) & (s2=5)     :1.0;
+       [v4_1_v5_2] (s1=4) & (s2=5)     :1.0;
+
+       
+       [failed_v5_2] (s1=failstate) & (s2=5)     :1.0;
+
+
+endrewards
+
+
