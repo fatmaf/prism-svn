@@ -182,7 +182,7 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = new PolicyCreator();
+		PolicyCreator pc = null;//new PolicyCreator();
 		HashMap<String, HashMap<State, Double>> result =
 				mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
@@ -209,7 +209,7 @@ public class SingleAgentLoader
 //		rewStructNameIndex.put(Objectives.Cost, 1);
 //		rewStructNameIndex.put(Objectives.Progression, 2);
 //		rewStructNameIndex.put(Objectives.Probability, 0);
-		pc.savePolicy(savePlace, "_partsat");
+//		pc.savePolicy(savePlace, "_partsat");
 		return partialSatSolution;
 
 	}

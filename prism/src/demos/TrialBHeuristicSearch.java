@@ -173,11 +173,11 @@ public class TrialBHeuristicSearch
 		boolean dobackup = true;
 		if (dn != null && !isTimedOut()) {
 
-			mainLog.println(dn.toString());
+//			mainLog.println(dn.toString());
 			if (dn.isDeadend | dn.isGoal) {
 				if (!dn.isSolved())
 					dn.setSolved();
-				mainLog.println("Goal State reached");
+//				mainLog.println("Goal State reached");
 
 			} else {
 				addBachayIfNeeded(dn);
@@ -210,7 +210,7 @@ public class TrialBHeuristicSearch
 	{
 		boolean dobackup = true;
 		if (c != null) {
-			mainLog.println(c.toString());
+//			mainLog.println(c.toString());
 			c.increaseVisits();
 			ArrayList<DecisionNode> children = outcomeSelection.selectOutcome(c);
 			if (forwardBackup) {

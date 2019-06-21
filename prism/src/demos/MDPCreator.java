@@ -38,7 +38,7 @@ public class MDPCreator
 
 	public MDPCreator(PrismLog mainLog)
 	{
-		printMessages = true;
+		printMessages = false;
 		mdp = new MDPSimple();
 		List<State> statesList = new ArrayList<State>();
 		mdp.setStatesList(statesList);

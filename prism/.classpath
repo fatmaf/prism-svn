@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry excluding="demos/JointPolicyBuilder.java|demos/JointPolicyPaper.java|demos/UCT.java|demos/package-info.java|demos/BRTDPandMCTSWithExplicitEngine.java|demos/BRTDPModelChecker.java|demos/JointPolicy.java|demos/BRTDP.java|demos/MCTSModelChecker.java|demos/ModelCheckWithExplicitEngine.java|demos/MRmcts.java|demos/MRuctPaper.java|demos/JointPolicyBRTDP.java|explicit/BRTDPModelChecker.java|explicit/MCTSModelChecker.java" kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="lib/epsgraphics.jar"/>
 	<classpathentry kind="lib" path="lib/jcommon.jar"/>
