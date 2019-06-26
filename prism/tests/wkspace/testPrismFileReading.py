@@ -135,7 +135,9 @@ if __name__ == "__main__":
     numDoorStates = 1
 
     generatePrismFiles(fn,numAgents,numGoals,numFailStates,numDoorStates)
-        
+
+    #Use the stuff below to remind yourself of what is possible with this code
+    
     #edit stuff here
     #pfr.addConstant('p1',"double",'0.2')
     #pfr.addConstant('sinit','int','2')
