@@ -15,17 +15,6 @@ def createStateString(variable,s):
     return ss
 
 def generatePrismFiles(fn,numAgents,numGoals,numFailStates,numDoorStates):
-    return
-
-if __name__ == "__main__":
-    fn = "example.prism"
-
-    numGoals = 2
-    numDoors = 1
-    numAgents = 2
-    numFailStates = 3
-    numDoorStates = 1
-    
     pfr = PrismFileReader(fn)
 
     #assumption there is no door
@@ -133,6 +122,19 @@ if __name__ == "__main__":
         
         lines = pfr.createFileLinesToWrite()
         pfr.writeLinesToFile(lines,'temp'+str(i)+'.prism')
+
+    
+
+if __name__ == "__main__":
+    fn = "example.prism"
+
+    numGoals = 2
+    numDoors = 1
+    numAgents = 2
+    numFailStates = 3
+    numDoorStates = 1
+
+    generatePrismFiles(fn,numAgents,numGoals,numFailStates,numDoorStates)
         
     #edit stuff here
     #pfr.addConstant('p1',"double",'0.2')
