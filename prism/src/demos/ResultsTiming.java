@@ -21,20 +21,20 @@ public class ResultsTiming
 	private HashMap<Integer, Long> nestedProductTimes = new HashMap<Integer, Long>();
 	private HashMap<Integer, Long> modelLoadingTimes = new HashMap<Integer, Long>();
 
-	private int numRobots;
-	private int numTasks;
-	private int numReallocStates;
-	private int teamMDPStates;
-	private int teamMDPTransitions;
+	private int numRobots=0;
+	private int numTasks=0;
+	private int numDoors=0; 
+	private int numReallocStates=0;
+	private int teamMDPStates=0;
+	private int teamMDPTransitions=0;
 	private int numReallocInCode = 0;
 	private int numProd = 0;
-	private int numDoors = 0;
-	private long totalComputationTime;
-	private long totalTeamMDPCreationTime;
-	private long teamMDPCreationTimeMinusNestedProduct;
-	private long allNestedProductCreationTime;
-	private long allReallocationsTime;
-	private long totalmodelloadingtime;
+	private long totalComputationTime=0;
+	private long totalTeamMDPCreationTime=0;
+	private long teamMDPCreationTimeMinusNestedProduct=0;
+	private long allNestedProductCreationTime=0;
+	private long allReallocationsTime=0;
+	private long totalmodelloadingtime=0;
 	private String res_trial_name;
 
 	private long global_start_time;
@@ -88,7 +88,7 @@ public class ResultsTiming
 		json_text += createJsonStyleString("All Reallocations Time", allReallocationsTime) + comma;
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
-		resLog = new PrismFileLog(StatesHelper.getLocation() + "_trial_" + res_trial_name + ".json");
+		resLog = new PrismFileLog(StatesHelper.getLocation() + "_trial_" + res_trial_name + "_r"+numRobots+"_t"+numTasks+"_d"+numDoors+".json");
 		resLog.print(json_text);
 		resLog.close();
 	}
@@ -237,6 +237,9 @@ public class ResultsTiming
 		case nestedproductstates:
 			nestedProductStates.put(numProd, (long) num);
 			numProd++;
+		case numdoors:
+			numDoors = num;
+			break;
 		default:
 			mainLog.println("ERORR - " + varid.toString() + " not implemented for Save Data");
 			break;
