@@ -1,0 +1,17 @@
+//states_to_fail_at=[8,22,27,28,36,47,59]
+//avoid = [4,51,26]
+//2 + 1
+//partial(R{"time"}min=?  [ F "WayPoint36"],Pmax=? [ F "WayPoint47"], Pmax=?[G (!"WayPoint4") & (G (!"WayPoint51")) & (G (!"WayPoint26"))])
+//3 + 1
+//partial(R{"time"}min=? [ F "WayPoint22"],Pmax=? [ F "WayPoint36"],Pmax=? [ F "WayPoint47"], Pmax=?[G (!"WayPoint4") & (G (!"WayPoint51")) & (G (!"WayPoint26"))])
+
+//4 + 1
+
+//partial(R{"time"}min=?  [ F "WayPoint8"],Pmax=? [ F "WayPoint22"],Pmax=? [ F "WayPoint36"],Pmax=? [ F "WayPoint47"], Pmax=?[G (!"WayPoint4") & (G (!"WayPoint51")) & (G (!"WayPoint26"))])
+//5 + 1
+
+partial(R{"time"}min=?  [ F (("WayPoint59") & (F ("WayPoint58")))],Pmax=? [ F "WayPoint8"],Pmax=? [ F "WayPoint22"],Pmax=? [ F "WayPoint36"],Pmax=? [ F "WayPoint47"], Pmax=?[G (!"WayPoint4") & (G (!"WayPoint51")) & (G (!"WayPoint26"))])
+
+//6 + 1
+
+//partial(R{"time"}min=?  [ F (("WayPoint27") & (F ("WayPoint28")))],Pmax=? [ F (("WayPoint59") & (F ("WayPoint58")))],Pmax=? [ F "WayPoint8"],Pmax=? [ F "WayPoint22"],Pmax=? [ F "WayPoint36"],Pmax=? [ F "WayPoint47"], Pmax=?[G (!"WayPoint4") & (G (!"WayPoint51")) & (G (!"WayPoint26"))])
