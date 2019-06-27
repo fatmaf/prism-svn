@@ -8,6 +8,7 @@ class PrismModule(object):
             
             
     moduleVarsRE = "(.*):\[(.*)\.\.(.*)] init( ?[-]?[\d+]?[.]?[\d+]);"
+    moduleVarsREConstants = "(.*):\[(.*)\.\.(.*)] init (.*);"
     basicActionRE = "\[(.*)\] (.*) -> (.*);"
     name = None
     variables = {}
@@ -25,11 +26,17 @@ class PrismModule(object):
         
         #process variables
         self.processVariables()
-        print "Variables"
-        print self.variables
+        #print "Variables"
+        #print self.variables
 
         self.processActions()
 
+    def cleanModule(self):
+        self.name = None
+        self.variables = {}
+        self.constants = None
+        self.actions = None
+        
     def processActions(self):
         self.actions = []
         for i in range(len(self.moduleLines)):
@@ -39,32 +46,135 @@ class PrismModule(object):
                 pa = PrismAction(line,self.constants,self.variables)
                 self.actions.append(pa)
 
+    def getActionSrcDestValue(self,varname,a):
+        statePairs = []
+        
+        statePairs.append(int(a.getVarValueSrc(varname)))
+        statePairs.append(int(a.getVarValueDest(varname)))
+        return statePairs
+    
+    def findActionsToSkip(self,actionsPickedTemp,varname):
+        statePairs = [] 
+        for act in actionsPickedTemp:
+            statePairs.append(self.getActionSrcDestValue(varname,act))
+        toSkip = []
+        actionsSkipped = []
+        for i in range(len(statePairs)):
+            a1 = statePairs[i]
+            for j in range(i+1,len(statePairs)):
+                a2 = statePairs[j]
+                if (a1[0] == a2[0] or a1[1] == a2[0] or a1[0] == a2[1] or a1[1] == a2[1]):
+                    if not j in toSkip:
+                        toSkip.append(j)
+                        actionsSkipped.append(actionsPickedTemp[j])
+        #actionsSkipped = actionsPickedTemp[toSkip]
+        #actionsPickedTemp = list(set(actionsPickedTemp).symmetric_difference(set(actionsSkipped)))
+        #if len(toSkip) != 0:
+        #    print actionsPickedTemp
+        #    print statePairs
+        #    print actionsSkipped
+        #    print toSkip
+            
+        #    raise Exception("Repeat!!")
+        return actionsSkipped
+        
+    def pickActions(self,varname,numActionsToPick):
+        #just so that we can get doors
+        #for connected states
+        import random
+        statePairs = [] 
+        actionsPicked = []
+        #pick actions at random
+        actions = self.actions
+        n = numActionsToPick
+        #repeated = False 
+        while(len(actionsPicked) != numActionsToPick):
+            actionsPickedTemp = actionsPicked + random.sample(actions,n)
+            print actionsPickedTemp
+            
+            toSkip = self.findActionsToSkip(actionsPickedTemp,varname)
+            print toSkip
+            
+            if (len(toSkip) != 0):
+                actions = list(set(actions).symmetric_difference(set(toSkip)))
+                actionsPickedTemp = list(set(actionsPickedTemp).symmetric_difference(set(toSkip)))
+                #print "Repeat"
+                #repeated = True 
+                #raw_input()
+            actionsPicked = actionsPickedTemp
+            print actionsPicked
+            n = numActionsToPick - len(actionsPicked)
+            print n
+            
+            
+        #last check
+        #if repeated:
+        #    print actionsPicked
+        #    raw_input()
+  
+        #print "Actions Picked"
+        #print actionsPicked
+        #now lets add the state pairs
+        #so now we only care about this var name
+        #for each action
+        #we're going to get the value of this variable
+        statePairs = []
+        for a in actionsPicked:
+            statePairs.append(int(a.getVarValueSrc(varname)))
+            statePairs.append(int(a.getVarValueDest(varname)))
+        #print statePairs
+        #raw_input()
+        return statePairs
+                                
+                        
+                    
+            
+        
     def addVariable(self,name,minv,maxv,initv,v):
         pvar = PrismVariable()
         pvar.create(name,v,minv,maxv,initv,VariableType.notConst,"int")
-        print pvar
+        #print pvar
         self.variables[name]=pvar
         
     def processVariables(self):
         for i in range(len(self.moduleLines)):
             line = self.moduleLines[i]
-            if RegexHelper.isRegexMatch(self.moduleVarsRE,line):
-                varInfo = RegexHelper.getRegexMatchName(self.moduleVarsRE,line)
-                #name, minv, maxv ,initv
-                name = varInfo[0]
-                minv = varInfo[1]
-                maxv = varInfo[2]
-                initv = varInfo[3]
-                if minv in self.constants:
-                    minv = self.constants[minv]
-                if maxv in self.constants:
-                    maxv = self.constants[maxv]
+            if RegexHelper.isRegexMatch(self.moduleVarsREConstants,line):
+                if RegexHelper.isRegexMatch(self.moduleVarsRE,line):
+                    varInfo = RegexHelper.getRegexMatchName(self.moduleVarsRE,line)
+                    #name, minv, maxv ,initv
+                    name = varInfo[0].rstrip().lstrip()
+                    minv = varInfo[1].rstrip().lstrip()
+                    maxv = varInfo[2].rstrip().lstrip()
+                    initv = varInfo[3].rstrip().lstrip()
+                    if minv in self.constants:
+                        minv = self.constants[minv]
+                    if maxv in self.constants:
+                        maxv = self.constants[maxv]
                     
-                #print name
-                #print minv
-                #print maxv
-                #print initv
-                #print varInfo
+                        #print name
+                        #print minv
+                        #print maxv
+                        #print initv
+                        #print varInfo
+                else:
+                    varInfo = RegexHelper.getRegexMatchName(self.moduleVarsREConstants,line)
+                    name = varInfo[0].rstrip().lstrip()
+                    minv = varInfo[1].rstrip().lstrip()
+                    maxv = varInfo[2].rstrip().lstrip()
+                    
+                    initv = varInfo[3].rstrip().lstrip()
+                    #print initv
+
+                    if minv in self.constants:
+                        minv = self.constants[minv]
+                    if maxv in self.constants:
+                        maxv = self.constants[maxv]
+                    if initv in self.constants:
+                        initv = self.constants[initv]
+                        #print initv
+                        #print type(initv)
+                    
                 pvar = PrismVariable()
                 pvar.create(name,initv,minv,maxv,initv,VariableType.notConst,"int")
                 self.variables[name]=pvar
@@ -104,9 +214,17 @@ class PrismModule(object):
                 value = resVals[2]
                 src = RegexHelper.processState(src,self.constants,self.variables)
                 if(self.actions[actNum].equals(name,src)):
-                    self.actions[actNum].addReward(rewName,float(value))
-                    actNum = actNum+1
-                    
+                    try:
+                        if value.rstrip().lstrip() in self.constants:
+                            value = self.constants[value.rstrip().lstrip()]
+                            self.actions[actNum].addReward(rewName,value)
+                        else:
+                            self.actions[actNum].addReward(rewName,float(value))
+                        actNum = actNum+1
+                    except:
+                        self.actions[actNum].addReward(rewName,value)
+                        actNum = actNum+1
+                        
 
     def createDoorCheckAction(self,dv,src,slab,doorUnknown,doorOpen,doorClosed,oprob,cprob):
         slabAltername = src.name+str(src.value) 
@@ -120,12 +238,12 @@ class PrismModule(object):
         pa.addStateToDestination([src,doorOpen[0]],oprob)
         pa.addStateToDestination([src,doorClosed[0]],cprob)
         #print pa
-        print pa.prismStringAction()
+        #print pa.prismStringAction()
         return pa
             
     def addDoor(self,labels,doorVarName,src1,src2,oprob,cprob):
         #check if this door var exists
-        print "Adding Door" 
+        print "Adding Door %s" % doorVarName
         if doorVarName in self.variables:
             #src1 = RegexHelper.processState(s1,self.constants,self.variables)
             #src2 = RegexHelper.processState(s2,self.constants,self.variables)
@@ -151,9 +269,13 @@ class PrismModule(object):
                     #print self.actions[i]
                     self.actions[i].addStateToSource(doorOpen[0])
                     #print self.actions[i]
+                    #print ""
             self.actions.append(pa1)
             self.actions.append(pa2)
-            
+            #print "Door Check Actions"
+            #print pa1
+            #print pa2
+            #raw_input()
         else:
             print "No such door var "+doorVarName
 
@@ -195,8 +317,8 @@ class PrismModule(object):
     def createModuleLines(self):
         lines = ["module" + self.name]
         for var in self.variables:
-            print var
-            print self.variables[var]
+            #print var
+            #print self.variables[var]
             line = self.variables[var].prismString()
             lines.append(line)
             

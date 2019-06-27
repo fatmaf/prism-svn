@@ -70,6 +70,23 @@ class PrismAction(object):
             
             
 
+    def getVarValueSrc(self,varname,tm=None):
+        if tm is None:
+            tm = self.src
+        for i in range(len(tm)):
+            if tm[i].name == varname:
+                return tm[i].value
+        return None
+    def getVarValueDest(self,varname):
+        toret = None
+        for d in self.dest:
+            src = d["states"]
+            toret = self.getVarValueSrc(varname,src)
+            if not toret is None:
+                break
+        
+        return toret
+    
     def matchSrc(self,src,tm=None):
         if tm is None:
             tm = self.src
@@ -105,6 +122,45 @@ class PrismAction(object):
                 matched=True
                 break
         return matched
+    
+    def matchAnyoneSrc(self,src,tm=None):
+        if tm is None:
+            tm = self.src
+        matched = False
+        for s in tm:
+            for ss in src:
+                if s.equals(ss):
+                    matched = True
+                    break
+            if matched:
+                break
+        return matched
+
+    def matchAnyoneDest(self,src):
+        matched = False
+        for des in self.dest:
+            d = des["states"]
+            if self.matchAnyoneSrc(src,d):
+                matched = True
+                break
+        return matched
+    
+    def matchAnyoneSrcOrDestDest(self,dest):
+        matched = False 
+        for d in dest:
+            s = d["states"]
+            if self.matchAnyoneSrc(s):
+                matched = True
+                break
+            if self.matchAnyoneDest(s):
+                matched = True
+                break
+        return matched 
+        
+    def matchAnyoneSrcOrDest(self,src):
+        if not self.matchAnyoneSrc(src):
+            return self.matchAnyoneDest(src)
+        return True 
 
     def matchOnlyOneSrcOrDest(self,src):
         if not self.matchOnlyOneSrc(src):
@@ -161,7 +217,19 @@ class PrismAction(object):
     def prismStringReward(self,rewname):
         toret = "["+self.name + "] "
         toret = toret + self.stateString(self.src,False)
-        toret = toret + " : " + str(self.rewards[rewname]) + ";"
+        toret = toret + " : "
+        rewValue = self.rewards[rewname]
+        if type(rewValue) is str:
+            rewValueS = rewValue
+        elif type(rewValue) is float:
+            rewValueS = str(rewValue)
+        elif type(rewValue) is PrismVariable:
+            rewValueS = rewValue.name
+        else:
+            rewValueS = str(rewValue)
+            
+        #rewValue = str(self.rewards[rewname]) 
+        toret = toret + rewValueS + ";"
         
         return toret
     
