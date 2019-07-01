@@ -16,6 +16,7 @@ class PrismModule(object):
     contants = None
     actions = None
     rewardsRE = "\[(.*)\] (.*):(.*);"
+    rewardNames = []
     
     def __init__(self,n,moduleLines,constants):
         print "Initializing Module "+n
@@ -36,6 +37,7 @@ class PrismModule(object):
         self.variables = {}
         self.constants = None
         self.actions = None
+        self.rewardNames = []
         
     def processActions(self):
         self.actions = []
@@ -53,20 +55,32 @@ class PrismModule(object):
         statePairs.append(int(a.getVarValueDest(varname)))
         return statePairs
     
-    def findActionsToSkip(self,actionsPickedTemp,varname):
-        statePairs = [] 
+    def findActionsToSkip(self,actionsPickedTemp,varname,prevStatePairs):
+        statePairs = []
         for act in actionsPickedTemp:
             statePairs.append(self.getActionSrcDestValue(varname,act))
         toSkip = []
         actionsSkipped = []
-        for i in range(len(statePairs)):
-            a1 = statePairs[i]
-            for j in range(i+1,len(statePairs)):
+        #first check against previous state pairs
+        for i in range(len(prevStatePairs)):
+            a1 = prevStatePairs[i]
+            for j in range(len(statePairs)):
                 a2 = statePairs[j]
                 if (a1[0] == a2[0] or a1[1] == a2[0] or a1[0] == a2[1] or a1[1] == a2[1]):
                     if not j in toSkip:
                         toSkip.append(j)
                         actionsSkipped.append(actionsPickedTemp[j])
+                        
+        for i in range(len(statePairs)):
+            if i not in toSkip:
+                a1 = statePairs[i]
+                for j in range(i+1,len(statePairs)):
+                    if j not in toSkip:
+                        a2 = statePairs[j]
+                        if (a1[0] == a2[0] or a1[1] == a2[0] or a1[0] == a2[1] or a1[1] == a2[1]):
+                            #if not j in toSkip:
+                            toSkip.append(j)
+                            actionsSkipped.append(actionsPickedTemp[j])
         #actionsSkipped = actionsPickedTemp[toSkip]
         #actionsPickedTemp = list(set(actionsPickedTemp).symmetric_difference(set(actionsSkipped)))
         #if len(toSkip) != 0:
@@ -78,7 +92,7 @@ class PrismModule(object):
         #    raise Exception("Repeat!!")
         return actionsSkipped
         
-    def pickActions(self,varname,numActionsToPick):
+    def pickActions(self,varname,numActionsToPick,prevStatePairs):
         #just so that we can get doors
         #for connected states
         import random
@@ -92,7 +106,7 @@ class PrismModule(object):
             actionsPickedTemp = actionsPicked + random.sample(actions,n)
             print actionsPickedTemp
             
-            toSkip = self.findActionsToSkip(actionsPickedTemp,varname)
+            toSkip = self.findActionsToSkip(actionsPickedTemp,varname,prevStatePairs)
             print toSkip
             
             if (len(toSkip) != 0):
@@ -204,7 +218,9 @@ class PrismModule(object):
         #process rewards
         rewNum = 0
         actNum = 0
-        
+        if not rewName in self.rewardNames:
+            self.rewardNames.append(rewName)
+            
         for i in range(len(rewardsLines)):
             line = rewardsLines[i]
             if RegexHelper.isRegexMatch(self.rewardsRE,line):
@@ -237,6 +253,9 @@ class PrismModule(object):
         pa.addStateToSource(doorUnknown[0])
         pa.addStateToDestination([src,doorOpen[0]],oprob)
         pa.addStateToDestination([src,doorClosed[0]],cprob)
+        for rew in self.rewardNames:
+            pa.addReward(rew,1.0)
+            
         #print pa
         #print pa.prismStringAction()
         return pa

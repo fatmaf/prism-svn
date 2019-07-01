@@ -237,6 +237,7 @@ public class ResultsTiming
 		case nestedproductstates:
 			nestedProductStates.put(numProd, (long) num);
 			numProd++;
+			break;
 		case numdoors:
 			numDoors = num;
 			break;
@@ -307,6 +308,7 @@ public class ResultsTiming
 			this.teamMDPCreationTimeMinusNestedProduct = time;
 			break;
 		default:
+			mainLog.println("ERORR - " + varid.toString() + " not implemented for Save Data");
 			break;
 
 		}
