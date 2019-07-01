@@ -56,9 +56,9 @@ public class STAPU
 		StatesHelper.setSavePlace(saveplace);
 
 		STAPU stapu = new STAPU();
-		stapu.run();
-		stapu.runGrid3();
-		//		stapu.runTest();
+//		stapu.run();
+//		stapu.runGrid3();
+		stapu.runTest();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -545,18 +545,18 @@ public class STAPU
 		//	    	    fsRange = [0,2,4,8,16,32]
 		//	    	    ssRange = [0,1,2,3,4]
 		ArrayList<String> modelnames = new ArrayList<String>();
-		modelnames.add("grid_3_topomap");
-		String modelname = "grid_3_topomap";
-
+		
+		String modelname = "grid_3_topomap_plain";//"grid_3_topomap";
+		modelnames.add(modelname);
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		ArrayList<String> allModelLocs = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
-		int[] goalsRange = { 2, 4, 6, 8, 10 };
-		int[] agentsRange = { 2, 4, 6, 8, 10 };
-		int[] fsRange = { 0, 2, 4, 8, 16, 32 };
-		int[] ssRange = { 0, 1/*, 2, 3, 4*/ };
+		int[] goalsRange = { 2 , 4, 6, 8, 10 };
+		int[] agentsRange = { 2 , 4, 6, 8, 10 };
+		int[] fsRange = { 0, 2 , 4, 8, 16, 32 };
+		int[] ssRange = { 0, 1, 2, 3, 4 };
 		for (int numAgents : agentsRange) {
 			for (int numGoals : goalsRange) {
 				for (int numFailStates : fsRange) {
@@ -581,7 +581,7 @@ public class STAPU
 
 		ArrayList<String> modelsTested = new ArrayList<String>();
 		try {
-			for (int i = 0; i < allModelLocs.size(); i++) {
+			for (int i = 49; i < allModelLocs.size(); i++) {
 
 				String thisModelLoc = allModelLocs.get(i);
 				String example_name = modelname;
@@ -590,7 +590,9 @@ public class STAPU
 				System.out.println(example_id);
 				modelsTested.add(example_id);
 				StatesHelper.setSavePlace(thisModelLoc + "results/");
+				System.out.println("Example "+i+" of "+allModelLocs.size());
 				runOneExample(example_name, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, thisModelLoc, true);
+				System.out.println("Example "+i+" of "+allModelLocs.size()+ " completed");
 			}
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());

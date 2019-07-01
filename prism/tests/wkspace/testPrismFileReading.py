@@ -19,7 +19,7 @@ def pickStates(previousStatesList,numToPick,currentStatesList):
     statesPicked = []
     n = numToPick
     if previousStatesList is not None:
-        statesPicked = previousStatesList
+        statesPicked = previousStatesList[0:n]
         n = n - len(statesPicked)
     if n> 0:
         statesToPickFrom = diffLists(statesPicked,currentStatesList)
@@ -132,8 +132,13 @@ def generatePrismFiles(sVar,fpath,fn,numAgents,numGoals,numFailStates,numDoorSta
         doorStates = previousDoorStates[0:numDoors*2]
     else:
         previousDoors = len(previousDoorStates)/2
-        numDoors = numDoors - previousDoors
-        doorStates= pfr.pickActions(moduleName,variable,numDoors)
+        numDoorsToAdd = numDoors - previousDoors
+        #creating previous state pairs
+        statePairs = []
+        for i in range(0,len(previousDoorStates),2):
+            statePairs.append([previousDoorStates[i],previousDoorStates[i+1]])
+            
+        doorStates= pfr.pickActions(moduleName,variable,numDoorsToAdd,statePairs)
         doorStates = previousDoorStates + doorStates
         
     if(len(set(doorStates)) != len(doorStates)):
@@ -146,6 +151,8 @@ def generatePrismFiles(sVar,fpath,fn,numAgents,numGoals,numFailStates,numDoorSta
     initStates = pickStates(previousInitStates,numAgents,statesLeft)
     statesLeft = diffLists(statesLeft,initStates)
     goalStates = pickStates(previousGoalStates,numGoals,statesLeft)
+    #print goalStates
+    #raw_input()
     statesLeft = diffLists(statesLeft,goalStates)
     if numFailStates > numGoals:
         failStates = pickStates(previousFailStates,numFailStates-numGoals,statesLeft)
@@ -160,7 +167,15 @@ def generatePrismFiles(sVar,fpath,fn,numAgents,numGoals,numFailStates,numDoorSta
     #doorStates = pickStates(previousDoorStates,numDoorStates*2,statesLeft)
     #sample(statesLeft,numDoorStates*2)
     #statesLeft = diffLists(statesLeft,doorStates)
-    
+    print "Initial States"
+    print initStates
+    print "Goal States"
+    print goalStates
+    print "Fail States"
+    print failStates
+    print "Doors"
+    print doorStates
+    #raw_input()
 
 
     #add fail states
@@ -173,11 +188,17 @@ def generatePrismFiles(sVar,fpath,fn,numAgents,numGoals,numFailStates,numDoorSta
 
     for i in range(0,numDoors):
         #add door variables
+    
         doorVarName = 'door'+str(i)
+        #print doorVarName
         pfr.addVariable(moduleName,doorVarName,pfr.constants['unknown'],pfr.constants['open'],pfr.constants['unknown'],pfr.constants['unknown'])
 
     numDoorVar = 0
     for i in range(0,len(doorStates),2):
+        #print "counted doors"
+        #print numDoorVar
+        #print "total doors"
+        #print numDoors
         if(numDoorVar == numDoors):
             break
         doorVarName = 'door'+str(numDoorVar)
@@ -224,6 +245,7 @@ if __name__ == "__main__":
     fn = "example"
     fn = "tro_example"
     fn = "grid_3_topomap"
+    fn = "grid_3_topomap_plain"
 
     sVar = None
     goalsRange = [2,4,6,8,10]
@@ -243,9 +265,10 @@ if __name__ == "__main__":
     numDoorStates = numDoors
     fnNum = 1
     #previousInitStates,previousGoalStates,previousFailStates,previousDoorStates):
-    previousInitStates = [3,49,30,19,14,10,44,40,33,11]
-    previousGoalStates = [28,27,59,58,47,8,22,36,50,51,52]
-    previousDoorStates = [22,24,38,50,52,10,53,4,21,22]
+    
+    previousInitStates = [25,38,53,10]#[3,49,30,19,14,10,44,40,33,11]
+    previousGoalStates = [37,5,12,27,32,37,55]#[28,27,59,58,47,8,22,36,50,51,52]
+    previousDoorStates = [27,29,59,58] #[22,24,38,50,52,10,53,4,21,22]
     for numAgents in agentsRange:
         for numGoals in goalsRange:
             for numFailStates in fsRange:

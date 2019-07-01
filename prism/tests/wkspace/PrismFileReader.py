@@ -70,11 +70,11 @@ class PrismFileReader(object):
         for mod in self.modVars:
             mod.cleanModule()
             
-    def pickActions(self,modname,varname,numActionsToPick):
+    def pickActions(self,modname,varname,numActionsToPick,prevStatePairs):
         statePairs = []
         for modVar in self.modVars:
             if self.matchModVarName(modVar.name,modname):
-                statePairs = modVar.pickActions(varname,numActionsToPick)
+                statePairs = modVar.pickActions(varname,numActionsToPick,prevStatePairs)
                 break
         return statePairs
 
