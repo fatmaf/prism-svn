@@ -338,10 +338,10 @@ public class MultiAgentProductModelGenerator
 		for (int i = 0; i < numAgents; i++) {
 			State robotState = robotStates.get(i);
 			HashMap<Object, Integer> robotActions = getAgent(i).getActionsForState(robotState);
-			robotsActions.add(robotActions);
 			int size = robotActions.size();
-			//			if(size == 0)
-			//				size =1 ; 
+
+			robotsActions.add(robotActions);
+
 			numRobotActions.add(size);
 			ArrayList<Object> thisRobotsActions = new ArrayList<Object>();
 			thisRobotsActions.addAll(robotActions.keySet());
@@ -375,6 +375,7 @@ public class MultiAgentProductModelGenerator
 		//then we have to move on 
 
 		//now we make successors ? 
+		ArrayList<State> successorJSs = new ArrayList<State>();
 		for (int i = 0; i < successorCombinations.size(); i++) {
 			//step 1 get the robot states you need 
 			//robotStates 
@@ -391,9 +392,38 @@ public class MultiAgentProductModelGenerator
 
 			}
 			State successorJS = createJointState(js, robotStates);
+			//sometimes we need to merge successors 
+			//basically recalculate the probabilities and merge states 
+			if(successorJSs.contains(successorJS))
+			{
+				int successorToModifyIndex = -1; 
+				//find that state in the successors list 
+				for(int s = 0; s<successors.size(); s++)
+				{
+					if(successors.get(s).getKey().compareTo(successorJS)==0)
+					{
+						successorToModifyIndex = s; 
+						break; 
+					}
+				}
+				if(successorToModifyIndex != -1)
+				{
+					
+		//just sum the probabilities really 
+					Entry<State, Double> toupdate = successors.get(successorToModifyIndex);
+					double previousProb = toupdate.getValue(); 
+					double updatedProb = stateProbability + previousProb; 
+					toupdate.setValue(updatedProb); 
+					successors.set(successorToModifyIndex, toupdate);
+				}
+			}
+			else {
+			successorJSs.add(successorJS);
 			successors.add(new AbstractMap.SimpleEntry<State, Double>(successorJS, stateProbability));
+			}
 		}
-
+	
+		
 		if (buildMDP) {
 			mdpCreator.addAction(js, ja, successors);
 		}
@@ -485,19 +515,19 @@ public class MultiAgentProductModelGenerator
 		return val;
 	}
 
-//	double getProgressionReward(State s, Object a)
-//	{
-//		double rew = 0.0;
-//		double currentStateDistance = this.getDADistanceCost(s);
-//		ArrayList<Entry<State, Double>> succs = getSuccessors(s, a);
-//		if (succs != null) {
-//			for (Entry<State, Double> succ : succs) {
-//				double succStateDistance = getDADistanceCost(succ.getKey());
-//				rew += succ.getValue() * Math.max(currentStateDistance - succStateDistance, 0.0);
-//			}
-//		}
-//		return rew;
-//	}
+	//	double getProgressionReward(State s, Object a)
+	//	{
+	//		double rew = 0.0;
+	//		double currentStateDistance = this.getDADistanceCost(s);
+	//		ArrayList<Entry<State, Double>> succs = getSuccessors(s, a);
+	//		if (succs != null) {
+	//			for (Entry<State, Double> succ : succs) {
+	//				double succStateDistance = getDADistanceCost(succ.getKey());
+	//				rew += succ.getValue() * Math.max(currentStateDistance - succStateDistance, 0.0);
+	//			}
+	//		}
+	//		return rew;
+	//	}
 
 	double getStateReward(State s, String rew, RewardCalculation calculationMethod) throws PrismException
 	{
@@ -712,29 +742,55 @@ public class MultiAgentProductModelGenerator
 	{
 		mdpCreator.saveMDP(sl, fn);
 	}
+
 	public boolean isGoal(State s)
 	{
-		double daDist = this.getDADistanceCost(s); 
+		double daDist = this.getDADistanceCost(s);
 		return (daDist == 0);
 	}
+
 	public boolean isDeadend(State s) throws PrismException
 	{
-		int numProg0  = 0; 
+		int numProg0 = 0;
 		ArrayList<State> robotStates = this.getRobotStatesFromJointState(s);
-		for(int i = 0; i<numAgents; i++)
-		{
+		for (int i = 0; i < numAgents; i++) {
 			State rs = robotStates.get(i);
-			if(getAgent(i).isDeadend(rs))
+			if (getAgent(i).isDeadend(rs))
 				numProg0++;
 		}
-		boolean deadend = (numProg0==numAgents);
+		boolean deadend = (numProg0 == numAgents);
 		//I dont really need this but its good for when we dont have like initialised stuff 
-		boolean sinkState = da.isSinkState(this.getDAStateAsInt(s)); 
-		
-		if(deadend | sinkState)
-			return true; 
-		else 
-			return false; 
+		boolean sinkState = da.isSinkState(this.getDAStateAsInt(s));
+
+		if (deadend | sinkState)
+			return true;
+		else
+			return false;
+	}
+
+	public int getMaxStatesEstimate()
+	{
+		//just go over all the sals and the da multiply 
+		int maxStates = da.size();
+		int numNoEstimate = 0;
+		int maxAgentStates = da.size();
+		for (int i = 0; i < numAgents; i++) {
+			int ms = getAgent(i).getMaxStatesEstimate();
+			if (ms != -1) {
+				maxStates *= ms;
+				if (maxAgentStates > ms) {
+					maxAgentStates = ms;
+				}
+			} else
+				numNoEstimate++;
+		}
+		if (numNoEstimate > 0) {
+			for (int i = 0; i < numNoEstimate; i++) {
+				maxStates *= maxAgentStates;
+			}
+		}
+		// TODO Auto-generated method stub
+		return maxStates;
 	}
 
 }

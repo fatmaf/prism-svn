@@ -36,8 +36,8 @@ public class BackupFunctionFullBellman implements BackupFunction
 		ArrayList<Bounds> costs = new ArrayList<Bounds>();
 		Bounds cost;
 		for (DecisionNode dn : dns) {
-			prob = prob.add(dn.getProbValueTimesTranProb());
-			prog = prog.add(dn.getProgValueTimesTranProb());
+			prob = prob.add(dn.getProbValueTimesTranProb(n));
+			prog = prog.add(dn.getProgValueTimesTranProb(n));
 
 			for (int i = 0; i < numRews; i++) {
 				if (costs.size() <= i) {
@@ -46,7 +46,7 @@ public class BackupFunctionFullBellman implements BackupFunction
 				}
 
 				cost = costs.get(i);
-				cost = cost.add(dn.getRewValueTimesTranProb(i));
+				cost = cost.add(dn.getRewValueTimesTranProb(i,n));
 				costs.set(i, cost);
 
 			}
@@ -72,8 +72,13 @@ public class BackupFunctionFullBellman implements BackupFunction
 		//go over all children get min or max 
 		//has to be done in tie breaking order 
 		Entry<Object, ArrayList<Bounds>> upperBoundUpdate = Helper.updatedBoundsAndAction(n, true, tieBreakingOrder);
-		Entry<Object, ArrayList<Bounds>> lowerBoundUpdate = Helper.updatedBoundsAndAction(n, false, tieBreakingOrder);
-
+		Entry<Object, ArrayList<Bounds>> lowerBoundUpdate = Helper.updatedBoundsAndAction(n,  false, tieBreakingOrder);
+		if (upperBoundUpdate.getValue().size() == 0) {
+			throw new PrismException("Ye kya hua?" + n.toString());
+		}
+		if (lowerBoundUpdate.getValue().size() == 0) {
+			throw new PrismException("Ye kya hua?"+ n.toString());
+		}
 		for (int i = 0; i < tieBreakingOrder.size(); i++) {
 			Objectives obj = tieBreakingOrder.get(i);
 
@@ -98,11 +103,11 @@ public class BackupFunctionFullBellman implements BackupFunction
 	@Override
 	public double residual(DecisionNode n, boolean upperBound, float epsilon) throws PrismException
 	{
-		if(n.isGoal || n.isDeadend)
+		if (n.isGoal || n.isDeadend)
 			return 0.0;
 		Entry<Object, ArrayList<Bounds>> boundUpdate = Helper.updatedBoundsAndAction(n, upperBound, tieBreakingOrder);
 		//		Entry<Object, ArrayList<Bounds>> lowerBoundUpdate = Helper.updatedBoundsAndAction(n, false, tieBreakingOrder);
-		double res=0;
+		double res = 0;
 		for (int i = 0; i < tieBreakingOrder.size(); i++) {
 			Objectives obj = tieBreakingOrder.get(i);
 			Bounds b = boundUpdate.getValue().get(i);

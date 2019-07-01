@@ -53,7 +53,7 @@ public class PolicyCreator
 				ArrayList<DecisionNode> successorDecNodes = currChanceNode.getChildren();
 				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
 				for (DecisionNode succDecNode : successorDecNodes) {
-					successors.add(new AbstractMap.SimpleEntry<State, Double>(succDecNode.getState(), succDecNode.transitionProbability));
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succDecNode.getState(), succDecNode.getTranProb(currChanceNode)));
 					if (!toVisit.contains(succDecNode) && !visited.contains(succDecNode)) {
 						toVisit.add(succDecNode);
 					}
@@ -73,26 +73,29 @@ public class PolicyCreator
 		return mdpCreator.mdp;
 	}
 
-	public MDPSimple createPolicy(MDP productMdp, Strategy strat)  throws PrismException 
+	public MDPSimple createPolicy(MDP productMdp, Strategy strat) throws PrismException
 	{
 		int initialState = productMdp.getFirstInitialState();
-		return createPolicy(initialState,(MDPSimple) productMdp, strat);
+		return createPolicy(initialState, (MDPSimple) productMdp, strat);
 	}
-	int findActionIndex(MDPSimple mdp,int s, Object a)
+
+	int findActionIndex(MDPSimple mdp, int s, Object a)
 	{
 		int numChoices = mdp.getNumChoices(s);
-		int actionIndex = -1; 
-		for(int i = 0; i<numChoices; i++)
-		{
-			Object action = mdp.getAction(s, i); 
-			if(action.toString().contentEquals(a.toString()))
-			{
-				actionIndex = i; 
-				break; 
+		int actionIndex = -1;
+		for (int i = 0; i < numChoices; i++) {
+			Object action = mdp.getAction(s, i);
+//			System.out.println(action.toString());
+			if (action != null) {
+				if (action.toString().contentEquals(a.toString())) {
+					actionIndex = i;
+					break;
+				}
 			}
 		}
-		return actionIndex; 
+		return actionIndex;
 	}
+
 	private MDPSimple createPolicy(int initialState, MDPSimple mdp, Strategy strat)
 	{
 		Stack<Integer> toVisit = new Stack<Integer>();
@@ -105,24 +108,24 @@ public class PolicyCreator
 			State sState = mdp.getStatesList().get(s);
 
 			strat.initialise(s);
-//			strat.initialise(s);
-			Object action =strat.getChoiceAction();
-			int actionIndex = findActionIndex(mdp,s,action);
+			//			strat.initialise(s);
+			Object action = strat.getChoiceAction();
+			int actionIndex = findActionIndex(mdp, s, action);
 
-			if(actionIndex > -1) {
-			Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
-			ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
-			while (tranIter.hasNext()) {
-				Entry<Integer, Double> stateProbPair = tranIter.next();
-				int succ = stateProbPair.getKey();
-				State succState = mdp.getStatesList().get(stateProbPair.getKey());
-				double prob = stateProbPair.getValue();
-				successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
-				if (!toVisit.contains(succ) && !visited.get(succ)) {
-					toVisit.add(succ);
+			if (actionIndex > -1) {
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
+				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				while (tranIter.hasNext()) {
+					Entry<Integer, Double> stateProbPair = tranIter.next();
+					int succ = stateProbPair.getKey();
+					State succState = mdp.getStatesList().get(stateProbPair.getKey());
+					double prob = stateProbPair.getValue();
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
+					if (!toVisit.contains(succ) && !visited.get(succ)) {
+						toVisit.add(succ);
+					}
 				}
-			}
-			mdpCreator.addAction(sState, action, successors);
+				mdpCreator.addAction(sState, action, successors);
 			}
 		}
 		return mdpCreator.mdp;
@@ -134,7 +137,6 @@ public class PolicyCreator
 		return createPolicy(initialState, mdp, actionSelection);
 	}
 
-	
 	public MDPSimple createPolicy(int initialState, MDPSimple mdp, ActionSelection actionSelection) throws PrismException
 	{
 

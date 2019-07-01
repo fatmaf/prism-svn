@@ -56,6 +56,14 @@ public class TrialBHeuristicSearch
 		this.fn = fn;
 	}
 
+	//set trial length 
+	public int setMaxTrialLength()
+	{
+		maxTrialLength = maProdModGen.getMaxStatesEstimate(); 
+			
+		//TODO:Implement this
+		return maxTrialLength;
+	}
 	public THTSNode addNodeToHash(THTSNode n)
 	{
 		String k = n.getShortName();
@@ -101,8 +109,8 @@ public class TrialBHeuristicSearch
 		}
 		long elapsedTime = System.nanoTime() - start;
 		mainLog.println("Solved after " + this.currentTrailLength + " iterations. " + elapsedTime + "ns "
-				+ TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS)+" ms "
-				+ TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + "s");
+				+ TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + " ms " + TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS)
+				+ "s");
 
 		PolicyCreator pc = new PolicyCreator();
 		pc.createPolicy(n0, actionSelection, false);
@@ -113,13 +121,17 @@ public class TrialBHeuristicSearch
 
 	ChanceNode createChanceNode(DecisionNode dn, Object act, ArrayList<Entry<State, Double>> successors) throws PrismException
 	{
+		ChanceNode cn = null;
 		String k = dn.getState().toString() + act.toString();
-		if (checkNodeInHash(k))
-			return (ChanceNode) getNodeFromHash(k);
+		if (checkNodeInHash(k)) {
+			cn = (ChanceNode) getNodeFromHash(k);
+			//now do you update the abu ? 
+
+		}
 		//Step one create a chance node
 		//chance nodes have q values 
 		//so first we just do like a basic thing 
-		ChanceNode cn = new ChanceNode(dn, dn.getState(), act);
+		cn = new ChanceNode(dn, dn.getState(), act);
 		ArrayList<DecisionNode> dns = new ArrayList<DecisionNode>();
 		for (Entry<State, Double> succState : successors) {
 			DecisionNode sdn = createDecisionNode(cn, succState.getKey(), succState.getValue());
@@ -127,7 +139,7 @@ public class TrialBHeuristicSearch
 		}
 		cn.setChildren(dns);
 		//now we get the bounds 
-		heuristicFunction.calculateBounds(dn.getState(), act, dns);
+		heuristicFunction.calculateBounds(dn.getState(), act, dns, cn);
 
 		Bounds prob = heuristicFunction.getProbabilityBounds();
 		Bounds prog = heuristicFunction.getProgressionBounds();
@@ -152,6 +164,10 @@ public class TrialBHeuristicSearch
 
 	void addBachayIfNeeded(DecisionNode dn) throws PrismException
 	{
+		if (dn != null) {
+			if (dn.getState().toString().contains("(0),(3),(-1),(3)"))
+				mainLog.println("BC");
+		}
 		if (dn.visited() == 0) {
 			//set its children and other things 
 			//the brtdp way 
@@ -163,6 +179,9 @@ public class TrialBHeuristicSearch
 				throw new PrismException("Not Implemented!!");
 			}
 
+		} else {
+			if (dn.getChildren() == null & !dn.isGoal & !dn.isDeadend)
+				throw new PrismException("Its visited but has no bachay ? ");
 		}
 	}
 
@@ -174,10 +193,12 @@ public class TrialBHeuristicSearch
 		if (dn != null && !isTimedOut()) {
 
 //			mainLog.println(dn.toString());
+//			if (dn.getState().toString().contains("(0),(1),(-1),(1)"))
+//				mainLog.println("Ewwror");
 			if (dn.isDeadend | dn.isGoal) {
 				if (!dn.isSolved())
 					dn.setSolved();
-//				mainLog.println("Goal State reached");
+				//				mainLog.println("Goal State reached");
 
 			} else {
 				addBachayIfNeeded(dn);
@@ -286,10 +307,19 @@ public class TrialBHeuristicSearch
 
 	DecisionNode createDecisionNode(THTSNode ps, State s, double tprob) throws PrismException
 	{
+		if (ps != null) {
+			if (ps.getState().toString().contains("(0),(3),(-1),(3)"))
+				mainLog.println("BC");
+		}
+		DecisionNode dn;
 		//check if this node exists 
 		String k = s.toString();
-		if (checkNodeInHash(k))
-			return (DecisionNode) getNodeFromHash(k);
+		if (checkNodeInHash(k)) {
+			dn = (DecisionNode) getNodeFromHash(k);
+			dn.addParent(ps,tprob);
+			return dn;
+
+		}
 
 		heuristicFunction.calculateBounds(s);
 
@@ -300,7 +330,9 @@ public class TrialBHeuristicSearch
 
 		boolean deadend = maProdModGen.isDeadend(s);
 		boolean goal = maProdModGen.isGoal(s);
-		DecisionNode dn = new DecisionNode(ps, s, tprob, prob, prog, costs, deadend, goal);
+		if(deadend)
+			mainLog.println("Deadend: "+s.toString());
+		dn = new DecisionNode(ps, s, tprob, prob, prog, costs, deadend, goal);
 		addNodeToHash(dn);
 		return dn;
 	}

@@ -58,8 +58,8 @@ public class testMATHTS
 	public void run() throws FileNotFoundException, PrismException
 	{
 //		testSingleAgentLoader();
-		String filename = "tiny_example_permtrap";//"no_door_example";	
-		doTHTS(filename);
+		String filename = "problem";//"tro_example";//"tiny_example_permtrap";//"grid_3_topomap_sim_doors";//"tiny_example_permtrap";//"no_door_example";	
+		doTHTS(filename,2,3);
 	}
 
 	public void testMAPMG(PrismLog mainLog,
@@ -171,7 +171,7 @@ public class testMATHTS
 
 	}
 	
-	public void doTHTS(String filename) throws PrismException, FileNotFoundException
+	public void doTHTS(String filename,int numRobots,int numTasks) throws PrismException, FileNotFoundException
 	{
 		
 
@@ -188,15 +188,20 @@ public class testMATHTS
 		prism.setEngine(Prism.EXPLICIT);
 
 		ArrayList<String> filenames = new ArrayList<String>();
-		filenames.add(testsLocation + filename + "0.prism");
-		filenames.add(testsLocation + filename + "1.prism");
+		for(int i = 0; i<numRobots; i++) {
+		filenames.add(testsLocation + filename + i+".prism");
+//		filenames.add(testsLocation + filename + i+".prism");
+		}
 		String propfilename = testsLocation + filename + ".props";
 		DA<BitSet, ? extends AcceptanceOmega> da=null; 
 		ArrayList<SingleAgentLoader> sals = new ArrayList<SingleAgentLoader>();
 		ArrayList<String> ssl = new ArrayList<String>(); 
+//		ssl.add("door0");
+//		ssl.add("door1");
+//		ssl = null;
 		ssl.add("door");
-		ssl = null;
-		
+
+	
 		for (int i = 0; i < filenames.size(); i++) {
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename, resultsLocation,ssl);
@@ -207,6 +212,9 @@ public class testMATHTS
 			sal.solutionProdModelVarListsAreSynced();
 			sal.cleanUp();
 			
+			int maxStateEstimate = sal.getMaxStatesEstimate(); 
+//			maxStateEstimate *= da.size(); 
+//			sal.setMaxStatesEstimate(maxStateEstimate);
 			sals.add(sal);
 	
 		}
@@ -238,6 +246,8 @@ public class testMATHTS
 				resultsLocation, 
 				filename
 				);
+		int mt = thts.setMaxTrialLength();
+		mainLog.println("Max Trial Length: "+mt);
 		Object a = thts.doTHTS();
 		mainLog.println(a.toString());
 		

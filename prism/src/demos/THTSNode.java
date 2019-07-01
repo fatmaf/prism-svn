@@ -2,6 +2,7 @@ package demos;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import parser.State;
 import prism.PrismException;
@@ -13,33 +14,47 @@ public abstract class THTSNode
 	Bounds probValues;
 	Bounds progValues;
 	HashMap<Integer, Bounds> rewsValues;
-	THTSNode parent; 
-	int numVisits ; 
-	boolean solved; 
+	List<THTSNode> parents;
+	int numVisits;
+	boolean solved;
 
 	public abstract boolean equals(THTSNode n);
-	
+
+	public void addParent(THTSNode n)
+	{
+		if (parents == null)
+			parents = new ArrayList<THTSNode>();
+		if (!parents.contains(n))
+			parents.add(n);
+	}
+
+
 	public boolean isSolved()
 	{
-		return solved; 
+		return solved;
 	}
+
 	public void setSolved()
 	{
-		solved = true; 
+		solved = true;
 	}
+
 	public void setUnsolved()
 	{
-		solved = false; 
+		solved = false;
 	}
+
 	public int visited()
 	{
-		return numVisits; 
+		return numVisits;
 	}
+
 	public int increaseVisits()
 	{
-		numVisits++; 
-		return numVisits; 
+		numVisits++;
+		return numVisits;
 	}
+
 	public State getState()
 	{
 		return s;
@@ -79,10 +94,12 @@ public abstract class THTSNode
 	{
 		this.rewsValues = rews;
 	}
+
 	public void setRews()
 	{
 		initRews();
 	}
+
 	public Bounds getRew(int rewNum)
 	{
 		return rewsValues.get(rewNum);
@@ -90,59 +107,64 @@ public abstract class THTSNode
 
 	public void setRew(Bounds b, int rewNum)
 	{
-		if(rewsValues == null)
+		if (rewsValues == null)
 			setRews();
 		rewsValues.put(rewNum, b);
 	}
+
 	public void initRews()
 	{
-		rewsValues = new HashMap<Integer,Bounds>();
+		rewsValues = new HashMap<Integer, Bounds>();
 	}
-	public boolean isRoot()
-	{
-		return this.parent == null;
-	}
+
+//	public boolean isRoot()
+//	{
+//		return this.parents == null;
+//	}
+
 	public Bounds getObjectiveBounds(Objectives obj) throws PrismException
 	{
-		Bounds toret = null; 
-		switch (obj)
-		{
+		Bounds toret = null;
+		switch (obj) {
 		case Probability:
-			toret = getProbValue(); 
-			break; 
+			toret = getProbValue();
+			break;
 		case Progression:
-			toret = getProg(); 
-			break; 
+			toret = getProg();
+			break;
 		case Cost:
 			toret = getRew(0);
-			break; 
+			break;
 		default:
-			throw new PrismException("kya?"); 
-			
-			
+			throw new PrismException("kya?");
+
 		}
-		return toret; 
+		return toret;
 	}
+
 	public abstract THTSNodeType nodeType();
+
 	public abstract boolean isLeafNode();
 
-	public abstract String getShortName(); 
+	public abstract String getShortName();
+
 	@Override
 	public String toString()
 	{
-		String str= "N[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + 
-				", n=" + numVisits + ", solved=" + solved ;
-		if(parent == null)
-		{
-			str+=", abu=" + parent;
+		String str = "N[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + ", n=" + numVisits + ", solved=" + solved;
+		if (parents == null || parents.size() == 0) {
+			str += ", abus=noone";
+		} else {
+			str += ", abus=";
+			for (THTSNode abu : parents) {
+				if (abu != null) {
+					str += abu.getState() + " ";
+				}
+			}
 		}
-		else
-		{
-			str+=", abu=" + parent.getState();
-		}
-		str+="]";
-		
-		return str; 
+		str += "]";
+
+		return str;
 	}
 
 }

@@ -72,6 +72,7 @@ public class SingleAgentLoader
 	private ModulesFileModelGenerator prismModelGen;
 
 	private int daStateIndex = -1;
+	private int maxStatesEstimate=-1;
 
 	/*
 	 * the prism component should be initialised 
@@ -150,15 +151,23 @@ public class SingleAgentLoader
 
 		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
 
-		PrismLog out = new PrismFileLog(resLoc+"pmdp.dot"); 
-		prodmdp.exportToDotFile(out, null, true);
-		out.close();
-		
+//		PrismLog out = new PrismFileLog(resLoc+"pmdp.dot"); 
+//		prodmdp.exportToDotFile(out, null, true);
+//		out.close();
+		this.maxStatesEstimate = mdp.getNumStates();
 		MDStrategy strat = (MDStrategy) (result.strat);
 		this.reachProbsSolution = strat;
 		return strat;
 	}
 
+	public int getMaxStatesEstimate()
+	{
+		return this.maxStatesEstimate; 
+	}
+	public void setMaxStatesEstimate( int update)
+	{
+		this.maxStatesEstimate = update; 
+	}
 	public HashMap<Objectives, HashMap<State, Double>> solveUsingPartialSatisfaction() throws PrismException
 	{
 		if (printMessages) {
@@ -182,7 +191,7 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = null;//new PolicyCreator();
+		PolicyCreator pc = new PolicyCreator();
 		HashMap<String, HashMap<State, Double>> result =
 				mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
@@ -204,12 +213,13 @@ public class SingleAgentLoader
 			partialSatSolution.put(obj,result.get(r));
 
 		}
+		maxStatesEstimate = mdp.getNumStates();
 
 //		this.rewStructNameIndex = new HashMap<Objectives, Integer>();
 //		rewStructNameIndex.put(Objectives.Cost, 1);
 //		rewStructNameIndex.put(Objectives.Progression, 2);
 //		rewStructNameIndex.put(Objectives.Probability, 0);
-//		pc.savePolicy(savePlace, "_partsat");
+		pc.savePolicy(savePlace, "_partsat");
 		return partialSatSolution;
 
 	}
@@ -563,6 +573,10 @@ public class SingleAgentLoader
 				Object action = prodModelGen.getChoiceAction(i);
 				actionIndices.put(action, i);
 			}
+			if(numChoices == 0)
+			{
+				actionIndices.put("*",-1); 
+			}
 			stateActionIndices.put(s, actionIndices);
 
 		}
@@ -572,12 +586,15 @@ public class SingleAgentLoader
 	ArrayList<Entry<State, Double>> getStateActionSuccessors(State s, Object a) throws PrismException
 	{
 		int choiceNum = getStateActionChoiceNum(s, a);
-		int numTransitions = getNumTransitions(s, a, choiceNum);
 		ArrayList<Entry<State, Double>> succStates = new ArrayList<Entry<State, Double>>();
+
+		if(choiceNum > -1) {
+		int numTransitions = getNumTransitions(s, a, choiceNum);
 		for (int i = 0; i < numTransitions; i++) {
 			double prob = prodModelGen.getTransitionProbability(choiceNum, i);
 			State succState = prodModelGen.computeTransitionTarget(choiceNum, i);
 			succStates.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
+		}
 		}
 		//TODO: what to do if there are no sucessors ?? 
 		//just putting this here 

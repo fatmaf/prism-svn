@@ -49,7 +49,7 @@ public class MCTSTrial implements HeuristicFunction
 	}
 
 	@Override
-	public void calculateBounds(State s, Object a, ArrayList<DecisionNode> dn) throws PrismException
+	public void calculateBounds(State s, Object a, ArrayList<DecisionNode> dn,THTSNode parent) throws PrismException
 	{
 		// TODO Auto-generated method stub
 		

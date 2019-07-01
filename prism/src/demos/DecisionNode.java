@@ -9,7 +9,7 @@ import prism.PrismException;
 public class DecisionNode extends THTSNode
 {
 	HashMap<Object, ChanceNode> children;
-	double transitionProbability;
+	HashMap<THTSNode, Double> transitionProbability;
 	int numActions;
 	boolean isDeadend;
 	boolean isGoal;
@@ -21,8 +21,15 @@ public class DecisionNode extends THTSNode
 		this.setProg(prog);
 		for (int i = 0; i < cost.size(); i++)
 			setRew(cost.get(i), i);
-		this.parent = parent;
-		transitionProbability = tprob;
+		if (parent != null) {
+			addParent(parent);
+			if (transitionProbability == null) {
+				transitionProbability = new HashMap<THTSNode, Double>();
+
+			}
+
+			transitionProbability.put(parent, tprob);
+		}
 		children = null;
 		numActions = 0;
 		solved = false;
@@ -33,23 +40,39 @@ public class DecisionNode extends THTSNode
 
 			solved = true;
 		}
-		numVisits= 0; 
+		numVisits = 0;
 
 	}
 
-	public Bounds getProbValueTimesTranProb()
+	public void addParent(THTSNode n, double tprob)
 	{
-		return this.probValues.multiply(transitionProbability);
+		addParent(n);
+		addTranProb(n, tprob);
+
 	}
 
-	public Bounds getProgValueTimesTranProb()
+	public Bounds getProbValueTimesTranProb(THTSNode p)
 	{
-		return this.progValues.multiply(transitionProbability);
+		if (p != null)
+			return this.probValues.multiply(transitionProbability.get(p));
+		else
+			return this.probValues.multiply(1.0);
 	}
 
-	public Bounds getRewValueTimesTranProb(int i)
+	public Bounds getProgValueTimesTranProb(THTSNode p)
 	{
-		return getRew(i).multiply(transitionProbability);
+		if (p != null)
+			return this.progValues.multiply(transitionProbability.get(p));
+		else
+			return this.progValues.multiply(1.0);
+	}
+
+	public Bounds getRewValueTimesTranProb(int i, THTSNode p)
+	{
+		if (p != null)
+			return getRew(i).multiply(transitionProbability.get(p));
+		else
+			return getRew(i).multiply(1.0);
 	}
 
 	public void addChild(Object a, ChanceNode child) throws PrismException
@@ -90,9 +113,16 @@ public class DecisionNode extends THTSNode
 		return THTSNodeType.Decision;
 	}
 
-	public double getTranProb()
+	public double getTranProb(THTSNode p)
 	{
-		return transitionProbability;
+		return transitionProbability.get(p);
+	}
+
+	void addTranProb(THTSNode p, double tprob)
+	{
+		if (transitionProbability == null)
+			transitionProbability = new HashMap<THTSNode, Double>();
+		transitionProbability.put(p, tprob);
 	}
 
 	public boolean allActionsAdded()

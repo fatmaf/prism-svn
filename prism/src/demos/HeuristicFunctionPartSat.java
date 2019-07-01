@@ -45,7 +45,7 @@ public class HeuristicFunctionPartSat implements HeuristicFunction
 	}
 
 	@Override
-	public void calculateBounds(State s, Object a, ArrayList<DecisionNode> dns) throws PrismException
+	public void calculateBounds(State s, Object a, ArrayList<DecisionNode> dns,THTSNode parent) throws PrismException
 	{
 		double costHere = maProdModGen.getStateActionReward(s, a, "time", RewardCalculation.MAX);
 		double progRew = maProdModGen.getProgressionReward(s, a);
@@ -55,8 +55,8 @@ public class HeuristicFunctionPartSat implements HeuristicFunction
 		 costs = new ArrayList<Bounds>();
 		Bounds cost;
 		for (DecisionNode dn : dns) {
-			prob = prob.add(dn.getProbValueTimesTranProb());
-			prog = prog.add(dn.getProgValueTimesTranProb());
+			prob = prob.add(dn.getProbValueTimesTranProb(parent));
+			prog = prog.add(dn.getProgValueTimesTranProb(parent));
 
 			for (int i = 0; i < numRews; i++) {
 				if (costs.size() <= i) {
@@ -65,7 +65,7 @@ public class HeuristicFunctionPartSat implements HeuristicFunction
 				} 
 				
 					cost = costs.get(i);
-				cost = cost.add(dn.getRewValueTimesTranProb(i));
+				cost = cost.add(dn.getRewValueTimesTranProb(i,parent));
 				costs.set(i, cost);
 
 			}

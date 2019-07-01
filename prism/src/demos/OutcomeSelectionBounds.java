@@ -26,7 +26,7 @@ public class OutcomeSelectionBounds implements OutcomeSelection
 		double diffSum = 0; 
 		for(DecisionNode dn: c.getChildren())
 		{
-			diffHere = dn.getProbValueTimesTranProb().diff(); 
+			diffHere = dn.getProbValueTimesTranProb(c).diff(); 
 			probdiffs.add(diffHere);
 			diffSum+=diffHere; 
 		}
