@@ -10,6 +10,7 @@ import java.util.Stack;
 
 import acceptance.AcceptanceOmega;
 import automata.DA;
+import demos.ResultsTiming.varIDs;
 import parser.State;
 import prism.Prism;
 import prism.PrismException;
@@ -58,8 +59,9 @@ public class testMATHTS
 	public void run() throws FileNotFoundException, PrismException
 	{
 //		testSingleAgentLoader();
-		String filename = "problem";//"tro_example";//"tiny_example_permtrap";//"grid_3_topomap_sim_doors";//"tiny_example_permtrap";//"no_door_example";	
-		doTHTS(filename,2,3);
+		String filename = "grid_3_topomap_sim_doors";//"tiny_example_permtrap";//"no_door_example";	
+//		doTHTS(filename,2,3,2);
+		runTest();
 	}
 
 	public void testMAPMG(PrismLog mainLog,
@@ -171,54 +173,92 @@ public class testMATHTS
 
 	}
 	
-	public void doTHTS(String filename,int numRobots,int numTasks) throws PrismException, FileNotFoundException
+	public void doTHTS(String resLoc,String modelLoc,String filename,int numRobots,int numTasks,int numDoors) throws PrismException, FileNotFoundException
 	{
 		
 
 		// Create a log for PRISM output (hidden or stdout)
 		// PrismLog mainLog = new PrismDevNullLog();
 
+
 		PrismLog mainLog = new PrismFileLog("stdout");
+		ResultsTiming resSaver = new ResultsTiming(mainLog,filename,resLoc,true);
+		
+		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
+		resSaver.recordInits(numTasks, "Tasks", varIDs.numtasks);
+		resSaver.recordInits(numDoors, "Doors", varIDs.numdoors);
+		
 		Long startTime = System.nanoTime();
 		boolean buildMDP = false; 
 		// Initialise PRISM engine
-
+		
+		resSaver.setGlobalStartTime();
+//		resSaver.setScopeStartTime();
+		resSaver.setLocalStartTime();
+		
 		Prism prism = new Prism(mainLog);
 		prism.initialise();
 		prism.setEngine(Prism.EXPLICIT);
 
 		ArrayList<String> filenames = new ArrayList<String>();
 		for(int i = 0; i<numRobots; i++) {
-		filenames.add(testsLocation + filename + i+".prism");
+		filenames.add(modelLoc + filename + i+".prism");
 //		filenames.add(testsLocation + filename + i+".prism");
 		}
-		String propfilename = testsLocation + filename + ".props";
+		String propfilename = modelLoc + filename + ".props";
 		DA<BitSet, ? extends AcceptanceOmega> da=null; 
 		ArrayList<SingleAgentLoader> sals = new ArrayList<SingleAgentLoader>();
-		ArrayList<String> ssl = new ArrayList<String>(); 
-//		ssl.add("door0");
-//		ssl.add("door1");
-//		ssl = null;
-		ssl.add("door");
+		ArrayList<String> ssl = null; 
+		if(numDoors > 0)
+		{
+			ssl = new ArrayList<String>(); 
+			for(int i = 0; i<numDoors; i++)
+			{
+				ssl.add("door"+i);
+			}
+		}
 
-	
+		
+//		ssl = null;
+//		ssl.add("door");
+
+//		numrobots, numtasks, numreallocstates, teammdpstates, 
+//		teammdptransitions, numreallocationsincode, totalcomputationtime, 
+//		totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
+//		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, 
+//		numdoors, modelloadingtimes, totalmodelloadingtime, teammdptimeonly, 
+//		singleagentsolutiontimes,
 		for (int i = 0; i < filenames.size(); i++) {
+			resSaver.setScopeStartTime();
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename, resultsLocation,ssl);
 		
 			sal.setUp();
 			da = sal.getSingleAgentModelGenReturnDA();
+
+//			maxStateEstimate *= da.size(); 
+//			sal.setMaxStatesEstimate(maxStateEstimate);
+			sals.add(sal);
+
+			resSaver.recordTime("model loading time "+modelName, varIDs.modelloadingtimes,true);
+		}
+		resSaver.recordTime("all models loading time", varIDs.totalmodelloadingtime, false);
+		resSaver.setLocalStartTime();
+
+		for(int i = 0; i<sals.size(); i++)
+		{
+			resSaver.setScopeStartTime();
+			SingleAgentLoader sal = sals.get(i);
 			sal.solveUsingPartialSatisfaction();
 			sal.solutionProdModelVarListsAreSynced();
 			sal.cleanUp();
 			
 			int maxStateEstimate = sal.getMaxStatesEstimate(); 
-//			maxStateEstimate *= da.size(); 
-//			sal.setMaxStatesEstimate(maxStateEstimate);
-			sals.add(sal);
-	
+			resSaver.recordTime("Single Agent Solution "+i, varIDs.singleagentsolutiontimes,true);
+			resSaver.recordValues(maxStateEstimate, "Single Agent "+i+" States", varIDs.nestedproductstates);
 		}
-		
+		resSaver.recordTime("Total Single Agent Solution Time",varIDs.allnestedproductcreationtime,false);
+		resSaver.setScopeStartTime();
 		long elapsedTime = System.nanoTime() - startTime;
 		mainLog.println("Single Agent Models Loaded and Solved " + elapsedTime + "ns "
 				+ TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS)+" ms "
@@ -243,19 +283,105 @@ public class testMATHTS
 				heuristicFunction,
 				backupFunction,
 				tieBreakingOrder, 
-				resultsLocation, 
+				resLoc, 
 				filename
 				);
 		int mt = thts.setMaxTrialLength();
+		resSaver.recordTime("Multi Agent Product Initialization", varIDs.jointmodelgentime, true);
 		mainLog.println("Max Trial Length: "+mt);
 		Object a = thts.doTHTS();
 		mainLog.println(a.toString());
-		
+	
 		elapsedTime = System.nanoTime() - startTime;
 		mainLog.println("Completed in " + elapsedTime + "ns "
 				+ TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS)+" ms "
 				+ TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + "s");
-		
+		resSaver.writeResults();
 	}
-	
+
+	public void runTest()
+	{
+
+		// saving filenames etc
+		String dir = System.getProperty("user.dir");
+		String modelLocation = dir + "/tests/decomp_tests/";
+		modelLocation = dir + "/tests/autogen_testfiles/";
+
+		String path = modelLocation;
+		//	    goalsRange = [2,4,6,8,10]
+		//	    	    agentsRange = [2,4,6,8,10]
+		//	    	    fsRange = [0,2,4,8,16,32]
+		//	    	    ssRange = [0,1,2,3,4]
+		ArrayList<String> modelnames = new ArrayList<String>();
+		
+		String modelname = "grid_3_topomap_plain";//"grid_3_topomap";
+		modelnames.add(modelname);
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_task_list= new HashMap<String, Integer>();
+		ArrayList<String> allModelLocs = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+		int[] goalsRange = { 2 , 4, 6, 8, 10 };
+		int[] agentsRange = { 2 , 4, 6, 8, 10 };
+		int[] fsRange = { 0, 2 , 4, 8, 16, 32 };
+		int[] ssRange = { 0, 1, 2, 3, 4 };
+		for (int numAgents : agentsRange) {
+			for (int numGoals : goalsRange) {
+				for (int numFailStates : fsRange) {
+					for (int numDoors : ssRange) {
+						String thisModelLoc = modelLocation + modelname + "/" + "r" + numAgents + "/t" + (numGoals) + "/fs" + (numFailStates) + "/d"
+								+ (numDoors) + "/";
+						allModelLocs.add(thisModelLoc);
+						String example_id = modelname + "_r" + numAgents + "_t" + (numGoals) + "_fs" + (numFailStates) + "_d" + numDoors;
+						if (numDoors == 0)
+							example_has_door_list.put(example_id, false);
+						else
+							example_has_door_list.put(example_id, true);
+
+						example_num_robot_list.put(example_id, numAgents);
+						example_num_door_list.put(example_id, numDoors);
+						example_num_task_list.put(example_id, numGoals);
+						example_ids.add(example_id);
+
+					}
+				}
+			}
+		}
+
+		ArrayList<String> modelsTested = new ArrayList<String>();
+		try {
+			for (int i = 49; i < allModelLocs.size(); i++) {
+
+				String thisModelLoc = allModelLocs.get(i);
+				String example_name = modelname;
+				String example_id = example_ids.get(i);
+				System.out.println(thisModelLoc);
+				System.out.println(example_id);
+				modelsTested.add(example_id);
+//				StatesHelper.setSavePlace(thisModelLoc + "results/");
+				System.out.println("Example "+i+" of "+allModelLocs.size());
+//				if(true)
+//				throw new FileNotFoundException();
+//				runOneExample(example_name, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, thisModelLoc, true);
+//				if(true)
+				doTHTS(thisModelLoc+"results/",thisModelLoc,example_name,example_num_robot_list.get(example_id),
+						example_num_task_list.get(example_id),example_num_door_list.get(example_id));
+				
+				System.out.println("Example "+i+" of "+allModelLocs.size()+ " completed");
+//				throw new PrismException("3");
+			}
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+		System.out.println("Models Tested: " + modelsTested.size());
+		for (int i = 0; i < modelsTested.size(); i++) {
+			System.out.println(modelsTested.get(i));
+		}
+		System.out.println("Models Tested: " + modelsTested.size());
+}
 }

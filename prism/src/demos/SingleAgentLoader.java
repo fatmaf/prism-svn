@@ -55,7 +55,7 @@ public class SingleAgentLoader
 	public ProductModelGenerator prodModelGen;
 	String latestSolutionInvoked;
 	HashMap<Objectives, HashMap<State, Double>> partialSatSolution;
-//	HashMap<Objectives, Integer> rewStructNameIndex;
+	//	HashMap<Objectives, Integer> rewStructNameIndex;
 	HashMap<State, HashMap<Object, Integer>> stateActionIndices;
 	boolean printMessages;
 	ArrayList<Integer> sharedStateIndices;
@@ -72,7 +72,7 @@ public class SingleAgentLoader
 	private ModulesFileModelGenerator prismModelGen;
 
 	private int daStateIndex = -1;
-	private int maxStatesEstimate=-1;
+	private int maxStatesEstimate = -1;
 
 	/*
 	 * the prism component should be initialised 
@@ -143,7 +143,7 @@ public class SingleAgentLoader
 		LTLProduct<MDP> prod = ltlMC.constructProductModel(tempda, mdp, labelBS, null);
 
 		MDP prodmdp = prod.getProductModel();
-		
+
 		solutionVarList = prodmdp.getVarList();
 		solutionStateList = prodmdp.getStatesList();
 		updateSharedStateIndices(solutionVarList);
@@ -151,9 +151,9 @@ public class SingleAgentLoader
 
 		ModelCheckerResult result = mc.computeReachProbs(prodmdp, acc, false);
 
-//		PrismLog out = new PrismFileLog(resLoc+"pmdp.dot"); 
-//		prodmdp.exportToDotFile(out, null, true);
-//		out.close();
+		//		PrismLog out = new PrismFileLog(resLoc+"pmdp.dot"); 
+		//		prodmdp.exportToDotFile(out, null, true);
+		//		out.close();
 		this.maxStatesEstimate = mdp.getNumStates();
 		MDStrategy strat = (MDStrategy) (result.strat);
 		this.reachProbsSolution = strat;
@@ -162,12 +162,14 @@ public class SingleAgentLoader
 
 	public int getMaxStatesEstimate()
 	{
-		return this.maxStatesEstimate; 
+		return this.maxStatesEstimate;
 	}
-	public void setMaxStatesEstimate( int update)
+
+	public void setMaxStatesEstimate(int update)
 	{
-		this.maxStatesEstimate = update; 
+		this.maxStatesEstimate = update;
 	}
+
 	public HashMap<Objectives, HashMap<State, Double>> solveUsingPartialSatisfaction() throws PrismException
 	{
 		if (printMessages) {
@@ -191,35 +193,34 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = new PolicyCreator();
-		HashMap<String, HashMap<State, Double>> result =
-				mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
+		PolicyCreator pc = null;//new PolicyCreator();
+		HashMap<String, HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
 		updateSharedStateIndices(solutionVarList);
-		
+
 		partialSatSolution = new HashMap<Objectives, HashMap<State, Double>>();
-		Objectives obj; 
-		for(String r: result.keySet())
-		{
-			if(r.contentEquals("cost"))
-				obj = Objectives.Cost; 
+		Objectives obj;
+		for (String r : result.keySet()) {
+			if (r.contentEquals("cost"))
+				obj = Objectives.Cost;
 			else if (r.contentEquals("prog"))
-				obj = Objectives.Progression; 
+				obj = Objectives.Progression;
 			else if (r.contentEquals("prob"))
-				obj = Objectives.Probability; 
-			else 
+				obj = Objectives.Probability;
+			else
 				throw new PrismException("Hain?");
-			
-			partialSatSolution.put(obj,result.get(r));
+
+			partialSatSolution.put(obj, result.get(r));
 
 		}
 		maxStatesEstimate = mdp.getNumStates();
 
-//		this.rewStructNameIndex = new HashMap<Objectives, Integer>();
-//		rewStructNameIndex.put(Objectives.Cost, 1);
-//		rewStructNameIndex.put(Objectives.Progression, 2);
-//		rewStructNameIndex.put(Objectives.Probability, 0);
-		pc.savePolicy(savePlace, "_partsat");
+		//		this.rewStructNameIndex = new HashMap<Objectives, Integer>();
+		//		rewStructNameIndex.put(Objectives.Cost, 1);
+		//		rewStructNameIndex.put(Objectives.Progression, 2);
+		//		rewStructNameIndex.put(Objectives.Probability, 0);
+		if (pc != null)
+			pc.savePolicy(savePlace, "_partsat");
 		return partialSatSolution;
 
 	}
@@ -258,7 +259,7 @@ public class SingleAgentLoader
 		DA<BitSet, ? extends AcceptanceOmega> da = ltlMC.constructExpressionDAForLTLFormula(expr.getExpression(), labelExprs, allowedAcceptance);
 		da.setDistancesToAcc();
 		daAccStates = da.getAccStates();
-		PrismLog out = new PrismFileLog(resLoc+"da.dot");
+		PrismLog out = new PrismFileLog(resLoc + "da.dot");
 		//printing the da 
 		da.print(out, "dot");
 		out.close();
@@ -301,7 +302,7 @@ public class SingleAgentLoader
 	{
 		State solState = getSolutionState(prodModGenState);
 		if (solState != null) {
-//			int costIndex = this.rewStructNameIndex.get(objective);
+			//			int costIndex = this.rewStructNameIndex.get(objective);
 			HashMap<State, Double> solutionValues = this.partialSatSolution.get(objective);
 			if (solutionValues.containsKey(solState))
 				return solutionValues.get(solState);
@@ -354,7 +355,7 @@ public class SingleAgentLoader
 					int prodModelGenVarIndex = prodModelGenVarList.getIndex(name);
 					if (name.contentEquals("_da0"))
 						this.daStateIndex = prodModelGenVarIndex;
-					prodModGenVarsToSolVars.put(prodModelGenVarIndex,i );
+					prodModGenVarsToSolVars.put(prodModelGenVarIndex, i);
 
 				}
 				synced = false;
@@ -573,9 +574,8 @@ public class SingleAgentLoader
 				Object action = prodModelGen.getChoiceAction(i);
 				actionIndices.put(action, i);
 			}
-			if(numChoices == 0)
-			{
-				actionIndices.put("*",-1); 
+			if (numChoices == 0) {
+				actionIndices.put("*", -1);
 			}
 			stateActionIndices.put(s, actionIndices);
 
@@ -588,13 +588,13 @@ public class SingleAgentLoader
 		int choiceNum = getStateActionChoiceNum(s, a);
 		ArrayList<Entry<State, Double>> succStates = new ArrayList<Entry<State, Double>>();
 
-		if(choiceNum > -1) {
-		int numTransitions = getNumTransitions(s, a, choiceNum);
-		for (int i = 0; i < numTransitions; i++) {
-			double prob = prodModelGen.getTransitionProbability(choiceNum, i);
-			State succState = prodModelGen.computeTransitionTarget(choiceNum, i);
-			succStates.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
-		}
+		if (choiceNum > -1) {
+			int numTransitions = getNumTransitions(s, a, choiceNum);
+			for (int i = 0; i < numTransitions; i++) {
+				double prob = prodModelGen.getTransitionProbability(choiceNum, i);
+				State succState = prodModelGen.computeTransitionTarget(choiceNum, i);
+				succStates.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
+			}
 		}
 		//TODO: what to do if there are no sucessors ?? 
 		//just putting this here 
