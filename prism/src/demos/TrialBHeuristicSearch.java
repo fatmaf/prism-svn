@@ -164,10 +164,10 @@ public class TrialBHeuristicSearch
 
 	void addBachayIfNeeded(DecisionNode dn) throws PrismException
 	{
-		if (dn != null) {
-			if (dn.getState().toString().contains("(0),(3),(-1),(3)"))
-				mainLog.println("BC");
-		}
+//		if (dn != null) {
+//			if (dn.getState().toString().contains("(0),(3),(-1),(3)"))
+//				mainLog.println("BC");
+//		}
 		if (dn.visited() == 0) {
 			//set its children and other things 
 			//the brtdp way 
@@ -295,6 +295,7 @@ public class TrialBHeuristicSearch
 		return this.currentTrailLength > this.maxTrialLength;
 	}
 
+	
 	DecisionNode getRootNode() throws PrismException
 	{
 		//just get the initial states 
@@ -307,10 +308,10 @@ public class TrialBHeuristicSearch
 
 	DecisionNode createDecisionNode(THTSNode ps, State s, double tprob) throws PrismException
 	{
-		if (ps != null) {
-			if (ps.getState().toString().contains("(0),(3),(-1),(3)"))
-				mainLog.println("BC");
-		}
+//		if (ps != null) {
+//			if (ps.getState().toString().contains("(0),(3),(-1),(3)"))
+//				mainLog.println("BC");
+//		}
 		DecisionNode dn;
 		//check if this node exists 
 		String k = s.toString();
