@@ -26,7 +26,9 @@ public class TrialBHeuristicSearch
 	boolean lrtdp;
 	float errorClearance = 0.00001f;
 	int maxTrialLength = 200;
+	int maxRollOuts = 1000;
 	int currentTrailLength = 0;
+	int numRollOut = 0; 
 	String saveLocation;
 	String fn;
 
@@ -104,7 +106,8 @@ public class TrialBHeuristicSearch
 		long start = System.nanoTime();
 
 		DecisionNode n0 = getRootNode();
-		while (!n0.isSolved() && !isTimedOut()) {
+		while (!n0.isSolved() && !isRolloutTimedOut()) {
+			this.numRollOut++;
 			visitDecisionNode(n0);
 		}
 		long elapsedTime = System.nanoTime() - start;
@@ -190,7 +193,7 @@ public class TrialBHeuristicSearch
 
 		currentTrailLength++;
 		boolean dobackup = true;
-		if (dn != null && !isTimedOut()) {
+		if (dn != null && !isTrialTimedOut()) {
 
 //			mainLog.println(dn.toString());
 //			if (dn.getState().toString().contains("(0),(1),(-1),(1)"))
@@ -230,7 +233,7 @@ public class TrialBHeuristicSearch
 	boolean visitChanceNode(ChanceNode c) throws PrismException
 	{
 		boolean dobackup = true;
-		if (c != null) {
+		if (c != null & !isTrialTimedOut()) {
 //			mainLog.println(c.toString());
 			c.increaseVisits();
 			ArrayList<DecisionNode> children = outcomeSelection.selectOutcome(c);
@@ -290,11 +293,16 @@ public class TrialBHeuristicSearch
 		return stateSolved;
 	}
 
-	boolean isTimedOut() throws PrismException
+	boolean isTrialTimedOut() throws PrismException
 	{
+//		return this.numRollOut >= this.maxRollOuts;
 		return this.currentTrailLength > this.maxTrialLength;
 	}
 
+	boolean isRolloutTimedOut() 
+	{
+		return this.numRollOut > this.maxRollOuts;
+	}
 	
 	DecisionNode getRootNode() throws PrismException
 	{

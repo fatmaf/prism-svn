@@ -792,7 +792,7 @@ public class MultiAgentProductModelGenerator
 			}
 		}
 		// TODO Auto-generated method stub
-		maxStates = Math.min(maxStates,MAXTRIALLEN*MAXROLLOUTS);
+		maxStates = Math.min(maxStates,MAXTRIALLEN);
 		return maxStates;
 	}
 
