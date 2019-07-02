@@ -173,7 +173,7 @@ public class testMATHTS
 
 	}
 	
-	public void doTHTS(String resLoc,String modelLoc,String filename,int numRobots,int numTasks,int numDoors) throws PrismException, FileNotFoundException
+	public void doTHTS(String resLoc,String modelLoc,String filename,int numRobots,int numTasks,int numDoors,int numFS) throws PrismException, FileNotFoundException
 	{
 		
 
@@ -187,6 +187,7 @@ public class testMATHTS
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
 		resSaver.recordInits(numTasks, "Tasks", varIDs.numtasks);
 		resSaver.recordInits(numDoors, "Doors", varIDs.numdoors);
+		resSaver.recordInits(numFS, "Failstates", varIDs.failstates);
 		
 		Long startTime = System.nanoTime();
 		boolean buildMDP = false; 
@@ -314,12 +315,13 @@ public class testMATHTS
 		//	    	    ssRange = [0,1,2,3,4]
 		ArrayList<String> modelnames = new ArrayList<String>();
 		
-		String modelname = "grid_3_topomap_plain";//"grid_3_topomap";
+		String modelname = "grid_3_topomap";
 		modelnames.add(modelname);
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_task_list= new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list= new HashMap<String, Integer>();
 		ArrayList<String> allModelLocs = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
 		int[] goalsRange = { 2 , 4, 6, 8, 10 };
@@ -342,6 +344,7 @@ public class testMATHTS
 						example_num_robot_list.put(example_id, numAgents);
 						example_num_door_list.put(example_id, numDoors);
 						example_num_task_list.put(example_id, numGoals);
+						example_num_fs_list.put(example_id, numFailStates);
 						example_ids.add(example_id);
 
 					}
@@ -351,7 +354,7 @@ public class testMATHTS
 
 		ArrayList<String> modelsTested = new ArrayList<String>();
 		try {
-			for (int i = 49; i < allModelLocs.size(); i++) {
+			for (int i = 0; i < allModelLocs.size(); i++) {
 
 				String thisModelLoc = allModelLocs.get(i);
 				String example_name = modelname;
@@ -366,7 +369,7 @@ public class testMATHTS
 //				runOneExample(example_name, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, thisModelLoc, true);
 //				if(true)
 				doTHTS(thisModelLoc+"results/",thisModelLoc,example_name,example_num_robot_list.get(example_id),
-						example_num_task_list.get(example_id),example_num_door_list.get(example_id));
+						example_num_task_list.get(example_id),example_num_door_list.get(example_id),example_num_fs_list.get(example_id));
 				
 				System.out.println("Example "+i+" of "+allModelLocs.size()+ " completed");
 //				throw new PrismException("3");

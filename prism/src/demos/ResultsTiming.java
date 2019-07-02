@@ -35,6 +35,7 @@ public class ResultsTiming
 	private long allNestedProductCreationTime = 0;
 	private long allReallocationsTime = 0;
 	private long totalmodelloadingtime = 0;
+	private int numFS = 0;
 	private String res_trial_name;
 
 	private long global_start_time=0;
@@ -53,7 +54,7 @@ public class ResultsTiming
 		totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
 		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, 
 		modelloadingtimes, totalmodelloadingtime, teammdptimeonly, singleagentsolutiontimes,
-		jointmodelgentime
+		jointmodelgentime,failstates
 
 	}
 
@@ -77,6 +78,7 @@ public class ResultsTiming
 		json_text += createJsonStyleString("robots", numRobots) + comma;
 		json_text += createJsonStyleString("tasks", numTasks) + comma;
 		json_text += createJsonStyleString("doors", numDoors) + comma;
+		json_text += createJsonStyleString("fs", numFS) + comma;
 		if (!thts)
 			json_text += createJsonStyleString("ReallocationStates", numReallocStates) + comma;
 		if (!thts)
@@ -241,6 +243,9 @@ public class ResultsTiming
 	public void saveData(int num, varIDs varid)
 	{
 		switch (varid) {
+		case failstates:
+			numFS = num; 
+			break;
 		case numrobots:
 			numRobots = num;
 			break;

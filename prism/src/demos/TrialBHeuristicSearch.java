@@ -330,8 +330,8 @@ public class TrialBHeuristicSearch
 
 		boolean deadend = maProdModGen.isDeadend(s);
 		boolean goal = maProdModGen.isGoal(s);
-		if(deadend)
-			mainLog.println("Deadend: "+s.toString());
+//		if(deadend)
+//			mainLog.println("Deadend: "+s.toString());
 		dn = new DecisionNode(ps, s, tprob, prob, prog, costs, deadend, goal);
 		addNodeToHash(dn);
 		return dn;
