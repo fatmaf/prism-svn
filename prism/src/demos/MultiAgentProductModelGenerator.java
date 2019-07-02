@@ -25,7 +25,7 @@ import prism.ProductModelGenerator;
 
 public class MultiAgentProductModelGenerator
 {
-	int MAXTRIALLEN = 10000;
+	int MAXTRIALLEN = 100000;
 	int MAXROLLOUTS = 1000;
 
 	ArrayList<ProductModelGenerator> prodModGens;
@@ -779,7 +779,9 @@ public class MultiAgentProductModelGenerator
 		for (int i = 0; i < numAgents; i++) {
 			int ms = getAgent(i).getMaxStatesEstimate();
 			if (ms != -1) {
-				maxStates *= ms;
+				int temp = maxStates *ms; 
+				if(temp >= 0)
+				maxStates = temp;
 				if (maxAgentStates > ms) {
 					maxAgentStates = ms;
 				}
@@ -788,7 +790,10 @@ public class MultiAgentProductModelGenerator
 		}
 		if (numNoEstimate > 0) {
 			for (int i = 0; i < numNoEstimate; i++) {
-				maxStates *= maxAgentStates;
+				int temp = maxStates * maxAgentStates; 
+				if(temp >=0 )
+					maxStates = temp; 
+//				maxStates *= maxAgentStates;
 			}
 		}
 		// TODO Auto-generated method stub

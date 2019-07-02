@@ -108,10 +108,11 @@ public class TrialBHeuristicSearch
 		DecisionNode n0 = getRootNode();
 		while (!n0.isSolved() && !isRolloutTimedOut()) {
 			this.numRollOut++;
+			this.currentTrailLength = 0; 
 			visitDecisionNode(n0);
 		}
 		long elapsedTime = System.nanoTime() - start;
-		mainLog.println("Solved after " + this.currentTrailLength + " iterations. " + elapsedTime + "ns "
+		mainLog.println("Solved after " + this.currentTrailLength + " iterations and "+this.numRollOut+" rollouts." + elapsedTime + "ns "
 				+ TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + " ms " + TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS)
 				+ "s");
 

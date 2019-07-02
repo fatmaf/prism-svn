@@ -302,7 +302,7 @@ public class testMATHTS
 
 	public void runTest()
 	{
-
+///r2/t10/fs0/d3/grid_3_topomap1.prism
 		// saving filenames etc
 		String dir = System.getProperty("user.dir");
 		String modelLocation = dir + "/tests/decomp_tests/";
@@ -324,7 +324,7 @@ public class testMATHTS
 		HashMap<String, Integer> example_num_fs_list= new HashMap<String, Integer>();
 		ArrayList<String> allModelLocs = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
-		int[] goalsRange = { 2 , 4, 6, 8, 10 };
+		int[] goalsRange = { 2 , 4, 6, 8/*, 10*/ };
 		int[] agentsRange = { 2 , 4, 6, 8, 10 };
 		int[] fsRange = { 0, 2 , 4, 8, 16, 32 };
 		int[] ssRange = { 0, 1, 2, 3, 4 };
@@ -354,7 +354,7 @@ public class testMATHTS
 
 		ArrayList<String> modelsTested = new ArrayList<String>();
 		try {
-			for (int i = 0; i < allModelLocs.size(); i++) {
+			for (int i = 123; i < allModelLocs.size(); i++) {
 
 				String thisModelLoc = allModelLocs.get(i);
 				String example_name = modelname;
