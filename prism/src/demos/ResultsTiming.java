@@ -20,45 +20,50 @@ public class ResultsTiming
 	private HashMap<Integer, Long> nestedProductStates = new HashMap<Integer, Long>();
 	private HashMap<Integer, Long> nestedProductTimes = new HashMap<Integer, Long>();
 	private HashMap<Integer, Long> modelLoadingTimes = new HashMap<Integer, Long>();
-
-	private int numRobots;
-	private int numTasks;
-	private int numReallocStates;
-	private int teamMDPStates;
-	private int teamMDPTransitions;
+	private HashMap<Integer, Long> singleAgentSolutions = new HashMap<Integer, Long>();
+	private int numRobots = 0;
+	private int numTasks = 0;
+	private int numDoors = 0;
+	private int numReallocStates = 0;
+	private int teamMDPStates = 0;
+	private int teamMDPTransitions = 0;
 	private int numReallocInCode = 0;
 	private int numProd = 0;
-	private int numDoors = 0;
-	private long totalComputationTime;
-	private long totalTeamMDPCreationTime;
-	private long teamMDPCreationTimeMinusNestedProduct;
-	private long allNestedProductCreationTime;
-	private long allReallocationsTime;
-	private long totalmodelloadingtime;
+	private long totalComputationTime = 0;
+	private long totalTeamMDPCreationTime = 0;
+	private long teamMDPCreationTimeMinusNestedProduct = 0;
+	private long allNestedProductCreationTime = 0;
+	private long allReallocationsTime = 0;
+	private long totalmodelloadingtime = 0;
+	private int numFS = 0;
 	private String res_trial_name;
 
-	private long global_start_time;
-	private long local_start_time;
-	private long scope_start_time;
+	private long global_start_time=0;
+	private long local_start_time=0;
+	private long scope_start_time=0;
 	public long timeout = 100 * 60 * 1000;
 	public PrismLog mainLog;
 	public PrismLog resLog;
 	String time_identifiers = "+-+";
 	private int numModel = 0;
+	String saveLoc;
+	boolean thts = false;
 
 	public enum varIDs {
-		numrobots, numtasks, numreallocstates, teammdpstates, 
-		teammdptransitions, numreallocationsincode, totalcomputationtime, 
-		totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
-		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, 
-		numdoors, modelloadingtimes, totalmodelloadingtime, teammdptimeonly
+		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode,
+		totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
+		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, 
+		modelloadingtimes, totalmodelloadingtime, teammdptimeonly, singleagentsolutiontimes,
+		jointmodelgentime,failstates
 
 	}
 
-	public ResultsTiming(PrismLog mainLog, String res_trial_name)
+	public ResultsTiming(PrismLog mainLog, String res_trial_name, String saveLoc, boolean thts)
 	{
 		this.mainLog = mainLog;
 		this.res_trial_name = res_trial_name;
+		this.saveLoc = saveLoc;
+		this.thts = thts;
 	}
 
 	public void writeResults()
@@ -73,22 +78,43 @@ public class ResultsTiming
 		json_text += createJsonStyleString("robots", numRobots) + comma;
 		json_text += createJsonStyleString("tasks", numTasks) + comma;
 		json_text += createJsonStyleString("doors", numDoors) + comma;
-		json_text += createJsonStyleString("ReallocationStates", numReallocStates) + comma;
-		json_text += createJsonStyleString("productCreation", productCreation, true) + comma;
-		json_text += createJsonStyleString("Reallocations", reallocations, true) + comma;
+		json_text += createJsonStyleString("fs", numFS) + comma;
+		if (!thts)
+			json_text += createJsonStyleString("ReallocationStates", numReallocStates) + comma;
+		if (!thts)
+			json_text += createJsonStyleString("productCreation", productCreation, true) + comma;
+		if (!thts)
+			json_text += createJsonStyleString("Reallocations", reallocations, true) + comma;
+
 		json_text += createJsonStyleString("JointPolicyCreation", jointPolicyCreation, true) + comma;
-		json_text += createJsonStyleString("nestedProductStates", nestedProductStates, false) + comma;
-		json_text += createJsonStyleString("nestedProductTimes", nestedProductTimes, true) + comma;
+		if (!thts)
+			json_text += createJsonStyleString("nestedProductStates", nestedProductStates, false) + comma;
+		else
+			json_text += createJsonStyleString("singleAgentSolutions", nestedProductStates, false) + comma;
+		if (!thts)
+			json_text += createJsonStyleString("nestedProductTimes", nestedProductTimes, true) + comma;
+		else
+			json_text += createJsonStyleString("singleAgentSolutionTimes", nestedProductTimes, true) + comma;
+		if(!thts) {
 		json_text += createJsonStyleString("teamMDPStates", teamMDPStates) + comma;
 		json_text += createJsonStyleString("teamMDPTransitions", teamMDPTransitions) + comma;
 		json_text += createJsonStyleString("NumReallocations", numReallocInCode) + comma;
 		//		json_text += createJsonStyleString("Total Time", totalComputationTime) + comma;
 		json_text += createJsonStyleString("Team MDP Time", totalTeamMDPCreationTime) + comma;
+		}
+		if(!thts)
 		json_text += createJsonStyleString("Nested Product Time", allNestedProductCreationTime) + comma;
+		else
+		json_text += createJsonStyleString("All Single Agent Solutions", allNestedProductCreationTime) + comma;
+		if(!thts)
 		json_text += createJsonStyleString("All Reallocations Time", allReallocationsTime) + comma;
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
-		resLog = new PrismFileLog(StatesHelper.getLocation() + "_trial_" + res_trial_name + ".json");
+		if(!thts)
+		resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + ".json");
+		else
+			resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_thts.json");
+
 		resLog.print(json_text);
 		resLog.close();
 	}
@@ -217,6 +243,9 @@ public class ResultsTiming
 	public void saveData(int num, varIDs varid)
 	{
 		switch (varid) {
+		case failstates:
+			numFS = num; 
+			break;
 		case numrobots:
 			numRobots = num;
 			break;
@@ -237,6 +266,10 @@ public class ResultsTiming
 		case nestedproductstates:
 			nestedProductStates.put(numProd, (long) num);
 			numProd++;
+			break;
+		case numdoors:
+			numDoors = num;
+			break;
 		default:
 			mainLog.println("ERORR - " + varid.toString() + " not implemented for Save Data");
 			break;
@@ -301,9 +334,14 @@ public class ResultsTiming
 			totalmodelloadingtime = time;
 			break;
 		case teammdptimeonly:
+		case jointmodelgentime:
 			this.teamMDPCreationTimeMinusNestedProduct = time;
 			break;
+		case singleagentsolutiontimes:
+			this.singleAgentSolutions.put(numProd, time);
+			break;
 		default:
+			mainLog.println("ERORR - " + varid.toString() + " not implemented for Save Data");
 			break;
 
 		}
