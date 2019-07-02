@@ -34,6 +34,21 @@ class PrismFileReader(object):
     constants={}
     
     def __init__(self,fn):
+        self.moduleRange= {}
+        self.rewardsRange = {}
+    
+        self.moduleNames = []
+        self.rewardNames = []
+
+        self.moduleLines = {}
+        self.rewardsLines = {}
+
+        self.labelLines = []
+        
+        self.modVars = [] 
+    
+        self.constants={}
+        
         print "Initialising file reader"
         self.fileName = fn
         print ("Reading file "+fn)
@@ -50,7 +65,20 @@ class PrismFileReader(object):
         #print self.fileLines
         self.processFile()
 
-        
+
+    def cleanModules(self):
+        for mod in self.modVars:
+            mod.cleanModule()
+            
+    def pickActions(self,modname,varname,numActionsToPick,prevStatePairs):
+        statePairs = []
+        for modVar in self.modVars:
+            if self.matchModVarName(modVar.name,modname):
+                statePairs = modVar.pickActions(varname,numActionsToPick,prevStatePairs)
+                break
+        return statePairs
+
+                
     def processFile(self):
 
         fileIsMDP = False
@@ -76,23 +104,15 @@ class PrismFileReader(object):
         while(rewStart != -1):
             rewStart = self.readRewardLines(rewStart)
         self.readLabels(0)
-        
-        
-        #print self.moduleNames
-        #print self.rewardNames
-        #print self.moduleRange
-        #print self.rewardsRange
-        #print self.moduleLines
-        #print self.labelLines
+    
         self.processConstants()
-        print self.constants
 
         allVariables = {}
         for n in self.moduleNames:
             modVar = PrismModule(n,self.moduleLines[n],self.constants)
             for r in self.rewardNames:
                 modVar.processRewards(self.rewardsLines[r],r)
-            #print modVar.actions
+            
             self.modVars.append(modVar)
             allVariables = self.merge_two_dicts(modVar.variables,allVariables)
             
@@ -166,6 +186,14 @@ class PrismFileReader(object):
         goalString = prefix
         for i in range(len(gs)):
             stateString = "[F ("+gVar+"="+str(gs[i])+") ]"
+            if (i != len(gs)-1):
+                goalString = goalString + stateString + ", "
+            else:
+                goalString = goalString + stateString
+            break
+        
+        for i in range(1,len(gs)):
+            stateString = "Pmax=? [F ("+gVar+"="+str(gs[i])+") ]"
             if (i != len(gs)-1):
                 goalString = goalString + stateString + ", "
             else:
@@ -321,8 +349,8 @@ class PrismFileReader(object):
                     nameValuePair = RegexHelper.getRegexMatchName(self.constRE,line)
                 #print "Name"+nameValuePair[0]
                 #print "Value"+nameValuePair[1]
-                name = nameValuePair[0]
-                value = nameValuePair[1]
+                name = nameValuePair[0].rstrip().lstrip()
+                value = nameValuePair[1].rstrip().lstrip()
                 try:
                     v = int(value)
                     subtype = "int"
@@ -361,7 +389,8 @@ class PrismFileReader(object):
         for modVar in self.modVars:
             if self.matchModVarName(modname,modVar.name):
                 modVar.addVariable(name,minv,maxv,initv,v)
-                print modVar.variables 
+                #print "Variable Added to module "+modname 
+                #print modVar.variables 
                 break
 
     def getVariables(self,modname):
@@ -446,7 +475,7 @@ class PrismFileReader(object):
         
 
     def addFailureStateToAllActions(self,modname,stateString,fprob,sprob,isDest=False):
-        print "Adding failure states to module "+modname
+        #print "Adding failure states to module "+modname
         for modVar in self.modVars:
             if self.matchModVarName(modVar.name,modname):
                 #print "found module"

@@ -16,7 +16,8 @@ class PrismVariable(object):
 
     def getAssignment(self,v,isInt):
         value = None
-        if type(v) == PrismVariable:
+        #print(isinstance(v,PrismVariable))
+        if type(v) is PrismVariable:
             value = v
         else:
             if v is not None:
@@ -43,7 +44,9 @@ class PrismVariable(object):
         isInt = False
         if(subT == "int"):
             isInt = True
-            
+
+        #print minv
+        #print type(minv)
         #assign v
         self.value = self.getAssignment(v,isInt)
         
