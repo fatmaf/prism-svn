@@ -354,7 +354,7 @@ public class testMATHTS
 
 		ArrayList<String> modelsTested = new ArrayList<String>();
 		try {
-			for (int i = 123; i < allModelLocs.size(); i++) {
+			for (int i = 219; i < allModelLocs.size(); i++) {
 
 				String thisModelLoc = allModelLocs.get(i);
 				String example_name = modelname;
