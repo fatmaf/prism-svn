@@ -107,9 +107,9 @@ class GeneratePrismFile(object):
                     combs = [(x,yy),(x,_y),(xx,y),(_x,y)]
                 else:
                     combs = [(xx,y),(_x,y)]
-                print (x,y)
-                print combs
-                raw_input()
+                #print (x,y)
+                #print combs
+                #raw_input()
                 for xy in combs:
                     xp = xy[0]
                     yp = xy[1]
@@ -158,7 +158,7 @@ class GeneratePrismFile(object):
         if xy not in smap:
             scount = len(smap)
             smap[xy] = scount
-            print smap
+            #print smap
         
         return smap
     
