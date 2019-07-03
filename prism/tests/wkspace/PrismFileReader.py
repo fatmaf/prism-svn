@@ -256,13 +256,14 @@ class PrismFileReader(object):
 
         if len(avoid) > 0:
             goalString = goalString + ', Pmax=? [ '
-        for i in range(len(avoid)):
-            stateString = '( G ! ('+gVar+'='+str(avoid[i])+') )'
-            if (i != len(avoid) -1):
-                goalString = goalString + stateString + " & "
-            else:
-                goalString = goalString + stateString
-        goalString = goalString + ']' 
+            for i in range(len(avoid)):
+                stateString = '( G ! ('+gVar+'='+str(avoid[i])+') )'
+                if (i != len(avoid) -1):
+                    goalString = goalString + stateString + " & "
+                else:
+                    goalString = goalString + stateString
+        
+            goalString = goalString + ']' 
         goalString = goalString + ")"
 
         return goalString
