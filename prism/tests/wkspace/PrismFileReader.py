@@ -207,6 +207,65 @@ class PrismFileReader(object):
         goalString = goalString + ")"
 
         return goalString
+
+    def createGoalStatesAvoid(self,gs,avoid,gVar):
+        goalVariable = None
+        for modVar in self.modVars:
+            if gVar in modVar.variables:
+                goalVariable = modVar.variables[gVar]
+        prefix = "Pmax=? [ "
+        goalString = prefix
+        for i in range(len(gs)):
+            stateString = "(F ("+gVar+"="+str(gs[i])+") )"
+            if (i != len(gs)-1):
+                goalString = goalString + stateString + "& "
+            else:
+                goalString = goalString + stateString
+
+        for i in range(len(avoid)):
+            stateString = " & (G ( ! ("+gVar+"="+str(avoid[i])+") ) ) "
+            goalString = goalString + stateString
+            
+        goalString = goalString + "]"
+
+        return goalString
+
+    def createGoalStatesSplitAvoid(self,gs,avoid,gVar):
+
+        #partial(R{"time"}min=? [ F "v7" ], Pmax=? [ F "v8" ], Pmax=? [ F "v9" ], Pmax=? [ G (!"v6") ])
+        goalVariable = None
+        for modVar in self.modVars:
+            if gVar in modVar.variables:
+                goalVariable = modVar.variables[gVar]
+        prefix = 'partial(R{"time"}min=? '
+        goalString = prefix
+        for i in range(len(gs)):
+            stateString = "[F ("+gVar+"="+str(gs[i])+") ]"
+            if (i != len(gs)-1):
+                goalString = goalString + stateString + ", "
+            else:
+                goalString = goalString + stateString
+            break
+        
+        for i in range(1,len(gs)):
+            stateString = "Pmax=? [F ("+gVar+"="+str(gs[i])+") ]"
+            if (i != len(gs)-1):
+                goalString = goalString + stateString + ", "
+            else:
+                goalString = goalString + stateString
+
+        if len(avoid) > 0:
+            goalString = goalString + ', Pmax=? [ '
+        for i in range(len(avoid)):
+            stateString = '( G ! ('+gVar+'='+str(avoid[i])+') )'
+            if (i != len(avoid) -1):
+                goalString = goalString + stateString + " & "
+            else:
+                goalString = goalString + stateString
+        goalString = goalString + ']' 
+        goalString = goalString + ")"
+
+        return goalString
     
     def writeGoalStates(self,gs,gVar,fn):
         goalString = self.createGoalStates(gs,gVar)
@@ -216,7 +275,13 @@ class PrismFileReader(object):
         goalString = self.createGoalStatesSplit(gs,gVar)
         self.writeLinesToFile([goalString],fn)
         
+    def writeGoalStatesAvoid(self,gs,avoid,gVar,fn):
+        goalString = self.createGoalStatesAvoid(gs,avoid,gVar)
+        self.writeLinesToFile([goalString],fn)
         
+    def writeGoalStatesSplitAvoid(self,gs,avoid,gVar,fn):
+        goalString = self.createGoalStatesSplitAvoid(gs,avoid,gVar)
+        self.writeLinesToFile([goalString],fn)        
         
     def readRewardLines(self,beginIndex):
         rewardBegan = False

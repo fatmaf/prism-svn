@@ -312,6 +312,15 @@ class GeneratePrismFile(object):
             lines = pfr.createFileLinesToWrite()
             pfr.writeLinesToFile(lines,'gui'+str(i)+'.prism')
             i = i + 1
+        newGoalStates = []
+        for g in goalStates:
+            newGoalStates.append(smap[g])
+        newAvoidStates = []
+        for a in avoidStates:
+            newAvoidStates.append(smap[a])
+        pfr.writeGoalStatesAvoid(newGoalStates,newAvoidStates,varname,'gui.props')
+        pfr.writeGoalStatesSplitAvoid(newGoalStates,newAvoidStates,varname,'gui.prop')
+   
 
 
 
