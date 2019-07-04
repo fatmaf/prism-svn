@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 
 import automata.DA;
 import explicit.Distribution;
@@ -200,6 +202,17 @@ public class StatesHelper {
 		Object[] toret = new Object[sharedVars.size()];
 		int index = -1;
 		int numnull = 0;
+		
+//		for (int i = 0; i<varlist.getNumVars(); i++)
+//		{
+//			String name = varlist.getName(i); 
+//			if(sharedVars.contains(name))
+//			{
+//				index++;
+//				toret[index] = stateObj[i]; 
+//
+//			}
+//		}
 		for (int i = 0; i < sharedVars.size(); i++) {
 			index = varlist.getIndex(sharedVars.get(i));
 			if (index != -1)
@@ -207,6 +220,9 @@ public class StatesHelper {
 			else
 				numnull++;
 		}
+//		if (index == -1)
+//			numnull = sharedVars.size();
+//		
 		if (numnull == sharedVars.size())
 			toret = null;
 		return toret;

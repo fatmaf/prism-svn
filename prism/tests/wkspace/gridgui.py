@@ -1,6 +1,9 @@
 from tkinter import *
+import Tkinter, Tkconstants, tkFileDialog, tkSimpleDialog
+
 from GeneratePrismFiles import GeneratePrismFile
 
+app=None
 MAP="map"
 SETINITLOCS="initlocs"
 SETGOALS="goals"
@@ -167,6 +170,10 @@ class CellGrid(Canvas):
             cell.draw()
             self.switched.append(cell)
 
+def setMap():
+    global appState
+    appState = MAP
+    
 def addInitialLocations():
     global appState
     appState = SETINITLOCS
@@ -222,6 +229,9 @@ def processDoors():
     
                     
 def allDone():
+    
+    fn = tkFileDialog.asksaveasfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/",title="Save file as", filetypes=(("prism",".prism"),("prop",".prop"),("props",".props"),("all files","*.*")))
+    fn = fn.split('.')[0]
     #get all the goal states and stuff
     goalStates = []
     failStates = []
@@ -261,27 +271,50 @@ def allDone():
     print (blockedStates)
     print ("open")
     print (connectedStates)
+    global doorPairs
+    print ("doors")
+    print (doorPairs)
     gfr = GeneratePrismFile()
     global xside
     global yside
     
-    gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,xside,yside)
-                
+    gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
+    global app
+    #cv = Canvas(app)
+    import os
+    comm = "import -window root "+fn+".png"
+    os.system(comm)
+    #cv.postscript(file=fn+"_img.ps", colormode='color')
+
+def exitHere():
+    global app
+    app.destroy()
+    
 if __name__ == "__main__" :
-    global xside 
-    xside = int(input("Enter x side"))
-    global yside
-    yside = int(input("Enter y side"))
+
+    #yside = int(input("Enter y side"))
+    global app
     app = Tk()
+    global xside
+    xside= tkSimpleDialog.askinteger('Num cells x','Num cells x',initialvalue=5,minvalue=2,maxvalue=100)
+    if xside is None:
+        xside = 5
+    #xside = int(input("Enter x side"))
+    global yside
+    yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=2,maxvalue=100)
+    if yside is None:
+        yside = 5
     menu = Menu(app)
-    menu.add_command(label='Add initial locations',command = addInitialLocations)
-    menu.add_command(label='Add goal locations',command=addGoals)
-    menu.add_command(label='failstates',command=addFailStates)
-    menu.add_command(label='avoid state', command=addAvoidStates)
+    menu.add_command(label='Set Map',command=setMap)
+    menu.add_command(label='Initial Locaitions',command = addInitialLocations)
+    menu.add_command(label='Goals',command=addGoals)
+    menu.add_command(label='Failstates',command=addFailStates)
+    menu.add_command(label='Avoid States', command=addAvoidStates)
     menu.add_command(label='Add Doors', command=addDoorStates)
-    menu.add_command(label='Add this Door Pair' , command= processDoors)
+    menu.add_command(label='Add Door Pair' , command= processDoors)
     
     menu.add_command(label='done',command=allDone)
+    menu.add_command(label='exit',command=exitHere)
     
     app.config(menu=menu)
     #app2 = Tk()

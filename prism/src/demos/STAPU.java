@@ -57,8 +57,9 @@ public class STAPU
 
 		STAPU stapu = new STAPU();
 //		stapu.run();
-		stapu.runGrid3();
+//		stapu.runGrid3();
 //		stapu.runTest();
+		stapu.runGUITest();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -614,7 +615,51 @@ public class STAPU
 		}
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
+	public void runGUITest()
+	{
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";
+		//System.getProperty("user.dir");
+		String modelLocation = dir ;
 
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+
+
+		int numRobots = 2; 
+		int numFS = 2; 
+		int numGoals = 3; 
+		int numDoors = 2; 
+			String example = "h";
+			String example_id = example+"r"+numRobots;//cumberland_doors; 
+			example_has_door_list.put(example_id, true);
+			example_num_door_list.put(example_id, numDoors);
+			example_num_robot_list.put(example_id, numRobots);
+			example_num_fs_list.put(example_id, numFS);
+			String example_to_run = example;//cumberland_doors; 
+
+
+			try {
+				runOneExample(
+						//					grid_3_example,
+						//					three_robot_one_door, 
+						//					two_robot_door_multiple_switches,
+						example_to_run,
+						example_id, example_has_door_list, example_num_door_list, 
+						example_num_robot_list, example_num_fs_list,modelLocation, false,dir + "results/stapu");
+
+
+			} catch (FileNotFoundException e) {
+				System.out.println("Error: " + e.getMessage());
+				System.exit(1);
+			} catch (PrismException e) {
+				System.out.println("Error: " + e.getMessage());
+				System.exit(1);
+			}
+		
+	}
 	public void runGrid3()
 	{
 		// saving filenames etc
@@ -626,7 +671,7 @@ public class STAPU
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
 
-		for (int r = 2; r <= 4; r++) {
+		for (int r = 3; r <= 4; r++) {
 			String grid_3_example = "grid_3_topomap_sim_doors";
 			String example_id = grid_3_example+"r"+r;//cumberland_doors; 
 			example_has_door_list.put(example_id, true);
@@ -904,7 +949,7 @@ public class STAPU
 				try {
 					doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
 							matchsharedstatesinswitch, completeSwitchRing);
-					resSaver.writeResults();
+					
 				} catch (PrismException e) {
 					// TODO Auto-generated catch block
 
@@ -918,7 +963,7 @@ public class STAPU
 
 		try {
 			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
-
+			
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
