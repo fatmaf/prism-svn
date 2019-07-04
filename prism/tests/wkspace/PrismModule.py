@@ -259,6 +259,32 @@ class PrismModule(object):
         #print pa
         #print pa.prismStringAction()
         return pa
+
+    def createAction(self,name,rewVals,srcString,destString,probs):
+        src = []
+        dest = [] 
+        if type(srcString) is list:
+            for srcStr in srcString:
+                s = RegexHelper.processState(srcStr,self.constants,self.variables)
+                src = src + s
+        else:
+            src = RegexHelper.processState(srcString,self.constants,self.variables)
+        if type(destString) is list:
+            for destStr in destString:
+                d = RegexHelper.processState(destStr,self.constants,self.variables)
+                dest = dest +d
+        else:
+            dest = RegexHelper.processState(destString,self.constants,self.variables)
+        pa = PrismAction(None,None,None,False)
+        pa.name = name
+        pa.addStateToSource(src)
+        pa.addStateToDestination(dest,probs)
+        for rew in rewVals:
+            if not rew in self.rewardNames:
+                self.rewardNames.append(rew)
+            pa.addReward(rew,rewVals[rew])
+            
+        return pa 
             
     def addDoor(self,labels,doorVarName,src1,src2,oprob,cprob):
         #check if this door var exists
@@ -334,7 +360,7 @@ class PrismModule(object):
     
         
     def createModuleLines(self):
-        lines = ["module" + self.name]
+        lines = ["module " + self.name]
         for var in self.variables:
             #print var
             #print self.variables[var]
