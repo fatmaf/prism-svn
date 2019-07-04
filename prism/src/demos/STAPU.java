@@ -844,22 +844,17 @@ public class STAPU
 		PrismLog mainLog = new PrismFileLog("stdout");
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
-<<<<<<< HEAD
-		resSaver = new ResultsTiming(mainLog, filename,resLoc,false);
-=======
+
 		resSaver = new ResultsTiming(mainLog, filename,StatesHelper.getLocation(),false);
->>>>>>> 279ea0f366e82ce783b08f80b69ca4f8195ec3fa
+
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
 		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
-<<<<<<< HEAD
+
 		int numFS = example_num_fs_list.get(example_id); 
 		resSaver.recordInits(numFS, "FS", varIDs.failstates);
-=======
-		resSaver.recordInits(numFS, "FS", varIDs.failstates);
 
->>>>>>> 279ea0f366e82ce783b08f80b69ca4f8195ec3fa
 		// Initialise PRISM engine
 		Prism prism = new Prism(mainLog);
 		prismC = prism;
