@@ -38,9 +38,12 @@ public class ResultsTiming
 	private int numFS = 0;
 	private String res_trial_name;
 
+
 	private long global_start_time = 0;
 	private long local_start_time = 0;
 	private long scope_start_time = 0;
+
+
 	public long timeout = 100 * 60 * 1000;
 	public PrismLog mainLog;
 	public PrismLog resLog;
@@ -50,7 +53,13 @@ public class ResultsTiming
 	boolean thts = false;
 
 	public enum varIDs {
-		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode, totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, modelloadingtimes, totalmodelloadingtime, teammdptimeonly, singleagentsolutiontimes, jointmodelgentime, failstates
+
+		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode,
+		totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
+		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, 
+		modelloadingtimes, totalmodelloadingtime, teammdptimeonly, singleagentsolutiontimes,
+		jointmodelgentime,failstates
+
 
 	}
 
@@ -91,6 +100,7 @@ public class ResultsTiming
 			json_text += createJsonStyleString("nestedProductTimes", nestedProductTimes, true) + comma;
 		else
 			json_text += createJsonStyleString("singleAgentSolutionTimes", nestedProductTimes, true) + comma;
+		
 		if (!thts) {
 			json_text += createJsonStyleString("teamMDPStates", teamMDPStates) + comma;
 			json_text += createJsonStyleString("teamMDPTransitions", teamMDPTransitions) + comma;
@@ -241,7 +251,9 @@ public class ResultsTiming
 	{
 		switch (varid) {
 		case failstates:
+
 			numFS = num;
+
 			break;
 		case numrobots:
 			numRobots = num;

@@ -552,6 +552,7 @@ public class STAPU
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+
 		ArrayList<String> allModelLocs = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
 		int[] goalsRange = { 2 , 4, 6, 8, 10 };
@@ -593,9 +594,11 @@ public class STAPU
 				modelsTested.add(example_id);
 				StatesHelper.setSavePlace(thisModelLoc + "results/");
 				System.out.println("Example "+i+" of "+allModelLocs.size());
+
 				runOneExample(example_name, example_id, example_has_door_list, 
 						example_num_door_list, example_num_robot_list,example_num_fs_list,
 						thisModelLoc, true,thisModelLoc + "results/");
+
 				System.out.println("Example "+i+" of "+allModelLocs.size()+ " completed");
 			}
 		} catch (FileNotFoundException e) {
@@ -641,6 +644,7 @@ public class STAPU
 						example_to_run,
 						example_id, example_has_door_list, example_num_door_list, 
 						example_num_robot_list, example_num_fs_list,modelLocation, false,dir + "/tests/"+"results/stapu");
+
 
 			} catch (FileNotFoundException e) {
 				System.out.println("Error: " + e.getMessage());
@@ -765,7 +769,9 @@ public class STAPU
 					//					three_robot_one_door, 
 					//					two_robot_door_multiple_switches,
 					example_to_run, example_id, example_has_door_list,
-					example_num_door_list, example_num_robot_list,example_num_fs_list, modelLocation, false,modelLocation+"temp/");
+					example_num_door_list, example_num_robot_list,example_num_fs_list, modelLocation, 
+					false,modelLocation+"temp/");
+
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
@@ -777,9 +783,12 @@ public class STAPU
 	}
 
 	public void runOneExample(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
+
 			HashMap<String, Integer> example_num_door_list, HashMap<String, Integer> example_num_robot_list, 
 			HashMap<String, Integer> example_num_fs_list,
 			String modelLocation, boolean doorVarNameHas0,String resLoc)
+
+
 			throws PrismException, FileNotFoundException
 	{
 
@@ -835,13 +844,22 @@ public class STAPU
 		PrismLog mainLog = new PrismFileLog("stdout");
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
+<<<<<<< HEAD
 		resSaver = new ResultsTiming(mainLog, filename,resLoc,false);
+=======
+		resSaver = new ResultsTiming(mainLog, filename,StatesHelper.getLocation(),false);
+>>>>>>> 279ea0f366e82ce783b08f80b69ca4f8195ec3fa
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
 		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
+<<<<<<< HEAD
 		int numFS = example_num_fs_list.get(example_id); 
 		resSaver.recordInits(numFS, "FS", varIDs.failstates);
+=======
+		resSaver.recordInits(numFS, "FS", varIDs.failstates);
+
+>>>>>>> 279ea0f366e82ce783b08f80b69ca4f8195ec3fa
 		// Initialise PRISM engine
 		Prism prism = new Prism(mainLog);
 		prismC = prism;
