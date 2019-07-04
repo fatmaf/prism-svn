@@ -6,12 +6,14 @@ SETINITLOCS="initlocs"
 SETGOALS="goals"
 SETAVOID="avoid"
 SETFS = "fail"
+SETDOOR="door"
 xside = 0
 yside = 0
 
 appState = MAP
 gridArray = None
 blockedCells = None
+doorPairs = []
 
 class Cell():
     FILLED_COLOR_BG = "black"
@@ -26,6 +28,8 @@ class Cell():
     AVOID_COLOR_BORDER="red"
     FAIL_COLOR_BG="grey"
     FAIL_COLOR_BORDER="grey"
+    DOOR_COLOR_BG="brown"
+    DOOR_COLOR_BORDER="magenta"
 
     def __init__(self, master, x, y, size):
         """ Constructor of the object called by Cell(...) """
@@ -37,7 +41,8 @@ class Cell():
         self.isInitPos = False
         self.isGoalPos = False
         self.isFailState = False
-        self.isAvoidState = False 
+        self.isAvoidState = False
+        self.isDoor = False 
         
 
     def _switch(self):
@@ -54,6 +59,8 @@ class Cell():
             self.isFailState = not self.isFailState
         elif appState is SETGOALS:
             self.isGoalPos = not self.isGoalPos
+        elif appState is SETDOOR:
+            self.isDoor = not self.isDoor 
         else:
             print ("invalid app state")
 
@@ -86,6 +93,10 @@ class Cell():
                 if self.isGoalPos:
                     fill = Cell.GOAL_COLOR_BG
                     outline = Cell.GOAL_COLOR_BORDER
+            elif appState is SETDOOR:
+                if self.isDoor:
+                    fill = Cell.DOOR_COLOR_BG
+                    outline = Cell.DOOR_COLOR_BORDER
                     
                 
                     
@@ -121,12 +132,12 @@ class CellGrid(Canvas):
         #bind moving while clicking
         self.bind("<B1-Motion>", self.handleMouseMotion)
         #bind release button action - clear the memory of midified cells.
-        self.bind("<ButtonRelease-1>", lambda event: self.clearSwitced())
+        self.bind("<ButtonRelease-1>", lambda event: self.clearSwitched())
 
         self.draw()
 
 
-    def clearSwitched():
+    def clearSwitched(self):
         self.switched*=0
         
     def draw(self):
@@ -174,6 +185,42 @@ def addAvoidStates():
     global appState
     appState = SETAVOID
 
+def addDoorStates():
+    global appState
+    appState = SETDOOR
+
+def processDoors():
+    #called every two pair of doors really
+    global appState
+    if appState is not SETDOOR:
+        print "Error!!! you havent set doors. Click on add doors first"
+    else:
+        global doorPairs
+        global gridArray
+
+        if gridArray is not None:
+            currentDoorPair = []
+            for i in range(len(gridArray)):
+                for j in range(len(gridArray[i])):
+                    c = gridArray[i][j]
+                    d = (i,j)
+                    if c.isDoor:
+
+                        if len(currentDoorPair) < 2:
+                            if d not in doorPairs:
+                                currentDoorPair.append(d)
+                        else:
+                            doorPairs = doorPairs + currentDoorPair
+                            currentDoorPair = []
+            if len(currentDoorPair) == 2:
+                doorPairs = doorPairs + currentDoorPair
+            elif len(currentDoorPair) < 2 and len(currentDoorPair) > 0:
+                print "Door Pairs not equal"
+
+
+            print doorPairs
+    
+                    
 def allDone():
     #get all the goal states and stuff
     goalStates = []
@@ -231,6 +278,8 @@ if __name__ == "__main__" :
     menu.add_command(label='Add goal locations',command=addGoals)
     menu.add_command(label='failstates',command=addFailStates)
     menu.add_command(label='avoid state', command=addAvoidStates)
+    menu.add_command(label='Add Doors', command=addDoorStates)
+    menu.add_command(label='Add this Door Pair' , command= processDoors)
     
     menu.add_command(label='done',command=allDone)
     
@@ -239,7 +288,7 @@ if __name__ == "__main__" :
     
     #btn = Button(app2,text="Test")
     #btn.grid(column=51,row=51)
-    grid = CellGrid(app, xside,yside, 10)
+    grid = CellGrid(app, xside,yside, 50)
     global gridArray
     gridArray = grid.grid
     

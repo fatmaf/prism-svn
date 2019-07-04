@@ -1,0 +1,1 @@
+{"Time":"Thu Jul 04 12:01:54 BST 2019","trial":"grid_3_topomap_sim_doors","robots":"3","tasks":"7","doors":"2","fs":"7","JointPolicyCreation":[ {"sum":"0"}],"singleAgentSolutions":[ {"0":"549"},{"1":"549"},{"2":"549"}],"singleAgentSolutionTimes":[ {"sum":"0"}],"All Single Agent Solutions":"680403589","Total Time":"1910597280"}
