@@ -193,7 +193,7 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = null;//new PolicyCreator();
+		PolicyCreator pc = new PolicyCreator();
 		HashMap<String, HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
 		updateSharedStateIndices(solutionVarList);

@@ -25,8 +25,8 @@ import prism.ProductModelGenerator;
 
 public class MultiAgentProductModelGenerator
 {
-	int MAXTRIALLEN = 100000;
-	int MAXROLLOUTS = 1000;
+	int MAXTRIALLEN = 1000000;
+	int MAXROLLOUTS = 10000;
 
 	ArrayList<ProductModelGenerator> prodModGens;
 	ArrayList<SingleAgentLoader> singleAgentLoaders;

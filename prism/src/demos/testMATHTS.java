@@ -22,7 +22,7 @@ public class testMATHTS
 
 	String testsLocation = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/decomp_tests/";
 	
-	String resultsLocation = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/";
+	String resultsLocation = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/results/thts_res";
 	
 	public static void main(String[] args)
 	{
@@ -60,8 +60,13 @@ public class testMATHTS
 	{
 //		testSingleAgentLoader();
 		String filename = "grid_3_topomap_sim_doors";//"tiny_example_permtrap";//"no_door_example";	
-//		doTHTS(filename,2,3,2);
-		runTest();
+		int robots = 4; int tasks = 7; int doors = 2; int fs = 7; 
+		for(robots = 2; robots<=4; robots++)
+		{	doTHTS(resultsLocation,testsLocation,filename,robots,tasks,doors,fs);
+		
+		}
+		System.out.println("all done");
+//		runTest();
 	}
 
 	public void testMAPMG(PrismLog mainLog,
