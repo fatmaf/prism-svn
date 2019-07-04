@@ -1,3 +1,4 @@
+#Bruno's instructions for his code
 3. My code for UCT and BRTDP is here: https://github.com/bfalacerda/prism/tree/devel
 
 Important files are in prism/prism/src/explicit/ and are BRTDP.java, BRTDPModelChecker.java, MCTSModelChecker.java and UCT.java.
