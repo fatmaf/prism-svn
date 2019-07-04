@@ -1,0 +1,17 @@
+//1+1
+//Pmax=? [ (F waypoint=32)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+//2+1
+//Pmax=? [ (F waypoint=32)&(F waypoint=5)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+//3+1
+//Pmax=? [ (F waypoint=32)&(F waypoint=5)&(F waypoint=12)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+
+//4+1
+//Pmax=? [ (F waypoint=32)&(F waypoint=5)&(F waypoint=12)&(F waypoint=27)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+
+//5+1
+//Pmax=? [ (F waypoint=32)&(F waypoint=5)&(F waypoint=12)&(F waypoint=27)&(F waypoint=37)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+
+// 6 + 1
+Pmax=? [ (F waypoint=32)&(F waypoint=5)&(F waypoint=12)&(F waypoint=27)&(F waypoint=37)&(F waypoint=55)&(G (!waypoint=7)&(G (!waypoint=47))&(G (!waypoint=34))) ]
+//Pmax=? [F waypoint=32]
+
