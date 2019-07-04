@@ -277,8 +277,14 @@ class PrismModule(object):
             dest = RegexHelper.processState(destString,self.constants,self.variables)
         pa = PrismAction(None,None,None,False)
         pa.name = name
-        pa.addStateToSource(src)
-        pa.addStateToDestination(dest,probs)
+        for s in src:
+            pa.addStateToSource(s)
+        for i in range(len(dest)):
+            if type(probs) is list:
+                pa.addStateToDestination(dest[i],probs[i])
+            else:
+                pa.addStateToDestination(dest[i],probs)
+                
         for rew in rewVals:
             if not rew in self.rewardNames:
                 self.rewardNames.append(rew)

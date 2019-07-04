@@ -44,7 +44,7 @@ public class ResultsTiming
 	private long scope_start_time = 0;
 
 
-	public long timeout = 100 * 60 * 1000;
+	public long timeout = 10*60 * 1000;
 	public PrismLog mainLog;
 	public PrismLog resLog;
 	String time_identifiers = "+-+";
