@@ -3,7 +3,7 @@
 
 # In[13]:
 
-
+import math 
 from PrismFileReader import PrismFileReader
 from PrismModule import PrismModule
 import random
@@ -122,7 +122,8 @@ class GeneratePrismFile(object):
                         gpfr.addLabel(pvar,pstr,gmod.variables)
                     #pa = mod.createAction('s1_s2',{'"time"':1.0},'(s=0)',['(s=1)','(s=2)'],['p','1-p'])
                     #pa = gmod.createAction(svar+'_'+pvar,{'"time"':1.0},sstr,[pstr,'(s=failstate)'],['p','1-p'])
-                    pa = gmod.createAction(svar+'_'+pvar,{'"time"':1.0},sstr,pstr,'1.0')
+                    rew = math.sqrt(((xp-x)*(xp-x))+((yp-y)*(yp-y)))
+                    pa = gmod.createAction(svar+'_'+pvar,{'"time"':rew},sstr,pstr,'1.0')
                     #print pa
                     gmod.actions.append(pa)
         return [gmod,gpfr]
@@ -183,7 +184,7 @@ class GeneratePrismFile(object):
             yy = min(y+1,yside-1)
             _x = max(x-1,0)
             _y = max(y-1,0)
-            combs = [(x,yy),(x,_y),(xx,y),(_x,y)]
+            combs = [(x,yy),(x,_y),(xx,y),(_x,y),(_x,yy),(xx,yy),(_x,_y),(xx,_y)]
             for xyp in combs:
                 xp = xyp[0]
                 yp = xyp[1]
@@ -197,10 +198,11 @@ class GeneratePrismFile(object):
                 pfr = self.addLabelToPFR(pvar,pstr,pfr,mod)
                 #if xyp is in failstates we need to make it a failstate action
                 isFailState = xyp in failstates
+                rew = math.sqrt(((xp-x)*(xp-x))+((yp-y)*(yp-y)))
                 if isFailState:
-                    pa = mod.createAction(svar+'_'+pvar,{'"time"':1.0},sstr,[pstr,'(s=failstate)'],['p','1-p'])
+                    pa = mod.createAction(svar+'_'+pvar,{'"time"':rew},sstr,[pstr,'(s=failstate)'],['p','1-p'])
                 else:
-                    pa = mod.createAction(svar+'_'+pvar,{'"time"':1.0},sstr,pstr,1.0)
+                    pa = mod.createAction(svar+'_'+pvar,{'"time"':rew},sstr,pstr,1.0)
                 #print pa 
                 mod.actions.append(pa)
         return [mod,pfr,smap]
@@ -370,7 +372,7 @@ class GeneratePrismFile(object):
         for a in avoidStates:
             newAvoidStates.append(smap[a])
         pfr.writeGoalStatesAvoid(newGoalStates,newAvoidStates,varname,fn+'.props')
-        pfr.writeGoalStatesSplitAvoid(newGoalStates,newAvoidStates,varname,fn+'.prop')
+        pfr.writeGoalStatesSplitAvoidLabels(newGoalStates,newAvoidStates,varname,fn+'.prop')
         print smap
         
    

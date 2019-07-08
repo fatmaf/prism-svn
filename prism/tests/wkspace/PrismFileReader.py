@@ -230,17 +230,43 @@ class PrismFileReader(object):
 
         return goalString
 
-    def createGoalStatesSplitAvoid(self,gs,avoid,gVar):
-
+    def findLabel(self,src):
+        for label in self.labels:
+            lsrc = self.labels[label]
+            matched = True
+            if len(lsrc) == len(src):
+                for i in range(len(lsrc)):
+                    l = lsrc[i]
+                    s = src[i]
+                    if not l.equals(s):
+                        matched = False
+                        break
+            else:
+                matched = False
+            if matched:    
+                return label
+        return None
+    
+    def createGoalStatesSplitAvoidLabels(self,gs,avoid,gVar):
         #partial(R{"time"}min=? [ F "v7" ], Pmax=? [ F "v8" ], Pmax=? [ F "v9" ], Pmax=? [ G (!"v6") ])
         goalVariable = None
+        
         for modVar in self.modVars:
             if gVar in modVar.variables:
                 goalVariable = modVar.variables[gVar]
+                variables = modVar.variables 
         prefix = 'partial(R{"time"}min=? '
         goalString = prefix
         for i in range(len(gs)):
-            stateString = "[F ("+gVar+"="+str(gs[i])+") ]"
+            lp = "("+gVar+"="+str(gs[i])+")"
+            src= RegexHelper.processState(lp,self.constants,variables)
+            label = self.findLabel(src)
+            if label is None:
+                label = lp
+            else:
+                label = '"'+label+'"'
+                
+            stateString = "[F ("+label+") ]"
             if (i != len(gs)-1):
                 goalString = goalString + stateString + ", "
             else:
@@ -248,7 +274,14 @@ class PrismFileReader(object):
             break
         
         for i in range(1,len(gs)):
-            stateString = "Pmax=? [F ("+gVar+"="+str(gs[i])+") ]"
+            lp = "("+gVar+"="+str(gs[i])+")"
+            src= RegexHelper.processState(lp,self.constants,variables)
+            label = self.findLabel(src)
+            if label is None:
+                label = lp
+            else:
+                label = '"'+label+'"'    
+            stateString = "Pmax=? [F ("+label+") ]"
             if (i != len(gs)-1):
                 goalString = goalString + stateString + ", "
             else:
@@ -257,7 +290,14 @@ class PrismFileReader(object):
         if len(avoid) > 0:
             goalString = goalString + ', Pmax=? [ '
             for i in range(len(avoid)):
-                stateString = '( G ! ('+gVar+'='+str(avoid[i])+') )'
+                lp = '('+gVar+'='+str(avoid[i])+') '
+                src= RegexHelper.processState(lp,self.constants,variables)
+                label = self.findLabel(src)
+                if label is None:
+                    label = lp
+                else:
+                    label = '"'+label+'"'    
+                stateString = '( G ! ('+label+') )'
                 if (i != len(avoid) -1):
                     goalString = goalString + stateString + " & "
                 else:
@@ -265,6 +305,7 @@ class PrismFileReader(object):
         
             goalString = goalString + ']' 
         goalString = goalString + ")"
+        #print goalString 
 
         return goalString
     
@@ -280,8 +321,8 @@ class PrismFileReader(object):
         goalString = self.createGoalStatesAvoid(gs,avoid,gVar)
         self.writeLinesToFile([goalString],fn)
         
-    def writeGoalStatesSplitAvoid(self,gs,avoid,gVar,fn):
-        goalString = self.createGoalStatesSplitAvoid(gs,avoid,gVar)
+    def writeGoalStatesSplitAvoidLabels(self,gs,avoid,gVar,fn):
+        goalString = self.createGoalStatesSplitAvoidLabels(gs,avoid,gVar)
         self.writeLinesToFile([goalString],fn)        
         
     def readRewardLines(self,beginIndex):
