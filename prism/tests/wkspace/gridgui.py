@@ -1,7 +1,9 @@
 from tkinter import *
 import Tkinter, Tkconstants, tkFileDialog, tkSimpleDialog
+#import pickle
 
 from GeneratePrismFiles import GeneratePrismFile
+
 
 app=None
 MAP="map"
@@ -31,8 +33,10 @@ class Cell():
     AVOID_COLOR_BORDER="red"
     FAIL_COLOR_BG="grey"
     FAIL_COLOR_BORDER="grey"
+    GOAL_FAIL_COLOR_BG="lightgreen"
     DOOR_COLOR_BG="brown"
     DOOR_COLOR_BORDER="magenta"
+    
 
     def __init__(self, master, x, y, size):
         """ Constructor of the object called by Cell(...) """
@@ -45,8 +49,18 @@ class Cell():
         self.isGoalPos = False
         self.isFailState = False
         self.isAvoidState = False
-        self.isDoor = False 
-        
+        self.isDoor = False
+        self.otherDoor = None
+
+    def __str__(self):
+        strrep = '[(%d,%d,%d)*{"fill":%s,"isInitPos":%s,"isGoalPos":%s,"isFailState":%s,"isAvoidState":%s,"isDoor":%s' % (self.ord,self.abs,self.size,str(self.fill),str(self.isInitPos),str(self.isGoalPos),str(self.isFailState),str(self.isAvoidState),str(self.isDoor))
+        if self.isDoor:
+            strrep = strrep + ',"otherDoor":'+str(self.otherDoor)
+        else:
+            strrep = strrep + ',"otherDoor":None'
+        strrep = strrep + "}]"
+        return strrep
+            
 
     def _switch(self):
         """ Switch if the cell is filled or not. """
@@ -74,32 +88,36 @@ class Cell():
             outline = Cell.EMPTY_COLOR_BORDER
             global appState
             
-            if appState is MAP:
-                if self.fill:
-                    fill = Cell.FILLED_COLOR_BG
-                    outline = Cell.FILLED_COLOR_BORDER
+            #if appState is MAP:
+            if self.fill:
+                fill = Cell.FILLED_COLOR_BG
+                outline = Cell.FILLED_COLOR_BORDER
                     
-            elif appState is SETINITLOCS:
-                if self.isInitPos:
-                    fill = Cell.START_COLOR_BG
-                    outline = Cell.START_COLOR_BORDER
-            elif appState is SETAVOID:
-                if self.isAvoidState:
-                    fill = Cell.AVOID_COLOR_BG
-                    outline = Cell.AVOID_COLOR_BORDER
+            #elif appState is SETINITLOCS:
+            if self.isInitPos:
+                fill = Cell.START_COLOR_BG
+                outline = Cell.START_COLOR_BORDER
+            #elif appState is SETAVOID:
+            if self.isAvoidState:
+                fill = Cell.AVOID_COLOR_BG
+                outline = Cell.AVOID_COLOR_BORDER
 
-            elif appState is SETFS:
+            #elif appState is SETFS:
+            if self.isFailState:
+                fill = Cell.FAIL_COLOR_BG
+                outline = Cell.FAIL_COLOR_BORDER
+            #elif appState is SETGOALS:
+            if self.isGoalPos:
+                fill = Cell.GOAL_COLOR_BG
                 if self.isFailState:
-                    fill = Cell.FAIL_COLOR_BG
                     outline = Cell.FAIL_COLOR_BORDER
-            elif appState is SETGOALS:
-                if self.isGoalPos:
-                    fill = Cell.GOAL_COLOR_BG
+                    fill = Cell.GOAL_FAIL_COLOR_BG 
+                else:
                     outline = Cell.GOAL_COLOR_BORDER
-            elif appState is SETDOOR:
-                if self.isDoor:
-                    fill = Cell.DOOR_COLOR_BG
-                    outline = Cell.DOOR_COLOR_BORDER
+            #elif appState is SETDOOR:
+            if self.isDoor:
+                fill = Cell.DOOR_COLOR_BG
+                outline = Cell.DOOR_COLOR_BORDER
                     
                 
                     
@@ -112,18 +130,71 @@ class Cell():
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
 
 class CellGrid(Canvas):
-    def __init__(self,master, rowNumber, columnNumber, cellSize, *args, **kwargs):
+    def __init__(self,fromFile,fn,master, rowNumber, columnNumber, cellSize, *args, **kwargs):
+
+        xydict = None
+        
+        if fromFile:
+            with open(fn) as gfile:
+                lines = gfile.readlines()
+            #first line is the row column and size
+            #print lines[0]
+            rowcolumnsize = lines[0].replace('\n','')
+            rowcolumnsize = rowcolumnsize.split(',')
+            
+            row = int(rowcolumnsize[0])
+            column = int(rowcolumnsize[1])
+            size = int(rowcolumnsize[2])
+            rowNumber = row
+            columnNumber = column
+            cellSize = size
+            xydict = {}
+            for i in range(1,len(lines)):
+                line = lines[i].replace('\n','')
+                #strrep = '[(%d,%d,%d)*{"fill":%s,"isInitPos":%s,"isGoalPos":%s,"isFailState":%s,"isAvoidState":%s,"isDoor":%s' % (self.abs,self.ord,self.size,str(self.fill),str(self.isInitPos),str(self.isGoalPos),str(self.isFailState),str(self.isAvoidState),str(self.isDoor))
+                xys = line.split('*')
+                flags = xys[1].replace(']','')
+                xys = xys[0]
+                xys = xys.replace('[','')
+                xys = xys.replace('(','')
+                xys = xys.replace(')','')
+                xys = xys.split(',')
+                
+                
+                xydict[(int(xys[0]),int(xys[1]))] = eval(flags)
+            #print xydict
+            #print row
+            #print column
+            #print size 
+                
+        
         Canvas.__init__(self, master, width = cellSize * columnNumber , height = cellSize * rowNumber, *args, **kwargs)
 
         self.cellSize = cellSize
 
         self.grid = []
+        #print rowNumber
+        #print columnNumber
+        #print cellSize
         for row in range(rowNumber):
 
             line = []
             for column in range(columnNumber):
-                line.append(Cell(self, column, row, cellSize))
-
+                cell = Cell(self, column, row, cellSize)
+                
+                if fromFile:
+                    flagsHere = xydict[(row,column)]
+                    #print flagsHere
+                    cell.fill = flagsHere["fill"]
+                    cell.isInitPos = flagsHere["isInitPos"]
+                    cell.isGoalPos = flagsHere["isGoalPos"]
+                    cell.isFailState = flagsHere["isFailState"]
+                    cell.isAvoidState = flagsHere["isAvoidState"]
+                    cell.isDoor = flagsHere["isDoor"]
+                    cell.otherDoor = flagsHere["otherDoor"]
+                    #print cell
+                    
+                line.append(cell)
             self.grid.append(line)
 
         #memorize the cells that have been modified to avoid many switching of state during mouse motion.
@@ -138,6 +209,8 @@ class CellGrid(Canvas):
         self.bind("<ButtonRelease-1>", lambda event: self.clearSwitched())
 
         self.draw()
+
+    
 
 
     def clearSwitched(self):
@@ -224,6 +297,24 @@ def processDoors():
             elif len(currentDoorPair) < 2 and len(currentDoorPair) > 0:
                 print "Door Pairs not equal"
 
+            #mark doors
+            for i in range(0,len(doorPairs),2):
+                d1 = doorPairs[i]
+                d2 = doorPairs[i+1]
+                d1g = gridArray[d1[0]][d1[1]]
+                d2g = gridArray[d2[0]][d2[1]]
+                if d1g.otherDoor is None:
+                    if d2g.otherDoor is None:
+                        continue
+                    else:
+                        print "mismatched door pair?? "
+                        print doorPairs
+                        print d1
+                        print d2
+                        
+                d1g.otherDoor = d2
+                d2g.otherDoor = d1
+
 
             print doorPairs
     
@@ -239,11 +330,19 @@ def allDone():
     blockedStates =[]
     avoidStates = []
     connectedStates=[]
+    
     global gridArray
     if gridArray is not None:
+        gridWriteFile = open(fn+'.grid','w')
+        lenx = len(gridArray)
+        leny = len(gridArray[0])
+        gsize = gridArray[0][0].size
+        gridWriteFile.write(str(lenx)+','+str(leny)+','+str(gsize)+'\n')
+        
         for i in range(len(gridArray)):
             for j in range(len(gridArray[i])):
                 c = gridArray[i][j]
+                gridWriteFile.write(str(c)+'\n')
                 d = (i,j)
                 if c.fill:
                     blockedStates.append(d)
@@ -259,6 +358,7 @@ def allDone():
                     avoidStates.append(d)
                 if not c.fill:
                     connectedStates.append(d)
+        gridWriteFile.close()
     print ("Init")
     print (initStates)
     print ("Goals")
@@ -277,7 +377,7 @@ def allDone():
     gfr = GeneratePrismFile()
     global xside
     global yside
-    
+
     gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
     global app
     #cv = Canvas(app)
@@ -286,6 +386,8 @@ def allDone():
     os.system(comm)
     #cv.postscript(file=fn+"_img.ps", colormode='color')
 
+
+    
 def exitHere():
     global app
     app.destroy()
@@ -293,17 +395,33 @@ def exitHere():
 if __name__ == "__main__" :
 
     #yside = int(input("Enter y side"))
+    #reading the grid
     global app
     app = Tk()
-    global xside
-    xside= tkSimpleDialog.askinteger('Num cells x','Num cells x',initialvalue=5,minvalue=2,maxvalue=100)
-    if xside is None:
-        xside = 5
-    #xside = int(input("Enter x side"))
-    global yside
-    yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=2,maxvalue=100)
-    if yside is None:
-        yside = 5
+    
+    fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/",title="Save file as", filetypes=(("grid",".grid"),("all files","*.*")))#"/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/kya.grid"
+    print fn
+    print type(fn)
+    
+    if fn:
+        loadGridFromFile = True#open(fn)
+    else:
+        loadGridFromFile = False
+        
+
+    
+    
+    if not loadGridFromFile:
+        global xside
+        xside= tkSimpleDialog.askinteger('Num cells x','Num cells x',initialvalue=5,minvalue=2,maxvalue=100)
+        if xside is None:
+            xside = 5
+        #xside = int(input("Enter x side"))
+        global yside
+        yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=2,maxvalue=100)
+        if yside is None:
+            yside = 5
+            
     menu = Menu(app)
     menu.add_command(label='Set Map',command=setMap)
     menu.add_command(label='Initial Locaitions',command = addInitialLocations)
@@ -314,6 +432,8 @@ if __name__ == "__main__" :
     menu.add_command(label='Add Door Pair' , command= processDoors)
     
     menu.add_command(label='done',command=allDone)
+    #menu.add_command(label='load file',command=loadFile)
+    
     menu.add_command(label='exit',command=exitHere)
     
     app.config(menu=menu)
@@ -321,7 +441,8 @@ if __name__ == "__main__" :
     
     #btn = Button(app2,text="Test")
     #btn.grid(column=51,row=51)
-    grid = CellGrid(app, xside,yside, 50)
+
+    grid = CellGrid(loadGridFromFile,fn,app, xside,yside, 50)
     global gridArray
     gridArray = grid.grid
     
