@@ -173,14 +173,14 @@ public class JointPolicyBuilder
 				isolatedStatesList.add(name);
 			}
 		}
-		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList,seqTeamMDPVarList, log);
+		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
 	}
 
-	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList,
-			VarList seqTeamMDPVarList,PrismLog log)
+	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
+			PrismLog log)
 	{
 		statesMap = new HashMap<State, Integer>();
-		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList,seqTeamMDPVarList, log);
+		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
 	}
 
 	private VarList createVarList(VarList seqTeamMDPVarList)
@@ -196,27 +196,34 @@ public class JointPolicyBuilder
 			for (int i = numRobots - 1; i >= 0; i--) {
 				decname = "r" + i;
 				varlist.addVar(0, new Declaration(decname, new DeclarationIntUnbounded()), 1, null);
+
 			}
 
 			//keep the order of the shared states the same as the order in the seqteam mdp 
 			//so just go over all the states in the varlist 
-			
-			for (int i = seqTeamMDPVarList.getNumVars()-1; i>=0; i--)
-			{
-				String name = seqTeamMDPVarList.getName(i); 
-				if(sharedStatesNamesList.contains(name))
-				{
+
+			for (int i = seqTeamMDPVarList.getNumVars() - 1; i >= 0; i--) {
+				String name = seqTeamMDPVarList.getName(i);
+				if (sharedStatesNamesList.contains(name)) {
 					varlist.addVar(0, new Declaration(name, new DeclarationIntUnbounded()), 1, null);
 				}
 			}
-//			for (int i = 0; i < numSharedStates; i++) {
-//				decname = sharedStatesNamesList.get(i);
-//				varlist.addVar(0, new Declaration(decname, new DeclarationIntUnbounded()), 1, null);
-//			}
-			for (int i = 0; i < numTasks; i++) {
-				decname = "da" + i;
-				varlist.addVar(0, new Declaration(decname, new DeclarationIntUnbounded()), 1, null);
+			//			for (int i = 0; i < numSharedStates; i++) {
+			//				decname = sharedStatesNamesList.get(i);
+			//				varlist.addVar(0, new Declaration(decname, new DeclarationIntUnbounded()), 1, null);
+			//			}
+			//			for (int i = 0; i < numTasks; i++) {
+			//				decname = "da" + i;
+			//				varlist.addVar(0, new Declaration(decname, new DeclarationIntUnbounded()), 1, null);
+			//			}
+			for (int i = seqTeamMDPVarList.getNumVars() - 1; i >= 0; i--) {
+				String name = seqTeamMDPVarList.getName(i);
+				if (name.contains("da")) {
+					varlist.addVar(0, new Declaration(name, new DeclarationIntUnbounded()), 1, null);
+
+				}
 			}
+
 			for (int i = 0; i < varlist.getNumVars(); i++) {
 				varListMapping.put(varlist.getName(i), i);
 			}
@@ -229,7 +236,8 @@ public class JointPolicyBuilder
 
 	}
 
-	private void initialize(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,PrismLog log)
+	private void initialize(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
+			PrismLog log)
 	{
 		numRobots = nrobots;
 		numTasks = ntasks;
@@ -417,16 +425,12 @@ public class JointPolicyBuilder
 						}
 					}
 					if (!discovered) {
-						if(currentJointState.toString().contains("(0,0,0,-1,1,4,18)"))
-							mainLog.println("Debug here");
 						Entry<boolean[], Integer> numFailedPlusFlagsInState = numFailedInJointState(currentJointState);
 						int numFailedInState = numFailedPlusFlagsInState.getValue();
 						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
 
 						double probVar = currentJointStateProbPair.getValue();
-						//						String textToCheck = "0,0,0,0,0,4,5,-1";
-						//						if (currentJointState.toString().contains(textToCheck))
-						//							mainLog.println("check here");
+
 						if (numFailedInState > numFailedInInitialState) {
 							// the assumption is we have seen fail states before
 							if (stateIndex != StatesHelper.BADVALUE) {
@@ -544,66 +548,6 @@ public class JointPolicyBuilder
 
 						}
 
-						//********************************to remove **************************************************//	
-
-						//						if (statesDiscovered == null) // if we just started we need to get a new task allocation
-						//						{
-						//							followingPath = true;
-						//							statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, robotStatesInSeqTeamMDP,
-						//									followingPath/* follow a path cuz you dont know anything */);
-						//
-						//							mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
-						//									statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-						//							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
-						//									mostProbableTaskAllocationStateValuesBeforeProcessing);
-						//
-						//							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
-						//									robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
-						//									mdp.getStatesList());
-						//
-						//							stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(
-						//									statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-						//							stateValuesBeforeTaskAllocation = this
-						//									.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
-						//
-						//						} else {
-						//							if (!followingPath) {
-						//								modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
-						//										robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
-						//										mdp.getStatesList());
-						//								mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
-						//										mostProbableTaskAllocationStateValuesBeforeProcessing);
-						//							}
-						//
-						//							// use the previous task allocation to check if something has changed.
-						//
-						//							if (getNewTaskAllocation(statesDiscovered, modifiedRobotStatesInSeqTeamMDP,
-						//									followingPath /* we dont have to follow the path */)) {
-						//								followingPath = false;
-						//								// so like which states should we use here ??? I'm a bit confused
-						//								// think about this okay
-						//								// TODO: which bit ?
-						//								statesDiscovered = getTaskAllocationForAllRobots(strat, mdp,
-						//										modifiedRobotStatesInSeqTeamMDP, // robotStatesInSeqTeamMDP,
-						//										followingPath/* follow a path cuz you dont know anything */);
-						//
-						//								mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(
-						//										statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-						//								mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(
-						//										mostProbableTaskAllocationStateValuesBeforeProcessing);
-						//
-						//								modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(
-						//										robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValues,
-						//										mdp.getStatesList());
-						//
-						//								stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(
-						//										statesDiscovered, mdp.getStatesList(), mdp.getVarList(), followingPath);
-						//								stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(
-						//										stateValuesBeforeTaskAllocationBeforeProcessing);
-						//							}
-						//						}
-						//********************************to remove **************************************************//
-
 						boolean usingModifiedStates = false;
 						Entry<String, ArrayList<Entry<int[], Double>>> actionAndCombinations = getActionAndSuccStatesAllRobots(strat,
 								modifiedRobotStatesInSeqTeamMDP, robotStatesInSeqTeamMDP, mdp, usingModifiedStates);
@@ -631,7 +575,7 @@ public class JointPolicyBuilder
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
 							sharedStateChangesQ.add(sharedStateChanges);
 							// add to mdp
-							if(succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
+							if (succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
 								mainLog.println("Debug here");
 						}
 						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
@@ -1649,18 +1593,28 @@ public class JointPolicyBuilder
 			Object[] das = StatesHelper.getDAStatesFromState(robotState, varlist, this.numTasks);
 
 			// if the da state is different form the parent state copy it
-			for (int j = 0; j < das.length; j++) {
-				if (parentState.varValues[j] != das[j] && das[j] != this.daInitialStates.get(j))
-					stateToRet.setValue(j, das[j]);
+			//			for (int j = 0; j < das.length; j++) {
+			//				if (parentState.varValues[j] != das[j] && das[j] != this.daInitialStates.get(j))
+			//					stateToRet.setValue(j, das[j]);
+			//			}
+			int jj = 0;
+			for (int j = 0; j < varlist.getNumVars(); j++) {
+
+				String name = varlist.getName(j);
+				if (name.contains("da")) {
+					int jsIndex = varListMapping.get(name);
+					if ((int) parentState.varValues[jsIndex] != (int) das[jj] && (int) das[jj] != this.daInitialStates.get(jj))
+						stateToRet.setValue(jsIndex, das[jj]);
+					jj++;
+				}
 			}
 			if (ss != null) {
 				for (int j = 0; j < ss.length; j++) {
-					int jsIndex=this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j));
+					int jsIndex = this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j));
 					if (ss[j] != null) {
 						if ((int) parentState.varValues[jsIndex] != (int) ss[j]) {
 							//stateToRet.setValue(j + das.length, ss[j]);
-							stateToRet.setValue(jsIndex,
-									ss[j]);
+							stateToRet.setValue(jsIndex, ss[j]);
 							sharedStatesChangedByRobot.add(new AbstractMap.SimpleEntry<Integer, Entry<Integer, Integer>>(j + das.length,
 									new AbstractMap.SimpleEntry<Integer, Integer>((int) ss[j], (int) parentState.varValues[j + das.length])));
 						}
@@ -1721,9 +1675,8 @@ public class JointPolicyBuilder
 					else {
 						if (((int) stateToRet.varValues[j + das.length]) != (int) ss[j]
 								&& (int) ss[j] != sharedVarsInitialStates.get(this.sharedStatesNamesList.get(j))) {
-//							stateToRet.setValue(j + das.length, ss[j]);
-							stateToRet.setValue(this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j)),
-									ss[j]);
+							//							stateToRet.setValue(j + das.length, ss[j]);
+							stateToRet.setValue(this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j)), ss[j]);
 						}
 					}
 				}
@@ -1756,19 +1709,28 @@ public class JointPolicyBuilder
 				// keep this robot's da bits and ss bits
 				Object[] ss = StatesHelper.getSharedStatesFromState(robotState, varlist, this.sharedStatesNamesList);
 				Object[] das = StatesHelper.getDAStatesFromState(robotState, varlist, this.numTasks);
-				for (int j = 0; j < das.length; j++) {
-					stateToRet.setValue(j, das[j]);
+				int jj = 0;
+				for (int j = 0; j < varlist.getNumVars(); j++) {
 
+					String name = varlist.getName(j);
+					if (name.contains("da")) {
+						stateToRet.setValue(varListMapping.get(name), das[jj]);
+						jj++;
+					}
 				}
+				//				for (int j = 0; j < das.length; j++) {
+				//					
+				//					stateToRet.setValue(j, das[j]);
+				//
+				//				}
 				if (ss != null) {
 					//get the joint mdp varlist name 
-//					if (ss != null) {
-//						for (int j = 0; j < ss.length; j++)
-//							if (ss[j] != null)
-//								newState[teamdpvarlist.getIndex(this.sharedStatesNamesList.get(j))] = ss[j];
+					//					if (ss != null) {
+					//						for (int j = 0; j < ss.length; j++)
+					//							if (ss[j] != null)
+					//								newState[teamdpvarlist.getIndex(this.sharedStatesNamesList.get(j))] = ss[j];
 					for (int j = 0; j < ss.length; j++) {
-						stateToRet.setValue(this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j)),
-								ss[j]);
+						stateToRet.setValue(this.jointMDP.getVarList().getIndex(this.sharedStatesNamesList.get(j)), ss[j]);
 					}
 				}
 			}
@@ -1784,25 +1746,33 @@ public class JointPolicyBuilder
 
 	// FIXME: a lot of hardcoding here which is not required at all
 	// so i'm just being lazy af
-	protected int[] extractIndividualRobotStatesFromJointState(State jointState, List<State> teamMDPStatesList,
-			VarList teamdpvarlist) throws PrismException
+	protected int[] extractIndividualRobotStatesFromJointState(State jointState, List<State> teamMDPStatesList, VarList teamdpvarlist) throws PrismException
 	{
-		if(jointState.toString().contains("(0,0,0,1,-1,1,18)"))
+		if (jointState.toString().contains("(0,0,0,1,-1,1,18)"))
 			mainLog.println("Debug here");
-		Object[] ss = StatesHelper.getSharedStatesFromState (jointState, this.jointMDP.getVarList(), this.sharedStatesNamesList);
+		Object[] ss = StatesHelper.getSharedStatesFromState(jointState, this.jointMDP.getVarList(), this.sharedStatesNamesList);
 		Object[] das = StatesHelper.getDAStatesFromState(jointState, this.jointMDP.getVarList(), this.numTasks);
 
 		int numVarsInTeamMDP = teamdpvarlist.getNumVars();
 		int[] statesToRet = new int[this.numRobots];
 		Arrays.fill(statesToRet, StatesHelper.BADVALUE);
-
+		VarList varlist = this.jointMDP.getVarList();
 		// create a joint state for each robot
 		for (int i = 0; i < this.numRobots; i++) {
 			Object[] newState = new Object[numVarsInTeamMDP];
 			newState[teamdpvarlist.getIndex("r")] = i;
+			int jj = 0;
+			for (int j = 0; j < varlist.getNumVars(); j++) {
 
-			for (int j = 0; j < das.length; j++)
-				newState[teamdpvarlist.getIndex("da" + j)] = das[j];
+				String name = varlist.getName(j);
+				if (name.contains("da")) {
+					newState[teamdpvarlist.getIndex(name)] = das[jj];
+					//					stateToRet.setValue(teamdpvarlist.getIndex(name), das[jj]); 
+					jj++;
+				}
+			}
+			//			for (int j = 0; j < das.length; j++)
+			//				newState[teamdpvarlist.getIndex("da" + j)] = das[j];
 			// so this is a bit problematic
 			// and I dont want to cheat ish
 			// so I'll be safe
@@ -1823,12 +1793,12 @@ public class JointPolicyBuilder
 				newState[teamdpvarlist.getIndex(this.isolatedStatesNamesList.get(j))] = StatesHelper.getIndexValueFromState(jointState,
 						varListMapping.get("r" + i));
 			// i just want to say that my code has been better
-			if(Arrays.toString(newState).contains("[0, 0, 0, 0, 1, 1, -1]"))
-				mainLog.println("Debug here");
+			//			if (Arrays.toString(newState).contains("[0, 0, 0, 0, 1, 1, -1]"))
+			//				mainLog.println("Debug here");
 			int sameState = StatesHelper.getExactlyTheSameState(newState, teamMDPStatesList);
-			if(sameState == StatesHelper.BADVALUE)
-			{	mainLog.println("Cant find state index for "+Arrays.toString(newState)+" in teamMDP");
-				throw new PrismException("Cant find state index for "+Arrays.toString(newState)+" in teamMDP");
+			if (sameState == StatesHelper.BADVALUE) {
+				mainLog.println("Cant find state index for " + Arrays.toString(newState) + " in teamMDP");
+				throw new PrismException("Cant find state index for " + Arrays.toString(newState) + " in teamMDP");
 			}
 			statesToRet[i] = sameState;
 		}

@@ -44,7 +44,7 @@ public class ResultsTiming
 	private long scope_start_time = 0;
 
 
-	public long timeout = 10*60 * 1000;
+	public long timeout = 100*60 * 1000;
 	public PrismLog mainLog;
 	public PrismLog resLog;
 	String time_identifiers = "+-+";
@@ -105,7 +105,6 @@ public class ResultsTiming
 			json_text += createJsonStyleString("teamMDPStates", teamMDPStates) + comma;
 			json_text += createJsonStyleString("teamMDPTransitions", teamMDPTransitions) + comma;
 			json_text += createJsonStyleString("NumReallocations", numReallocInCode) + comma;
-			//		json_text += createJsonStyleString("Total Time", totalComputationTime) + comma;
 			json_text += createJsonStyleString("Team MDP Time", totalTeamMDPCreationTime) + comma;
 		}
 		if (!thts)
@@ -126,6 +125,11 @@ public class ResultsTiming
 		resLog.close();
 	}
 
+	void saveJointPolicy(JointPolicyBuilder jointPolicyBuilder)
+	{
+		StatesHelper.saveMDP(jointPolicyBuilder.jointMDP, null, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "jointPolicy", true);
+		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
+	}
 	public String createJsonStyleString(String varname, HashMap<Integer, Long> varvalues, boolean dosum)
 	{
 		long sum = 0;

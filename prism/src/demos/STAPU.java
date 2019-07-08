@@ -56,10 +56,10 @@ public class STAPU
 		StatesHelper.setSavePlace(saveplace);
 
 		STAPU stapu = new STAPU();
-//		stapu.run();
-//		stapu.runGrid3();
-//		stapu.runTest();
-		stapu.runGUITest();
+		//		stapu.run();
+				stapu.runGrid3();
+		//		stapu.runTest();
+//				stapu.runGUITest();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -233,11 +233,11 @@ public class STAPU
 				model = models.get(i);
 				modulesFile = modulesFiles.get(i);
 			}
-			//			StatesHelper.saveMDP((MDP) model, null, "", "mdp" + i, true);
+
 
 			int initState = model.getFirstInitialState();
 
-			// for (int i = 0; i < numRobots; i++) {
+
 			if (i != 0 && sameModelForAll) {
 				initState = getInitState(i, exampleNumber());
 				((MDPSparse) model).clearInitialStates();
@@ -250,7 +250,7 @@ public class STAPU
 			singleAgentProductMDPs.add(nestedProduct);
 			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
 			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(), "Nested Product States", varIDs.nestedproductstates);
-			// }
+
 
 		}
 
@@ -263,10 +263,7 @@ public class STAPU
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
 
 		int firstRobot = 0; // fix this
-		// if (hasDoor)
-		// StatesHelper.setMDPVar(seqTeamMDP.teamMDPTemplate.getVarList().getNumVars() -
-		// 2); //cuz there is door too
-		// else
+
 		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
 
 		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly, true);
@@ -274,10 +271,10 @@ public class STAPU
 		BitSet combinedEssentialStates = new BitSet();
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
-			//			mainLog.println("Essential States " + seqTeamMDP.essentialStates.get(i));
+
 
 		}
-		//		mainLog.println("Accepting States " + seqTeamMDP.acceptingStates);
+
 
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
 		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
@@ -294,20 +291,6 @@ public class STAPU
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
 
-		//		for (int rew = 0; rew < rewards.size(); rew++) {
-		//			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), combinedEssentialStates, "",
-		//					"rew" + rew, true);
-		//
-		//			StatesHelper.saveReward(seqTeamMDP.teamMDPWithSwitches, rewards.get(rew), null, "",
-		//					"teamMDPWithSwitches_Rewards" + rew, true);
-		//			
-		//		}
-		//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
-		//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.statesToAvoid, "", "teamMDPWithSwitchesAvoid",
-		//				true);
-		//		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches, "", "teamMDPWithSwitches_sta_tra", true);
-		//		StatesHelper.saveBitSet(combinedEssentialStates, "", "teamMDP.ess", true);
-		//		StatesHelper.saveBitSet(seqTeamMDP.acceptingStates, "", "teamMDP.acc", true);
 
 		resSaver.setLocalStartTime();
 		resSaver.setScopeStartTime();
@@ -315,16 +298,7 @@ public class STAPU
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
 
-		//		StatesHelper.saveStrategy(solution.strat, null, "", "initialStrat", true);
-		// solution.strat.exportInducedModel(mainLogRef);
-		// solution.strat.exportActions(mainLogRef);
-		//		mainLog.println(seqTeamMDP.acceptingStates.toString());
 
-		// add to joint policy
-		// MMDPSimple
-		// jointPolicy = new MMDPSimple(seqTeamMDP.numRobots,
-		// seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-		// seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
 
@@ -376,15 +350,7 @@ public class STAPU
 
 					statesToAvoid.or(seqTeamMDP.statesToAvoid);
 				}
-				//				if (stateToExploreAndBitSet.getValue() != null) {
-				//					String stateVal = stateToExplore.toString();
-				//					stateVal = stateVal.replace(",", "_");
-				//					stateVal = stateVal.replace(")", "");
-				//					stateVal = stateVal.replace("(", "");
-				//					StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, statesToAvoid, "", "fs" + stateVal, true);
-				//				}
-				//				if (stateToExplore.toString().contains("0,0,0,1,0,0,5,-1"))
-				//					mainLog.println("pause here - Passenger Side - I brought a lemon to a knife");
+
 
 				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
 						probPreference);// ,probInitVals);
@@ -396,7 +362,8 @@ public class STAPU
 			}
 		}
 		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
-		jointPolicyBuilder.saveJointPolicyMDP();
+		resSaver.saveJointPolicy(jointPolicyBuilder);
+		//		jointPolicyBuilder.saveJointPolicyMDP();
 		mainLog.println("All done");
 		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
@@ -546,7 +513,7 @@ public class STAPU
 		//	    	    fsRange = [0,2,4,8,16,32]
 		//	    	    ssRange = [0,1,2,3,4]
 		ArrayList<String> modelnames = new ArrayList<String>();
-		
+
 		String modelname = "grid_3_topomap_plain";//"grid_3_topomap";
 		modelnames.add(modelname);
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
@@ -556,9 +523,9 @@ public class STAPU
 
 		ArrayList<String> allModelLocs = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
-		int[] goalsRange = { 2 , 4, 6, 8, 10 };
-		int[] agentsRange = { 2 , 4, 6, 8, 10 };
-		int[] fsRange = { 0, 2 , 4, 8, 16, 32 };
+		int[] goalsRange = { 2, 4, 6, 8, 10 };
+		int[] agentsRange = { 2, 4, 6, 8, 10 };
+		int[] fsRange = { 0, 2, 4, 8, 16, 32 };
 		int[] ssRange = { 0, 1, 2, 3, 4 };
 		for (int numAgents : agentsRange) {
 			for (int numGoals : goalsRange) {
@@ -594,13 +561,12 @@ public class STAPU
 				System.out.println(example_id);
 				modelsTested.add(example_id);
 				StatesHelper.setSavePlace(thisModelLoc + "results/");
-				System.out.println("Example "+i+" of "+allModelLocs.size());
+				System.out.println("Example " + i + " of " + allModelLocs.size());
 
-				runOneExample(example_name, example_id, example_has_door_list, 
-						example_num_door_list, example_num_robot_list,example_num_fs_list,
-						thisModelLoc, true,thisModelLoc + "results/");
+				runOneExample(example_name, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, example_num_fs_list, thisModelLoc,
+						true, thisModelLoc + "results/");
 
-				System.out.println("Example "+i+" of "+allModelLocs.size()+ " completed");
+				System.out.println("Example " + i + " of " + allModelLocs.size() + " completed");
 			}
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
@@ -615,81 +581,159 @@ public class STAPU
 		}
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
+
 	public void runGUITest()
 	{
 		// saving filenames etc
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";
 		//System.getProperty("user.dir");
-		String modelLocation = dir ;
-
+		String modelLocation = dir;
+		StatesHelper.setSavePlace(modelLocation + "results/");
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
 
+		int numRobots = 2;
+		int numFS = 2;
+		int numGoals = 3;
+		int numDoors = 2;
+		String example = "h";
+		String example_id = example + "r" + numRobots;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		String example_to_run = example;//cumberland_doors; 
 
-		int numRobots = 2; 
-		int numFS = 2; 
-		int numGoals = 3; 
-		int numDoors = 2; 
-			String example = "h";
-			String example_id = example+"r"+numRobots;//cumberland_doors; 
-			example_has_door_list.put(example_id, true);
-			example_num_door_list.put(example_id, numDoors);
-			example_num_robot_list.put(example_id, numRobots);
-			example_num_fs_list.put(example_id, numFS);
-			String example_to_run = example;//cumberland_doors; 
+		example = "grid_5x5_r35_t5_d0_fs0";
+		numRobots = 5;
+		numGoals = 5;
+		numDoors = 0;
+		numFS = 0;
+		example_id = example;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
 
+		example = "grid_5x5_r3_t3_d0_fs0";
+		numRobots = 3;
+		numGoals = 3;
+		numDoors = 0;
+		numFS = 0;
+		example_id = example;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
 
-			try {
-				runOneExample(
-						//					grid_3_example,
-						//					three_robot_one_door, 
-						//					two_robot_door_multiple_switches,
-						example_to_run,
-						example_id, example_has_door_list, example_num_door_list, 
-						example_num_robot_list, example_num_fs_list,modelLocation, false,dir + "results/stapu");
+		example = "grid_5x5_r5_t5_d0_fs3";
+		numRobots = 5;
+		numGoals = 5;
+		numDoors = 0;
+		numFS = 3;
+		example_id = example;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
 
+		example = "grid_5x5_r5_t5_d0_fs5";
+		numRobots = 5;
+		numGoals = 5;
+		numDoors = 0;
+		numFS = 5;
+		example_id = example;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
 
-			} catch (FileNotFoundException e) {
-				System.out.println("Error: " + e.getMessage());
-				System.exit(1);
-			} catch (PrismException e) {
-				System.out.println("Error: " + e.getMessage());
-				System.exit(1);
+		example = "grid_5x5_r5_t5_d0_fs7";
+		numRobots = 5;
+		numGoals = 5;
+		numDoors = 0;
+		numFS = 7;
+		example_id = example;//cumberland_doors; 
+		example_has_door_list.put(example_id, true);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int testCount = 0;
+		try {
+			for (int i = 0; i < examples.size(); i++) {
+				example_to_run = examples.get(i);
+				example_id = example_ids.get(i);
+
+				int maxRobots = example_num_robot_list.get(example_id);
+				if ( example_num_fs_list.get(example_id) != 3 )
+					continue; 
+				for (int r = 2; r <= maxRobots; r++) {
+					runOneExampleNumRobots(
+							//					grid_3_example,
+							//					three_robot_one_door, 
+							//					two_robot_door_multiple_switches,
+							example_to_run, example_id, example_has_door_list, example_num_door_list, r, example_num_fs_list, modelLocation, true,
+							dir + "results/stapu");
+					testCount++;
+					testsDone.add(example_id);
+				}
 			}
-		
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		mainLog.println("Num tests: " + testCount);
 	}
+
 	public void runGrid3()
 	{
 		// saving filenames etc
 		String dir = System.getProperty("user.dir");
 		String modelLocation = dir + "/tests/decomp_tests/";
-
+		StatesHelper.setSavePlace(modelLocation+"/temp/");
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
 
 		for (int r = 3; r <= 4; r++) {
+			r=2;
 			String grid_3_example = "grid_3_topomap_sim_doors";
-			String example_id = grid_3_example+"r"+r;//cumberland_doors; 
+			String example_id = grid_3_example + "r" + r;//cumberland_doors; 
 			example_has_door_list.put(example_id, true);
 			example_num_door_list.put(example_id, 2);
 			example_num_robot_list.put(example_id, r);
 			example_num_fs_list.put(example_id, 7);
 			String example_to_run = grid_3_example;//cumberland_doors; 
 
-
 			try {
 				runOneExample(
 						//					grid_3_example,
 						//					three_robot_one_door, 
 						//					two_robot_door_multiple_switches,
-						example_to_run,
-						example_id, example_has_door_list, example_num_door_list, 
-						example_num_robot_list, example_num_fs_list,modelLocation, false,dir + "/tests/"+"results/stapu");
-
+						example_to_run, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, example_num_fs_list, modelLocation,
+						false, dir + "/tests/" + "results/stapu");
+				break;
 
 			} catch (FileNotFoundException e) {
 				System.out.println("Error: " + e.getMessage());
@@ -715,13 +759,13 @@ public class STAPU
 		example_has_door_list.put(cumberland_nodoors, false);
 		example_num_robot_list.put(cumberland_nodoors, 3);
 		example_num_fs_list.put(cumberland_nodoors, 0);
-		
+
 		String cumberland_doors = "topo_map_modified_goals_doors"; // the cumberland map with doors
 		example_has_door_list.put(cumberland_doors, true);
 		example_num_door_list.put(cumberland_doors, 1);
 		example_num_robot_list.put(cumberland_doors, 3);
 		example_num_fs_list.put(cumberland_doors, 0);
-		
+
 		String a_door_example = "a_door_example"; // a single door
 		example_has_door_list.put(a_door_example, true);
 		example_num_door_list.put(a_door_example, 1);
@@ -732,13 +776,13 @@ public class STAPU
 		example_has_door_list.put(no_door_example, false);
 		example_num_robot_list.put(no_door_example, 3);
 		example_num_fs_list.put(no_door_example, 0);
-		
+
 		String a_door_example_actionwithtwogoals = "a_door_example_actionwithtwogoals";
 		example_has_door_list.put(a_door_example_actionwithtwogoals, true);
 		example_num_door_list.put(a_door_example_actionwithtwogoals, 1);
 		example_num_robot_list.put(a_door_example_actionwithtwogoals, 3);
 		example_num_fs_list.put(a_door_example_actionwithtwogoals, 0);
-		
+
 		String different_goals_example = "a_door_example_differenttasks"; // has completely different tasks but
 																			// engineered such that there needs to be a
 																			// wait before the door is checked
@@ -746,65 +790,65 @@ public class STAPU
 		example_num_door_list.put(different_goals_example, 1);
 		example_num_robot_list.put(different_goals_example, 3);
 		example_num_fs_list.put(different_goals_example, 0);
-		
+
 		String different_goals_example_longer = "a_door_example_differenttasks_longer";
 		example_has_door_list.put(different_goals_example_longer, true);
 		example_num_door_list.put(different_goals_example_longer, 1);
 		example_num_robot_list.put(different_goals_example_longer, 3);
-		example_num_fs_list.put(different_goals_example_longer , 0);
-		
+		example_num_fs_list.put(different_goals_example_longer, 0);
+
 		String grid_2_example = "grid_2_topomap_sim";
 		example_has_door_list.put(grid_2_example, false);
 		example_num_robot_list.put(grid_2_example, 3);
 		example_num_fs_list.put(grid_2_example, 0);
-		
+
 		String grid_3_example = "grid_3_topomap_sim_doors";
 		example_has_door_list.put(grid_3_example, true);
 		example_num_door_list.put(grid_3_example, 2);
 		example_num_robot_list.put(grid_3_example, 3);
 		example_num_fs_list.put(grid_3_example, 7);
-		
+
 		String three_robot_one_door = "three_robot_one_door";
 		example_has_door_list.put(three_robot_one_door, true);
 		example_num_door_list.put(three_robot_one_door, 1);
 		example_num_robot_list.put(three_robot_one_door, 3);
 		example_num_fs_list.put(three_robot_one_door, 0);
-		
+
 		String two_robot_no_door = "two_robot_no_door";
 		example_has_door_list.put(two_robot_no_door, false);
 		example_num_door_list.put(two_robot_no_door, 1);
 		example_num_robot_list.put(two_robot_no_door, 2);
 		example_num_fs_list.put(two_robot_no_door, 0);
-		
+
 		String two_robot_no_door_multiple_switches = "two_robot_no_door_ms";
 		example_has_door_list.put(two_robot_no_door_multiple_switches, false);
 		example_num_robot_list.put(two_robot_no_door_multiple_switches, 3);
-		example_num_fs_list.put(two_robot_no_door_multiple_switches , 0);
-		
+		example_num_fs_list.put(two_robot_no_door_multiple_switches, 0);
+
 		String two_robot_door_multiple_switches = "two_robot_door";
 		example_has_door_list.put(two_robot_door_multiple_switches, true);
 		example_num_door_list.put(two_robot_door_multiple_switches, 1);
 		example_num_robot_list.put(two_robot_door_multiple_switches, 2);
 		example_num_fs_list.put(two_robot_door_multiple_switches, 0);
-		
+
 		String tro_example = "tro_example";
 		example_has_door_list.put(tro_example, true);
 		example_num_door_list.put(tro_example, 1);
 		example_num_robot_list.put(tro_example, 2);
 		example_num_fs_list.put(tro_example, 0);
-		
+
 		String tro_example_small = "tro_example_small";
 		example_has_door_list.put(tro_example_small, true);
 		example_num_door_list.put(tro_example_small, 1);
 		example_num_robot_list.put(tro_example_small, 2);
 		example_num_fs_list.put(tro_example_small, 0);
-		
+
 		String autogen_example = "temp";
 		example_has_door_list.put(autogen_example, true);
 		example_num_door_list.put(autogen_example, 2);
 		example_num_robot_list.put(autogen_example, 3);
 		example_num_fs_list.put(autogen_example, 0);
-		
+
 		String example_to_run = grid_3_example;//cumberland_doors; 
 		String example_id = grid_3_example;//cumberland_doors; 
 
@@ -813,10 +857,8 @@ public class STAPU
 					//					grid_3_example,
 					//					three_robot_one_door, 
 					//					two_robot_door_multiple_switches,
-					example_to_run, example_id, example_has_door_list,
-					example_num_door_list, example_num_robot_list,example_num_fs_list, modelLocation, 
-					false,modelLocation+"temp/");
-
+					example_to_run, example_id, example_has_door_list, example_num_door_list, example_num_robot_list, example_num_fs_list, modelLocation, false,
+					modelLocation + "temp/");
 
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: " + e.getMessage());
@@ -829,10 +871,8 @@ public class STAPU
 
 	public void runOneExample(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
 
-			HashMap<String, Integer> example_num_door_list, HashMap<String, Integer> example_num_robot_list, 
-			HashMap<String, Integer> example_num_fs_list,
-			String modelLocation, boolean doorVarNameHas0,String resLoc)
-
+			HashMap<String, Integer> example_num_door_list, HashMap<String, Integer> example_num_robot_list, HashMap<String, Integer> example_num_fs_list,
+			String modelLocation, boolean doorVarNameHas0, String resLoc)
 
 			throws PrismException, FileNotFoundException
 	{
@@ -890,14 +930,13 @@ public class STAPU
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
 
-		resSaver = new ResultsTiming(mainLog, filename,StatesHelper.getLocation(),false);
-
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
 		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
 
-		int numFS = example_num_fs_list.get(example_id); 
+		int numFS = example_num_fs_list.get(example_id);
 		resSaver.recordInits(numFS, "FS", varIDs.failstates);
 
 		// Initialise PRISM engine
@@ -949,7 +988,7 @@ public class STAPU
 				try {
 					doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
 							matchsharedstatesinswitch, completeSwitchRing);
-					
+
 				} catch (PrismException e) {
 					// TODO Auto-generated catch block
 
@@ -963,7 +1002,167 @@ public class STAPU
 
 		try {
 			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
-			
+
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
+		} catch (TimeoutException e) {
+			mainLog.println("Timed out - " + TimeUnit.SECONDS.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " seconds, "
+					+ TimeUnit.MINUTES.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " mins");
+			// TODO Auto-generated catch block
+			//			if (jointPolicy != null)
+			//				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
+			e.printStackTrace();
+			System.exit(1);
+		} // awaits termination
+
+		resSaver.writeResults();
+		// Close down PRISM
+		prism.closeDown();
+
+	}
+
+	public void runOneExampleNumRobots(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
+
+			HashMap<String, Integer> example_num_door_list, int numRobots, HashMap<String, Integer> example_num_fs_list, String modelLocation,
+			boolean doorVarNameHas0, String resLoc)
+
+			throws PrismException, FileNotFoundException
+	{
+
+		//Setting up
+		String filename = example_name;
+
+		boolean example_has_door = example_has_door_list.get(example_id);
+
+		String filename_suffix = "";
+
+		//these affect the switch transitions and hence the solution 
+		boolean includefailstatesinswitches = false;
+		boolean matchsharedstatesinswitch = false;
+		boolean completeSwitchRing = false;
+
+		ArrayList<String> shared_vars_list = new ArrayList<String>();
+		int numdoors = 0;
+		if (example_has_door) {
+			numdoors = example_num_door_list.get(example_id);
+			if (!doorVarNameHas0) {
+				if (numdoors == 1)
+					shared_vars_list.add("door");
+				else {
+					for (int i = 0; i < numdoors; i++) {
+						shared_vars_list.add("door" + i);
+
+					}
+				}
+			} else {
+				for (int i = 0; i < numdoors; i++) {
+					shared_vars_list.add("door" + i);
+
+				}
+			}
+		}
+
+		ArrayList<String> filenames = new ArrayList<String>();
+
+		for (int i = 0; i < numRobots; i++)
+			filenames.add(filename + i);
+
+		StatesHelper.setFolder(modelLocation + filename);
+		if (shared_vars_list.size() <= 0)
+			hasDoor = false;
+		else
+			hasDoor = true;
+		int maxMDPVars = 0;
+
+		ArrayList<Model> models = new ArrayList<Model>();
+		ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
+		ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
+
+		// Create a log for PRISM output (hidden or stdout)
+		// PrismLog mainLog = new PrismDevNullLog();
+		PrismLog mainLog = new PrismFileLog("stdout");
+		this.mainLog = mainLog;
+		StatesHelper.mainLog = mainLog;
+
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
+
+		//record num robots and doors 
+		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
+		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
+
+		int numFS = example_num_fs_list.get(example_id);
+		resSaver.recordInits(numFS, "FS", varIDs.failstates);
+
+		// Initialise PRISM engine
+		Prism prism = new Prism(mainLog);
+		prismC = prism;
+		prism.initialise();
+
+		//loading models 
+		resSaver.setGlobalStartTime();
+		resSaver.setLocalStartTime();
+
+		for (int files = 0; files < filenames.size(); files++) {
+			resSaver.setScopeStartTime();
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(modelLocation + filenames.get(files) + ".prism"));
+			modulesFiles.add(modulesFile);
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation + filename + filename_suffix + ".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit();
+			int numVars = mdp.getVarList().getNumVars();
+			if (numVars > maxMDPVars)
+				maxMDPVars = numVars;
+
+			models.add(mdp);
+			propFiles.add(propertiesFile);
+			resSaver.recordTime("model loading time " + files, varIDs.modelloadingtimes, true);
+		}
+
+		// Model check the first property from the file using the model checker
+		for (int i = 0; i < propFiles.size(); i++) {
+			mainLog.println(propFiles.get(i).getPropertyObject(0));
+		}
+		Expression expr = propFiles.get(0).getProperty(0);
+
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		StatesHelper.setNumMDPVars(maxMDPVars);
+		Runnable task = new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				// do your task
+				try {
+					doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
+							matchsharedstatesinswitch, completeSwitchRing);
+
+				} catch (PrismException e) {
+					// TODO Auto-generated catch block
+
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+		};
+
+		Future<?> future = executor.submit(task);
+
+		try {
+			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
+
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
