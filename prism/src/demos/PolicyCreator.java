@@ -173,6 +173,7 @@ public class PolicyCreator
 	void savePolicy(String saveLocation, String name)
 	{
 		mdpCreator.saveMDP(saveLocation, name);
+		System.out.println(name+" saved to "+ saveLocation);
 
 	}
 }

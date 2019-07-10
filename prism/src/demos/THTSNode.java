@@ -116,6 +116,13 @@ public abstract class THTSNode
 	{
 		rewsValues = new HashMap<Integer, Bounds>();
 	}
+	public int getMaxRews()
+	{
+		if (rewsValues == null)
+			return 0; 
+		else 
+			return rewsValues.size();
+	}
 
 //	public boolean isRoot()
 //	{

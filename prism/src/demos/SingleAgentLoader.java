@@ -211,7 +211,10 @@ public class SingleAgentLoader
 				throw new PrismException("Hain?");
 
 			partialSatSolution.put(obj, result.get(r));
-
+			if(pc!=null) {
+				mainLog.println(obj.toString());
+				mainLog.println(result.get(r).toString());
+			}
 		}
 		maxStatesEstimate = mdp.getNumStates();
 

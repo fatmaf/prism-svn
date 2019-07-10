@@ -58,6 +58,7 @@ public class ResultsTiming
 
 	}
 
+	
 	public ResultsTiming(PrismLog mainLog, String res_trial_name, String saveLoc, boolean thts)
 	{
 		this.mainLog = mainLog;
@@ -111,12 +112,17 @@ public class ResultsTiming
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
 		if(!thts)
-		resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + ".json");
+		resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors +"_fs"+numFS+ ".json");
 		else
-			resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_thts.json");
+			resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors +"_fs"+numFS+ "_thts.json");
 
 		resLog.print(json_text);
 		resLog.close();
+	}
+	public String gettrialName()
+	
+	{
+		return res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors+"_fs"+numFS; 
 	}
 
 	public String createJsonStyleString(String varname, HashMap<Integer, Long> varvalues, boolean dosum)
