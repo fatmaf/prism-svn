@@ -46,6 +46,7 @@ public class SequentialTeamMDP {
 	public int numRobots;
 	private ArrayList<String> sharedVarList;
 
+
 	public SequentialTeamMDP(PrismLog mainLogRef, int nRobots, boolean useSharedStatesInSwitches) {
 		// this.stapu = stapu;
 		essentialStates = new Vector<BitSet>();

@@ -57,9 +57,9 @@ public class STAPU
 
 		STAPU stapu = new STAPU();
 		//		stapu.run();
-				stapu.runGrid3();
+		//				stapu.runGrid3();
 		//		stapu.runTest();
-//				stapu.runGUITest();
+		stapu.runGUITest();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -200,8 +200,9 @@ public class STAPU
 		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference);
 	}
 
-	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles,
-			ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars, boolean completeSwitchRing) throws PrismException
+	protected void doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
+			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
+			boolean completeSwitchRing, int numGoals) throws PrismException
 	{
 
 		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
@@ -218,7 +219,7 @@ public class STAPU
 			numRobots = models.size();
 
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
-		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
+		ArrayList<Expression> ltlExpressions = getLTLExpressionsLimit(expr, numGoals);
 		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
 
 		//record num tasks here
@@ -234,9 +235,7 @@ public class STAPU
 				modulesFile = modulesFiles.get(i);
 			}
 
-
 			int initState = model.getFirstInitialState();
-
 
 			if (i != 0 && sameModelForAll) {
 				initState = getInitState(i, exampleNumber());
@@ -250,7 +249,6 @@ public class STAPU
 			singleAgentProductMDPs.add(nestedProduct);
 			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
 			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(), "Nested Product States", varIDs.nestedproductstates);
-
 
 		}
 
@@ -272,9 +270,7 @@ public class STAPU
 		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
 
-
 		}
-
 
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
 		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
@@ -291,13 +287,11 @@ public class STAPU
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
 
-
 		resSaver.setLocalStartTime();
 		resSaver.setScopeStartTime();
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
-
 
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 		mainLog.println("InitState = " + initialState);
@@ -351,6 +345,168 @@ public class STAPU
 					statesToAvoid.or(seqTeamMDP.statesToAvoid);
 				}
 
+				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
+						probPreference);// ,probInitVals);
+
+				resSaver.recordTime("Solution Time", varIDs.reallocations, true);
+				resSaver.setScopeStartTime();
+				jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
+				resSaver.recordTime("Joint Policy Time", varIDs.jointpolicycreation, true);
+			}
+		}
+		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
+		resSaver.saveJointPolicy(jointPolicyBuilder);
+		//		jointPolicyBuilder.saveJointPolicyMDP();
+		mainLog.println("All done");
+		mainLog.println("NVI done " + numPlanning + " times");
+		jointPolicyBuilder.printStatesExploredOrder();
+		mainLog.println("All done");
+
+	}
+
+	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles,
+			ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars, boolean completeSwitchRing) throws PrismException
+	{
+
+		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
+		resSaver.setLocalStartTime();
+
+		int probPreference = 0;
+
+		// process ltl expressions
+		int numRobots = models.size();// getNumRobots(exampleNumber());
+		boolean sameModelForAll = false;
+		if (numRobots != models.size() && models.size() == 1)
+			sameModelForAll = true;
+		else
+			numRobots = models.size();
+
+		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
+		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
+		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
+
+		//record num tasks here
+		resSaver.recordInits(daList.size(), "Num Tasks", varIDs.numtasks);
+
+		Model model = models.get(0);
+		ModulesFile modulesFile = modulesFiles.get(0);
+		resSaver.setScopeStartTime();
+
+		for (int i = 0; i < numRobots; i++) {
+			if (!sameModelForAll) {
+				model = models.get(i);
+				modulesFile = modulesFiles.get(i);
+			}
+
+			int initState = model.getFirstInitialState();
+
+			if (i != 0 && sameModelForAll) {
+				initState = getInitState(i, exampleNumber());
+				((MDPSparse) model).clearInitialStates();
+				((MDPSparse) model).addInitialState(initState);
+
+			}
+
+			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP("" + i, model, daList, statesOfInterest, mcProb, modulesFile);
+
+			singleAgentProductMDPs.add(nestedProduct);
+			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
+			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(), "Nested Product States", varIDs.nestedproductstates);
+
+		}
+
+		resSaver.recordTime("Total Single Agent Nested Product Time", varIDs.allnestedproductcreationtime, false);
+		resSaver.setScopeStartTime();
+
+		// create team automaton from a set of MDP DA stuff
+		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this.mainLog, numRobots, matchSharedVars); // buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
+
+		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
+
+		int firstRobot = 0; // fix this
+
+		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+
+		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly, true);
+
+		BitSet combinedEssentialStates = new BitSet();
+		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
+			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
+
+		}
+
+		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
+		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
+		for (int rew = 0; rew < rewards.size(); rew++) {
+			minRewards.add(true);
+		}
+		rewards.add(0, seqTeamMDP.progressionRewards);
+
+		minRewards.add(0, false);
+
+		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
+
+		resSaver.recordTime("Team MDP Time (including single agent time)", varIDs.totalteammdpcreationtime, false);
+		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
+		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
+
+		resSaver.setLocalStartTime();
+		resSaver.setScopeStartTime();
+		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
+				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+		resSaver.recordTime("First Solution", varIDs.reallocations, true);
+
+		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
+		mainLog.println("InitState = " + initialState);
+
+		// *************************************************************//
+		// testing the new joint policy stuff
+		// this is a build as you go along kind of thing
+		// so it doesn't really work right now okay
+		// cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me
+
+		resSaver.setScopeStartTime();
+		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
+				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+
+		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
+		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation, true);
+		// *************************************************************//
+		// while failedstatesQ is not empty
+		// statextended stateToExplore = failedStatesQ.remove()
+		// State stateToExploreState =jointPolicyBuilder.getStateState(stateToExplore)
+		// Get initial states from this state
+		// update initial states for team mdp
+		// update switches
+		// solve
+		// add to joint policy
+		int numPlanning = 1;
+		while (jointPolicyBuilder.hasFailedStates()) {
+
+			Entry<State, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState();
+			State stateToExplore = stateToExploreAndBitSet.getKey();
+			BitSet statesToAvoid = stateToExploreAndBitSet.getValue();
+
+			if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
+
+				// get first failed robot
+				numPlanning++;
+				resSaver.recordValues(numPlanning, "Realloc", varIDs.numreallocationsincode);
+				resSaver.setScopeStartTime();
+
+				int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(stateToExplore,
+						seqTeamMDP.teamMDPWithSwitches.getStatesList(), seqTeamMDP.teamMDPWithSwitches.getVarList());
+				firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates, seqTeamMDP.teamMDPWithSwitches);
+
+				seqTeamMDP.setInitialStates(robotStates);
+				seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+
+				if (statesToAvoid == null)
+					statesToAvoid = seqTeamMDP.statesToAvoid;
+				else {
+
+					statesToAvoid.or(seqTeamMDP.statesToAvoid);
+				}
 
 				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
 						probPreference);// ,probInitVals);
@@ -463,6 +619,47 @@ public class STAPU
 
 		mainLog.println("LTL Mission: " + exprString);
 		return ltlExpressions;
+	}
+
+	/**
+	 * Return a list of expressions
+	 */
+	protected ArrayList<Expression> getLTLExpressionsLimit(ExpressionFunc expr, int lim) throws PrismException
+	{
+		int numOp = expr.getNumOperands();
+		String exprString = "";
+		ExpressionFunc conjunctionOfExpressions = null;
+		ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
+		for (int exprNum = 0; exprNum < numOp; exprNum++) {
+			if (expr.getOperand(exprNum) instanceof ExpressionQuant) {
+				ltlExpressions.add((expr.getOperand(exprNum)));
+				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
+				if (Expression.isCoSafeLTLSyntactic(expr.getOperand(exprNum))) {
+					if (conjunctionOfExpressions == null) {
+						conjunctionOfExpressions = new ExpressionFunc(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString());
+					}
+				}
+			}
+
+		}
+
+		//limiting the expressions 
+		ArrayList<Expression> ltlExpressionsLimited = new ArrayList<Expression>(lim);
+		exprString = "";
+		for (int exprNum = 0; exprNum < numOp; exprNum++) {
+			Expression current = ltlExpressions.get(exprNum);
+			if (exprNum < (lim - 1)) {
+				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
+				ltlExpressionsLimited.add(current);
+			}
+			if (exprNum == (numOp - 1)) {
+				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
+				ltlExpressionsLimited.add(current);
+			}
+		}
+
+		mainLog.println("LTL Mission: " + exprString);
+		return ltlExpressionsLimited;
 	}
 
 	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs)
@@ -596,101 +793,373 @@ public class STAPU
 		ArrayList<String> examples = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
 
-		int numRobots = 2;
-		int numFS = 2;
-		int numGoals = 3;
-		int numDoors = 2;
-		String example = "h";
-		String example_id = example + "r" + numRobots;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
+		int numRobots = 4;
+		int numFS = 0;
+		int numGoals = 4;
+		int numDoors = 0;
+		String example = "test_grid_nodoors_nofs";
+		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
 		String example_to_run = example;//cumberland_doors; 
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 1;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple";
+//		example_id = "simple";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2";
+//		example_id = "simple2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 1;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple_avoid";
+//		example_id = "simple_avoid";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid";
+//		example_id = "simple2_avoid";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2";
+//		example_id = "simple2_avoid2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 2;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2_fs2";
+//		example_id = "simple2_avoid2_fs2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 2;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2_fs2_nofsatgoal";
+//		example_id = "simple2_avoid2_fs2_nofsatgoal";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		//square5_avoid2_fs1
+//
+//		numRobots = 2;
+//		numFS = 1;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "square5_avoid2_fs1";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 3;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "square5_avoid2_fs3";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+		//office_0fs_2doors.prop 
 
-		example = "grid_5x5_r35_t5_d0_fs0";
-		numRobots = 5;
-		numGoals = 5;
-		numDoors = 0;
+		numRobots = 6;
 		numFS = 0;
-		example_id = example;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
+		numGoals = 8;
+		numDoors = 2;
+		example = "office_0fs_2doors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
 		example_num_robot_list.put(example_id, numRobots);
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
-
-		example = "grid_5x5_r3_t3_d0_fs0";
-		numRobots = 3;
-		numGoals = 3;
-		numDoors = 0;
+		// office_0fs_5doors.prop   office_4fs_nodoors.prop  office_8fs_1door.prop
+		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
 		numFS = 0;
-		example_id = example;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
+		numGoals = 8;
+		numDoors = 5;
+		example = "office_0fs_5doors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+		// office_4fs_nodoors.prop  office_8fs_1door.prop
+		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 4;
+		numGoals = 8;
+		numDoors = 0;
+		example = "office_4fs_nodoors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
 		example_num_robot_list.put(example_id, numRobots);
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
 
-		example = "grid_5x5_r5_t5_d0_fs3";
-		numRobots = 5;
-		numGoals = 5;
-		numDoors = 0;
-		numFS = 3;
-		example_id = example;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
+		//office_8fs_1door.prop
+		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 8;
+		numGoals = 8;
+		numDoors = 1;
+		example = "office_8fs_1door";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
 		example_num_robot_list.put(example_id, numRobots);
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
 
-		example = "grid_5x5_r5_t5_d0_fs5";
-		numRobots = 5;
-		numGoals = 5;
-		numDoors = 0;
-		numFS = 5;
-		example_id = example;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
+		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 0;
+		numGoals = 8;
+		numDoors = 3;
+		example = "office_0fs_3doors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
 		example_num_robot_list.put(example_id, numRobots);
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
 
-		example = "grid_5x5_r5_t5_d0_fs7";
-		numRobots = 5;
-		numGoals = 5;
-		numDoors = 0;
-		numFS = 7;
-		example_id = example;//cumberland_doors; 
-		example_has_door_list.put(example_id, true);
+		// office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 0;
+		numGoals = 8;
+		numDoors = 6;
+		example = "office_0fs_6doors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
 		example_num_robot_list.put(example_id, numRobots);
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
+
+		// office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 6;
+		numGoals = 8;
+		numDoors = 1;
+		example = "office_6fs_1door";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 8;
+		numGoals = 8;
+		numDoors = 0;
+		example = "office_8fs_nodoors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 0;
+		numGoals = 8;
+		numDoors = 4;
+		example = "office_0fs_4doors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 2;
+		numGoals = 8;
+		numDoors = 0;
+		example = "office_2fs_nodoors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 6;
+		numGoals = 8;
+		numDoors = 0;
+		example = "office_6fs_nodoors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		office_nofs_nodoors.prop
+		//		
+		numRobots = 6;
+		numFS = 0;
+		numGoals = 8;
+		numDoors = 0;
+		example = "office_nofs_nodoors";
+		example_id = example;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+		int maxGoals = 9;
 		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size()*3*4; 
 		int testCount = 0;
 		try {
-			for (int i = 0; i < examples.size(); i++) {
+			for (int i = 10; i < examples.size(); i++) {
 				example_to_run = examples.get(i);
 				example_id = example_ids.get(i);
 
 				int maxRobots = example_num_robot_list.get(example_id);
-				if ( example_num_fs_list.get(example_id) != 3 )
-					continue; 
-				for (int r = 2; r <= maxRobots; r++) {
-					runOneExampleNumRobots(
-							//					grid_3_example,
-							//					three_robot_one_door, 
-							//					two_robot_door_multiple_switches,
-							example_to_run, example_id, example_has_door_list, example_num_door_list, r, example_num_fs_list, modelLocation, true,
-							dir + "results/stapu");
-					testCount++;
-					testsDone.add(example_id);
+				for (int r = 2; r <= maxRobots; r+=2) {
+					for (int g = 2; g <= maxGoals; g+=2) {
+
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+example_id+" r"+ r+ " g"+g+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+testCount+" of "+maxFiles+" : "+((double)(testCount+1)/(double)maxFiles)+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
+						runOneExampleNumRobotsGoals(
+								//					grid_3_example,
+								//					three_robot_one_door, 
+								//					two_robot_door_multiple_switches,
+								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
+								dir + "results/stapu");
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"+example_id+" r"+ r+ " g"+g+"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
 				}
 			}
 
@@ -710,14 +1179,14 @@ public class STAPU
 		// saving filenames etc
 		String dir = System.getProperty("user.dir");
 		String modelLocation = dir + "/tests/decomp_tests/";
-		StatesHelper.setSavePlace(modelLocation+"/temp/");
+		StatesHelper.setSavePlace(modelLocation + "/temp/");
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
 
 		for (int r = 3; r <= 4; r++) {
-			r=2;
+			r = 2;
 			String grid_3_example = "grid_3_topomap_sim_doors";
 			String example_id = grid_3_example + "r" + r;//cumberland_doors; 
 			example_has_door_list.put(example_id, true);
@@ -988,6 +1457,166 @@ public class STAPU
 				try {
 					doSTAPU(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
 							matchsharedstatesinswitch, completeSwitchRing);
+
+				} catch (PrismException e) {
+					// TODO Auto-generated catch block
+
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+		};
+
+		Future<?> future = executor.submit(task);
+
+		try {
+			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
+
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
+		} catch (TimeoutException e) {
+			mainLog.println("Timed out - " + TimeUnit.SECONDS.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " seconds, "
+					+ TimeUnit.MINUTES.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " mins");
+			// TODO Auto-generated catch block
+			//			if (jointPolicy != null)
+			//				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
+			e.printStackTrace();
+			System.exit(1);
+		} // awaits termination
+
+		resSaver.writeResults();
+		// Close down PRISM
+		prism.closeDown();
+
+	}
+
+	public void runOneExampleNumRobotsGoals(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
+
+			HashMap<String, Integer> example_num_door_list, int numRobots, int numGoals, HashMap<String, Integer> example_num_fs_list, String modelLocation,
+			boolean doorVarNameHas0, String resLoc)
+
+			throws PrismException, FileNotFoundException
+	{
+
+		//Setting up
+		String filename = example_name;
+
+		boolean example_has_door = example_has_door_list.get(example_id);
+
+		String filename_suffix = "";
+
+		//these affect the switch transitions and hence the solution 
+		boolean includefailstatesinswitches = false;
+		boolean matchsharedstatesinswitch = false;
+		boolean completeSwitchRing = false;
+
+		ArrayList<String> shared_vars_list = new ArrayList<String>();
+		int numdoors = 0;
+		if (example_has_door) {
+			numdoors = example_num_door_list.get(example_id);
+			if (!doorVarNameHas0) {
+				if (numdoors == 1)
+					shared_vars_list.add("door");
+				else {
+					for (int i = 0; i < numdoors; i++) {
+						shared_vars_list.add("door" + i);
+
+					}
+				}
+			} else {
+				for (int i = 0; i < numdoors; i++) {
+					shared_vars_list.add("door" + i);
+
+				}
+			}
+		}
+
+		ArrayList<String> filenames = new ArrayList<String>();
+
+		for (int i = 0; i < numRobots; i++)
+			filenames.add(filename + i);
+
+		StatesHelper.setFolder(modelLocation + filename);
+		if (shared_vars_list.size() <= 0)
+			hasDoor = false;
+		else
+			hasDoor = true;
+		int maxMDPVars = 0;
+
+		ArrayList<Model> models = new ArrayList<Model>();
+		ArrayList<PropertiesFile> propFiles = new ArrayList<PropertiesFile>();
+		ArrayList<ModulesFile> modulesFiles = new ArrayList<ModulesFile>();
+
+		// Create a log for PRISM output (hidden or stdout)
+		// PrismLog mainLog = new PrismDevNullLog();
+		PrismLog mainLog = new PrismFileLog("stdout");
+		this.mainLog = mainLog;
+		StatesHelper.mainLog = mainLog;
+
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
+
+		//record num robots and doors 
+		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
+		resSaver.recordInits(numdoors, "Doors", varIDs.numdoors);
+
+		int numFS = example_num_fs_list.get(example_id);
+		resSaver.recordInits(numFS, "FS", varIDs.failstates);
+
+		// Initialise PRISM engine
+		Prism prism = new Prism(mainLog);
+		prismC = prism;
+		prism.initialise();
+
+		//loading models 
+		resSaver.setGlobalStartTime();
+		resSaver.setLocalStartTime();
+
+		for (int files = 0; files < filenames.size(); files++) {
+			resSaver.setScopeStartTime();
+			// Parse and load a PRISM model from a file
+			ModulesFile modulesFile = prism.parseModelFile(new File(modelLocation + filenames.get(files) + ".prism"));
+			modulesFiles.add(modulesFile);
+			prism.loadPRISMModel(modulesFile);
+
+			// Parse and load a properties model for the model
+			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(modelLocation + filename + filename_suffix + ".prop"));
+
+			// Get PRISM to build the model and then extract it
+			prism.setEngine(Prism.EXPLICIT);
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit();
+			int numVars = mdp.getVarList().getNumVars();
+			if (numVars > maxMDPVars)
+				maxMDPVars = numVars;
+
+			models.add(mdp);
+			propFiles.add(propertiesFile);
+			resSaver.recordTime("model loading time " + files, varIDs.modelloadingtimes, true);
+		}
+
+		// Model check the first property from the file using the model checker
+		for (int i = 0; i < propFiles.size(); i++) {
+			mainLog.println(propFiles.get(i).getPropertyObject(0));
+		}
+		Expression expr = propFiles.get(0).getProperty(0);
+
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		StatesHelper.setNumMDPVars(maxMDPVars);
+		Runnable task = new Runnable()
+		{
+			@Override
+			public void run()
+			{
+				// do your task
+				try {
+					doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list,
+							includefailstatesinswitches, matchsharedstatesinswitch, completeSwitchRing, numGoals);
 
 				} catch (PrismException e) {
 					// TODO Auto-generated catch block
