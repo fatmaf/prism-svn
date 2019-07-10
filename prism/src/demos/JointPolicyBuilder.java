@@ -18,6 +18,7 @@ import java.lang.Double;
 
 import explicit.Distribution;
 import explicit.MDPSimple;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import parser.VarList;
 import parser.ast.Declaration;
@@ -149,6 +150,11 @@ public class JointPolicyBuilder
 	ArrayList<String> isolatedStatesNamesList;
 
 	protected MDPSimple jointMDP;
+	MDPRewardsSimple progressionRewards = null;
+	ArrayList<MDPRewardsSimple> otherRewards = null;
+	HashMap<State, Double> progressionRewardsHashMap = null;
+	ArrayList<HashMap<State, Double>> otherRewardsHashMap = null;
+
 	// helper bits
 	PriorityQueue<StateExtended> failedStatesQueue = null;
 
@@ -174,6 +180,8 @@ public class JointPolicyBuilder
 			}
 		}
 		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
+		HashMap<State, Double> progressionRewardsHashMap = new HashMap<State, Double>();
+		ArrayList<HashMap<State, Double>> otherRewardsHashMap = new ArrayList<HashMap<State, Double>>();
 	}
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
@@ -575,8 +583,8 @@ public class JointPolicyBuilder
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
 							sharedStateChangesQ.add(sharedStateChanges);
 							// add to mdp
-							if (succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
-								mainLog.println("Debug here");
+							//							if (succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
+							//								mainLog.println("Debug here");
 						}
 						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
 						jointStatesDiscovered.set(statesMap.get(currentJointState));
@@ -1431,6 +1439,39 @@ public class JointPolicyBuilder
 			actionChoices.put(states[i], actionChoice);
 		}
 		return actionChoices;
+	}
+
+	protected double getProgressionReward(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	{
+		double progRew = 0;
+		//rewards are sums 
+
+		for (int i = 0; i < states.length; i++) {
+
+			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
+			progRew += teamMDP.progressionRewards.getTransitionReward(states[i], actionChoice.getValue());
+
+		}
+		return progRew;
+	}
+
+	protected ArrayList<Double> getOtherRewards(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	{
+		ArrayList<Double> allRews = new ArrayList<Double>();
+		for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++)
+			allRews.add(0.0);
+		for (int i = 0; i < states.length; i++) {
+
+			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
+			for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++) {
+				double currentRew = allRews.get(rew);
+				double rewForState = teamMDP.rewardsWithSwitches.get(rew).getTransitionReward(states[i], actionChoice.getValue());
+				currentRew += rewForState;
+				allRews.set(rew, currentRew);
+			}
+
+		}
+		return allRews;
 	}
 
 	protected Entry<String, ArrayList<Entry<int[], Double>>> getActionAndSuccStatesAllRobots(MDStrategyArray strat, int[] modifiedStates, int[] states,
