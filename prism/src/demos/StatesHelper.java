@@ -524,6 +524,7 @@ public class StatesHelper {
 			location += temp;
 		}
 		name = name.replace(" ", "_");
+		mainLog.println("Saving MDP to "+location + "_" + name + ".dot");
 		PrismLog out = new PrismFileLog(location + "_" + name + ".dot");
 		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();

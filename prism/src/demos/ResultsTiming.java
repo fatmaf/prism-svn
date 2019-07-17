@@ -52,6 +52,7 @@ public class ResultsTiming
 	String saveLoc;
 	boolean thts = false;
 
+	HashMap<String,Double>values; 
 	public enum varIDs {
 
 		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode,
@@ -113,6 +114,7 @@ public class ResultsTiming
 			json_text += createJsonStyleString("All Single Agent Solutions", allNestedProductCreationTime) + comma;
 		if (!thts)
 			json_text += createJsonStyleString("All Reallocations Time", allReallocationsTime) + comma;
+		json_text += createJsonStyleString("Values",values)+comma;
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
 		if (!thts)
@@ -129,6 +131,25 @@ public class ResultsTiming
 	{
 		StatesHelper.saveMDP(jointPolicyBuilder.jointMDP, null, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "jointPolicy", true);
 		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
+	}
+	
+	public String createJsonStyleString(String varname, HashMap<String, Double> varvalues)
+	{
+		String comma = ",";
+		String text = "n/a";
+		if (varvalues != null) {
+			text = '"' + varname + '"' + ":[ ";
+			for (String key : varvalues.keySet()) {
+				text += "{" + createJsonStyleString(key, ""+varvalues.get(key)) + "}" + comma;
+				
+			}
+			text += "]";
+		}
+		return text;
+	}
+	public void saveValues(HashMap<String,Double> v)
+	{
+		values = v; 
 	}
 	public String createJsonStyleString(String varname, HashMap<Integer, Long> varvalues, boolean dosum)
 	{

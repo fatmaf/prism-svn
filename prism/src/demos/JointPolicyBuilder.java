@@ -14,6 +14,7 @@ import acceptance.AcceptanceReach;
 
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Stack;
 import java.lang.Double;
 
 import explicit.Distribution;
@@ -161,6 +162,7 @@ public class JointPolicyBuilder
 	HashMap<String, Integer> varListMapping;
 	ArrayList<Integer> daFinalStates = null;
 	ArrayList<Integer> daInitialStates = null;
+	ArrayList<String> daTags = new ArrayList<String>();
 	HashMap<String, Integer> sharedVarsInitialStates;
 	HashMap<State, Integer> statesMap = null;
 	PrismLog mainLog;
@@ -168,6 +170,8 @@ public class JointPolicyBuilder
 	// sanity checking
 	ArrayList<Entry<State, Double>> statesExploredOrder = null;
 	double currentStateProbability = 1.0;
+
+	BitSet accStates = new BitSet();
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, VarList seqTeamMDPVarList, PrismLog log)
 	{
@@ -290,6 +294,7 @@ public class JointPolicyBuilder
 					daFinalStates.add(getDAaccStatesForRobot(i, 0, seqTeamMDP).nextSetBit(0));
 				else
 					daFinalStates.add(seqTeamMDP.agentMDPs.get(0).daList.get(i).da.getStartState());
+
 			}
 
 		}
@@ -327,6 +332,74 @@ public class JointPolicyBuilder
 		}
 		buildJointPolicyFromSequentialPolicy(strat, mdp, currentJointState);
 
+	}
+
+	private double getStateProb(int s, MDPSimple mdp, int depth, int maxDepth)
+	{
+		if (accStates.get(s))
+			return 1.0;
+
+		int numChoices = mdp.getNumChoices(s);
+		if (numChoices == 0)
+			return 0.0;
+		if (depth >= maxDepth) //cuz we couldnt find the goal till then 
+			return 0.0;
+		double prob = 0;
+		for (int i = 0; i < numChoices; i++) {
+			Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, i);
+			while (tranIter.hasNext()) {
+				Entry<Integer, Double> stateProb = tranIter.next();
+				int ss = stateProb.getKey();
+				double p = stateProb.getValue();
+				prob += p * getStateProb(ss, mdp, depth + 1, maxDepth);
+
+			}
+		}
+		return prob;
+	}
+
+	private double getProbabilityToReachAccStateFromJointMDP(State js)
+	{
+		int s = statesMap.get(js);
+		
+
+		MDPSimple mdp = jointMDP;
+		double prob = getStateProb(s, mdp, 0, mdp.getNumStates());
+
+		return prob;
+		//		int s = statesMap.get(js);
+		//		double prob = 1.0;
+		//		Stack<Integer> toVisit = new Stack<Integer>();
+		//		Stack<Integer> visited = new Stack<Integer>();
+		//		toVisit.push(s);
+		//		MDPSimple mdp = jointMDP;
+		//		while (!toVisit.isEmpty()) {
+		//			//get the action for this state 
+		//			//all the choices really 
+		//			s = toVisit.pop();
+		//
+		//			if (!visited.contains(s)) {
+		//				mainLog.println(s);
+		//				visited.push(s);
+		//				int numChoices = mdp.getNumChoices(s);
+		//				for (int i = 0; i < numChoices; i++) {
+		//					//get all the tran iters 
+		//
+		//					Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, i);
+		//					while (tranIter.hasNext()) {
+		//						Entry<Integer, Double> stateProb = tranIter.next();
+		//						int ss = stateProb.getKey();
+		//						double p = stateProb.getValue();
+		//						if (this.accStates.get(ss))
+		//							mainLog.println("Accepting State found");
+		//						toVisit.push(ss);
+		//
+		//					}
+		//
+		//				}
+		//			}
+		//		}
+		//		return prob;
 	}
 
 	private void extractPolicyTreeAsDotFile(MDStrategyArray strat, MDPSimple mdp, int initialState)
@@ -422,6 +495,8 @@ public class JointPolicyBuilder
 					statesDiscovered = statesDiscoveredQ.remove();
 					sharedStateChanges = sharedStateChangesQ.remove();
 					currentJointState = currentJointStateProbPair.getKey();
+					boolean isAcc = this.isAcceptingState(currentJointState);
+
 					int stateIndex = findStateIndex(currentJointState);
 					boolean discovered = false;
 					boolean stateReset = false;
@@ -493,6 +568,7 @@ public class JointPolicyBuilder
 
 						}
 
+						mainLog.println(currentJointState.toString());
 						int[] robotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(), mdp.getVarList());
 
 						// revamping all of this
@@ -586,9 +662,14 @@ public class JointPolicyBuilder
 							//							if (succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
 							//								mainLog.println("Debug here");
 						}
+						mainLog.println(action.toString());
 						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
 						jointStatesDiscovered.set(statesMap.get(currentJointState));
+
 						//						saveMDP(jointMDP, "new");
+					}
+					if (isAcc) {
+						accStates.set(statesMap.get(currentJointState));
 					}
 				}
 			}
@@ -1785,12 +1866,27 @@ public class JointPolicyBuilder
 
 	}
 
+	boolean isAcceptingState(State jointState)
+	{
+		Object[] das = StatesHelper.getDAStatesFromState(jointState, this.jointMDP.getVarList(), this.numTasks);
+		//TODO: come back here
+		//so the assumption is the that the order is thate same 
+		boolean isAcc = true;
+		for (int i = 0; i < das.length; i++) {
+			if ((int) das[i] != (int) this.daFinalStates.get(i)) {
+				isAcc = false;
+				break;
+			}
+		}
+		return isAcc;
+
+	}
+
 	// FIXME: a lot of hardcoding here which is not required at all
 	// so i'm just being lazy af
 	protected int[] extractIndividualRobotStatesFromJointState(State jointState, List<State> teamMDPStatesList, VarList teamdpvarlist) throws PrismException
 	{
-		if (jointState.toString().contains("(0,0,0,1,-1,1,18)"))
-			mainLog.println("Debug here");
+
 		Object[] ss = StatesHelper.getSharedStatesFromState(jointState, this.jointMDP.getVarList(), this.sharedStatesNamesList);
 		Object[] das = StatesHelper.getDAStatesFromState(jointState, this.jointMDP.getVarList(), this.numTasks);
 
@@ -1837,6 +1933,7 @@ public class JointPolicyBuilder
 			//			if (Arrays.toString(newState).contains("[0, 0, 0, 0, 1, 1, -1]"))
 			//				mainLog.println("Debug here");
 			int sameState = StatesHelper.getExactlyTheSameState(newState, teamMDPStatesList);
+			mainLog.println(Arrays.toString(newState));
 			if (sameState == StatesHelper.BADVALUE) {
 				mainLog.println("Cant find state index for " + Arrays.toString(newState) + " in teamMDP");
 				throw new PrismException("Cant find state index for " + Arrays.toString(newState) + " in teamMDP");
@@ -1866,9 +1963,16 @@ public class JointPolicyBuilder
 	{
 
 		for (int i = 0; i < statesExploredOrder.size(); i++) {
-			this.mainLog.println(i + 1 + ":" + statesExploredOrder.get(i).toString());
+			double prob= getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(i).getKey());
+			this.mainLog.println(i + 1 + ":" + statesExploredOrder.get(i).toString() + " - "+ prob);
+			
 		}
 
+	}
+	
+	public double getProbabilityOfSatisfactionFromInitState()
+	{
+		return getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(0).getKey());
 	}
 
 }

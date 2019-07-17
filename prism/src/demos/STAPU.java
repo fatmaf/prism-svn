@@ -59,7 +59,9 @@ public class STAPU
 		//		stapu.run();
 		//				stapu.runGrid3();
 		//		stapu.runTest();
-		stapu.runGUITest();
+		//		stapu.runGUITest();
+		//		stapu.debugOne();
+		stapu.runGUISimpleTests();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -110,10 +112,6 @@ public class STAPU
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
 
-			//			StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-			//			StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-			//			StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-			//			StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
@@ -130,6 +128,13 @@ public class STAPU
 			//					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
+		DAInfo daInfo = res.daList.get(res.daList.size()-1);
+		int daNum = res.daList.size()-1;
+					StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
+					StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
+					StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
+					StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
+
 		res.setDAListAndFinalProduct(product);
 		return res;
 	}
@@ -356,10 +361,14 @@ public class STAPU
 		}
 		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
 		resSaver.saveJointPolicy(jointPolicyBuilder);
+		mainLog.println(jointPolicyBuilder.accStates.toString());
 		//		jointPolicyBuilder.saveJointPolicyMDP();
 		mainLog.println("All done");
 		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
+		HashMap<String, Double> values = new HashMap<String, Double>();
+		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
+		resSaver.saveValues(values);
 		mainLog.println("All done");
 
 	}
@@ -779,6 +788,527 @@ public class STAPU
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
 
+	public void runGUISimpleTests()
+	{
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+		//System.getProperty("user.dir");
+		String modelLocation = dir;
+		StatesHelper.setSavePlace(modelLocation + "results/");
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_goals_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 3;
+		int numFS = 0;
+		int numGoals = 3;
+		int numDoors = 0;
+		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
+		String example = "g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
+		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+		String example_to_run = example;//cumberland_doors; 
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		example_num_goals_list.put(example_id, numGoals);
+		//		
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		
+		//		numRobots = 3;
+		//		numFS = 3;
+		//		numGoals = 3;
+		//		numDoors = 0;
+		//		//simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
+		//		example = "g5_r3_t3_d0_fs3";//"test_grid_nodoors_nofs";
+		//		example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+		//		example_to_run = example;//cumberland_doors; 
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		example_num_goals_list.put(example_id, numGoals);
+		//		
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 3;
+		//		numFS = 3;
+		//		numGoals = 3;
+		//		numDoors = 2;
+		//		//simpleTests/g5_r3_t3_d2_fs3.png
+		//		example = "g5_r3_t3_d2_fs3";//"test_grid_nodoors_nofs";
+		//		example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+		//		example_to_run = example;//cumberland_doors; 
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		example_num_goals_list.put(example_id, numGoals);
+		//		
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 3;
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d2_fs2.prop  
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 2;
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+		//g7_r5_t6_d3_fs2.prop  g7_r5_t6_d4_fs2.prop
+		//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d4_fs2.prop
+		//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 3;
+		numGoals = 3;
+		numDoors = 0;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g5_r3_t3_d0_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 5;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs5";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 3;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 3;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d4_fs3.prop
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 3;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 3;
+		numDoors = 2;
+		numFS = 3;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g5_r3_t3_d2_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 1;
+		numFS = 1;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d1_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 4;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 4;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d4_fs4.prop
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 4;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 1;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 1;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 1;
+
+		example = "g7_r5_t6_d3_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 1;
+
+		example = "g7_r5_t6_d4_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		int maxGoals = 9;
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size() * 3 * 4;
+		int testCount = 0;
+		for (int i = 0; i < examples.size(); i++) {
+			example_to_run = examples.get(i);
+			example_id = example_ids.get(i);
+
+			int maxRobots = example_num_robot_list.get(example_id);
+			maxGoals = example_num_goals_list.get(example_id);
+			//InitState = 24
+			//			Cant find state index for [0, 0, 0, 2, -1, 1] in teamMDP
+			//		<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<g7_r5_t6_d2_fs2 r2 g2<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+			//
+			boolean endHere = false;
+			if (!example_id.contains("g7_r5_t6_d2_fs2"))
+				continue;
+			else
+				endHere = true;
+			for (int r = 2; r <= maxRobots; r += 2) {
+				for (int g = 2; g <= maxGoals; g += 2) {
+
+					System.out.println(
+							">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+					System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+							+ ((double) (testCount + 1) / (double) maxFiles) + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+					try {
+
+						runOneExampleNumRobotsGoals(
+								//					grid_3_example,
+								//					three_robot_one_door, 
+								//					two_robot_door_multiple_switches,
+								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
+								dir + "results/stapu");
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+
+					} catch (FileNotFoundException e) {
+						System.out.println("Error: " + e.getMessage());
+						//						System.exit(1);
+					} catch (PrismException e) {
+						System.out.println("Error: " + e.getMessage());
+						//						System.exit(1);
+					} catch (Exception e) {
+						System.out.println("Error: " + e.getMessage());
+					}
+					if (endHere)
+						break;
+				}
+				if (endHere)
+					break;
+			}
+		}
+
+		mainLog.println("Num tests: " + testCount);
+	}
+
 	public void runGUITest()
 	{
 		// saving filenames etc
@@ -800,156 +1330,157 @@ public class STAPU
 		String example = "test_grid_nodoors_nofs";
 		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
 		String example_to_run = example;//cumberland_doors; 
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 1;
-//		numFS = 0;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple";
-//		example_id = "simple";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 0;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple2";
-//		example_id = "simple2";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 1;
-//		numFS = 0;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple_avoid";
-//		example_id = "simple_avoid";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 0;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple2_avoid";
-//		example_id = "simple2_avoid";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 0;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple2_avoid2";
-//		example_id = "simple2_avoid2";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 2;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple2_avoid2_fs2";
-//		example_id = "simple2_avoid2_fs2";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 2;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "simple2_avoid2_fs2_nofsatgoal";
-//		example_id = "simple2_avoid2_fs2_nofsatgoal";
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		//square5_avoid2_fs1
-//
-//		numRobots = 2;
-//		numFS = 1;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "square5_avoid2_fs1";
-//		example_id = example;
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
-//
-//		numRobots = 2;
-//		numFS = 3;
-//		numGoals = 4;
-//		numDoors = 0;
-//		example = "square5_avoid2_fs3";
-//		example_id = example;
-//
-//		example_has_door_list.put(example_id, numDoors > 0);
-//		example_num_door_list.put(example_id, numDoors);
-//		example_num_robot_list.put(example_id, numRobots);
-//		example_num_fs_list.put(example_id, numFS);
-//		examples.add(example_id);
-//		example_ids.add(example);
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 1;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple";
+		//		example_id = "simple";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2";
+		//		example_id = "simple2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 1;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple_avoid";
+		//		example_id = "simple_avoid";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid";
+		//		example_id = "simple2_avoid";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2";
+		//		example_id = "simple2_avoid2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 2;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2_fs2";
+		//		example_id = "simple2_avoid2_fs2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 2;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2_fs2_nofsatgoal";
+		//		example_id = "simple2_avoid2_fs2_nofsatgoal";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//square5_avoid2_fs1
+		//
+		//		numRobots = 2;
+		//		numFS = 1;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "square5_avoid2_fs1";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 3;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "square5_avoid2_fs3";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
 		//office_0fs_2doors.prop 
 
-		numRobots = 6;
-		numFS = 0;
-		numGoals = 8;
-		numDoors = 2;
-		example = "office_0fs_2doors";
-		example_id = example;
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 2;
+		//		example = "office_0fs_2doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
 
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
 		// office_0fs_5doors.prop   office_4fs_nodoors.prop  office_8fs_1door.prop
 		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
 		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
@@ -1136,19 +1667,21 @@ public class STAPU
 		example_ids.add(example);
 		int maxGoals = 9;
 		ArrayList<String> testsDone = new ArrayList<String>();
-		int maxFiles = examples.size()*3*4; 
+		int maxFiles = examples.size() * 3 * 4;
 		int testCount = 0;
 		try {
-			for (int i = 10; i < examples.size(); i++) {
+			for (int i = 0; i < examples.size(); i++) {
 				example_to_run = examples.get(i);
 				example_id = example_ids.get(i);
 
 				int maxRobots = example_num_robot_list.get(example_id);
-				for (int r = 2; r <= maxRobots; r+=2) {
-					for (int g = 2; g <= maxGoals; g+=2) {
+				for (int r = 2; r <= maxRobots; r += 2) {
+					for (int g = 2; g <= maxGoals; g += 2) {
 
-						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+example_id+" r"+ r+ " g"+g+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+testCount+" of "+maxFiles+" : "+((double)(testCount+1)/(double)maxFiles)+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles) + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
 						runOneExampleNumRobotsGoals(
 								//					grid_3_example,
@@ -1158,7 +1691,408 @@ public class STAPU
 								dir + "results/stapu");
 						testCount++;
 						testsDone.add(example_id);
-						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"+example_id+" r"+ r+ " g"+g+"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
+				}
+			}
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		mainLog.println("Num tests: " + testCount);
+	}
+
+	public void debugOne()
+	{
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";
+		//System.getProperty("user.dir");
+		String modelLocation = dir;
+		StatesHelper.setSavePlace(modelLocation + "results/");
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 2;//4;
+		int numFS = 0;
+		int numGoals = 4;//4;
+		int numDoors = 2;
+		String example = "test_grid_nodoors_nofs";
+		example = "nofs_2door";
+		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+		String example_to_run = example;//cumberland_doors; 
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		examples.add(example_id);
+		example_ids.add(example);
+		//
+		//		numRobots = 1;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple";
+		//		example_id = "simple";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2";
+		//		example_id = "simple2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 1;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple_avoid";
+		//		example_id = "simple_avoid";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid";
+		//		example_id = "simple2_avoid";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 0;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2";
+		//		example_id = "simple2_avoid2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 2;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2_fs2";
+		//		example_id = "simple2_avoid2_fs2";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 2;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "simple2_avoid2_fs2_nofsatgoal";
+		//		example_id = "simple2_avoid2_fs2_nofsatgoal";
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//square5_avoid2_fs1
+		//
+		//		numRobots = 2;
+		//		numFS = 1;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "square5_avoid2_fs1";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		numRobots = 2;
+		//		numFS = 3;
+		//		numGoals = 4;
+		//		numDoors = 0;
+		//		example = "square5_avoid2_fs3";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//office_0fs_2doors.prop 
+
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 2;
+		//		example = "office_0fs_2doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+
+		// office_0fs_5doors.prop   office_4fs_nodoors.prop  office_8fs_1door.prop
+		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 5;
+		//		example = "office_0fs_5doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//		// office_4fs_nodoors.prop  office_8fs_1door.prop
+		//		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 4;
+		//		numGoals = 8;
+		//		numDoors = 0;
+		//		example = "office_4fs_nodoors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//office_8fs_1door.prop
+		//		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 8;
+		//		numGoals = 8;
+		//		numDoors = 1;
+		//		example = "office_8fs_1door";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 3;
+		//		example = "office_0fs_3doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		// office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 6;
+		//		example = "office_0fs_6doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		// office_6fs_1door.prop    office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 6;
+		//		numGoals = 8;
+		//		numDoors = 1;
+		//		example = "office_6fs_1door";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		// office_8fs_nodoors.prop
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 8;
+		//		numGoals = 8;
+		//		numDoors = 0;
+		//		example = "office_8fs_nodoors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 4;
+		//		example = "office_0fs_4doors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 2;
+		//		numGoals = 8;
+		//		numDoors = 0;
+		//		example = "office_2fs_nodoors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//office_6fs_nodoors.prop  office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 6;
+		//		numGoals = 8;
+		//		numDoors = 0;
+		//		example = "office_6fs_nodoors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		//
+		//		//		office_nofs_nodoors.prop
+		//		//		
+		//		numRobots = 6;
+		//		numFS = 0;
+		//		numGoals = 8;
+		//		numDoors = 0;
+		//		example = "office_nofs_nodoors";
+		//		example_id = example;
+		//
+		//		example_has_door_list.put(example_id, numDoors > 0);
+		//		example_num_door_list.put(example_id, numDoors);
+		//		example_num_robot_list.put(example_id, numRobots);
+		//		example_num_fs_list.put(example_id, numFS);
+		//		examples.add(example_id);
+		//		example_ids.add(example);
+		int maxGoals = 4;//9;
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size() * 3 * 4;
+		int testCount = 0;
+		try {
+			for (int i = 0; i < examples.size(); i++) {
+				example_to_run = examples.get(i);
+				example_id = example_ids.get(i);
+
+				int maxRobots = example_num_robot_list.get(example_id);
+				for (int r = 2; r <= maxRobots; r += 2) {
+					for (int g = 2; g <= maxGoals; g += 2) {
+
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles) + ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
+						runOneExampleNumRobotsGoals(
+								//					grid_3_example,
+								//					three_robot_one_door, 
+								//					two_robot_door_multiple_switches,
+								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
+								dir + "results/stapu");
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 					}
 				}
 			}
@@ -1622,7 +2556,7 @@ public class STAPU
 					// TODO Auto-generated catch block
 
 					e.printStackTrace();
-					System.exit(1);
+					//					System.exit(1);
 				}
 			}
 		};
@@ -1635,11 +2569,11 @@ public class STAPU
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			System.exit(1);
+			//			System.exit(1);
 		} catch (ExecutionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			System.exit(1);
+			//			System.exit(1);
 		} catch (TimeoutException e) {
 			mainLog.println("Timed out - " + TimeUnit.SECONDS.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " seconds, "
 					+ TimeUnit.MINUTES.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " mins");
@@ -1647,7 +2581,7 @@ public class STAPU
 			//			if (jointPolicy != null)
 			//				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
 			e.printStackTrace();
-			System.exit(1);
+			//			System.exit(1);
 		} // awaits termination
 
 		resSaver.writeResults();
