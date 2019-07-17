@@ -77,7 +77,8 @@ public class SingleAgentLoader
 	/*
 	 * the prism component should be initialised 
 	 */
-	public SingleAgentLoader(Prism prismComponent, PrismLog log, String agentLabel, String modelfn, String propfn, String resLoc, List<String> sharedStateVars)
+	public SingleAgentLoader(Prism prismComponent, PrismLog log,
+			String agentLabel, String modelfn, String propfn, String resLoc, List<String> sharedStateVars)
 	{
 		prism = prismComponent;
 		mainLog = log;
@@ -193,7 +194,7 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = new PolicyCreator();
+		PolicyCreator pc = null;//new PolicyCreator();
 		HashMap<String, HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
 		updateSharedStateIndices(solutionVarList);
@@ -211,10 +212,10 @@ public class SingleAgentLoader
 				throw new PrismException("Hain?");
 
 			partialSatSolution.put(obj, result.get(r));
-			if(pc!=null) {
-				mainLog.println(obj.toString());
-				mainLog.println(result.get(r).toString());
-			}
+//			if(pc!=null) {
+//				mainLog.println(obj.toString());
+//				mainLog.println(result.get(r).toString());
+//			}
 		}
 		maxStatesEstimate = mdp.getNumStates();
 

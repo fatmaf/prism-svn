@@ -2,7 +2,7 @@
 
 # PRISM directory to link to
 if [ "$PRISM_DIR" = "" ]; then
-	PRISM_DIR="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism"
+	PRISM_DIR="/home/fatma/Data/PhD/code/prism_ws/prism-svn-2/prism-svn/prism"
 fi
 
 # Class to run

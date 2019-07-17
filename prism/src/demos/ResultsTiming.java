@@ -37,24 +37,26 @@ public class ResultsTiming
 	private long totalmodelloadingtime = 0;
 	private int numFS = 0;
 	private String res_trial_name;
+	private HashMap<String,Double> values; 
 
 	private long global_start_time=0;
 	private long local_start_time=0;
 	private long scope_start_time=0;
-	public long timeout = 100 * 60 * 1000;
+	public long timeout = 10 * 60 * 1000;
 	public PrismLog mainLog;
 	public PrismLog resLog;
 	String time_identifiers = "+-+";
 	private int numModel = 0;
 	String saveLoc;
 	boolean thts = false;
+	boolean solutionFound = false; 
 
 	public enum varIDs {
 		numrobots, numtasks, numreallocstates, teammdpstates, teammdptransitions, numreallocationsincode,
 		totalcomputationtime, totalteammdpcreationtime, allnestedproductcreationtime, allreallocationstime, 
 		productcreation, reallocations, jointpolicycreation, nestedproductstates, nestedproducttimes, numdoors, 
 		modelloadingtimes, totalmodelloadingtime, teammdptimeonly, singleagentsolutiontimes,
-		jointmodelgentime,failstates
+		jointmodelgentime,failstates,values
 
 	}
 
@@ -80,13 +82,16 @@ public class ResultsTiming
 		json_text += createJsonStyleString("tasks", numTasks) + comma;
 		json_text += createJsonStyleString("doors", numDoors) + comma;
 		json_text += createJsonStyleString("fs", numFS) + comma;
+		
 		if (!thts)
 			json_text += createJsonStyleString("ReallocationStates", numReallocStates) + comma;
 		if (!thts)
 			json_text += createJsonStyleString("productCreation", productCreation, true) + comma;
-		if (!thts)
+		if(!thts)
 			json_text += createJsonStyleString("Reallocations", reallocations, true) + comma;
-
+		else
+			json_text += createJsonStyleString("Rollouts", reallocations, true) + comma;
+		
 		json_text += createJsonStyleString("JointPolicyCreation", jointPolicyCreation, true) + comma;
 		if (!thts)
 			json_text += createJsonStyleString("nestedProductStates", nestedProductStates, false) + comma;
@@ -96,20 +101,31 @@ public class ResultsTiming
 			json_text += createJsonStyleString("nestedProductTimes", nestedProductTimes, true) + comma;
 		else
 			json_text += createJsonStyleString("singleAgentSolutionTimes", nestedProductTimes, true) + comma;
-		if(!thts) {
+		if(thts)
+		{
+			json_text += createJsonStyleString("StatesExplored", teamMDPStates) + comma;
+			json_text += createJsonStyleString("TransitionsExplored", teamMDPTransitions) + comma;
+				
+		}
+		else {
 		json_text += createJsonStyleString("teamMDPStates", teamMDPStates) + comma;
 		json_text += createJsonStyleString("teamMDPTransitions", teamMDPTransitions) + comma;
+		}
 		json_text += createJsonStyleString("NumReallocations", numReallocInCode) + comma;
 		//		json_text += createJsonStyleString("Total Time", totalComputationTime) + comma;
 		json_text += createJsonStyleString("Team MDP Time", totalTeamMDPCreationTime) + comma;
-		}
+		
 		if(!thts)
 		json_text += createJsonStyleString("Nested Product Time", allNestedProductCreationTime) + comma;
 		else
 		json_text += createJsonStyleString("All Single Agent Solutions", allNestedProductCreationTime) + comma;
-		if(!thts)
+		
 		json_text += createJsonStyleString("All Reallocations Time", allReallocationsTime) + comma;
+		if(thts)
+			json_text += createJsonStyleString("Values",values)+comma;
+		json_text += createJsonStyleString("Solution Found",solutionFound+"")+comma; 
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
+		
 		json_text += "}";
 		if(!thts)
 		resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors +"_fs"+numFS+ ".json");
@@ -118,6 +134,10 @@ public class ResultsTiming
 
 		resLog.print(json_text);
 		resLog.close();
+	}
+	public void setSolutionFound()
+	{
+		solutionFound = true; 
 	}
 	public String gettrialName()
 	
@@ -145,7 +165,20 @@ public class ResultsTiming
 		}
 		return text;
 	}
-
+	public String createJsonStyleString(String varname, HashMap<String, Double> varvalues)
+	{
+		String comma = ",";
+		String text = "n/a";
+		if (varvalues != null) {
+			text = '"' + varname + '"' + ":[ ";
+			for (String key : varvalues.keySet()) {
+				text += "{" + createJsonStyleString(key, ""+varvalues.get(key)) + "}" + comma;
+				
+			}
+			text += "]";
+		}
+		return text;
+	}
 	public String createJsonStyleString(String varname, String varvalue)
 	{
 		return '"' + varname + '"' + ':' + '"' + varvalue + '"';
@@ -353,6 +386,10 @@ public class ResultsTiming
 		}
 	}
 
+	public void saveValues(HashMap<String,Double> v)
+	{
+		values = v; 
+	}
 	public static void main(String[] args)
 	{
 		// TODO Auto-generated method stub

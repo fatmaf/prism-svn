@@ -46,7 +46,7 @@ public class testMATHTS {
 		BackupFunction backupFunction = new BackupFunctionFullBellman(jpmg, tieBreakingOrder);
 
 		TrialBHeuristicSearch thts = new TrialBHeuristicSearch(ml, jpmg, actionSelection, outcomeSelection,
-				heuristicFunction, backupFunction, tieBreakingOrder, sv, fn);
+				heuristicFunction, backupFunction, tieBreakingOrder, sv, fn, null);
 		Object a = thts.doTHTS("");
 		ml.println(a.toString());
 	}
@@ -63,8 +63,10 @@ public class testMATHTS {
 //
 //		}
 //		System.out.println("all done");
-		runGUITest();
+//		runGUITest();
 //		runTest();
+		runGUISimpleTests();
+//		runDebugOne();
 	}
 
 	public void testMAPMG(PrismLog mainLog, ArrayList<SingleAgentLoader> sals, DA<BitSet, ? extends AcceptanceOmega> da,
@@ -226,32 +228,46 @@ public class testMATHTS {
 			resSaver.setScopeStartTime();
 			String modelName = filenames.get(i);
 			SingleAgentLoader sal = new SingleAgentLoader(prism, mainLog, filename + i, modelName, propfilename,
-					resultsLocation, ssl);
+					resLoc, ssl);
 
 			sal.setUp();
 			da = sal.getSingleAgentModelGenReturnDA();
 
-//			maxStateEstimate *= da.size(); 
-//			sal.setMaxStatesEstimate(maxStateEstimate);
-			sals.add(sal);
-
 			resSaver.recordTime("model loading time " + modelName, varIDs.modelloadingtimes, true);
-		}
-		resSaver.recordTime("all models loading time", varIDs.totalmodelloadingtime, false);
-		resSaver.setLocalStartTime();
-
-		for (int i = 0; i < sals.size(); i++) {
-			resSaver.setScopeStartTime();
-			SingleAgentLoader sal = sals.get(i);
+			resSaver.setLocalStartTime();
+			
 			sal.solveUsingPartialSatisfaction();
 			sal.solutionProdModelVarListsAreSynced();
+
+//			maxStateEstimate *= da.size(); 
+//			sal.setMaxStatesEstimate(maxStateEstimate);
+			
 			sal.cleanUp();
 
 			int maxStateEstimate = sal.getMaxStatesEstimate();
 			resSaver.recordTime("Single Agent Solution " + i, varIDs.singleagentsolutiontimes, true);
 			resSaver.recordValues(maxStateEstimate, "Single Agent " + i + " States", varIDs.nestedproductstates);
+			
+			sals.add(sal);
+
+			
 		}
+		resSaver.recordTime("all models loading time", varIDs.totalmodelloadingtime, false);
 		resSaver.recordTime("Total Single Agent Solution Time", varIDs.allnestedproductcreationtime, false);
+//		resSaver.setLocalStartTime();
+
+//		for (int i = 0; i < sals.size(); i++) {
+//			resSaver.setScopeStartTime();
+//			SingleAgentLoader sal = sals.get(i);
+//			sal.solveUsingPartialSatisfaction();
+//			sal.solutionProdModelVarListsAreSynced();
+//			sal.cleanUp();
+//
+//			int maxStateEstimate = sal.getMaxStatesEstimate();
+//			resSaver.recordTime("Single Agent Solution " + i, varIDs.singleagentsolutiontimes, true);
+//			resSaver.recordValues(maxStateEstimate, "Single Agent " + i + " States", varIDs.nestedproductstates);
+//		}
+//		resSaver.recordTime("Total Single Agent Solution Time", varIDs.allnestedproductcreationtime, false);
 		resSaver.setScopeStartTime();
 		long elapsedTime = System.nanoTime() - startTime;
 		mainLog.println("Single Agent Models Loaded and Solved " + elapsedTime + "ns "
@@ -270,12 +286,15 @@ public class testMATHTS {
 		BackupFunction backupFunction = new BackupFunctionFullBellman(jpmg, tieBreakingOrder);
 
 		TrialBHeuristicSearch thts = new TrialBHeuristicSearch(mainLog, jpmg, actionSelection, outcomeSelection,
-				heuristicFunction, backupFunction, tieBreakingOrder, resLoc, filename);
+				heuristicFunction, backupFunction, tieBreakingOrder, resLoc, filename, resSaver);
 		int mt = thts.setMaxTrialLength();
 		resSaver.recordTime("Multi Agent Product Initialization", varIDs.jointmodelgentime, true);
 		mainLog.println("Max Trial Length: " + mt);
-		Object a = thts.doTHTS(resSaver.gettrialName());
-		mainLog.println(a.toString());
+		Entry<Object, HashMap<String, Double>> res = thts.doTHTS(resSaver.gettrialName());
+		Object a = res.getKey();
+		resSaver.saveValues(res.getValue());
+		if (a != null)
+			mainLog.println(a.toString());
 
 		elapsedTime = System.nanoTime() - startTime;
 		mainLog.println(
@@ -372,14 +391,563 @@ public class testMATHTS {
 		}
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
-	
 
-	public void runGUITest() throws IOException
-	{
+	public void runGUISimpleTests() throws IOException {
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+		// System.getProperty("user.dir");
+	
+	
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_goals_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 3;
+		int numFS = 0;
+		int numGoals = 3;
+		int numDoors = 0;
+		// simpleTests/g5_r3_t3_d0_fs0.png simpleTests/g5_r3_t3_d0_fs3.png
+		// simpleTests/g5_r3_t3_d2_fs3.png
+		String example = "g5_r3_t3_d0_fs0";// "test_grid_nodoors_nofs";
+		String example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		String example_to_run = example;// cumberland_doors;
+//		g7_r5_t6_d0_fs3.prop 
+		
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 3;
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+// g7_r5_t6_d2_fs2.prop  
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 2;
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+//g7_r5_t6_d3_fs2.prop  g7_r5_t6_d4_fs2.prop
+//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d4_fs2.prop
+//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs2";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+//		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 3;
+		numGoals = 3;
+		numDoors = 0;
+		numFS = 2;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g5_r3_t3_d0_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+//		g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 5;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs5";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+		//g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 3;
+
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+// g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 3;
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		//g7_r5_t6_d4_fs3.prop
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 3;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+//		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 3;
+		numDoors = 2;
+		numFS = 3;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g5_r3_t3_d2_fs3";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+		//g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 1;
+		numFS = 1;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d1_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+//g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 4;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+//g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 4;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d3_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+		
+//g7_r5_t6_d4_fs4.prop
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 4;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d4_fs4";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+		
+//		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 0;
+		numFS = 1;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d0_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+		
+//g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 2;
+		numFS = 1;
+
+		
+		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+		example = "g7_r5_t6_d2_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+		// g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 3;
+		numFS = 1;
+
+		
+
+		example = "g7_r5_t6_d3_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+//g7_r5_t6_d4_fs1.prop
+
+		numRobots = 5;
+		numGoals = 6;
+		numDoors = 4;
+		numFS = 1;
+
+		
+
+		example = "g7_r5_t6_d4_fs1";// "test_grid_nodoors_nofs";
+		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+		
+		int maxGoals = 9;
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size() * 3 * 4;
+		int testCount = 0;
+		try {
+			for (int i = 0; i < examples.size(); i++) {
+				example_to_run = examples.get(i);
+				example_id = example_ids.get(i);
+
+				int maxRobots = example_num_robot_list.get(example_id);
+				maxGoals = example_num_goals_list.get(example_id)+1;
+				for (int r = 2; r <= maxRobots; r += 2) {
+					for (int g = 2; g <= maxGoals; g += 2) {
+
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles)
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						reWritePropsFileGUISimpleTests(dir, example_to_run, numGoals);
+						doTHTS(dir + "results/thts", dir, example_to_run, r, g, example_num_door_list.get(example_id),
+								example_num_fs_list.get(example_id));
+
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
+				}
+			}
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		System.out.println("Num tests: " + testCount);
+	}
+	public void runDebugOne() throws IOException {
 		// saving filenames etc
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";
-		//System.getProperty("user.dir");
+		// System.getProperty("user.dir");
 	
+	
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_goals_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 2;
+		int numFS = 0;
+		int numGoals = 2;
+		int numDoors = 0;
+		// simpleTests/g5_r3_t3_d0_fs0.png simpleTests/g5_r3_t3_d0_fs3.png
+		// simpleTests/g5_r3_t3_d2_fs3.png
+		String example = "simple2_robot";// "test_grid_nodoors_nofs";
+		String example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		String example_to_run = example;// cumberland_doors;
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+		
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+
+		int maxGoals = 9;
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size() * 3 * 4;
+		int testCount = 0;
+		try {
+			for (int i = 0; i < examples.size(); i++) {
+				example_to_run = examples.get(i);
+				example_id = example_ids.get(i);
+
+				int maxRobots = example_num_robot_list.get(example_id);
+				maxGoals = example_num_goals_list.get(example_id);
+				for (int r = 2; r <= maxRobots; r += 2) {
+					for (int g = 2; g <= maxGoals; g += 2) {
+
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles)
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//						reWritePropsFileGUISimpleTests(dir, example_to_run, numGoals);
+						doTHTS(dir + "results/thts", dir, example_to_run, r, g, example_num_door_list.get(example_id),
+								example_num_fs_list.get(example_id));
+
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
+				}
+			}
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		System.out.println("Num tests: " + testCount);
+	}
+
+	public void runGUITest() throws IOException {
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";
+		// System.getProperty("user.dir");
+
 		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
 		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
 		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
@@ -391,173 +959,174 @@ public class testMATHTS {
 		int numFS = 0;
 		int numGoals = 4;
 		int numDoors = 0;
-		String example; String example_id; 
-		
+		String example;
+		String example_id;
 
-		numRobots = 1;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "3gridsimple";
-		example_id = example;
+//
+//		numRobots = 1;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "3gridsimple";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//		
+//		numRobots = 1;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple";
+//		example_id = "simple";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2";
+//		example_id = "simple2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 1;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple_avoid";
+//		example_id = "simple_avoid";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid";
+//		example_id = "simple2_avoid";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 0;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2";
+//		example_id = "simple2_avoid2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 2;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2_fs2";
+//		example_id = "simple2_avoid2_fs2";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 2;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "simple2_avoid2_fs2_nofsatgoal";
+//		example_id = "simple2_avoid2_fs2_nofsatgoal";
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		//square5_avoid2_fs1
+//
+//		numRobots = 2;
+//		numFS = 1;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "square5_avoid2_fs1";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		numRobots = 2;
+//		numFS = 3;
+//		numGoals = 4;
+//		numDoors = 0;
+//		example = "square5_avoid2_fs3";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
 
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-		
-		numRobots = 1;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple";
-		example_id = "simple";
+		// office_0fs_2doors.prop
 
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple2";
-		example_id = "simple2";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 1;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple_avoid";
-		example_id = "simple_avoid";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple2_avoid";
-		example_id = "simple2_avoid";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 0;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple2_avoid2";
-		example_id = "simple2_avoid2";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 2;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple2_avoid2_fs2";
-		example_id = "simple2_avoid2_fs2";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 2;
-		numGoals = 4;
-		numDoors = 0;
-		example = "simple2_avoid2_fs2_nofsatgoal";
-		example_id = "simple2_avoid2_fs2_nofsatgoal";
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		//square5_avoid2_fs1
-
-		numRobots = 2;
-		numFS = 1;
-		numGoals = 4;
-		numDoors = 0;
-		example = "square5_avoid2_fs1";
-		example_id = example;
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		numRobots = 2;
-		numFS = 3;
-		numGoals = 4;
-		numDoors = 0;
-		example = "square5_avoid2_fs3";
-		example_id = example;
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-
-		
-		
-		
-			//office_0fs_2doors.prop 
-
-		numRobots = 6;
-		numFS = 0;
-		numGoals = 8;
-		numDoors = 2;
-		example = "office_0fs_2doors";
-		example_id = example;
-
-		example_has_door_list.put(example_id, numDoors > 0);
-		example_num_door_list.put(example_id, numDoors);
-		example_num_robot_list.put(example_id, numRobots);
-		example_num_fs_list.put(example_id, numFS);
-		examples.add(example_id);
-		example_ids.add(example);
-		// office_0fs_5doors.prop   office_4fs_nodoors.prop  office_8fs_1door.prop
-		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+//		numRobots = 6;
+//		numFS = 0;
+//		numGoals = 8;
+//		numDoors = 2;
+//		example = "office_0fs_2doors";
+//		example_id = example;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		examples.add(example_id);
+//		example_ids.add(example);
+		// office_0fs_5doors.prop office_4fs_nodoors.prop office_8fs_1door.prop
+		// office_0fs_3doors.prop office_0fs_6doors.prop office_6fs_1door.prop
+		// office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 0;
 		numGoals = 8;
@@ -571,10 +1140,12 @@ public class testMATHTS {
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
-		// office_4fs_nodoors.prop  office_8fs_1door.prop
-		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_4fs_nodoors.prop office_8fs_1door.prop
+		// office_0fs_3doors.prop office_0fs_6doors.prop office_6fs_1door.prop
+		// office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 4;
 		numGoals = 8;
@@ -589,10 +1160,12 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//office_8fs_1door.prop
-		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_8fs_1door.prop
+		// office_0fs_3doors.prop office_0fs_6doors.prop office_6fs_1door.prop
+		// office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 8;
 		numGoals = 8;
@@ -607,9 +1180,11 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//		office_0fs_3doors.prop  office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_0fs_3doors.prop office_0fs_6doors.prop office_6fs_1door.prop
+		// office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 0;
 		numGoals = 8;
@@ -624,9 +1199,10 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		// office_0fs_6doors.prop   office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_0fs_6doors.prop office_6fs_1door.prop office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 0;
 		numGoals = 8;
@@ -641,9 +1217,10 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		// office_6fs_1door.prop    office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_6fs_1door.prop office_8fs_nodoors.prop
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 6;
 		numGoals = 8;
@@ -659,8 +1236,9 @@ public class testMATHTS {
 		example_ids.add(example);
 
 		// office_8fs_nodoors.prop
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 8;
 		numGoals = 8;
@@ -675,8 +1253,9 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//		office_0fs_4doors.prop  office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_0fs_4doors.prop office_2fs_nodoors.prop office_6fs_nodoors.prop
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 0;
 		numGoals = 8;
@@ -691,8 +1270,8 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//office_2fs_nodoors.prop  office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_2fs_nodoors.prop office_6fs_nodoors.prop office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 2;
 		numGoals = 8;
@@ -707,8 +1286,8 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//office_6fs_nodoors.prop  office_nofs_nodoors.prop
-		//		
+		// office_6fs_nodoors.prop office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 6;
 		numGoals = 8;
@@ -723,8 +1302,8 @@ public class testMATHTS {
 		examples.add(example_id);
 		example_ids.add(example);
 
-		//		office_nofs_nodoors.prop
-		//		
+		// office_nofs_nodoors.prop
+		//
 		numRobots = 6;
 		numFS = 0;
 		numGoals = 8;
@@ -738,44 +1317,39 @@ public class testMATHTS {
 		example_num_fs_list.put(example_id, numFS);
 		examples.add(example_id);
 		example_ids.add(example);
-		
-		String example_to_run; 
-		
+
+		String example_to_run;
+
 		int maxGoals = 9;
 		ArrayList<String> testsDone = new ArrayList<String>();
 		int testCount = 0;
-		int maxFiles = examples.size()*3*4; 
+		int maxFiles = examples.size() * 3 * 4;
 		try {
-			for (int i = 0; i < 1/*examples.size()*/; i++) {
+			for (int i = 0; i < examples.size(); i++) {
 				example_to_run = examples.get(i);
 				example_id = example_ids.get(i);
 
 				int maxRobots = example_num_robot_list.get(example_id);
-				int g = 4; 
-				int r = maxRobots; 
-//				for (int r = 2; r <= maxRobots; r+=2) {
-//					for (int g = 2; g <= maxGoals; g+=2) {
+//				int g = 4; 
+//				int r = maxRobots; 
+				for (int r = 2; r <= maxRobots; r += 2) {
+					for (int g = 2; g <= maxGoals; g += 2) {
 
-						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+example_id+" r"+ r+ " g"+g+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"+testCount+" of "+maxFiles+" : "+((double)(testCount+1)/(double)maxFiles)+">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-
-//						runOneExampleNumRobotsGoals(
-//								//					grid_3_example,
-//								//					three_robot_one_door, 
-//								//					two_robot_door_multiple_switches,
-//								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
-//								dir + "results/stapu");
-						//rewrite the props file 
-//						reWritePropsFile(dir+example_to_run+".props",g); 
-						doTHTS(dir+"results/thts", dir, example_to_run, r,
-								g, example_num_door_list.get(example_id),
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles)
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						reWritePropsFile(dir + example_id + ".props", g);
+						doTHTS(dir + "results/thts", dir, example_to_run, r, g, example_num_door_list.get(example_id),
 								example_num_fs_list.get(example_id));
 
 						testCount++;
 						testsDone.add(example_id);
-						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"+example_id+" r"+ r+ " g"+g+"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-//					}
-//				}
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
+				}
 			}
 
 		} catch (FileNotFoundException e) {
@@ -786,35 +1360,461 @@ public class testMATHTS {
 			System.exit(1);
 		}
 
-	//	mainLog.println("Num tests: " + testCount);
+		// mainLog.println("Num tests: " + testCount);
 	}
-	
-	public void reWritePropsFile(String fn,int numGoals) 
-			  throws IOException {
-		HashMap<Integer,String> goalStrings = new HashMap<Integer,String>(); 
-		goalStrings.put(13,"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) )& (F (s=88) )& (F (s=89) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(12, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) )& (F (s=88) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(11, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(10, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(9, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(8, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(7, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(6, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(5, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(4, "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(3, "Pmax=? [ (F (s=0) )& (F (s=2) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
-		goalStrings.put(2, "Pmax=? [ (F (s=0) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+
+	public void reWritePropsFileGUISimpleTests(String loc, String fn, int numGoals) throws IOException {
+
+		HashMap<String, HashMap<Integer, String>> goalStrings = new HashMap<String, HashMap<Integer, String>>();
+		HashMap<Integer, String> thisHashMap = new HashMap<Integer, String>();
+		String f = "g5_r3_t3_d2_fs3";
+		String gs = "Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]";
+		thisHashMap.put(2, "Pmax=? [ (F (s=0) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+
+		goalStrings.put(f, thisHashMap);
+		
+
+//		g5_r3_t3_d0_fs0.props
+//		Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]
+		f = "g5_r3_t3_d0_fs0";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2, 
+				"Pmax=? [ (F (s=0) )  & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g5_r3_t3_d0_fs3.props
+//		Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]
+		f = "g5_r3_t3_d0_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2, 
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g5_r3_t3_d2_fs3.props
+//		Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]
+		f = "g5_r3_t3_d2_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2, 
+				"Pmax=? [ (F (s=0) )  & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) ) & (F (s=2) ) & (F (s=4) ) & (G ( ! (s=11) ) )  & (G ( ! (s=14) ) )  & (G ( ! (s=17) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d0_fs1.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d0_fs1";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+		//		g7_r5_t6_d0_fs3.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d0_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d0_fs5.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d0_fs5";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d1_fs1.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d1_fs1";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d2_fs1.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d2_fs1";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d2_fs2.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d2_fs2";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d2_fs3.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d2_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d2_fs4.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d2_fs4";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d3_fs1.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d3_fs1";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d3_fs2.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d3_fs2";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d3_fs3.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d3_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d3_fs4.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d3_fs4";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d4_fs1.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d4_fs1";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d4_fs2.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d4_fs2";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d4_fs3.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d4_fs3";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		//		g7_r5_t6_d4_fs4.props
+//		Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]
+		f = "g7_r5_t6_d4_fs4";
+		thisHashMap = new HashMap<Integer, String>();
+		thisHashMap.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=4) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		thisHashMap.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+
+		thisHashMap.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=4) )& (F (s=6) )& (F (s=27) )& (F (s=28) )& (F (s=30) ) & (G ( ! (s=14) ) )  & (G ( ! (s=16) ) ) ]");
+		goalStrings.put(f, thisHashMap);
+
+		
+		
+		
+
+		String goalString = goalStrings.get(fn).get(numGoals);
+
+		System.out.println(goalString);
+
+		FileWriter fileWriter = new FileWriter(loc + fn + ".props");
+		PrintWriter printWriter = new PrintWriter(fileWriter);
+		printWriter.print(goalString + "\n");
+
+		printWriter.close();
+	}
+
+	public void reWritePropsFile(String fn, int numGoals) throws IOException {
+		HashMap<Integer, String> goalStrings = new HashMap<Integer, String>();
+		goalStrings.put(13,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) )& (F (s=88) )& (F (s=89) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(12,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) )& (F (s=88) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(11,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) )& (F (s=87) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(10,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) )& (F (s=86) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(9,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) )& (F (s=85) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(8,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) )& (F (s=84) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(7,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) )& (F (s=10) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(6,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) )& (F (s=8) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(5,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) )& (F (s=6) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(4,
+				"Pmax=? [ (F (s=0) )& (F (s=2) )& (F (s=4) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(3,
+				"Pmax=? [ (F (s=0) )& (F (s=2) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
+		goalStrings.put(2,
+				"Pmax=? [ (F (s=0) ) & (G ( ! (s=19) ) )  & (G ( ! (s=23) ) )  & (G ( ! (s=25) ) )  & (G ( ! (s=29) ) )  & (G ( ! (s=31) ) )  & (G ( ! (s=35) ) )  & (G ( ! (s=59) ) )  & (G ( ! (s=60) ) )  & (G ( ! (s=65) ) )  & (G ( ! (s=66) ) ) ]");
 
 		String goalString = goalStrings.get(numGoals);
-		
-		
-		
-		System.out.println(goalString);
-		
-		FileWriter fileWriter = new FileWriter(fn);
-			    PrintWriter printWriter = new PrintWriter(fileWriter);
-			    printWriter.print(goalString+"\n");
 
-			    printWriter.close();
-			}
+		System.out.println(goalString);
+
+		FileWriter fileWriter = new FileWriter(fn);
+		PrintWriter printWriter = new PrintWriter(fileWriter);
+		printWriter.print(goalString + "\n");
+
+		printWriter.close();
+	}
 }

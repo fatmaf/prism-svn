@@ -5,8 +5,11 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.Stack;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 
 import demos.MultiAgentProductModelGenerator.RewardCalculation;
+import demos.ResultsTiming.varIDs;
 import parser.State;
 import prism.PrismException;
 import prism.PrismLog;
@@ -25,11 +28,14 @@ public class TrialBHeuristicSearch {
 	boolean lrtdp;
 	float errorClearance = 0.00001f;
 	int maxTrialLength = 200;
-	int maxRollOuts = 10000;
+	int maxRollOuts = 1000;
 	int currentTrailLength = 0;
 	int numRollOut = 0;
 	String saveLocation;
 	String fn;
+	ResultsTiming resSaver;
+	int decisionNodesExplored = 0;
+	int chanceNodesExplored = 0;
 
 	// saving nodes so I dont create new ones all the time
 	HashMap<String, THTSNode> nodesAddedSoFar;
@@ -38,7 +44,7 @@ public class TrialBHeuristicSearch {
 	// so yeah
 	public TrialBHeuristicSearch(PrismLog ml, MultiAgentProductModelGenerator mapmg, ActionSelection actSel,
 			OutcomeSelection outSel, HeuristicFunction hFunc, BackupFunction backupFunc,
-			ArrayList<Objectives> tieBreakingOrder, String saveLocation, String fn) {
+			ArrayList<Objectives> tieBreakingOrder, String saveLocation, String fn, ResultsTiming rs) {
 		maProdModGen = mapmg;
 		actionSelection = actSel;
 		outcomeSelection = outSel;
@@ -55,6 +61,7 @@ public class TrialBHeuristicSearch {
 		nodesAddedSoFar = new HashMap<String, THTSNode>();
 		this.saveLocation = saveLocation;
 		this.fn = fn;
+		resSaver = rs;
 	}
 
 	// set trial length
@@ -75,6 +82,11 @@ public class TrialBHeuristicSearch {
 		THTSNode nodeInMap = n;
 		boolean added = false;
 		if (!nodesAddedSoFar.containsKey(k)) {
+			if (n instanceof DecisionNode)
+				this.decisionNodesExplored++;
+			else
+				this.chanceNodesExplored++;
+
 			nodesAddedSoFar.put(k, n);
 			added = true;
 		} else {
@@ -95,26 +107,46 @@ public class TrialBHeuristicSearch {
 		this.addAllActions = addAllActions;
 	}
 
-	public Object doTHTS(String trialName) throws PrismException {
+	public Entry<Object, HashMap<String, Double>> doTHTS(String trialName) throws PrismException {
 		long start = System.nanoTime();
+		if (resSaver != null)
+			resSaver.setLocalStartTime();
 
 		DecisionNode n0 = getRootNode();
 		while (!n0.isSolved() && !isRolloutTimedOut()) {
+			if (resSaver != null)
+				resSaver.setScopeStartTime();
 			this.numRollOut++;
 			this.currentTrailLength = 0;
 
 			visitDecisionNode(n0);
 			mainLog.println("Trial " + this.numRollOut + " ended with " + this.currentTrailLength + " iterations");
+			if (resSaver != null)
+				resSaver.recordTime("Trial " + this.numRollOut, varIDs.reallocations, true);
 		}
+		if (resSaver != null)
+			resSaver.recordTime("All Done", varIDs.allreallocationstime, false);
 		long elapsedTime = System.nanoTime() - start;
 		mainLog.println("Solved after " + this.currentTrailLength + " iterations and " + this.numRollOut + " rollouts."
 				+ elapsedTime + "ns " + TimeUnit.MILLISECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + " ms "
 				+ TimeUnit.SECONDS.convert(elapsedTime, TimeUnit.NANOSECONDS) + "s");
 
+		if (resSaver != null) {
+			resSaver.recordValues(this.decisionNodesExplored, "States Explored", varIDs.teammdpstates);
+			resSaver.recordValues(this.chanceNodesExplored, "Transitions Explored", varIDs.teammdptransitions);
+		}
+
 		PolicyCreator pc = new PolicyCreator();
 		pc.createPolicy(n0, actionSelection, false);
 		pc.savePolicy(saveLocation, fn + trialName + "_thtsPolicy");
-		return actionSelection.selectActionBound(n0, false);
+		// values
+		HashMap<String, Double> values = new HashMap<String, Double>();
+		values.put("prob", n0.probValues.getLower());
+		values.put("prog", n0.getProg().getLower());
+		values.put("cost", n0.getRew(0).getLower());
+		Object action = actionSelection.selectActionBound(n0, false);
+
+		return new AbstractMap.SimpleEntry<Object, HashMap<String, Double>>(action, values);
 
 	}
 
@@ -188,7 +220,7 @@ public class TrialBHeuristicSearch {
 		boolean dobackup = true;
 		if (dn != null && !isTrialTimedOut()) {
 
-			mainLog.println(dn.toString());
+//			mainLog.println(dn.toString());
 //			if (dn.getState().toString().contains("(0),(1),(-1),(1)"))
 //				mainLog.println("Ewwror");
 			if (dn.isDeadend | dn.isGoal) {
@@ -220,10 +252,11 @@ public class TrialBHeuristicSearch {
 			} else {
 				backupFunction.backup(dn);
 			}
-		} else {
-			mainLog.println("Null or trial timed out");
-			mainLog.println(isTrialTimedOut());
 		}
+//		else {
+//			mainLog.println("Null or trial timed out");
+//			mainLog.println(isTrialTimedOut());
+//		}
 
 		return dobackup;
 	}
@@ -248,10 +281,11 @@ public class TrialBHeuristicSearch {
 			} else {
 				backupFunction.backup(c);
 			}
-		} else {
-			mainLog.println("CN null or timed out");
-			mainLog.println(isTrialTimedOut());
 		}
+//		else {
+//			mainLog.println("CN null or timed out");
+//			mainLog.println(isTrialTimedOut());
+//		}
 		return dobackup;
 	}
 
@@ -347,15 +381,21 @@ public class TrialBHeuristicSearch {
 
 		}
 		if (stateSolved) {
+//			mainLog.println("Marking these as solved");
 			while (!closed.isEmpty()) {
 				n = closed.pop();
+				
 				n.setSolved();
+//				mainLog.println(n.toString());
 
 			}
 		} else {
+//			mainLog.println("Backing these up");
 			while (!closed.isEmpty()) {
 				n = closed.pop();
+//				mainLog.println(n.toString());
 				backupFunction.backup(n);
+//				mainLog.println(n.toString());
 			}
 		}
 		return stateSolved;
@@ -405,8 +445,8 @@ public class TrialBHeuristicSearch {
 		boolean goal = maProdModGen.isGoal(s);
 //		if(deadend)
 //			mainLog.println("Deadend: "+s.toString());
-		if (goal)
-			mainLog.println("Goal: " + s.toString());
+//		if (goal)
+//			mainLog.println("Goal: " + s.toString());
 		dn = new DecisionNode(ps, s, tprob, prob, prog, costs, deadend, goal);
 		addNodeToHash(dn);
 		return dn;
