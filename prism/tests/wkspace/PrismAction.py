@@ -3,14 +3,19 @@ from PrismVariable import VariableType
 from RegexHelper import RegexHelper
 
 class PrismAction(object):
-    name = None
-    src = None # a list of states and values - a list of PrismVariables 
-    dest = None # a list of dictionaries - each dictionary has a prob and states
+    #name = None
+    #src = None # a list of states and values - a list of PrismVariables 
+    #dest = None # a list of dictionaries - each dictionary has a prob and states
     ############# where states is a list of lists like in src - of PrismVariables
-    rewards={}
+    #rewards={}
     basicActionRE = "\[(.*)\] (.*) -> (.*);"
     
     def __init__(self,line,constants,variables,createFromText=True):
+        self.name = None
+        self.src = None
+        self.dest = None
+        self.rewards={}
+    
         if createFromText:
             actInfo = RegexHelper.getRegexMatchName(self.basicActionRE,line)
             self.name = actInfo[0]

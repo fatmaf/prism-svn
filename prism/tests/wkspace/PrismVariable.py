@@ -6,13 +6,17 @@ class VariableType(Enum):
     notConst = 2
     
 class PrismVariable(object):
-    name = None
-    value = None
-    minValue = None
-    maxValue = None
-    initValue = None
-    varType = None
-    subType = None
+
+    def __init__(self):
+        self.name = None
+        self.value = None
+        self.minValue = None
+        self.maxValue = None
+        self.initValue = None
+        self.varType = None
+        self.subType = None
+
+        
 
     def getAssignment(self,v,isInt):
         value = None

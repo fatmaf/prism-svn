@@ -10,15 +10,22 @@ class PrismModule(object):
     moduleVarsRE = "(.*):\[(.*)\.\.(.*)] init( ?[-]?[\d+]?[.]?[\d+]);"
     moduleVarsREConstants = "(.*):\[(.*)\.\.(.*)] init (.*);"
     basicActionRE = "\[(.*)\] (.*) -> (.*);"
-    name = None
-    variables = {}
-    moduleLines = None
-    contants = None
-    actions = None
+    #name = None
+    #variables = {}
+    #moduleLines = None
+    #contants = None
+    #actions = None
     rewardsRE = "\[(.*)\] (.*):(.*);"
-    rewardNames = []
+    #rewardNames = []
     
     def __init__(self,n,moduleLines,constants):
+        self.name = None
+        self.variables = {}
+        self.moduleLines = None
+        self.constants = None
+        self.actions = None
+        self.rewardNames = []
+        
         print "Initializing Module "+n
         
         self.name = n
@@ -288,8 +295,9 @@ class PrismModule(object):
         for rew in rewVals:
             if not rew in self.rewardNames:
                 self.rewardNames.append(rew)
+                    
             pa.addReward(rew,rewVals[rew])
-            
+            #print pa.prismStringReward(rew)
         return pa 
             
     def addDoor(self,labels,doorVarName,src1,src2,oprob,cprob):
