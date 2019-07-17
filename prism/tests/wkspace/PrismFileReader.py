@@ -14,24 +14,24 @@ class PrismFileReader(object):
     moduleRE = moduleBegin+"(.*)"
     rewardsRE = rewardsBegin+"(.*)"
 
-    moduleRange= {}
-    rewardsRange = {}
+    #moduleRange= {}
+    #rewardsRange = {}
     
-    moduleNames = []
-    rewardNames = []
+    #moduleNames = []
+    #rewardNames = []
 
-    moduleLines = {}
-    rewardsLines = {}
+    #moduleLines = {}
+    #rewardsLines = {}
 
-    labelLines = []
+    #labelLines = []
     labelString = "label"
 
     constREintDouble = "const (?:int|double) (.*) =( ?[-]?[\d+]?[.]?[\d+]);"
     constRE ='const (.*) =( ?[-]?[\d+]?[.]?[\d+]);'
 
-    modVars = [] 
+    #modVars = [] 
     
-    constants={}
+    #constants={}
     
     def __init__(self,fn):
         self.moduleRange= {}
@@ -265,6 +265,7 @@ class PrismFileReader(object):
                 label = lp
             else:
                 label = '"'+label+'"'
+            #print label 
                 
             stateString = "[F ("+label+") ]"
             if (i != len(gs)-1):
@@ -280,7 +281,8 @@ class PrismFileReader(object):
             if label is None:
                 label = lp
             else:
-                label = '"'+label+'"'    
+                label = '"'+label+'"'
+            #print label 
             stateString = "Pmax=? [F ("+label+") ]"
             if (i != len(gs)-1):
                 goalString = goalString + stateString + ", "

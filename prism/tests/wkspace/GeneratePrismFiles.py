@@ -8,6 +8,7 @@ from PrismFileReader import PrismFileReader
 from PrismModule import PrismModule
 import random
 import os
+import copy
 
 class GeneratePrismFile(object):
     
@@ -180,11 +181,18 @@ class GeneratePrismFile(object):
             svar = self.stateLabel(varname,smap[xy])
             sstr = self.stateString(varname,smap[xy])
             pfr = self.addLabelToPFR(svar,sstr,pfr,mod)
+            #print "connecting " 
+            #print xy
+            #print smap
+            #print pfr.labels
+            #print " to "
+            #raw_input()
             xx = min(x+1,xside-1)
             yy = min(y+1,yside-1)
             _x = max(x-1,0)
             _y = max(y-1,0)
             combs = [(x,yy),(x,_y),(xx,y),(_x,y),(_x,yy),(xx,yy),(_x,_y),(xx,_y)]
+            combs = list(set(combs))
             for xyp in combs:
                 xp = xyp[0]
                 yp = xyp[1]
@@ -196,15 +204,40 @@ class GeneratePrismFile(object):
                 pvar = self.stateLabel(varname,smap[xyp])
                 pstr = self.stateString(varname,smap[xyp])
                 pfr = self.addLabelToPFR(pvar,pstr,pfr,mod)
+                #print xyp
+                #print smap
+                #print pfr.labels
                 #if xyp is in failstates we need to make it a failstate action
                 isFailState = xyp in failstates
+                rew = 0 
                 rew = math.sqrt(((xp-x)*(xp-x))+((yp-y)*(yp-y)))
+                #print rew
+                #print xyp
+                #print xy
+                rewDict = {'"time"':rew}
+                #print rewDict 
                 if isFailState:
-                    pa = mod.createAction(svar+'_'+pvar,{'"time"':rew},sstr,[pstr,'(s=failstate)'],['p','1-p'])
+                    pa = mod.createAction(svar+'_'+pvar,copy.deepcopy(rewDict),sstr,[pstr,'('+varname+'=failstate)'],['p','1-p'])
                 else:
-                    pa = mod.createAction(svar+'_'+pvar,{'"time"':rew},sstr,pstr,1.0)
-                #print pa 
-                mod.actions.append(pa)
+                    pa = mod.createAction(svar+'_'+pvar,copy.deepcopy(rewDict),sstr,pstr,1.0)
+                #if rew > 1.0:
+                #    print "more than one"
+                #    print pa
+                #else:
+                #    print "less than or equal to one"
+                #    print pa
+                    
+                #print pa
+                #print pa.prismStringReward('"time"')
+                
+                mod.actions.append(copy.deepcopy(pa))
+        if len(failstates)>0:
+            pa = mod.createAction('failed',{'"time"':1.0},'('+varname+'=failstate)','('+varname+'=failstate)','1.0')
+            mod.actions.append(copy.deepcopy(pa))
+            
+        #for pa in mod.actions:
+        #    #print pa.prismStringReward('"time"')
+            
         return [mod,pfr,smap]
 
     def createDoorsFromLists(self,pfr,doorStates,variable,moduleName):
@@ -298,6 +331,8 @@ class GeneratePrismFile(object):
         if pfr.modVars is None:
             pfr.modVars = []
         [gmod,pfr,smap] = self.createActionsFromLists(pfr,gmod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates)
+        for pa in gmod.actions:
+            print pa.prismStringReward(rewName)
         pfr.modVars.append(gmod)
         updatedDoorStates = [] 
         for ds in doorStates:
@@ -366,8 +401,15 @@ class GeneratePrismFile(object):
             pfr.writeLinesToFile(lines,fn+str(i)+'.prism')
             i = i + 1
         newGoalStates = []
+        newGoalStatesLabels = []
         for g in goalStates:
             newGoalStates.append(smap[g])
+            label = self.stateLabel(varname,smap[g])
+            newGoalStatesLabels.append(label)
+            #print label 
+            #print g
+            #print smap[g]
+            
         newAvoidStates = []
         for a in avoidStates:
             newAvoidStates.append(smap[a])

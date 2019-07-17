@@ -320,8 +320,11 @@ def processDoors():
     
                     
 def allDone():
-    
-    fn = tkFileDialog.asksaveasfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/",title="Save file as", filetypes=(("prism",".prism"),("prop",".prop"),("props",".props"),("all files","*.*")))
+
+    global app
+    app.update()
+    fn = tkFileDialog.asksaveasfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles",title="Save file as", filetypes=(("grid",".grid"),("prism",".prism"),("prop",".prop"),("props",".props"),("all files","*.*")))
+    app.update()
     fn = fn.split('.')[0]
     #get all the goal states and stuff
     goalStates = []
@@ -330,7 +333,13 @@ def allDone():
     blockedStates =[]
     avoidStates = []
     connectedStates=[]
-    
+    doDoors = False 
+    global doorPairs
+    if doorPairs == []:
+        doDoors = True 
+        doorPair =[]
+        potentialDoors = []
+        
     global gridArray
     if gridArray is not None:
         gridWriteFile = open(fn+'.grid','w')
@@ -358,6 +367,32 @@ def allDone():
                     avoidStates.append(d)
                 if not c.fill:
                     connectedStates.append(d)
+                if doDoors:
+                    if c.isDoor:
+                        if not d in doorPairs:
+                            if c.otherDoor is None:
+                                potentialDoors.append(d)
+        
+        #lets make door pairs
+        #doors should be 1 apart
+        #doorDistances ={}
+        if doDoors:
+            potDoorPairs = []
+            for d in potentialDoors:
+                for dd in potentialDoors:
+                    if not d == dd:
+                        dist = ((d[0]-dd[0])*(d[0]-dd[0])+(d[1]-dd[1])*(d[1]-dd[1]))
+                        import math
+                        dist = math.sqrt(dist)
+                        if dist == 1.0:
+                            potDoorPairs.append([d,dd])
+            numDoors = len(potentialDoors)/2
+            for i in range(len(potDoorPairs)):
+                potDoors = potDoorPairs[i]
+                if potDoors[0] not in doorPairs and potDoors[1] not in doorPairs:
+                    doorPairs = doorPairs + potDoors
+                
+                    
         gridWriteFile.close()
     print ("Init")
     print (initStates)
@@ -374,11 +409,16 @@ def allDone():
     global doorPairs
     print ("doors")
     print (doorPairs)
+    #raw_input()
     gfr = GeneratePrismFile()
     global xside
     global yside
 
     gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
+    #just a for loop to wait for the dialog to close
+    for i in range(1000000):
+        xx=i
+        
     global app
     #cv = Canvas(app)
     import os
@@ -421,6 +461,11 @@ if __name__ == "__main__" :
         yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=2,maxvalue=100)
         if yside is None:
             yside = 5
+    else:
+        global xside
+        xside = 5 
+        global yside
+        yside = 5
             
     menu = Menu(app)
     menu.add_command(label='Set Map',command=setMap)
@@ -441,8 +486,22 @@ if __name__ == "__main__" :
     
     #btn = Button(app2,text="Test")
     #btn.grid(column=51,row=51)
+    size = 50
+    #doing some calculations
+    #if its 50 then is bad for 20
+    #so say for a 15 by 15 it works
+    
+    area = xside*yside
+    fullsize = area*size*size
+    maxsize = 18*18*50*50
+    newsize = maxsize/area
+    import math 
+    newsize = math.sqrt(newsize)
+    size = int(newsize)
+    
+    
 
-    grid = CellGrid(loadGridFromFile,fn,app, xside,yside, 50)
+    grid = CellGrid(loadGridFromFile,fn,app, xside,yside, size)
     global gridArray
     gridArray = grid.grid
     
