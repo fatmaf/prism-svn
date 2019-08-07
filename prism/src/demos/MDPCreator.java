@@ -107,6 +107,40 @@ public class MDPCreator
 		}
 		return actionIndex;
 	}
+	
+	int getActionIndexPartial(State state, Object a,String delim)
+	{
+		int stateIndex = getStateIndex(state); 
+		return getActionIndexPartial(stateIndex,a,delim);
+	}
+
+	int getActionIndexPartial(int stateIndex, Object a,String delim)
+	{
+		int actionIndex = -1;
+		if (stateIndex != -1) {
+			int choices = mdp.getNumChoices(stateIndex);
+			for (int c = 0; c < choices; c++) {
+				Object act = mdp.getAction(stateIndex, c);
+				String[] brokenAct = act.toString().split(delim);
+				if(brokenAct[0].toString().contentEquals(a.toString()))
+				 {
+					actionIndex = c;
+					break;
+				}
+			}
+		}
+		return actionIndex;
+	}
+
+	int renameAction(State state, Object a,String delim,int num)
+	{
+		int actionIndex = this.getActionIndexPartial(state, a,delim); 
+		if(actionIndex != -1)
+		{
+			mdp.setAction(this.getStateIndex(state), actionIndex, a.toString()+delim+num);
+		}
+		return actionIndex; 
+	}
 
 	public boolean addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs)
 	{
@@ -125,6 +159,7 @@ public class MDPCreator
 			distr.add(succStateIndex, prob);
 		}
 		mdp.addActionLabelledChoice(stateIndex, distr, a);
+	
 		return true; 
 	}
 	

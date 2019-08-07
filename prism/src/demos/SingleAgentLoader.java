@@ -1,7 +1,11 @@
 package demos;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -194,7 +198,7 @@ public class SingleAgentLoader
 
 		ArrayList<VarList> varlist = new ArrayList<VarList>();
 
-		PolicyCreator pc = null;//new PolicyCreator();
+		PolicyCreator pc = new PolicyCreator();
 		HashMap<String, HashMap<State, Double>> result = mc.checkPartialSatForBounds(mdp, expr.getExpression(), null, varlist, exportAdv, savePlace, pc);
 		solutionVarList = varlist.get(0);
 		updateSharedStateIndices(solutionVarList);
@@ -212,10 +216,12 @@ public class SingleAgentLoader
 				throw new PrismException("Hain?");
 
 			partialSatSolution.put(obj, result.get(r));
-//			if(pc!=null) {
-//				mainLog.println(obj.toString());
-//				mainLog.println(result.get(r).toString());
-//			}
+			if(pc!=null) {
+				mainLog.println(obj.toString());
+				mainLog.println(result.get(r).toString());
+				writeToFile(savePlace+"_singleValues.txt",obj.toString());
+				writeToFile(savePlace+"_singleValues.txt",result.get(r).toString());
+			}
 		}
 		maxStatesEstimate = mdp.getNumStates();
 
@@ -229,6 +235,20 @@ public class SingleAgentLoader
 
 	}
 
+	public void writeToFile(String fn,String towrite) throws PrismException
+	{
+		try (FileWriter fw = new FileWriter(fn, true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+//			String str= "CN[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + 
+			String nt = towrite;
+			out.println( nt);
+			// more code
+		} catch (IOException e) {
+			// exception handling left as an exercise for the reader
+			throw new PrismException(e.getMessage());
+		}
+	}
 	public void setUp() throws PrismException, FileNotFoundException
 	{
 		if (printMessages) {

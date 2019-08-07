@@ -3,8 +3,10 @@ package demos;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Stack;
 
 import explicit.MDP;
@@ -24,6 +26,66 @@ public class PolicyCreator
 	public PolicyCreator()
 	{
 		mdpCreator = new MDPCreator();
+	}
+	
+	public MDPSimple createPolicy(Queue<THTSNode> nodeQ) throws PrismException
+	{
+		HashMap<THTSNode,Integer> nodeCounter  = new HashMap<THTSNode,Integer>();
+		THTSNode currNode = nodeQ.remove();
+		DecisionNode currDecNode=null;//= (DecisionNode)currNode;
+		ChanceNode currChanceNode = null;
+		boolean onChanceNode = false;
+		String actDelim = "!";
+		while (!nodeQ.isEmpty()) {
+			
+			if (currNode instanceof DecisionNode) {
+				currDecNode = (DecisionNode) currNode;
+				onChanceNode = false;
+			} else {
+				currChanceNode = (ChanceNode) currNode;
+				onChanceNode = true;
+			}
+
+			if (onChanceNode) {
+				//we have the action and the state 
+				//now we just get the successors and add all of them 
+				//but we also need to save these so we can add them to the MDP 
+				ArrayList<DecisionNode> successorDecNodes = currChanceNode.getChildren();
+				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				for (DecisionNode succDecNode : successorDecNodes) {
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succDecNode.getState(), succDecNode.getTranProb(currChanceNode)));
+					
+				}
+				if (!nodeCounter.containsKey(currChanceNode))
+				{
+					nodeCounter.put(currChanceNode, 0);
+					mdpCreator.addAction(currChanceNode.getState(), currChanceNode.getAction(), successors);
+				}
+				else
+				{
+					nodeCounter.put(currChanceNode, nodeCounter.get(currChanceNode)+1);
+					//rename this action 
+					//int actIndex = mdpCreator.getActionIndexPartial(currChanceNode.getState(), currChanceNode.getAction(), actDelim);
+					//if(actIndex != -1)
+					//{
+						//set a new name 
+						int actIndex = mdpCreator.renameAction(currChanceNode.getState(), currChanceNode.getAction(), actDelim, nodeCounter.get(currChanceNode));
+						if(actIndex == -1)
+							throw new PrismException("Error!! Action not found");
+					//}
+					
+				}
+		
+
+			}
+			else 
+			{
+				mdpCreator.addState(currDecNode.getState());
+			}
+			currNode = nodeQ.remove();
+		}
+		return mdpCreator.mdp;
+
 	}
 
 	public MDPSimple createPolicy(DecisionNode rootNode, ActionSelection actSel, boolean upperbound) throws PrismException

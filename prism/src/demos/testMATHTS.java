@@ -41,7 +41,7 @@ public class testMATHTS {
 		tieBreakingOrder.add(Objectives.Progression);
 		tieBreakingOrder.add(Objectives.Cost);
 		ActionSelection actionSelection = new ActionSelectionGreedy(tieBreakingOrder);
-		OutcomeSelection outcomeSelection = new OutcomeSelectionBounds();
+		OutcomeSelection outcomeSelection = new OutcomeSelectionBoundsGreedy();
 		HeuristicFunction heuristicFunction = new HeuristicFunctionPartSat(jpmg);
 		BackupFunction backupFunction = new BackupFunctionFullBellman(jpmg, tieBreakingOrder);
 
@@ -65,7 +65,8 @@ public class testMATHTS {
 //		System.out.println("all done");
 //		runGUITest();
 //		runTest();
-		runGUISimpleTests();
+//		runGUISimpleTests();
+		runGUISimpleTestsDebug1();
 //		runDebugOne();
 	}
 
@@ -278,10 +279,17 @@ public class testMATHTS {
 
 		ArrayList<Objectives> tieBreakingOrder = new ArrayList<Objectives>();
 		tieBreakingOrder.add(Objectives.Probability);
-		tieBreakingOrder.add(Objectives.Progression);
+	//	tieBreakingOrder.add(Objectives.Progression);
 		tieBreakingOrder.add(Objectives.Cost);
-		ActionSelection actionSelection = new ActionSelectionGreedy(tieBreakingOrder);
-		OutcomeSelection outcomeSelection = new OutcomeSelectionBounds();
+		mainLog.println("Objectives:"); 
+		for(Objectives obj : tieBreakingOrder)
+			mainLog.println(obj.toString());
+		ActionSelection actionSelection = 
+		//		new ActionSelectionEpsilonGreedyInvertedBounds(tieBreakingOrder);
+				new ActionSelectionGreedy(tieBreakingOrder);
+		OutcomeSelection outcomeSelection = 
+			//	new OutcomeSelectionBoundsSoftmax(jpmg.getMaxStatesEstimate());
+				new OutcomeSelectionBoundsGreedy();
 		HeuristicFunction heuristicFunction = new HeuristicFunctionPartSat(jpmg);
 		BackupFunction backupFunction = new BackupFunctionFullBellman(jpmg, tieBreakingOrder);
 
@@ -290,7 +298,9 @@ public class testMATHTS {
 		int mt = thts.setMaxTrialLength();
 		resSaver.recordTime("Multi Agent Product Initialization", varIDs.jointmodelgentime, true);
 		mainLog.println("Max Trial Length: " + mt);
+		mainLog.println("Beginning THTS************************************************");
 		Entry<Object, HashMap<String, Double>> res = thts.doTHTS(resSaver.gettrialName());
+		mainLog.println("************************************************End THTS");
 		Object a = res.getKey();
 		resSaver.saveValues(res.getValue());
 		if (a != null)
@@ -844,7 +854,7 @@ public class testMATHTS {
 						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
 								+ ((double) (testCount + 1) / (double) maxFiles)
 								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-						reWritePropsFileGUISimpleTests(dir, example_to_run, numGoals);
+						reWritePropsFileGUISimpleTests(dir, example_to_run, g);
 						doTHTS(dir + "results/thts", dir, example_to_run, r, g, example_num_door_list.get(example_id),
 								example_num_fs_list.get(example_id));
 
@@ -866,6 +876,530 @@ public class testMATHTS {
 
 		System.out.println("Num tests: " + testCount);
 	}
+	
+	public void runGUISimpleTestsDebug1() throws IOException {
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+		// System.getProperty("user.dir");
+	
+	
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_goals_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 3;
+		int numFS = 0;
+		int numGoals = 3;
+		int numDoors = 0;
+		// simpleTests/g5_r3_t3_d0_fs0.png simpleTests/g5_r3_t3_d0_fs3.png
+		// simpleTests/g5_r3_t3_d2_fs3.png
+		String example = "g5_r3_t3_d0_fs0";// "test_grid_nodoors_nofs";
+		String example_id = example;// example + "r" + numRobots;//cumberland_doors;
+		String example_to_run = example;// cumberland_doors;
+//		g7_r5_t6_d0_fs3.prop 
+		
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 0;
+//		numFS = 3;
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d0_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+		
+		numRobots = 2; 
+		numGoals = 2; 
+		numDoors = 0; 
+		numFS = 3; 
+		example = "g3_r2_t2_d0_fs2";
+		
+		numRobots = 1;//2; 
+		numGoals = 3; 
+		numDoors = 0; 
+		numFS=1; 
+		example = "g7x3_r2_t3_d0_fs1";
+		
+//		numRobots = 1; //2 
+//		numGoals = 2; 
+//		numDoors = 0; 
+//		numFS=1; 
+//		example = "g7x3_r1_t2_d0_fs1";
+//		
+
+//		numRobots = 2; 
+//		numGoals = 1; 
+//		numDoors = 0; 
+//		numFS=1; 
+//		example = "g4x3_r2_t1_d0_fs1";
+//
+//		numRobots = 2; 
+//		numGoals = 2; 
+//		numDoors = 0; 
+//		numFS=1; 
+//		example = "g7x3_r2_t2_d0_fs1";
+//		
+//		numRobots = 2; 
+//		numGoals = 2; 
+//		numDoors = 0; 
+//		numFS=1; 
+//		example = "g7x3_r2_t2_d0_fs1_e2";
+		
+//
+//		numRobots = 2; 
+//		numGoals = 2; 
+//		numDoors = 0; 
+//		numFS=1; 
+//		example = "g7x1_r2_t2_d0_fs1";
+	
+		example_id = example; 
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+//// g7_r5_t6_d2_fs2.prop  
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 2;
+//		numFS = 2;
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d2_fs2";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+////g7_r5_t6_d3_fs2.prop  g7_r5_t6_d4_fs2.prop
+////		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 3;
+//		numFS = 2;
+//
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d3_fs2";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		// g7_r5_t6_d4_fs2.prop
+////		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 4;
+//		numFS = 2;
+//
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d4_fs2";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+////		g5_r3_t3_d0_fs3.prop  g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 3;
+//		numGoals = 3;
+//		numDoors = 0;
+//		numFS = 2;
+//
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g5_r3_t3_d0_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//
+////		g7_r5_t6_d0_fs5.prop  g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 0;
+//		numFS = 5;
+//
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d0_fs5";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//
+//		//g7_r5_t6_d2_fs3.prop  g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 2;
+//		numFS = 3;
+//
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d2_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//// g7_r5_t6_d3_fs3.prop  g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 3;
+//		numFS = 3;
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d3_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		//g7_r5_t6_d4_fs3.prop
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 4;
+//		numFS = 3;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d4_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//
+////		g5_r3_t3_d2_fs3.prop  g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 3;
+//		numDoors = 2;
+//		numFS = 3;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g5_r3_t3_d2_fs3";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//
+//		//g7_r5_t6_d1_fs1.prop  g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 1;
+//		numFS = 1;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d1_fs1";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//
+////g7_r5_t6_d2_fs4.prop  g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 2;
+//		numFS = 4;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d2_fs4";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+////g7_r5_t6_d3_fs4.prop  g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 3;
+//		numFS = 4;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d3_fs4";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//		
+////g7_r5_t6_d4_fs4.prop
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 4;
+//		numFS = 4;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d4_fs4";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//		
+////		g7_r5_t6_d0_fs1.prop  g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 0;
+//		numFS = 1;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d0_fs1";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//		
+////g7_r5_t6_d2_fs1.prop  g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 2;
+//		numFS = 1;
+//
+//		
+//		// simpleTests/g5_r3_t3_d0_fs3.png simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g7_r5_t6_d2_fs1";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+//		// g7_r5_t6_d3_fs1.prop  g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 3;
+//		numFS = 1;
+//
+//		
+//
+//		example = "g7_r5_t6_d3_fs1";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+//
+////g7_r5_t6_d4_fs1.prop
+//
+//		numRobots = 5;
+//		numGoals = 6;
+//		numDoors = 4;
+//		numFS = 1;
+//
+//		
+//
+//		example = "g7_r5_t6_d4_fs1";// "test_grid_nodoors_nofs";
+//		example_id = example;// example + "r" + numRobots;//cumberland_doors;
+//		example_to_run = example;// cumberland_doors;
+//
+//		example_has_door_list.put(example_id, numDoors > 0);
+//		example_num_door_list.put(example_id, numDoors);
+//		example_num_robot_list.put(example_id, numRobots);
+//		example_num_fs_list.put(example_id, numFS);
+//		example_num_goals_list.put(example_id, numGoals);
+//
+//		examples.add(example_id);
+//		example_ids.add(example);
+		
+		int maxGoals = 9;
+		ArrayList<String> testsDone = new ArrayList<String>();
+		int maxFiles = examples.size() * 3 * 4;
+		int testCount = 0;
+		try {
+			for (int i = 0; i < examples.size(); i++) {
+				example_to_run = examples.get(i);
+				example_id = example_ids.get(i);
+
+				int maxRobots = example_num_robot_list.get(example_id);
+				maxGoals = example_num_goals_list.get(example_id)+1;
+				int r = Math.min(2, maxRobots); int g = 2;{
+					{
+	//			for (int r = 2; r <= maxRobots; r += 2) {
+//					for (int g = 2; g <= maxGoals; g += 2) {
+
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + example_id + " r" + r + " g" + g
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+						System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + testCount + " of " + maxFiles + " : "
+								+ ((double) (testCount + 1) / (double) maxFiles)
+								+ ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+//						reWritePropsFileGUISimpleTests(dir, example_to_run, g);
+						doTHTS(dir + "results/thts", dir, example_to_run, r, g, example_num_door_list.get(example_id),
+								example_num_fs_list.get(example_id));
+
+						testCount++;
+						testsDone.add(example_id);
+						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
+								+ "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					}
+				}
+			}
+
+		} catch (FileNotFoundException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		} catch (PrismException e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+
+		System.out.println("Num tests: " + testCount);
+	}
+
 	public void runDebugOne() throws IOException {
 		// saving filenames etc
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles/";

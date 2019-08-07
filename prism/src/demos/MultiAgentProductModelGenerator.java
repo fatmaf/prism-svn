@@ -598,6 +598,9 @@ public class MultiAgentProductModelGenerator
 		ArrayList<State> robotStates = getRobotStatesFromJointState(s);
 		ArrayList<Object> robotActions = getRobotActionsFromJointAction(a);
 
+		if(this.isDeadend(s))
+			return 0.0;
+		
 		switch (calculationMethod) {
 		case SUM:
 			reward = getStateActionRewardSum(robotStates, robotActions, rew);
@@ -797,6 +800,7 @@ public class MultiAgentProductModelGenerator
 			}
 		}
 		// TODO Auto-generated method stub
+		this.mainLog.println("Max States calculated "+maxStates);
 		maxStates = Math.min(maxStates,MAXTRIALLEN);
 		return maxStates;
 	}

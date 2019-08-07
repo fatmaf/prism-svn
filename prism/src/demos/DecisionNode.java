@@ -151,4 +151,14 @@ public class DecisionNode extends THTSNode
 	{
 		return this.getState().toString();
 	}
+	@Override
+	public String toString()
+	{
+		String str = super.toString(); 
+		if(this.isDeadend)
+			str+= " de ";
+		if(this.isGoal)
+			str+= " g ";
+		return str; 
+	}
 }

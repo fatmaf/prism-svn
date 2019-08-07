@@ -7,9 +7,19 @@ import parser.State;
 
 //selects outcomes based on difference in prob bounds 
 
-public class OutcomeSelectionBounds implements OutcomeSelection {
+public class OutcomeSelectionBoundsSoftmax implements OutcomeSelection {
 	Random rgen = new Random();
-
+	int maxTrialLen = -1; 
+	int atomicTrialLen = -1; 
+	public OutcomeSelectionBoundsSoftmax(int maxTLen)
+	{
+		this.maxTrialLen = maxTLen;
+		this.atomicTrialLen = this.maxTrialLen;
+	}
+	public void trialEnded()
+	{
+		maxTrialLen += atomicTrialLen;
+	}
 	@Override
 	public State selectOutcome(State s, Object a) {
 		// TODO Auto-generated method stub
@@ -22,10 +32,13 @@ public class OutcomeSelectionBounds implements OutcomeSelection {
 		ArrayList<Double> probdiffs = new ArrayList<Double>();
 		double diffHere = 0;
 		double diffSum = 0;
+		ArrayList<Double> temperatures = new ArrayList<Double>(); 
+		
 		for (DecisionNode dn : c.getChildren()) {
 			diffHere = dn.getProbValueTimesTranProb(c).diff();
 			probdiffs.add(diffHere);
 			diffSum += diffHere;
+			temperatures.add((double)dn.numVisits/(double)this.maxTrialLen);
 		}
 		// if the probability bounds didn't give us much
 		// lets look at the other ones
@@ -51,6 +64,13 @@ public class OutcomeSelectionBounds implements OutcomeSelection {
 					}
 				}
 			}
+		}
+		//redoing diffSum
+		diffSum = 0; 
+		for(int i = 0; i<probdiffs.size(); i++)
+		{
+			probdiffs.set(i, Math.log(probdiffs.get(i)/temperatures.get(i))); 
+			diffSum += probdiffs.get(i);
 		}
 		if (diffSum != 1) {
 			for (int i = 0; i < probdiffs.size(); i++) {

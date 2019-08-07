@@ -25,11 +25,13 @@ public class BackupFunctionFullBellman implements BackupFunction {
 		// backup a chance node
 		// tie breaking oder doesnt matter since this is state action
 		// so we'll just back up everything
+		System.out.println("Backing up " + n);
 		State s = n.getState();
 		Object a = n.getAction();
 		ArrayList<DecisionNode> dns = n.getChildren();
 		double costHere = maProdModGen.getStateActionReward(s, a, "time", RewardCalculation.MAX);
 		double progRew = maProdModGen.getProgressionReward(s, a);
+		System.out.println("Prog rew " + progRew);
 		Bounds prob = new Bounds();
 		Bounds prog = new Bounds();
 		int numRews = dns.get(0).getRews().size();
@@ -48,10 +50,15 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				cost = costs.get(i);
 				cost = cost.add(dn.getRewValueTimesTranProb(i, n));
 				costs.set(i, cost);
-
+				// TODO This may be wrong
+//				if (dn.isGoal || dn.isDeadend)
+//					costHere = 0;
 			}
 
 		}
+		if (n.leadToDeadend)
+			costHere = 0;
+
 		prog = prog.add(progRew);
 		for (int i = 0; i < numRews; i++) {
 			cost = costs.get(i);
@@ -60,15 +67,16 @@ public class BackupFunctionFullBellman implements BackupFunction {
 
 		}
 		prog = this.capProgressionRewards(prog);
-		
-		n.updateBounds(prob, prog, costs);
 
+		n.updateBounds(prob, prog, costs);
+		System.out.println("Backed up " + n);
 	}
 
 	@Override
 	public void backup(DecisionNode n) throws PrismException {
 		// TODO Auto-generated method stub
 
+		System.out.println("Backing up " + n);
 		// go over all children get min or max
 		// has to be done in tie breaking order
 		Entry<Object, ArrayList<Bounds>> upperBoundUpdate = Helper.updatedBoundsAndAction(n, true, tieBreakingOrder);
@@ -105,12 +113,13 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				throw new PrismException("Unimplemented Bounds update");
 			}
 		}
-		// now just update
+		System.out.println("Backed up " + n);
 
 	}
 
 	@Override
 	public double residual(DecisionNode n, boolean upperBound, float epsilon) throws PrismException {
+		System.out.println("Residual " + n);
 		if (n.isGoal || n.isDeadend)
 			return 0.0;
 		Entry<Object, ArrayList<Bounds>> boundUpdate = Helper.updatedBoundsAndAction(n, upperBound, tieBreakingOrder);
@@ -128,7 +137,7 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				break;
 			case Progression:
 				nb = n.getProg();
-				nb=capProgressionRewards(nb);
+				nb = capProgressionRewards(nb);
 				break;
 			case Cost:
 				nb = n.getRew(0);
@@ -144,19 +153,16 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				break;
 			}
 		}
-		// TODO Auto-generated method stub
+		System.out.println(res);
 		return res;
 	}
-	
-	Bounds capProgressionRewards(Bounds nb)
-	{
+
+	Bounds capProgressionRewards(Bounds nb) {
 		if (capProgression) {
-			nb.upper = Math.min(maxProgression,
-					nb.upper);
-			nb.lower = Math.min(maxProgression,
-					nb.lower);
+			nb.upper = Math.min(maxProgression, nb.upper);
+			nb.lower = Math.min(maxProgression, nb.lower);
 		}
-		return nb; 
+		return nb;
 	}
 
 	@Override
@@ -164,6 +170,7 @@ public class BackupFunctionFullBellman implements BackupFunction {
 		// backup a chance node
 		// tie breaking oder doesnt matter since this is state action
 		// so we'll just back up everything
+		System.out.println("Residual " + n);
 		State s = n.getState();
 		Object a = n.getAction();
 		ArrayList<DecisionNode> dns = n.getChildren();
@@ -189,32 +196,36 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				costs.set(i, cost);
 
 			}
-
+//			if (dn.isGoal || dn.isDeadend)
+//				costHere = 0;
 		}
 		prog = prog.add(progRew);
+		if (n.leadToDeadend)
+			costHere = 0;
 		for (int i = 0; i < numRews; i++) {
 			cost = costs.get(i);
 			cost = cost.add(costHere);
 			costs.set(i, cost);
 
 		}
+
 		prog = this.capProgressionRewards(prog);
-	
+
 		double res = 0;
 		for (int i = 0; i < tieBreakingOrder.size(); i++) {
 			Objectives obj = tieBreakingOrder.get(i);
-			Bounds b; 
+			Bounds b;
 			Bounds nb;
 			switch (obj) {
 
 			case Probability:
 				nb = n.getProbValue();
-				b = prob; 
+				b = prob;
 				break;
 			case Progression:
 				nb = n.getProg();
-				nb=capProgressionRewards(nb);
-				b = prog; 
+				nb = capProgressionRewards(nb);
+				b = prog;
 				break;
 			case Cost:
 				nb = n.getRew(0);
@@ -231,10 +242,12 @@ public class BackupFunctionFullBellman implements BackupFunction {
 				break;
 			}
 		}
+		System.out.println(res);
 		return res;
 	}
+
 	@Override
-	public  double residual(THTSNode n, boolean upperBound, float epsilon) throws PrismException {
+	public double residual(THTSNode n, boolean upperBound, float epsilon) throws PrismException {
 
 		if (n instanceof DecisionNode) {
 			return residual((DecisionNode) n, upperBound, epsilon);
@@ -244,8 +257,9 @@ public class BackupFunctionFullBellman implements BackupFunction {
 			throw new PrismException("Residual not implemented for this node");
 		}
 	}
+
 	@Override
-	public  void backup(THTSNode n) throws PrismException {
+	public void backup(THTSNode n) throws PrismException {
 		if (n instanceof DecisionNode) {
 			backup((DecisionNode) n);
 		} else if (n instanceof ChanceNode) {
