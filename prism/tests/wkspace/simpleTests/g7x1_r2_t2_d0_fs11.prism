@@ -1,0 +1,50 @@
+mdp
+const double p = 0.8;
+const int failstate = -1;
+const int open = 1;
+const int closed = 0;
+const int unknown = -1;
+
+
+module grid
+s:[failstate .. 7] init 3;
+[s0_s1] (s=0) -> 1.0:(s'=1);
+[s1_s2] (s=1) -> 1.0:(s'=2);
+[s1_s0] (s=1) -> p:(s'=0) + 1-p:(s'=failstate);
+[s2_s3] (s=2) -> 1.0:(s'=3);
+[s2_s1] (s=2) -> 1.0:(s'=1);
+[s3_s2] (s=3) -> 1.0:(s'=2);
+[s3_s4] (s=3) -> 1.0:(s'=4);
+[s4_s3] (s=4) -> 1.0:(s'=3);
+[s4_s5] (s=4) -> 1.0:(s'=5);
+[s5_s6] (s=5) -> 1.0:(s'=6);
+[s5_s4] (s=5) -> 1.0:(s'=4);
+[s6_s5] (s=6) -> 1.0:(s'=5);
+[failed] (s=failstate) -> 1.0:(s'=failstate);
+endmodule
+
+
+label "s3" = (s=3);
+label "s2" = (s=2);
+label "s1" = (s=1);
+label "s0" = (s=0);
+label "s6" = (s=6);
+label "s5" = (s=5);
+label "s4" = (s=4);
+
+
+rewards"time"
+[s0_s1] (s=0) : 1.0;
+[s1_s2] (s=1) : 1.0;
+[s1_s0] (s=1) : 1.0;
+[s2_s3] (s=2) : 1.0;
+[s2_s1] (s=2) : 1.0;
+[s3_s2] (s=3) : 1.0;
+[s3_s4] (s=3) : 1.0;
+[s4_s3] (s=4) : 1.0;
+[s4_s5] (s=4) : 1.0;
+[s5_s6] (s=5) : 1.0;
+[s5_s4] (s=5) : 1.0;
+[s6_s5] (s=6) : 1.0;
+[failed] (s=failstate) : 1.0;
+endrewards

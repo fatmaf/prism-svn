@@ -1,0 +1,10 @@
+3,3,300
+[(0,0,300)*{"fill":False,"isInitPos":False,"isGoalPos":True,"isFailState":True,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(0,1,300)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(0,2,300)*{"fill":False,"isInitPos":True,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(1,0,300)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(1,1,300)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":True,"isDoor":False,"otherDoor":None}]
+[(1,2,300)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(2,0,300)*{"fill":False,"isInitPos":True,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(2,1,300)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
+[(2,2,300)*{"fill":False,"isInitPos":False,"isGoalPos":True,"isFailState":True,"isAvoidState":False,"isDoor":False,"otherDoor":None}]
