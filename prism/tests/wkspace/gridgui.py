@@ -19,6 +19,7 @@ appState = MAP
 gridArray = None
 blockedCells = None
 doorPairs = []
+fn = ""
 
 class Cell():
     FILLED_COLOR_BG = "black"
@@ -51,6 +52,9 @@ class Cell():
         self.isAvoidState = False
         self.isDoor = False
         self.otherDoor = None
+        self.label = str(x)+","+str(y)
+        self.defaultLabel = str(x)+","+str(y)
+        
 
     def __str__(self):
         strrep = '[(%d,%d,%d)*{"fill":%s,"isInitPos":%s,"isGoalPos":%s,"isFailState":%s,"isAvoidState":%s,"isDoor":%s' % (self.ord,self.abs,self.size,str(self.fill),str(self.isInitPos),str(self.isGoalPos),str(self.isFailState),str(self.isAvoidState),str(self.isDoor))
@@ -126,8 +130,15 @@ class Cell():
             xmax = xmin + self.size
             ymin = self.ord * self.size
             ymax = ymin + self.size
+            xc = (xmax-xmin)/2 + xmin
+            yc = (ymax-ymin)/2 + ymin
 
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
+            #mylabel = canvas.create_text((400, 190), text="Label text")
+            self.master.create_text((xc,yc),text=self.label)
+            #if self.label is not self.defaultLabel:
+            #    print self.label 
+            
 
 class CellGrid(Canvas):
     def __init__(self,fromFile,fn,master, rowNumber, columnNumber, cellSize, *args, **kwargs):
@@ -321,8 +332,11 @@ def processDoors():
                     
 def allDone():
 
-    global app
-    app.update()
+    #global app
+    #app.update()
+
+    global fn
+    
     fn = tkFileDialog.asksaveasfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles",title="Save file as", filetypes=(("grid",".grid"),("prism",".prism"),("prop",".prop"),("props",".props"),("all files","*.*")))
     app.update()
     fn = fn.split('.')[0]
@@ -414,13 +428,34 @@ def allDone():
     global xside
     global yside
 
-    gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
+    smap=gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
+    for ij in smap:
+        i = ij[0]
+        j = ij[1]
+        lab = smap[ij]
+        gridArray[i][j].label = lab
+        gridArray[i][j].draw()
+
+        
+    global app
+    #app.update()
+    
     #just a for loop to wait for the dialog to close
     for i in range(1000000):
         xx=i
-        
-    global app
+    for i in range(1000000):
+        xx=i
+    for i in range(1000000):
+        xx=i
+
     #cv = Canvas(app)
+    import os
+    comm = "import -window root "+fn+".png"
+    os.system(comm)
+    #cv.postscript(file=fn+"_img.ps", colormode='color')
+
+def screenshot():
+    global fn 
     import os
     comm = "import -window root "+fn+".png"
     os.system(comm)
@@ -453,12 +488,12 @@ if __name__ == "__main__" :
     
     if not loadGridFromFile:
         global xside
-        xside= tkSimpleDialog.askinteger('Num cells x','Num cells x',initialvalue=5,minvalue=2,maxvalue=100)
+        xside= tkSimpleDialog.askinteger('Num cells x','Num cells x',initialvalue=5,minvalue=1,maxvalue=100)
         if xside is None:
             xside = 5
         #xside = int(input("Enter x side"))
         global yside
-        yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=2,maxvalue=100)
+        yside = tkSimpleDialog.askinteger('Num cells y','Num cells y',initialvalue=5,minvalue=1,maxvalue=100)
         if yside is None:
             yside = 5
     else:
@@ -475,6 +510,7 @@ if __name__ == "__main__" :
     menu.add_command(label='Avoid States', command=addAvoidStates)
     menu.add_command(label='Add Doors', command=addDoorStates)
     menu.add_command(label='Add Door Pair' , command= processDoors)
+    menu.add_command(label='Screenshot', command=screenshot)
     
     menu.add_command(label='done',command=allDone)
     #menu.add_command(label='load file',command=loadFile)
@@ -490,8 +526,9 @@ if __name__ == "__main__" :
     #doing some calculations
     #if its 50 then is bad for 20
     #so say for a 15 by 15 it works
-    
-    area = xside*yside
+
+    sside = max(xside,yside)
+    area = sside*sside
     fullsize = area*size*size
     maxsize = 18*18*50*50
     newsize = maxsize/area

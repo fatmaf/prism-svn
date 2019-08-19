@@ -416,6 +416,7 @@ class GeneratePrismFile(object):
         pfr.writeGoalStatesAvoid(newGoalStates,newAvoidStates,varname,fn+'.props')
         pfr.writeGoalStatesSplitAvoidLabels(newGoalStates,newAvoidStates,varname,fn+'.prop')
         print smap
+        return smap 
         
    
 
