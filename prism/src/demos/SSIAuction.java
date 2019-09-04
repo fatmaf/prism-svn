@@ -2,9 +2,12 @@ package demos;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Map.Entry;
 
 import explicit.MDP;
 import explicit.MDPModelChecker;
@@ -27,7 +30,32 @@ import simulator.ModulesFileModelGenerator;
 public class SSIAuction
 {
 
-	public static void main(String[] args)
+	public Entry<Integer, Double> getSingleAgentBid(MDP agentMDP, ArrayList<Expression> taskSet, Expression agentTasks, ExpressionReward rewardExpr,
+			MDPModelChecker mc) throws PrismException
+	{
+		Expression bidPick = null;
+		double bidValue = 100000;
+		//		Expression robotTasks = null;
+		Expression currentTask = null;
+		int indexOfChosenTask = -1;
+
+		for (int exprNum = 0; exprNum < taskSet.size(); exprNum++) {
+			currentTask = taskSet.get(exprNum);
+			if (agentTasks != null)
+				currentTask = Expression.And(agentTasks, currentTask);
+			StateValues nvicosts = mc.checkPartialSatExposed(agentMDP, currentTask, rewardExpr, null);
+			double costInInitState = nvicosts.getDoubleArray()[agentMDP.getFirstInitialState()];
+			if (costInInitState < bidValue) {
+				bidPick = taskSet.get(exprNum);
+				bidValue = costInInitState;
+				indexOfChosenTask = exprNum;
+			}
+
+		}
+		return new AbstractMap.SimpleEntry<Integer, Double>(indexOfChosenTask, bidValue);
+	}
+
+	public void run()
 	{
 		try {
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
@@ -60,34 +88,60 @@ public class SSIAuction
 			int numOp = expr.getNumOperands();
 			ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
 			MDPModelChecker mc = new MDPModelChecker(prism);
-//			mc.setConstantValues(propertiesFile.getConstantValues());
+			//			mc.setConstantValues(propertiesFile.getConstantValues());
 			mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, new ModulesFileModelGenerator(modulesFile, prism));
-			
-			
-		
-			
-			ExpressionReward rewExpr = null; 
+
+			ExpressionReward rewExpr = null;
 			for (int exprNum = 0; exprNum < numOp; exprNum++) {
 				ltlExpressions.add((expr.getOperand(exprNum)));
 				//full expression 
 				mainLog.println(ltlExpressions.get(exprNum));
-				if(ltlExpressions.get(exprNum) instanceof ExpressionReward)
+				if (ltlExpressions.get(exprNum) instanceof ExpressionReward)
 					rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
+
+			}
+			Expression safetyExpr = ((ExpressionQuant) ltlExpressions.get(numOp - 1)).getExpression();
+			ArrayList<Expression> taskSet = new ArrayList<Expression>();
+
+			for (int exprNum = 0; exprNum < numOp - 1; exprNum++) {
 				//just the formula 
 				boolean min = false;
-				mainLog.println(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression());
-				Result result = mc.check(mdp, ltlExpressions.get(exprNum));
-				// mc.computeReachProbs(mdp, target, min)
-				System.out.println(result.getResult());
-//				StateValues meh = mc.checkPartialSatExposed(mdp,  ltlExpressions.get(exprNum), null);
-				StateValues meh = mc.checkPartialSatExposed(mdp, 
-						((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(),rewExpr, null);
-//				BitSet statesGoal = mc.checkExpression(mdp, ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(), null).getBitSet();
-//				ModelCheckerResult result = mc.computeReachProbs(mdp, statesGoal, min);
-//				double probsGoal[] = result.soln;
-//				System.out.println(Arrays.toString(probsGoal));
+				Expression currentExpr = ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression();
+				Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
+				taskSet.add(currentExprWithSafetyExpr);
+				////				((ExpressionQuant) ltlExpressions.get(exprNum)).setExpression(meh);
+				//				mainLog.println(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression());
+				//				Result result = mc.check(mdp, ltlExpressions.get(exprNum));
+				//				// mc.computeReachProbs(mdp, target, min)
+				//				mainLog.println(result.getResult());
+				////				StateValues meh = mc.checkPartialSatExposed(mdp,  ltlExpressions.get(exprNum), null);
+				//				StateValues nvicosts = mc.checkPartialSatExposed(mdp, 
+				////						((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(),
+				//						currentExprWithSafetyExpr,
+				//						rewExpr, null);
+				//				double costInInitState=nvicosts.getDoubleArray()[mdp.getFirstInitialState()];
+				//				mainLog.println(costInInitState);
+				////				BitSet statesGoal = mc.checkExpression(mdp, ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(), null).getBitSet();
+				////				ModelCheckerResult result = mc.computeReachProbs(mdp, statesGoal, min);
+				////				double probsGoal[] = result.soln;
+				////				System.out.println(Arrays.toString(probsGoal));
 			}
 
+			Expression robotTasks = null;
+
+			while (!taskSet.isEmpty()) {
+
+				Entry<Integer, Double> bid = getSingleAgentBid(mdp, taskSet, robotTasks, rewExpr, mc);
+				int indexOfChosenTask = bid.getKey();
+				double bidValue = bid.getValue();
+				Expression bidPick = taskSet.get(indexOfChosenTask);
+				taskSet.remove(indexOfChosenTask);
+				if (robotTasks == null) {
+					robotTasks = bidPick;
+				} else {
+					robotTasks = Expression.And(robotTasks, bidPick);
+				}
+			}
 
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
@@ -96,5 +150,11 @@ public class SSIAuction
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public static void main(String[] args)
+	{
+
+		new SSIAuction().run();
 	}
 }
