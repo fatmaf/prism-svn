@@ -13,6 +13,7 @@ import explicit.MDP;
 import explicit.MDPModelChecker;
 import explicit.ModelCheckerResult;
 import explicit.StateValues;
+import parser.ast.ASTElement;
 import parser.ast.Expression;
 import parser.ast.ExpressionFunc;
 import parser.ast.ExpressionQuant;
@@ -167,6 +168,7 @@ public class SSIAuction
 			for (int i = 0; i < numRobots; i++) {
 				mainLog.println(i + ":" + robotsTasks.get(i).toString());
 				mcs.get(i).setGenStrat(true);
+
 				Strategy nviStrategy = mcs.get(i).checkPartialSatExprReturnStrategy(mdps.get(i), robotsTasks.get(i), 
 						rewExpr, null);
 				
