@@ -26,6 +26,7 @@ import prism.PrismFileLog;
 import prism.PrismLog;
 import prism.Result;
 import simulator.ModulesFileModelGenerator;
+import strat.Strategy;
 
 public class SSIAuction
 {
@@ -55,6 +56,36 @@ public class SSIAuction
 		return new AbstractMap.SimpleEntry<Integer, Double>(indexOfChosenTask, bidValue);
 	}
 
+	public Entry<ExpressionReward, ArrayList<Expression>> processProperties(PropertiesFile propertiesFile, PrismLog mainLog)
+	{
+		// Model check the first property from the file using the model checker
+		for (int i = 0; i < propertiesFile.getNumProperties(); i++)
+			mainLog.println(propertiesFile.getProperty(i));
+		ExpressionFunc expr = (ExpressionFunc) propertiesFile.getProperty(0);
+		int numOp = expr.getNumOperands();
+		ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
+
+		ExpressionReward rewExpr = null;
+		for (int exprNum = 0; exprNum < numOp; exprNum++) {
+			ltlExpressions.add((expr.getOperand(exprNum)));
+			//full expression 
+			mainLog.println(ltlExpressions.get(exprNum));
+			if (ltlExpressions.get(exprNum) instanceof ExpressionReward)
+				rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
+
+		}
+		Expression safetyExpr = ((ExpressionQuant) ltlExpressions.get(numOp - 1)).getExpression();
+		ArrayList<Expression> taskSet = new ArrayList<Expression>();
+
+		for (int exprNum = 0; exprNum < numOp - 1; exprNum++) {
+
+			Expression currentExpr = ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression();
+			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
+			taskSet.add(currentExprWithSafetyExpr);
+		}
+		return new AbstractMap.SimpleEntry<ExpressionReward, ArrayList<Expression>>(rewExpr, taskSet);
+	}
+
 	public void run()
 	{
 		try {
@@ -68,81 +99,81 @@ public class SSIAuction
 			Prism prism = new Prism(mainLog);
 
 			prism.initialise();
-
-			// Parse and load a PRISM model from a file
-			ModulesFile modulesFile = prism.parseModelFile(new File(saveplace + filename + "0.prism"));
-			prism.loadPRISMModel(modulesFile);
-
-			// Parse and load a properties model for the model
-			PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + ".prop"));
-
-			// Get PRISM to build the model and then extract it
 			prism.setEngine(Prism.EXPLICIT);
-			prism.buildModel();
-			MDP mdp = (MDP) prism.getBuiltModelExplicit();
 
-			// Model check the first property from the file using the model checker
-			for (int i = 0; i < propertiesFile.getNumProperties(); i++)
-				mainLog.println(propertiesFile.getProperty(i));
-			ExpressionFunc expr = (ExpressionFunc) propertiesFile.getProperty(0);
-			int numOp = expr.getNumOperands();
-			ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
-			MDPModelChecker mc = new MDPModelChecker(prism);
-			//			mc.setConstantValues(propertiesFile.getConstantValues());
-			mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, new ModulesFileModelGenerator(modulesFile, prism));
+			int numRobots = 2; //numRobots
 
-			ExpressionReward rewExpr = null;
-			for (int exprNum = 0; exprNum < numOp; exprNum++) {
-				ltlExpressions.add((expr.getOperand(exprNum)));
-				//full expression 
-				mainLog.println(ltlExpressions.get(exprNum));
-				if (ltlExpressions.get(exprNum) instanceof ExpressionReward)
-					rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
+			ArrayList<MDP> mdps = new ArrayList<MDP>();
+			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
+			PropertiesFile propertiesFile = null;
 
-			}
-			Expression safetyExpr = ((ExpressionQuant) ltlExpressions.get(numOp - 1)).getExpression();
-			ArrayList<Expression> taskSet = new ArrayList<Expression>();
-
-			for (int exprNum = 0; exprNum < numOp - 1; exprNum++) {
-				//just the formula 
-				boolean min = false;
-				Expression currentExpr = ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression();
-				Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
-				taskSet.add(currentExprWithSafetyExpr);
-				////				((ExpressionQuant) ltlExpressions.get(exprNum)).setExpression(meh);
-				//				mainLog.println(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression());
-				//				Result result = mc.check(mdp, ltlExpressions.get(exprNum));
-				//				// mc.computeReachProbs(mdp, target, min)
-				//				mainLog.println(result.getResult());
-				////				StateValues meh = mc.checkPartialSatExposed(mdp,  ltlExpressions.get(exprNum), null);
-				//				StateValues nvicosts = mc.checkPartialSatExposed(mdp, 
-				////						((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(),
-				//						currentExprWithSafetyExpr,
-				//						rewExpr, null);
-				//				double costInInitState=nvicosts.getDoubleArray()[mdp.getFirstInitialState()];
-				//				mainLog.println(costInInitState);
-				////				BitSet statesGoal = mc.checkExpression(mdp, ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression(), null).getBitSet();
-				////				ModelCheckerResult result = mc.computeReachProbs(mdp, statesGoal, min);
-				////				double probsGoal[] = result.soln;
-				////				System.out.println(Arrays.toString(probsGoal));
+			//load the files 
+			//could be a seprate function 
+			for (int i = 0; i < numRobots; i++) {
+				String modelFileName = saveplace + filename + i + ".prism";
+				ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
+				prism.loadPRISMModel(modulesFile);
+				propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + ".prop"));
+				prism.buildModel();
+				MDP mdp = (MDP) prism.getBuiltModelExplicit();
+				mdps.add(mdp);
+				MDPModelChecker mc = new MDPModelChecker(prism);
+				mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, new ModulesFileModelGenerator(modulesFile, prism));
+				mcs.add(mc);
 			}
 
-			Expression robotTasks = null;
+			//do things to the properties 
+
+			ArrayList<Expression> robotsTasks = new ArrayList<Expression>();
+			for (int i = 0; i < numRobots; i++)
+				robotsTasks.add(null);
+			Entry<ExpressionReward, ArrayList<Expression>> processedProperties = processProperties(propertiesFile, mainLog);
+			ExpressionReward rewExpr = processedProperties.getKey();
+
+			ArrayList<Expression> taskSet = processedProperties.getValue();
 
 			while (!taskSet.isEmpty()) {
 
-				Entry<Integer, Double> bid = getSingleAgentBid(mdp, taskSet, robotTasks, rewExpr, mc);
-				int indexOfChosenTask = bid.getKey();
-				double bidValue = bid.getValue();
-				Expression bidPick = taskSet.get(indexOfChosenTask);
-				taskSet.remove(indexOfChosenTask);
-				if (robotTasks == null) {
-					robotTasks = bidPick;
-				} else {
-					robotTasks = Expression.And(robotTasks, bidPick);
+				int bestBidIndex = -1;
+				double bestBidValue = 10000;
+				Expression bestBidExpression = null;
+				int bestBidRobotIndex = -1;
+
+				for (int i = 0; i < numRobots; i++) {
+					Entry<Integer, Double> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i));
+					int bidTaskIndex = bid.getKey();
+					double bidValue = bid.getValue();
+
+					if (bidValue < bestBidValue) {
+						bestBidValue = bidValue;
+						bestBidIndex = bidTaskIndex;
+						bestBidRobotIndex = i;
+						bestBidExpression = taskSet.get(bestBidIndex);
+					}
 				}
+				Expression robotTasks = robotsTasks.get(bestBidRobotIndex);
+				if (robotTasks != null) {
+					bestBidExpression = Expression.And(robotTasks, bestBidExpression);
+
+				}
+				robotsTasks.set(bestBidRobotIndex, bestBidExpression);
+				taskSet.remove(bestBidIndex);
+
 			}
 
+			//print task distribution and get strategy 
+			ArrayList<Strategy> nviStrategies = new ArrayList<Strategy>();
+			mainLog.println("Assigned Tasks");
+			for (int i = 0; i < numRobots; i++) {
+				mainLog.println(i + ":" + robotsTasks.get(i).toString());
+				mcs.get(i).setGenStrat(true);
+				Strategy nviStrategy = mcs.get(i).checkPartialSatExprReturnStrategy(mdps.get(i), robotsTasks.get(i), 
+						rewExpr, null);
+				
+				nviStrategies.add(nviStrategy);
+			}
+
+			
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
