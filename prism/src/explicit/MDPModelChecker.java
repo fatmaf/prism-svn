@@ -26,6 +26,7 @@
 
 package explicit;
 
+import java.util.AbstractMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,6 +36,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
@@ -259,7 +261,7 @@ public class MDPModelChecker extends ProbModelChecker
 		return costs;
 
 	}
-	public Strategy checkPartialSatExprReturnStrategy(Model model, Expression expr,ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
+	public Entry<MDP,MDStrategy> checkPartialSatExprReturnStrategy(Model model, Expression expr,ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
 	{
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
@@ -417,7 +419,7 @@ public class MDPModelChecker extends ProbModelChecker
 			out.close();
 		}
 
-		return res.strat; 
+		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
 
 	}
 	protected StateValues checkPartialSat(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
