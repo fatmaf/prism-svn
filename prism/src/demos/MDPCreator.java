@@ -26,6 +26,9 @@ import prism.PrismLog;
  * so reusable code 
  * I will probably add reward structures to this too 
  * cuz like bus yaar 
+ * 
+ * hey old me this was a really great move 
+ * i'm proud of you =D 
  */
 public class MDPCreator
 {
