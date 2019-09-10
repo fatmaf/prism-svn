@@ -2,9 +2,6 @@ package demos;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -15,10 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Stream;
-
 import acceptance.AcceptanceType;
-import cern.colt.Arrays;
 import demos.ResultsTiming.varIDs;
 import explicit.LTLModelChecker;
 import explicit.MDP;
@@ -26,7 +20,6 @@ import explicit.MDPModelChecker;
 import explicit.MDPSparse;
 import explicit.Model;
 import explicit.ModelCheckerMultipleResult;
-import explicit.ModelCheckerResult;
 import explicit.ProbModelChecker;
 import explicit.StateValues;
 import explicit.LTLModelChecker.LTLProduct;
