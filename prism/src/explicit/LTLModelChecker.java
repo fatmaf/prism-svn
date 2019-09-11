@@ -202,7 +202,106 @@ public class LTLModelChecker extends PrismComponent {
 		}
 		return expr;
 	}
+	/**
+	 * Extract maximal state formula from an LTL path formula and replace them with ExpressionLabel objects L0, L1, etc.
+	 * The expression passed in is modified directly, but the result is also returned. Duplicate maximal state formulae
+	 * (or their negations) reuse the same label. The maximal state formula expressions are put into the list {@code labelExprs},
+	 * which should be empty when this function is called.
+	 */
+	public Expression extractMaximalStateFormulas(Expression expr, List<Expression> labelExprs) throws PrismException
+	{
+		// A state formula
+		if (expr.getType() instanceof TypeBool) {
+			Expression expr2 = (Expression) expr.deepCopy().simplify();
+			// True/false can be returned directly
+			if (Expression.isFalse(expr2) || Expression.isTrue(expr2)) {
+				return expr2;
+			}
+			// See if we already have an identical expression
+			// (in which case, reuse it)
+			int i = labelExprs.indexOf(expr2);
+			if (i != -1) {
+				return new ExpressionLabel("L" + i);
+			}
+			// Also, see if we already have the negation of this result
+			// (in which case, reuse it)
+			i = labelExprs.indexOf(Expression.Not(expr2));
+			if (i != -1) {
+				return Expression.Not(new ExpressionLabel("L" + i));
+			}
+			if (Expression.isNot(expr2)) {
+				i = labelExprs.indexOf(((ExpressionUnaryOp) expr2).getOperand());
+				if (i != -1) {
+					return Expression.Not(new ExpressionLabel("L" + i));
+				}
+			}
+			// Otherwise, add expression to list, return new label
+			labelExprs.add(expr2);
+			return new ExpressionLabel("L" + (labelExprs.size() - 1));
+		}
+		// A path formula (recurse, modify, return)
+		else if (expr.getType() instanceof TypePathBool) {
+			if (expr instanceof ExpressionBinaryOp) {
+				ExpressionBinaryOp exprBinOp = (ExpressionBinaryOp) expr;
+				exprBinOp.setOperand1(extractMaximalStateFormulas(exprBinOp.getOperand1(), labelExprs));
+				exprBinOp.setOperand2(extractMaximalStateFormulas(exprBinOp.getOperand2(), labelExprs));
+			} else if (expr instanceof ExpressionUnaryOp) {
+				ExpressionUnaryOp exprUnOp = (ExpressionUnaryOp) expr;
+				exprUnOp.setOperand(extractMaximalStateFormulas(exprUnOp.getOperand(), labelExprs));
+			} else if (expr instanceof ExpressionTemporal) {
+				ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+				if (exprTemp.getOperand1() != null) {
+					exprTemp.setOperand1(extractMaximalStateFormulas(exprTemp.getOperand1(), labelExprs));
+				}
+				if (exprTemp.getOperand2() != null) {
+					exprTemp.setOperand2(extractMaximalStateFormulas(exprTemp.getOperand2(), labelExprs));
+				}
+			}
+		}
+		return expr;
+	}
+	/**
+	 * Construct a deterministic automaton (DA) for an LTL formula, having first extracted maximal state formulas.
+	 * The maximal state formulas are assigned labels (L0, L1, etc.) which become the atomic propositions in the resulting DA.
+	 * Expressions for each label are put into the list {@code labelExprs}, which should be empty when this function is called.
+	 *
+	 * @param expr a path expression, i.e. the LTL formula
+	 * @param labelExprs empty list to be filled with Expressions for subformulas 
+	 * @param allowedAcceptance the allowed acceptance types
+	 * @return the DA
+	 */
+	public DA<BitSet,? extends AcceptanceOmega> constructExpressionDAForLTLFormula(Expression expr, List<Expression> labelExprs, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		Expression ltl;
+		DA<BitSet,? extends AcceptanceOmega> da;
+		long time;
 
+		if (Expression.containsTemporalTimeBounds(expr) && !expr.isSimplePathFormula()) {
+			throw new PrismNotSupportedException("Time-bounded operators not supported in LTL: " + expr);
+		}
+
+		// Extract check maximal state formulas
+		ltl = extractMaximalStateFormulas(expr.deepCopy(), labelExprs);
+
+		// Convert LTL formula to deterministic automaton
+		mainLog.println("\nBuilding deterministic automaton (for " + ltl + ")...");
+		time = System.currentTimeMillis();
+		LTL2DA ltl2da = new LTL2DA(this);
+		da = ltl2da.convertLTLFormulaToDA(ltl, null, allowedAcceptance);
+		mainLog.println(da.getAutomataType()+" has " + da.size() + " states, " + da.getAcceptance().getSizeStatistics() + ".");
+		da.checkForCanonicalAPs(labelExprs.size());
+		time = System.currentTimeMillis() - time;
+		mainLog.println("Time for "+da.getAutomataType()+" translation: " + time / 1000.0 + " seconds.");
+		// If required, export DA
+		if (settings.getExportPropAut()) {
+			mainLog.println("Exporting " + da.getAutomataType() + " to file \"" + settings.getExportPropAutFilename() + "\"...");
+			PrintStream out = PrismUtils.newPrintStream(settings.getExportPropAutFilename());
+			da.print(out, settings.getExportPropAutType());
+			out.close();
+		}
+		
+		return da;
+	}
 	/**
 	 * Construct a deterministic automaton (DA) for an LTL formula, having first
 	 * extracted maximal state formulas and model checked them with the passed
