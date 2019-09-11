@@ -230,6 +230,33 @@ class PrismFileReader(object):
 
         return goalString
 
+
+    def createGoalStatesAvoidReward(self,gs,avoid,gVar,rewName):
+        goalVariable = None
+        for modVar in self.modVars:
+            if gVar in modVar.variables:
+                goalVariable = modVar.variables[gVar]
+        
+        prefix = "R"+"{"+rewName+"}max=? [ "
+        goalString = prefix
+        for i in range(len(gs)):
+            stateString = "(F ("+gVar+"="+str(gs[i])+") )"
+            if (i != len(gs)-1):
+                goalString = goalString + stateString + "& "
+            else:
+                goalString = goalString + stateString
+
+        for i in range(len(avoid)):
+            stateString = " & (G ( ! ("+gVar+"="+str(avoid[i])+") ) ) "
+            goalString = goalString + stateString
+            
+        goalString = goalString + "]"
+
+        return goalString
+    
+    
+    
+    
     def findLabel(self,src):
         for label in self.labels:
             lsrc = self.labels[label]
@@ -310,6 +337,7 @@ class PrismFileReader(object):
         #print goalString 
 
         return goalString
+
     
     def writeGoalStates(self,gs,gVar,fn):
         goalString = self.createGoalStates(gs,gVar)
@@ -321,6 +349,10 @@ class PrismFileReader(object):
         
     def writeGoalStatesAvoid(self,gs,avoid,gVar,fn):
         goalString = self.createGoalStatesAvoid(gs,avoid,gVar)
+        self.writeLinesToFile([goalString],fn)
+
+    def writeGoalStatesAvoidReward(self,gs,avoid,gVar,fn,rewName):
+        goalString = self.createGoalStatesAvoidReward(gs,avoid,gVar,rewName)
         self.writeLinesToFile([goalString],fn)
         
     def writeGoalStatesSplitAvoidLabels(self,gs,avoid,gVar,fn):
