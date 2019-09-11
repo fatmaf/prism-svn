@@ -184,7 +184,12 @@ public class TempXAI
 		
 		
 		Expression expr = exprRew.getExpression();
-		Strategy strat = mc.checkPartialSatExprReturnStrategy(mdp,expr,exprRew,null);
+		Entry<MDP, MDStrategy> prodStratPair = mc.checkPartialSatExprReturnStrategy(mdp,expr,exprRew,null);
+		MDStrategy strat = prodStratPair.getValue(); 
+		MDP productMDP = prodStratPair.getKey();
+		PolicyCreator pc = new PolicyCreator(); 
+		pc.createPolicy(mdp, strat);
+		pc.savePolicy(saveplace + "results/", "xai_"+filename+"_policy");
 //		double probsGoal[] = mc.computeReachProbs(mdp, statesGoal, false).soln;
 //		System.out.println(Arrays.toString(probsGoal));
 		

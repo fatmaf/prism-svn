@@ -9,6 +9,7 @@ import java.util.Stack;
 
 import explicit.MDP;
 import explicit.MDPSimple;
+import explicit.MDPSparse;
 import parser.State;
 import prism.PrismException;
 import prism.PrismFileLog;
@@ -30,10 +31,13 @@ public class PolicyCreator
 	public MDPSimple createPolicy(MDP productMdp, Strategy strat) throws PrismException
 	{
 		int initialState = productMdp.getFirstInitialState();
-		return createPolicy(initialState, (MDPSimple) productMdp, strat);
+//		if(productMdp instanceof MDPSimple)
+		return createPolicy(initialState, /*(MDPSimple)*/ productMdp, strat);
+//		if(productMdp instanceof MDPSparse)
+//			return createPolicy(initialState, (MDPSparse) productMdp, strat);
 	}
 
-	int findActionIndex(MDPSimple mdp, int s, Object a)
+	int findActionIndex(MDP mdp, int s, Object a)
 	{
 		int numChoices = mdp.getNumChoices(s);
 		int actionIndex = -1;
@@ -50,7 +54,7 @@ public class PolicyCreator
 		return actionIndex;
 	}
 
-	private MDPSimple createPolicy(int initialState, MDPSimple mdp, Strategy strat)
+	private MDPSimple createPolicy(int initialState, MDP mdp, Strategy strat)
 	{
 		Stack<Integer> toVisit = new Stack<Integer>();
 		BitSet visited = new BitSet();
@@ -84,6 +88,7 @@ public class PolicyCreator
 		}
 		return mdpCreator.mdp;
 	}
+
 
 
 
