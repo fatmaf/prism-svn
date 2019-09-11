@@ -14,7 +14,6 @@ import acceptance.AcceptanceReach;
 
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Stack;
 import java.lang.Double;
 
 import explicit.Distribution;
@@ -28,7 +27,6 @@ import prism.PrismException;
 import prism.PrismLangException;
 import prism.PrismLog;
 import strat.MDStrategyArray;
-import strat.Strategy.Choice;
 
 /*
  * An attempt to clean up code 
