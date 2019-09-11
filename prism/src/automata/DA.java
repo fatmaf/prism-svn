@@ -473,6 +473,9 @@ public class DA<Symbol, Acceptance extends AcceptanceOmega>
 		// We are fine with an empty apList or an apList that lacks some of the expected Li.
 	}
 
+	
+		
+	
 	/**
 	 * Sets the list of distances (weighed by number of transitions) to an accepting state (if the acceptance type is AcceptanceReach)
 	 */
