@@ -10,6 +10,7 @@ import automata.DA;
 import common.IterableStateSet;
 import explicit.LTLModelChecker;
 import explicit.MDP;
+import explicit.MDPModelChecker;
 import explicit.Model;
 import explicit.ProbModelChecker;
 import explicit.LTLModelChecker.LTLProduct;
@@ -120,6 +121,50 @@ public class DAInfo {
 				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
 		return product;
 	}
+
+	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL, MDPModelChecker mcProb,
+			 AcceptanceType[] accType, M model, BitSet statesOfInterest, boolean allStatesInDFA)
+			throws PrismException {
+		labelBS = new Vector<BitSet>();
+//		mcProb.setModulesFile(modulesFile);
+//		mcProb.setConstantValues(modulesFile.getConstantValues());
+		ModulesFile modulesFile = mcProb.getModulesFile();
+		da = mcLTL.constructDAForLTLFormula(mcProb, model, daExpr, labelBS, accType);
+		if (!(da.getAcceptance() instanceof AcceptanceReach)) {
+			mainLog.println("\nAutomaton is not a DFA... ");
+			throw new PrismException("Automaton is not a DFA "+daExpr.toString());
+		}
+		
+		// else {
+		// BitSet acceptingStates = ((AcceptanceReach)
+		// da.getAcceptance()).getGoalStates();
+		// }
+
+		LTLProduct<M> product = mcLTL.constructProductModel(da, model, labelBS, statesOfInterest, allStatesInDFA);
+
+		// update labelBS
+		Vector<BitSet> newLabelBS = new Vector<BitSet>();
+		for (int bs = 0; bs < labelBS.size(); bs++)
+			newLabelBS.add(product.liftFromAutomaton(labelBS.get(bs)));
+		productAcceptingStates = ((AcceptanceReach) product.getAcceptance()).getGoalStates();
+
+		// rewards
+		if (daExprRew != null) {
+
+			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(modulesFile,
+					modulesFile.getConstantValues());
+			// commenting this out because its giving the error Error: Could not evaluate
+			// constant ("failstate", line 166, column 20).
+			// we know this is because I'm not intializing this properly cuz i'm lazy and
+			// prism code is confusing
+			// but its okay we can do this later
+			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
+		}
+		mainLog.println("Product Model Initial States " + product.getProductModel().getFirstInitialState() + " "
+				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
+		return product;
+	}
+
 	
 	public BitSet getEssentialStates(MDP prod) {
 		// check if an accepting state is connected to a non accepting state
