@@ -89,6 +89,7 @@ public class ModelCheckWithExplicitEngine
 			
 			// Model check the first property from the file using the model checker
 			System.out.println(propertiesFile.getPropertyObject(0));
+			
 			Result result = mc.check(mdp, propertiesFile.getProperty(0));
 			// mc.computeReachProbs(mdp, target, min)
 			System.out.println(result.getResult());

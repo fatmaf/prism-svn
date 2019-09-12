@@ -30,6 +30,7 @@ import prism.Prism;
 import prism.PrismDevNullLog;
 import prism.PrismException;
 import prism.PrismFileLog;
+import prism.PrismLangException;
 import prism.PrismLog;
 import prism.Result;
 import simulator.ModulesFileModelGenerator;
@@ -43,6 +44,7 @@ public class SSIAuction
 	public Entry<Integer, Double> getSingleAgentBid(MDP agentMDP, ArrayList<Expression> taskSet, Expression agentTasks, ExpressionReward rewardExpr,
 			MDPModelChecker mc) throws PrismException
 	{
+
 		Expression bidPick = null;
 		double bidValue = 100000;
 		//		Expression robotTasks = null;
@@ -95,11 +97,96 @@ public class SSIAuction
 		return new AbstractMap.SimpleEntry<ExpressionReward, ArrayList<Expression>>(rewExpr, taskSet);
 	}
 
+	public ArrayList<Expression> auctionTasks(ArrayList<Expression> taskSet, int numRobots, ArrayList<MDP> mdps, ExpressionReward rewExpr,
+			ArrayList<MDPModelChecker> mcs) throws PrismException
+	{
+		ArrayList<Expression> robotsTasks = new ArrayList<Expression>();
+
+		for (int i = 0; i < numRobots; i++)
+			robotsTasks.add(null);
+
+		while (!taskSet.isEmpty()) {
+
+			int bestBidIndex = -1;
+			double bestBidValue = 10000;
+			Expression bestBidExpression = null;
+			int bestBidRobotIndex = -1;
+
+			for (int i = 0; i < numRobots; i++) {
+				Entry<Integer, Double> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i));
+				int bidTaskIndex = bid.getKey();
+				double bidValue = bid.getValue();
+
+				if (bidValue < bestBidValue) {
+					bestBidValue = bidValue;
+					bestBidIndex = bidTaskIndex;
+					bestBidRobotIndex = i;
+					bestBidExpression = taskSet.get(bestBidIndex);
+				}
+			}
+			Expression robotTasks = robotsTasks.get(bestBidRobotIndex);
+			if (robotTasks != null) {
+				bestBidExpression = Expression.And(robotTasks, bestBidExpression);
+
+			}
+			robotsTasks.set(bestBidRobotIndex, bestBidExpression);
+			taskSet.remove(bestBidIndex);
+
+		}
+		return robotsTasks;
+	}
+
+	public void getSingleAgentPlansUsingNVI(int numRobots, ArrayList<MDP> mdps, ExpressionReward rewExpr, ArrayList<MDPModelChecker> mcs,
+			ArrayList<Expression> robotsTasks, ArrayList<MDStrategy> nviStrategies, ArrayList<MDP> productMDPs, PrismLog mainLog, String saveplace,
+			String filename) throws PrismException
+	{
+		
+		for (int i = 0; i < numRobots; i++) {
+
+			mcs.get(i).setGenStrat(true);
+			int initState = mdps.get(i).getFirstInitialState();
+			Entry<MDP, MDStrategy> prodStratPair = mcs.get(i).checkPartialSatExprReturnStrategy(mdps.get(i), robotsTasks.get(i), rewExpr, null);
+			MDP productMDP = prodStratPair.getKey();
+			productMDPs.add(productMDP);
+			MDStrategy nviStrategy = prodStratPair.getValue();
+			initState = productMDP.getFirstInitialState();
+			nviStrategy.initialise(initState);
+			Object action = nviStrategy.getChoiceAction();
+			mainLog.println(i + ":" + initState + "->" + action.toString());
+			mainLog.println(i + ":" + robotsTasks.get(i).toString());
+			PolicyCreator pc = new PolicyCreator();
+			pc.createPolicy(productMDP, nviStrategy);
+			pc.savePolicy(saveplace + "results/", filename + "_" + i);
+			nviStrategies.add(nviStrategy);
+		}
+	}
+
+	public PropertiesFile loadFiles(Prism prism, String saveplace, String filename, int numRobots, ArrayList<MDP> mdps, ArrayList<MDPModelChecker> mcs)
+			throws FileNotFoundException, PrismException
+	{
+		PropertiesFile propertiesFile = null;
+		//load the files 
+		//could be a separate function 
+		for (int i = 0; i < numRobots; i++) {
+			String modelFileName = saveplace + filename + i + ".prism";
+			ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
+			prism.loadPRISMModel(modulesFile);
+			propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + ".prop"));
+			prism.buildModel();
+			MDP mdp = (MDP) prism.getBuiltModelExplicit();
+			mdps.add(mdp);
+			MDPModelChecker mc = new MDPModelChecker(prism);
+			mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, new ModulesFileModelGenerator(modulesFile, prism));
+			mcs.add(mc);
+		}
+		return propertiesFile;
+	}
+
 	public void run()
 	{
 		try {
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename = "g7_r5_t6_d3_fs2";//"g7x3_r2_t3_d0_fs1";//"robot";
+			String filename = "g5_r2_t3_d2_fs1";//"g7_r5_t6_d3_fs2";//"g7x3_r2_t3_d0_fs1";//"robot";
 			ArrayList<String> ssNames = new ArrayList<String>();
 			ssNames.add("door1");
 			ssNames.add("door0");
@@ -118,86 +205,35 @@ public class SSIAuction
 
 			ArrayList<MDP> mdps = new ArrayList<MDP>();
 			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
-			PropertiesFile propertiesFile = null;
 
-			//load the files 
-			//could be a separate function 
-			for (int i = 0; i < numRobots; i++) {
-				String modelFileName = saveplace + filename + i + ".prism";
-				ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
-				prism.loadPRISMModel(modulesFile);
-				propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + ".prop"));
-				prism.buildModel();
-				MDP mdp = (MDP) prism.getBuiltModelExplicit();
-				mdps.add(mdp);
-				MDPModelChecker mc = new MDPModelChecker(prism);
-				mc.setModulesFileAndPropertiesFile(modulesFile, propertiesFile, new ModulesFileModelGenerator(modulesFile, prism));
-				mcs.add(mc);
-			}
+			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs);
 
 			//do things to the properties 
 
-			ArrayList<Expression> robotsTasks = new ArrayList<Expression>();
-			for (int i = 0; i < numRobots; i++)
-				robotsTasks.add(null);
 			Entry<ExpressionReward, ArrayList<Expression>> processedProperties = processProperties(propertiesFile, mainLog);
 			ExpressionReward rewExpr = processedProperties.getKey();
 
 			ArrayList<Expression> taskSet = processedProperties.getValue();
 
-			while (!taskSet.isEmpty()) {
-
-				int bestBidIndex = -1;
-				double bestBidValue = 10000;
-				Expression bestBidExpression = null;
-				int bestBidRobotIndex = -1;
-
-				for (int i = 0; i < numRobots; i++) {
-					Entry<Integer, Double> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i));
-					int bidTaskIndex = bid.getKey();
-					double bidValue = bid.getValue();
-
-					if (bidValue < bestBidValue) {
-						bestBidValue = bidValue;
-						bestBidIndex = bidTaskIndex;
-						bestBidRobotIndex = i;
-						bestBidExpression = taskSet.get(bestBidIndex);
-					}
-				}
-				Expression robotTasks = robotsTasks.get(bestBidRobotIndex);
-				if (robotTasks != null) {
-					bestBidExpression = Expression.And(robotTasks, bestBidExpression);
-
-				}
-				robotsTasks.set(bestBidRobotIndex, bestBidExpression);
-				taskSet.remove(bestBidIndex);
-
+			ArrayList<Expression> robotsTasks = auctionTasks(taskSet, numRobots, mdps, rewExpr, mcs);
+			mainLog.println("\n\nAssigned Tasks");
+			for(Expression rexpr:robotsTasks)
+			{
+				mainLog.println(rexpr.toString());
 			}
-
 			//print task distribution and get strategy 
 			ArrayList<MDStrategy> nviStrategies = new ArrayList<MDStrategy>();
 			ArrayList<MDP> productMDPs = new ArrayList<MDP>();
-			mainLog.println("Assigned Tasks");
-			for (int i = 0; i < numRobots; i++) {
 
-				mcs.get(i).setGenStrat(true);
-				int initState = mdps.get(i).getFirstInitialState();
-				Entry<MDP, MDStrategy> prodStratPair = mcs.get(i).checkPartialSatExprReturnStrategy(mdps.get(i), robotsTasks.get(i), rewExpr, null);
-				MDP productMDP = prodStratPair.getKey();
-				productMDPs.add(productMDP);
-				MDStrategy nviStrategy = prodStratPair.getValue();
-				initState = productMDP.getFirstInitialState();
-				nviStrategy.initialise(initState);
-				Object action = nviStrategy.getChoiceAction();
-				mainLog.println(i + ":" + initState + "->" + action.toString());
-				mainLog.println(i + ":" + robotsTasks.get(i).toString());
-				PolicyCreator pc = new PolicyCreator();
-				pc.createPolicy(productMDP, nviStrategy);
-				pc.savePolicy(saveplace + "results/", filename + "_" + i);
-				nviStrategies.add(nviStrategy);
+			getSingleAgentPlansUsingNVI(numRobots, mdps, rewExpr, mcs, robotsTasks, nviStrategies, productMDPs, mainLog, saveplace, filename);
+
+			Queue<State> potentialReallocStates = createJointPolicy(numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
+
+			mainLog.println("Potential ReallocStates");
+			while (!potentialReallocStates.isEmpty()) {
+				State s = potentialReallocStates.remove();
+				mainLog.println(s);
 			}
-			createJointPolicy(numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
-
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -366,9 +402,11 @@ public class SSIAuction
 
 	}
 
-	void createJointPolicy(int numRobots, PrismLog mainLog, ArrayList<MDP> productMDPs, ArrayList<MDStrategy> nviStrategies, String saveplace, String filename,
-			ArrayList<String> ssNames) throws PrismException
+	Queue<State> createJointPolicy(int numRobots, PrismLog mainLog, ArrayList<MDP> productMDPs, ArrayList<MDStrategy> nviStrategies, String saveplace,
+			String filename, ArrayList<String> ssNames) throws PrismException
 	{
+		Queue<State> possibleReallocStates = new LinkedList<State>();
+
 		MDPCreator mdpCreator = new MDPCreator(mainLog);
 
 		ArrayList<ArrayList<Integer>> daIndices = new ArrayList<ArrayList<Integer>>();
@@ -395,7 +433,7 @@ public class SSIAuction
 
 		State jointState = createJointState(numStateVars, productMDPs, currentStates, daIndices, ssIndices, privateIndices, jsToRobotState, parentState,
 				jsSSIndices);
-		mainLog.println(jointState.toString());
+//		mainLog.println(jointState.toString());
 
 		//break joint state into current states 
 		//what i need to do 
@@ -408,112 +446,113 @@ public class SSIAuction
 		ArrayList<State> visited = new ArrayList<State>();
 		State currentJointState;
 		try {
-		while (!statesQueues.isEmpty()) {
-			currentJointState = statesQueues.remove();
-			if(!visited.contains(currentJointState))
-			visited.add(currentJointState);
-			else 
-				continue;
-			parentState = currentJointState; 
-			currentStates = jointStatetoRobotStates(numRobots, currentJointState, jsToRobotState, productMDPs, mainLog);
+			while (!statesQueues.isEmpty()) {
+				currentJointState = statesQueues.remove();
+				if (!visited.contains(currentJointState))
+					visited.add(currentJointState);
+				else
+					continue;
+				parentState = currentJointState;
+				currentStates = jointStatetoRobotStates(numRobots, currentJointState, jsToRobotState, productMDPs, mainLog);
 
-			//createJointState(numStateVars, productMDPs, currentStates, numSS, ssNames, daIndices, ssIndices, privateIndices, null);
+				//createJointState(numStateVars, productMDPs, currentStates, numSS, ssNames, daIndices, ssIndices, privateIndices, null);
 
-			mainLog.println(jointState.toString());
-			ArrayList<ArrayList<Integer>> robotStates = new ArrayList<ArrayList<Integer>>();
-			ArrayList<ArrayList<Double>> robotStatesProbs = new ArrayList<ArrayList<Double>>();
-			String infoString = "";
+//				mainLog.println(jointState.toString());
+				ArrayList<ArrayList<Integer>> robotStates = new ArrayList<ArrayList<Integer>>();
+				ArrayList<ArrayList<Double>> robotStatesProbs = new ArrayList<ArrayList<Double>>();
+				String infoString = "";
 
-			for (int i = 0; i < numRobots; i++) {
-				ArrayList<Integer> nextRobotStates = new ArrayList<Integer>();
+				for (int i = 0; i < numRobots; i++) {
+					ArrayList<Integer> nextRobotStates = new ArrayList<Integer>();
 
-				ArrayList<Double> nextRobotStatesProbs = new ArrayList<Double>();
+					ArrayList<Double> nextRobotStatesProbs = new ArrayList<Double>();
 
-				MDStrategy strat = nviStrategies.get(i);
-				MDP mdp = productMDPs.get(i);
+					MDStrategy strat = nviStrategies.get(i);
+					MDP mdp = productMDPs.get(i);
 
+					int actionChoice = strat.getChoiceIndex(currentStates[i]);
+					if (actionChoice > -1) {
 
-				int actionChoice = strat.getChoiceIndex(currentStates[i]);
-				if (actionChoice > -1) {
-	
-					actions[i] = strat.getChoiceAction(currentStates[i]);
-	
-					
-					infoString += i + ":" + currentStates[i] + mdp.getStatesList().get(currentStates[i]).toString() + "->" + actions[i].toString() + " ";
-					//						//printing out the state 
-					//						mainLog.println(mdp.getStatesList().get(currentStates[i]));
-					//now how do we get the next action 
-					Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(currentStates[i], actionChoice);
-					//we need these cuz we have to use them 
-					while (tranIter.hasNext()) {
-						Entry<Integer, Double> currentIter = tranIter.next();
-						nextRobotStates.add(currentIter.getKey());
-						nextRobotStatesProbs.add(currentIter.getValue());
-		
+						actions[i] = strat.getChoiceAction(currentStates[i]);
+
+						infoString += i + ":" + currentStates[i] + mdp.getStatesList().get(currentStates[i]).toString() + "->" + actions[i].toString() + " ";
+						//						//printing out the state 
+						//						mainLog.println(mdp.getStatesList().get(currentStates[i]));
+						//now how do we get the next action 
+						Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(currentStates[i], actionChoice);
+						//we need these cuz we have to use them 
+						while (tranIter.hasNext()) {
+							Entry<Integer, Double> currentIter = tranIter.next();
+							nextRobotStates.add(currentIter.getKey());
+							nextRobotStatesProbs.add(currentIter.getValue());
+
+						}
+					} else {
+						actions[i] = "*";
 					}
+
+					robotStatesProbs.add(nextRobotStatesProbs);
+					robotStates.add(nextRobotStates);
+				}
+//				mainLog.println(infoString);
+				//put them all together in the array 
+				ArrayList<Integer> robotStateNums = new ArrayList<Integer>();
+				boolean allZero = true;
+				for (int i = 0; i < robotStates.size(); i++) {
+					if (robotStates.get(i).size() != 0)
+						allZero = false;
+					else {
+						robotStates.get(i).add(currentStates[i]);
+						robotStatesProbs.get(i).add(1.0);
+
+					}
+					robotStateNums.add(robotStates.get(i).size());
+				}
+				String ja = createJointAction(actions);
+//				mainLog.println(ja);
+
+				if (!allZero) {
+					ArrayList<Entry<State, Double>> successorsWithProbs = new ArrayList<Entry<State, Double>>();
+
+					ArrayList<int[]> combinationsList = generateCombinations(robotStateNums, mainLog);
+					//now we need the stupid combination generator 
+					//now we have to make these combinations and add them to our queue 
+					for (int i = 0; i < combinationsList.size(); i++) {
+						int[] currentCombination = combinationsList.get(i);
+						int[] nextStatesCombo = new int[numRobots];
+						double comboProb = 1;
+						for (int j = 0; j < currentCombination.length; j++) {
+							nextStatesCombo[j] = robotStates.get(j).get(currentCombination[j] - 1);
+							comboProb *= robotStatesProbs.get(j).get(currentCombination[j] - 1);
+						}
+
+						State nextJointState = createJointState(numStateVars, productMDPs, nextStatesCombo, daIndices, ssIndices, privateIndices,
+								jsToRobotState, parentState, jsSSIndices);
+
+						statesQueues.add(nextJointState);
+						//					statesProbQueue.add(comboProb);
+						successorsWithProbs.add(new AbstractMap.SimpleEntry<State, Double>(nextJointState, comboProb));
+					}
+					mdpCreator.addAction(currentJointState, ja, successorsWithProbs);
+
 				} else {
-					actions[i] = "*";
+					//lets add these to a queue!!! 
+					//add the current joint state to the possible realloc queue
+					possibleReallocStates.add(currentJointState);
 				}
-				
-					
-				robotStatesProbs.add(nextRobotStatesProbs);
-				robotStates.add(nextRobotStates);
 			}
-			mainLog.println(infoString);
-			//put them all together in the array 
-			ArrayList<Integer> robotStateNums = new ArrayList<Integer>();
-			boolean allZero = true;
-			for (int i = 0; i < robotStates.size(); i++) {
-				if (robotStates.get(i).size() != 0)
-					allZero = false;
-				else {
-					robotStates.get(i).add(currentStates[i]);
-					robotStatesProbs.get(i).add(1.0);
-
-				}
-				robotStateNums.add(robotStates.get(i).size());
-			}
-			String ja = createJointAction(actions);
-			mainLog.println(ja);
-			if(ja.contains("s24_s20"))
-				mainLog.println("hoshiyaar");
-			if (!allZero) {
-				ArrayList<Entry<State, Double>> successorsWithProbs = new ArrayList<Entry<State, Double>>();
-
-				ArrayList<int[]> combinationsList = generateCombinations(robotStateNums, mainLog);
-				//now we need the stupid combination generator 
-				//now we have to make these combinations and add them to our queue 
-				for (int i = 0; i < combinationsList.size(); i++) {
-					int[] currentCombination = combinationsList.get(i);
-					int[] nextStatesCombo = new int[numRobots];
-					double comboProb = 1;
-					for (int j = 0; j < currentCombination.length; j++) {
-						nextStatesCombo[j] = robotStates.get(j).get(currentCombination[j] - 1);
-						comboProb *= robotStatesProbs.get(j).get(currentCombination[j] - 1);
-					}
-
-					State nextJointState = createJointState(numStateVars, productMDPs, nextStatesCombo, daIndices, ssIndices, privateIndices, jsToRobotState,
-							parentState, jsSSIndices);
-
-					statesQueues.add(nextJointState);
-					//					statesProbQueue.add(comboProb);
-					successorsWithProbs.add(new AbstractMap.SimpleEntry<State, Double>(nextJointState, comboProb));
-				}
-				mdpCreator.addAction(currentJointState, ja, successorsWithProbs);
-
-			}
-		}
-		}
-		catch (PrismException e)
-		{
+		} catch (PrismException e) {
 			mdpCreator.saveMDP(saveplace + "results/", filename + "_jp");
-			throw e; 
+			throw e;
 		}
 		mdpCreator.saveMDP(saveplace + "results/", filename + "_jp");
 
+		return possibleReallocStates;
+
 	}
 
-	int[] jointStatetoRobotStates(int numRobots, State jointState, HashMap<Integer, int[]> jsToRobotState, ArrayList<MDP> productMDPs, PrismLog mainLog) throws PrismException
+	int[] jointStatetoRobotStates(int numRobots, State jointState, HashMap<Integer, int[]> jsToRobotState, ArrayList<MDP> productMDPs, PrismLog mainLog)
+			throws PrismException
 	{
 		int[] currentStates = new int[numRobots];
 		ArrayList<State> jsToRobotStateStates = new ArrayList<State>();
@@ -544,12 +583,12 @@ public class SSIAuction
 		for (int r = 0; r < numRobots; r++) {
 
 			State rs = jsToRobotStateStates.get(r);
-//			mainLog.println(rs.toString());
+			//			mainLog.println(rs.toString());
 			//we need to find the corresponding state 
 			MDP mdp = productMDPs.get(r);
 			int matchingS = findMatchingStateNum(mdp, rs);
 			currentStates[r] = matchingS;
-			mainLog.println(matchingS);
+//			mainLog.println(matchingS);
 
 		}
 		return currentStates;
@@ -567,8 +606,8 @@ public class SSIAuction
 				break;
 			}
 		}
-		if(snum == -1)
-			throw new PrismException("Unable to find matching state in states list for "+rs.toString());
+		if (snum == -1)
+			throw new PrismException("Unable to find matching state in states list for " + rs.toString());
 		return snum;
 
 	}
