@@ -16,6 +16,7 @@ import java.util.Queue;
 
 import explicit.MDP;
 import explicit.MDPModelChecker;
+import explicit.MDPSimple;
 import explicit.ModelCheckerResult;
 import explicit.StateValues;
 import parser.State;
@@ -225,9 +226,9 @@ public class SSIAuction
 			ArrayList<MDStrategy> nviStrategies = new ArrayList<MDStrategy>();
 			ArrayList<MDP> productMDPs = new ArrayList<MDP>();
 
-			getSingleAgentPlansUsingNVI(numRobots, mdps, rewExpr, mcs, robotsTasks, nviStrategies, productMDPs, mainLog, saveplace, filename);
+			getSingleAgentPlansUsingNVI(numRobots, mdps, rewExpr, mcs, robotsTasks, nviStrategies, productMDPs, mainLog, saveplace, "ssi_"+filename);
 
-			Queue<State> potentialReallocStates = createJointPolicy(numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
+			Queue<State> potentialReallocStates = createJointPolicy(numRobots, mainLog, productMDPs, nviStrategies, saveplace, "ssi_"+filename, ssNames);
 
 			mainLog.println("Potential ReallocStates");
 			while (!potentialReallocStates.isEmpty()) {

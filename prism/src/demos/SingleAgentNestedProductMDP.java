@@ -28,7 +28,11 @@ public class SingleAgentNestedProductMDP {
 	PrismLog mainLog;
 	BitSet allAcceptingStatesCombined; // includes everything even the essential states
 	int numMDPVars;
-
+	
+	//so each da has an associated index in the product 
+	//the way it works is that its shifted by one for each multiplication 
+	
+	
 	public SingleAgentNestedProductMDP(PrismLog log) {
 		// this.stapu = stapu;
 		mainLog = log;

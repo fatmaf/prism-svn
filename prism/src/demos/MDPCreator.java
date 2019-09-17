@@ -4,12 +4,14 @@
 package demos;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
 import explicit.Distribution;
+import explicit.MDP;
 import explicit.MDPSimple;
 import parser.State;
 import prism.PrismFileLog;
@@ -212,12 +214,16 @@ public class MDPCreator
 		int s = mdp.getFirstInitialState(); 
 		return mdp.getStatesList().get(s);
 	}
-	
-	public void saveMDP(String saveLoc, String name)
+	public void saveMDP(MDP mdp, String saveLoc, String name,BitSet statesToMark)
 	{
 		String fn = saveLoc + name +".dot";
 		PrismLog out = new PrismFileLog(fn);
-		mdp.exportToDotFile(out, null, true);
+		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();
+	}
+	public void saveMDP(String saveLoc, String name)
+	{
+		saveMDP(mdp,saveLoc,name,null);
+		
 	}
 }

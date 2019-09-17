@@ -54,7 +54,7 @@ public class STAPU
 		//		stapu.runTest();
 		//		stapu.runGUITest();
 		//		stapu.debugOne();
-		stapu.runGUISimpleTests();
+		stapu.runGUISimpleTestsOne();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -102,13 +102,16 @@ public class STAPU
 			DAInfo daInfo = new DAInfo(daList.get(daNum));
 
 			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
+			daInfo.associatedIndexInProduct++; //should go to zero from -1 
+			
 			productMDP = product.getProductModel();
 			daInfo.getEssentialStates(productMDP);
-
 
 			// update state numbers
 			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
 				res.daList.get(otherDAs).updateStateNumbers(product);
+				res.daList.get(otherDAs).associatedIndexInProduct++; //and everyone else also gets shifted once. 
+				
 				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
 				//						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
 				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
@@ -121,12 +124,12 @@ public class STAPU
 			//					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
-		DAInfo daInfo = res.daList.get(res.daList.size()-1);
-		int daNum = res.daList.size()-1;
-					StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-					StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-					StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-					StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
+		DAInfo daInfo = res.daList.get(res.daList.size() - 1);
+		int daNum = res.daList.size() - 1;
+		StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
+		StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
+		StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
+		StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 		res.setDAListAndFinalProduct(product);
 		return res;
@@ -200,7 +203,7 @@ public class STAPU
 
 	protected void doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
-			boolean completeSwitchRing, int numGoals) throws PrismException
+			boolean completeSwitchRing, int numGoals,boolean noReallocs) throws PrismException
 	{
 
 		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
@@ -315,6 +318,7 @@ public class STAPU
 		// update switches
 		// solve
 		// add to joint policy
+		if(!noReallocs) {
 		int numPlanning = 1;
 		while (jointPolicyBuilder.hasFailedStates()) {
 
@@ -352,6 +356,7 @@ public class STAPU
 				resSaver.recordTime("Joint Policy Time", varIDs.jointpolicycreation, true);
 			}
 		}
+		
 		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
 		resSaver.saveJointPolicy(jointPolicyBuilder);
 		mainLog.println(jointPolicyBuilder.accStates.toString());
@@ -359,6 +364,7 @@ public class STAPU
 		mainLog.println("All done");
 		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
+		}
 		HashMap<String, Double> values = new HashMap<String, Double>();
 		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
 		resSaver.saveValues(values);
@@ -779,6 +785,65 @@ public class STAPU
 			System.out.println(modelsTested.get(i));
 		}
 		System.out.println("Models Tested: " + modelsTested.size());
+	}
+
+	public void runGUISimpleTestsOne()
+	{
+		// saving filenames etc
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+		//System.getProperty("user.dir");
+		String modelLocation = dir;
+		StatesHelper.setSavePlace(modelLocation + "results/");
+		HashMap<String, Boolean> example_has_door_list = new HashMap<String, Boolean>();
+		HashMap<String, Integer> example_num_door_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_robot_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_goals_list = new HashMap<String, Integer>();
+		HashMap<String, Integer> example_num_fs_list = new HashMap<String, Integer>();
+		ArrayList<String> examples = new ArrayList<String>();
+		ArrayList<String> example_ids = new ArrayList<String>();
+
+		int numRobots = 2;
+		int numFS = 1;
+		int numGoals = 3;
+		int numDoors = 2;
+		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
+		String example = "g5_r2_t3_d2_fs1";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
+		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+		String example_to_run = example;//cumberland_doors; 
+
+		example_has_door_list.put(example_id, numDoors > 0);
+		example_num_door_list.put(example_id, numDoors);
+		example_num_robot_list.put(example_id, numRobots);
+		example_num_fs_list.put(example_id, numFS);
+		example_num_goals_list.put(example_id, numGoals);
+
+		examples.add(example_id);
+		example_ids.add(example);
+
+
+		for (int i = 0; i < examples.size(); i++) {
+			example_to_run = examples.get(i);
+			example_id = example_ids.get(i);
+
+			int maxRobots = example_num_robot_list.get(example_id);
+			int maxGoals = example_num_goals_list.get(example_id);
+			try {
+
+				runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals, example_num_fs_list,
+						modelLocation, true, dir + "results/stapu",true);
+
+			} catch (FileNotFoundException e) {
+				System.out.println("Error: " + e.getMessage());
+				//						System.exit(1);
+			} catch (PrismException e) {
+				System.out.println("Error: " + e.getMessage());
+				//						System.exit(1);
+			} catch (Exception e) {
+				System.out.println("Error: " + e.getMessage());
+			}
+
+		}
+
 	}
 
 	public void runGUISimpleTests()
@@ -1276,7 +1341,7 @@ public class STAPU
 								//					three_robot_one_door, 
 								//					two_robot_door_multiple_switches,
 								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
-								dir + "results/stapu");
+								dir + "results/stapu",false);
 						testCount++;
 						testsDone.add(example_id);
 						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
@@ -1681,7 +1746,7 @@ public class STAPU
 								//					three_robot_one_door, 
 								//					two_robot_door_multiple_switches,
 								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
-								dir + "results/stapu");
+								dir + "results/stapu",false);
 						testCount++;
 						testsDone.add(example_id);
 						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
@@ -2081,7 +2146,7 @@ public class STAPU
 								//					three_robot_one_door, 
 								//					two_robot_door_multiple_switches,
 								example_to_run, example_id, example_has_door_list, example_num_door_list, r, g, example_num_fs_list, modelLocation, true,
-								dir + "results/stapu");
+								dir + "results/stapu",false);
 						testCount++;
 						testsDone.add(example_id);
 						System.out.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" + example_id + " r" + r + " g" + g
@@ -2426,7 +2491,7 @@ public class STAPU
 	public void runOneExampleNumRobotsGoals(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
 
 			HashMap<String, Integer> example_num_door_list, int numRobots, int numGoals, HashMap<String, Integer> example_num_fs_list, String modelLocation,
-			boolean doorVarNameHas0, String resLoc)
+			boolean doorVarNameHas0, String resLoc,boolean noReallocs)
 
 			throws PrismException, FileNotFoundException
 	{
@@ -2543,7 +2608,7 @@ public class STAPU
 				// do your task
 				try {
 					doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list,
-							includefailstatesinswitches, matchsharedstatesinswitch, completeSwitchRing, numGoals);
+							includefailstatesinswitches, matchsharedstatesinswitch, completeSwitchRing, numGoals,noReallocs);
 
 				} catch (PrismException e) {
 					// TODO Auto-generated catch block
