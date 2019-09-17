@@ -332,7 +332,7 @@ public class JointPolicyBuilder
 
 	}
 
-	private double getStateProb(int s, MDPSimple mdp, int depth, int maxDepth)
+	public double getStateProb(int s, MDPSimple mdp, int depth, int maxDepth)
 	{
 		if (accStates.get(s))
 			return 1.0;
@@ -363,7 +363,7 @@ public class JointPolicyBuilder
 
 		MDPSimple mdp = jointMDP;
 		double prob = getStateProb(s, mdp, 0, mdp.getNumStates());
-
+		this.mainLog.println("Probability of satisfaction from state "+js.toString()+": "+prob);
 		return prob;
 		//		int s = statesMap.get(js);
 		//		double prob = 1.0;

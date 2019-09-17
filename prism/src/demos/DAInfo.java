@@ -37,8 +37,10 @@ public class DAInfo {
 	ExpressionReward daExprRew = null;
 	Vector<BitSet> labelBS;
 	public MDPRewardsSimple costsModel = null;
+	BitSet daAccStates = null; 
 	PrismLog mainLog;
-
+	public int associatedIndexInProduct = -1; 
+	RewardStruct costStruct;
 	public DAInfo(DAInfo other) {
 		if (other.productAcceptingStates != null) {
 			this.productAcceptingStates = (BitSet) other.productAcceptingStates.clone();
@@ -60,6 +62,10 @@ public class DAInfo {
 		}
 		if (other.costsModel != null) {
 			this.costsModel = new MDPRewardsSimple(other.costsModel);
+		}
+		if(other.daAccStates!=null)
+		{
+			this.daAccStates = (BitSet) other.daAccStates.clone(); 
 		}
 		this.mainLog = other.mainLog;
 	}
@@ -92,6 +98,7 @@ public class DAInfo {
 			throw new PrismException("Automaton is not a DFA "+daExpr.toString());
 		}
 		
+		this.daAccStates = (BitSet)((AcceptanceReach)da.getAcceptance()).getGoalStates().clone(); 
 		// else {
 		// BitSet acceptingStates = ((AcceptanceReach)
 		// da.getAcceptance()).getGoalStates();
@@ -108,7 +115,7 @@ public class DAInfo {
 		// rewards
 		if (daExprRew != null) {
 
-			RewardStruct costStruct = (daExprRew).getRewardStructByIndexObject(modulesFile,
+			 costStruct = (daExprRew).getRewardStructByIndexObject(modulesFile,
 					modulesFile.getConstantValues());
 			// commenting this out because its giving the error Error: Could not evaluate
 			// constant ("failstate", line 166, column 20).
@@ -122,6 +129,7 @@ public class DAInfo {
 		return product;
 	}
 
+
 	public <M extends Model> LTLProduct<M> constructDAandProductModel(LTLModelChecker mcLTL, MDPModelChecker mcProb,
 			 AcceptanceType[] accType, M model, BitSet statesOfInterest, boolean allStatesInDFA)
 			throws PrismException {
@@ -134,7 +142,7 @@ public class DAInfo {
 			mainLog.println("\nAutomaton is not a DFA... ");
 			throw new PrismException("Automaton is not a DFA "+daExpr.toString());
 		}
-		
+		this.daAccStates = (BitSet)((AcceptanceReach)da.getAcceptance()).getGoalStates().clone(); 
 		// else {
 		// BitSet acceptingStates = ((AcceptanceReach)
 		// da.getAcceptance()).getGoalStates();
