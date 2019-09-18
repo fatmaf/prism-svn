@@ -453,13 +453,14 @@ public class SSIAuctionNestedProduct
 			//print task distribution and get strategy 
 			ArrayList<MDStrategy> nviStrategies = new ArrayList<MDStrategy>();
 			ArrayList<MDP> productMDPs = new ArrayList<MDP>();
+			ArrayList<ArrayList<DAInfo>> finalDAList = new ArrayList<ArrayList<DAInfo>>();
 			for (rnum = 0; rnum < numRobots; rnum++) {
 				ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(robotsTasksBroken.get(rnum), mainLog);
 
 				RewardStruct costStruct = (rewExpr).getRewardStructByIndexObject(mcs.get(rnum).getModulesFile(),
 						mcs.get(rnum).getModulesFile().getConstantValues());
 				MDPRewardsSimple costsModel = (MDPRewardsSimple) mcs.get(rnum).constructRewards(mdps.get(rnum), costStruct);
-				SingleAgentNestedProductMDP res = buildSingleAgentNestedProductMDP("kuchbhi", mdps.get(rnum), daList, null, prism, mcs.get(rnum), mainLog);
+				SingleAgentNestedProductMDP res = buildSingleAgentNestedProductMDP("r" + rnum, mdps.get(rnum), daList, null, prism, mcs.get(rnum), mainLog);
 
 				ArrayList<MDPRewardsSimple> rewards = createMaxExpTaskRewStruct(res, costsModel);
 
@@ -474,6 +475,7 @@ public class SSIAuctionNestedProduct
 				//lets see what we have 
 				productMDPs.add(res.finalProduct.getProductModel());
 				nviStrategies.add(nviSol.strat);
+				finalDAList.add(res.daList);
 				//				for (int dathing = 0; dathing < daList.size(); dathing++) {
 				//					//				mainLog.println(daList.get(dathing));
 				//					DAInfo daInfo = res.daList.get(dathing);
@@ -493,7 +495,7 @@ public class SSIAuctionNestedProduct
 			//					ProbModelChecker mcProb, ModulesFile modulesFile,mainLog);
 			//			getSingleAgentPlansUsingNVI(numRobots, mdps, rewExpr, mcs, robotsTasks, nviStrategies, productMDPs, mainLog, saveplace, filename);
 			//
-			Queue<State> potentialReallocStates = createJointPolicy(numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
+			Queue<State> potentialReallocStates = createJointPolicy(finalDAList, numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
 
 			mainLog.println("Potential ReallocStates");
 			while (!potentialReallocStates.isEmpty()) {
@@ -563,13 +565,40 @@ public class SSIAuctionNestedProduct
 		return numStateVars;
 	}
 
-	State createJointState(int numStateVars,
+	ArrayList<HashMap<Integer, DAInfo>> preprocessDALists(ArrayList<ArrayList<DAInfo>> daList)
+	{
+		ArrayList<HashMap<Integer, DAInfo>> gulonMeinRung = new ArrayList<HashMap<Integer, DAInfo>>();
+
+		for (ArrayList<DAInfo> rdaList : daList) {
+			gulonMeinRung.add(preprocessDAList(rdaList));
+		}
+		return gulonMeinRung;
+	}
+
+	HashMap<Integer, DAInfo> preprocessDAList(ArrayList<DAInfo> daList)
+	{
+		//basically take a dainfo list for a robot
+		//and then just give us a hashmap of the same thing with the index as the key 
+		HashMap<Integer, DAInfo> daHashMap = new HashMap<Integer, DAInfo>();
+		for (DAInfo daInfo : daList) {
+			daHashMap.put(daInfo.associatedIndexInProduct, daInfo);
+		}
+		return daHashMap;
+
+	}
+
+	Object[] createJointState(ArrayList<HashMap<Integer, DAInfo>> daList, int numStateVars,
 			//			int numRobots, 
 			ArrayList<MDP> productMDPs, int[] currentStates, ArrayList<ArrayList<Integer>> daIndices, HashMap<String, ArrayList<Integer>> ssIndices,
 			ArrayList<ArrayList<Integer>> privateIndices, HashMap<Integer, int[]> jsToRobotState, State parentState, HashMap<String, Integer> jsSSIndices)
 			throws PrismException
 	{
 
+		Object[] res = new Object[3];
+		boolean isEss = false;
+		boolean isAcc = false;
+		int numAcc = 0;
+		int numDAs = 0;
 		State jointState = new State(numStateVars);
 		//so we have the dastate indices 
 		//we have the private state indices 
@@ -583,13 +612,37 @@ public class SSIAuctionNestedProduct
 		ArrayList<State> robotStateStates = new ArrayList<State>();
 		for (int i = 0; i < daIndices.size(); i++) {
 
+			//so we're on the stuff for robot i 
+			//so we want the dalist for that robot 
+			HashMap<Integer, DAInfo> rDAList = daList.get(i);
+			numDAs += daIndices.get(i).size() - 1;
 			State rs = productMDPs.get(i).getStatesList().get(currentStates[i]);
 			robotStateStates.add(rs);
 
 			//now lets add these in succession 
 			for (int j = 0; j < daIndices.get(i).size(); j++) {
+				//so now we want to find the robot in the da list that has the same index as daInd hmmm... trickyyy 
+				//so this is a bit of a loop everytime but we could preprocess this so its not 
+				//let us 
+				//we have fixed it 
+				//so now we're chilling 
+
 				int daInd = daIndices.get(i).get(j);
-				jointState.setValue(jsIndex, rs.varValues[daInd]);
+				Object daVal = rs.varValues[daInd];
+				if (!rDAList.get(daInd).isSafeExpr) {
+					if (rDAList.get(daInd).daAccStates.get((int) daVal)) {
+
+						numAcc++;
+						if (!isEss) {
+							if (parentState != null) {
+								if (!rDAList.get(daInd).daAccStates.get((int) parentState.varValues[jsIndex])) {
+									isEss = true;
+								}
+							}
+						}
+					}
+				}
+				jointState.setValue(jsIndex, daVal);
 				if (parentState == null) {
 					int[] arr = new int[2];
 					arr[0] = i;
@@ -664,13 +717,39 @@ public class SSIAuctionNestedProduct
 
 		}
 
-		return jointState;
+		//checking if its an accepting state 
+
+		if (numAcc == numDAs)
+			isAcc = true;
+		if (isEss) {
+			System.out.println("Essential State: " + jointState.toString());
+
+		}
+		if (isAcc)
+			System.out.println("Accepted State: " + jointState.toString());
+		res[0] = jointState;
+		res[1] = isEss;
+		res[2] = isAcc;
+
+		return res;
 
 	}
 
-	Queue<State> createJointPolicy(int numRobots, PrismLog mainLog, ArrayList<MDP> productMDPs, ArrayList<MDStrategy> nviStrategies, String saveplace,
-			String filename, ArrayList<String> ssNames) throws PrismException
+	Queue<State> createJointPolicy(ArrayList<ArrayList<DAInfo>> daList, int numRobots, PrismLog mainLog, ArrayList<MDP> productMDPs,
+			ArrayList<MDStrategy> nviStrategies, String saveplace, String filename, ArrayList<String> ssNames) throws PrismException
 	{
+		//things to do here 
+		//make the mdp stuff for reallocations too 
+		//so that everything is the same 
+		//ah but for reallocations the das will have shifted 
+		//so we'll need to remember what the das looked like earlier 
+		//so I'm going to leave this for tomorrow 
+		//today we just focus on stuff without reallocation 
+
+		//saving the acc and ess states 
+		BitSet accStates = new BitSet();
+		BitSet essStates = new BitSet();
+
 		Queue<State> possibleReallocStates = new LinkedList<State>();
 
 		MDPCreator mdpCreator = new MDPCreator(mainLog);
@@ -696,9 +775,13 @@ public class SSIAuctionNestedProduct
 		}
 
 		int numStateVars = doJointStateCreationSetup(numRobots, productMDPs, currentStates, numSS, ssNames, daIndices, ssIndices, privateIndices);
+		ArrayList<HashMap<Integer, DAInfo>> processedDAList = this.preprocessDALists(daList);
 
-		State jointState = createJointState(numStateVars, productMDPs, currentStates, daIndices, ssIndices, privateIndices, jsToRobotState, parentState,
-				jsSSIndices);
+		Object[] jsPlusEssAccFlags = createJointState(processedDAList, numStateVars, productMDPs, currentStates, daIndices, ssIndices, privateIndices,
+				jsToRobotState, parentState, jsSSIndices);
+		State jointState = (State) jsPlusEssAccFlags[0];
+		boolean isEss = (boolean) jsPlusEssAccFlags[1];
+		boolean isAcc = (boolean) jsPlusEssAccFlags[2];
 		//		mainLog.println(jointState.toString());
 
 		//break joint state into current states 
@@ -779,6 +862,7 @@ public class SSIAuctionNestedProduct
 
 				if (!allZero) {
 					ArrayList<Entry<State, Double>> successorsWithProbs = new ArrayList<Entry<State, Double>>();
+					ArrayList<boolean[]> essAndAcc = new ArrayList<boolean[]>();
 
 					ArrayList<int[]> combinationsList = generateCombinations(robotStateNums, mainLog);
 					//now we need the stupid combination generator 
@@ -792,14 +876,17 @@ public class SSIAuctionNestedProduct
 							comboProb *= robotStatesProbs.get(j).get(currentCombination[j] - 1);
 						}
 
-						State nextJointState = createJointState(numStateVars, productMDPs, nextStatesCombo, daIndices, ssIndices, privateIndices,
-								jsToRobotState, parentState, jsSSIndices);
-
+						Object[] nextJSPlusEssAccFlags = createJointState(processedDAList, numStateVars, productMDPs, nextStatesCombo, daIndices, ssIndices,
+								privateIndices, jsToRobotState, parentState, jsSSIndices);
+						State nextJointState = (State) nextJSPlusEssAccFlags[0];
+						boolean isEssNextjs = (boolean) nextJSPlusEssAccFlags[1];
+						boolean isAccNextjs = (boolean) nextJSPlusEssAccFlags[2];
+						essAndAcc.add(new boolean[] { isEssNextjs, isAccNextjs });
 						statesQueues.add(nextJointState);
 						//					statesProbQueue.add(comboProb);
 						successorsWithProbs.add(new AbstractMap.SimpleEntry<State, Double>(nextJointState, comboProb));
 					}
-					mdpCreator.addAction(currentJointState, ja, successorsWithProbs);
+					mdpCreator.addAction(currentJointState, ja, successorsWithProbs, essAndAcc);
 
 				} else {
 					//lets add these to a queue!!! 
@@ -812,6 +899,9 @@ public class SSIAuctionNestedProduct
 			throw e;
 		}
 		mdpCreator.saveMDP(saveplace + "results/", filename + "_jp");
+		mainLog.println(mdpCreator.essStates.toString());
+		mainLog.println(mdpCreator.accStates.toString());
+		mainLog.println("Goal Prob:" + mdpCreator.getProbabilityToReachAccStateFromJointMDP(jointState));
 
 		return possibleReallocStates;
 
