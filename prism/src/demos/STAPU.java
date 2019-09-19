@@ -305,7 +305,7 @@ public class STAPU
 
 		resSaver.setScopeStartTime();
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+				seqTeamMDP.teamMDPTemplate.getVarList(),rewards, mainLog);
 
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
 		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation, true);
@@ -358,15 +358,21 @@ public class STAPU
 		}
 		
 		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
-		resSaver.saveJointPolicy(jointPolicyBuilder);
-		mainLog.println(jointPolicyBuilder.accStates.toString());
+	
 		//		jointPolicyBuilder.saveJointPolicyMDP();
 		mainLog.println("All done");
 		mainLog.println("NVI done " + numPlanning + " times");
 		jointPolicyBuilder.printStatesExploredOrder();
 		}
+		resSaver.saveJointPolicy(jointPolicyBuilder);
+		mainLog.println(jointPolicyBuilder.accStates.toString());
 		HashMap<String, Double> values = new HashMap<String, Double>();
 		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
+		jointPolicyBuilder.createRewardStructures(); 
+		ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards(); 
+		jointPolicyBuilder.jointMDP.findDeadlocks(true);
+		computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(), finalRewards, minRewards,
+				probPreference);
 		resSaver.saveValues(values);
 		mainLog.println("All done");
 
@@ -475,7 +481,7 @@ public class STAPU
 
 		resSaver.setScopeStartTime();
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-				seqTeamMDP.teamMDPTemplate.getVarList(), mainLog);
+				seqTeamMDP.teamMDPTemplate.getVarList(), rewards,mainLog);
 
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
 		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation, true);
@@ -804,7 +810,7 @@ public class STAPU
 
 		int numRobots = 2;
 		int numFS = 1;
-		int numGoals = 3;
+		int numGoals = 4;
 		int numDoors = 2;
 		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
 		String example = "g5_r2_t3_d2_fs1";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
