@@ -3,6 +3,7 @@
  */
 package demos;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import java.util.Map.Entry;
 import explicit.Distribution;
 import explicit.MDP;
 import explicit.MDPSimple;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import prism.PrismFileLog;
 import prism.PrismLog;
@@ -41,8 +43,39 @@ public class MDPCreator
 	BitSet accStates;
 	BitSet essStates;
 	PrismLog mainLog;
+	MDPRewardsSimple expectedTaskCompletionRewards=null;
+	MDPRewardsSimple stateActionCostRewards=null;
+
+	HashMap<Entry<Integer,Integer>,Double> stateActionTaskCompletionRewards=null;
+	HashMap<Entry<Integer,Integer>,Double> stateActionCosts=null;
 	
-	
+	public void createRewardStructures()
+	{
+		//the assumption is we're all done 
+		//so we can just add stuff 
+		if(stateActionCosts != null & stateActionTaskCompletionRewards != null)
+		{
+			expectedTaskCompletionRewards = new MDPRewardsSimple(mdp.getNumStates());
+			stateActionCostRewards = new MDPRewardsSimple(mdp.getNumStates()); 
+			
+			for (Entry<Integer,Integer> saPair : stateActionTaskCompletionRewards.keySet())
+			{
+				expectedTaskCompletionRewards.addToTransitionReward(saPair.getKey(), saPair.getValue(), stateActionTaskCompletionRewards.get(saPair));
+			}
+			for (Entry<Integer,Integer> saPair : stateActionCosts.keySet())
+			{
+				stateActionCostRewards.addToTransitionReward(saPair.getKey(), saPair.getValue(), stateActionCosts.get(saPair));
+			}
+		}
+	}
+
+	public ArrayList<MDPRewardsSimple>  getRewardsInArray()
+	{
+		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(); 
+		rewards.add(expectedTaskCompletionRewards);
+		rewards.add(stateActionCostRewards);
+		return rewards;
+	}
 	public double getStateProb(int s, MDPSimple mdp, int depth, int maxDepth)
 	{
 		if (accStates.get(s))
@@ -69,15 +102,15 @@ public class MDPCreator
 
 	double getProbabilityToReachAccStateFromJointMDP(State js)
 	{
-		int s =  getStateIndex(js);
-		
+		int s = getStateIndex(js);
 
 		MDPSimple mdp = this.mdp;
 		double prob = getStateProb(s, mdp, 0, mdp.getNumStates());
-		this.mainLog.println("Probability of satisfaction from state "+js.toString()+": "+prob);
+		this.mainLog.println("Probability of satisfaction from state " + js.toString() + ": " + prob);
 		return prob;
 
 	}
+
 	public MDPCreator(PrismLog mainLog)
 	{
 		printMessages = false;
@@ -167,22 +200,49 @@ public class MDPCreator
 		return actionIndex;
 	}
 
-	public boolean addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs, ArrayList<boolean[]> essAcc)
+	public int addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs, ArrayList<boolean[]> essAcc, double cost)
 	{
-		boolean res = addAction(s, a, successorsWithProbs);
+		int actionIndex = addAction(s, a, successorsWithProbs);
+		//if there are any essential states we get a reward 
+		double rew = 0; 
 		for (int i = 0; i < successorsWithProbs.size(); i++) {
 			State ss = successorsWithProbs.get(i).getKey();
+			double prob =  successorsWithProbs.get(i).getValue(); 
+			
 			boolean ess = essAcc.get(i)[0];
 			boolean acc = essAcc.get(i)[1];
 			if (ess)
+			{	
 				this.setEssState(ss);
+				rew += prob*1.0; 
+			}
 			if (acc)
 				this.setAccState(ss);
+			
 		}
-		return res;
+		int stateIndex = getStateIndex(s);	
+		if(rew > 0)
+		{
+			if( stateActionTaskCompletionRewards == null)
+			{
+				 stateActionTaskCompletionRewards = new HashMap<Entry<Integer,Integer>,Double>(); 
+				 
+			}
+			
+		
+			stateActionTaskCompletionRewards.put(new AbstractMap.SimpleEntry<Integer,Integer>(stateIndex,actionIndex), rew);
+		}
+		if(cost>0)
+		{
+			if(this.stateActionCosts== null)
+				stateActionCosts = new HashMap<Entry<Integer,Integer>,Double>(); 
+			stateActionCosts.put(new AbstractMap.SimpleEntry<Integer,Integer>(stateIndex,actionIndex),cost);
+		}
+		
+		return actionIndex;
 	}
 
-	public boolean addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs)
+	public int addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs)
 	{
 
 		//add an action to a state
@@ -199,18 +259,21 @@ public class MDPCreator
 			distr.add(succStateIndex, prob);
 		}
 		mdp.addActionLabelledChoice(stateIndex, distr, a);
-		return true;
+		return actionIndex;
 	}
 
 	//adds an action or parts of an action 
-	public boolean addActionPartial(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs)
+	public int addActionPartial(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs)
 	{
 
 		boolean added = false;
 		int stateIndex = getStateIndex(s);
 		int actionIndex = getActionIndex(stateIndex, a);
 		if (actionIndex == -1) {
-			added = addAction(s, a, successorsWithProbs);
+			
+			actionIndex = addAction(s, a, successorsWithProbs);
+			added = actionIndex!=-1;
+			
 		} else {
 			//this action exists 
 			//so we're just going to add to it 
@@ -246,7 +309,7 @@ public class MDPCreator
 			}
 
 		}
-		return added;
+		return actionIndex;
 	}
 
 	public void setInitialState(State s)
