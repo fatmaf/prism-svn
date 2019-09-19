@@ -200,7 +200,7 @@ public class MDPCreator
 		return actionIndex;
 	}
 
-	public int addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs, ArrayList<boolean[]> essAcc, double cost)
+	public int addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs, ArrayList<Object[]> essAcc, double cost)
 	{
 		int actionIndex = addAction(s, a, successorsWithProbs);
 		//if there are any essential states we get a reward 
@@ -209,12 +209,12 @@ public class MDPCreator
 			State ss = successorsWithProbs.get(i).getKey();
 			double prob =  successorsWithProbs.get(i).getValue(); 
 			
-			boolean ess = essAcc.get(i)[0];
-			boolean acc = essAcc.get(i)[1];
-			if (ess)
+			int ess = (int)essAcc.get(i)[0];
+			boolean acc = (boolean)essAcc.get(i)[1];
+			if (ess > 0)
 			{	
 				this.setEssState(ss);
-				rew += prob*1.0; 
+				rew += prob*((double)ess); 
 			}
 			if (acc)
 				this.setAccState(ss);

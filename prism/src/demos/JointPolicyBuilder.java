@@ -1,6 +1,7 @@
 package demos;
 
 import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -150,9 +151,10 @@ public class JointPolicyBuilder
 
 	protected MDPSimple jointMDP;
 	MDPRewardsSimple progressionRewards = null;
+	ArrayList<MDPRewardsSimple> seqTeamMDPRewards = null;
 	ArrayList<MDPRewardsSimple> otherRewards = null;
-	HashMap<Entry<State, Object>, Double> progressionRewardsHashMap = null;
-	ArrayList<HashMap<Entry<State, Object>, Double>> otherRewardsHashMap = null;
+	HashMap<Entry<Integer, Integer>, Double> progressionRewardsHashMap = null;
+	HashMap<Entry<Integer, Integer>, ArrayList<Double>> otherRewardsHashMap = null;
 
 	// helper bits
 	PriorityQueue<StateExtended> failedStatesQueue = null;
@@ -170,10 +172,13 @@ public class JointPolicyBuilder
 	double currentStateProbability = 1.0;
 
 	BitSet accStates = new BitSet();
+	BitSet essStates = new BitSet();
+	ArrayList<State> essStatesList = new ArrayList<State>();
 
-	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, VarList seqTeamMDPVarList, PrismLog log)
+	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, VarList seqTeamMDPVarList, ArrayList<MDPRewardsSimple> rewards,
+			PrismLog log)
 	{
-		statesMap = new HashMap<State, Integer>();
+
 		ArrayList<String> isolatedStatesList = new ArrayList<String>();
 		for (int i = 0; i < seqTeamMDPVarList.getNumVars(); i++) {
 			String name = seqTeamMDPVarList.getName(i);
@@ -181,15 +186,15 @@ public class JointPolicyBuilder
 				isolatedStatesList.add(name);
 			}
 		}
-		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
+		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, rewards, log);
 
 	}
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
-			PrismLog log)
+			ArrayList<MDPRewardsSimple> rewards, PrismLog log)
 	{
-		statesMap = new HashMap<State, Integer>();
-		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
+
+		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, rewards, log);
 	}
 
 	private VarList createVarList(VarList seqTeamMDPVarList)
@@ -246,8 +251,9 @@ public class JointPolicyBuilder
 	}
 
 	private void initialize(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
-			PrismLog log)
+			ArrayList<MDPRewardsSimple> rewards, PrismLog log)
 	{
+		statesMap = new HashMap<State, Integer>();
 		numRobots = nrobots;
 		numTasks = ntasks;
 		numSharedStates = sharedStatesList.size();
@@ -261,8 +267,18 @@ public class JointPolicyBuilder
 		this.failedStatesQueue = new PriorityQueue<StateExtended>();
 		this.statesExploredOrder = new ArrayList<Entry<State, Double>>();
 
-		progressionRewardsHashMap = new HashMap<Entry<State, Object>, Double>();
-		otherRewardsHashMap = new ArrayList<HashMap<Entry<State, Object>, Double>>();
+		progressionRewardsHashMap = new HashMap<Entry<Integer, Integer>, Double>();
+		otherRewardsHashMap = new HashMap<Entry<Integer, Integer>, ArrayList<Double>>();
+
+		if (rewards.size() > 1) {
+			if (this.seqTeamMDPRewards == null)
+				seqTeamMDPRewards = new ArrayList<MDPRewardsSimple>();
+			//so the assumption that we dont care about progression rewards 
+			for (int i = 1; i < rewards.size(); i++) {
+				seqTeamMDPRewards.add(rewards.get(i));
+			}
+
+		}
 
 	}
 
@@ -318,7 +334,7 @@ public class JointPolicyBuilder
 				sharedVarsInitialStates.put(sharedStatesNamesList.get(i), (int) currentJointState.varValues[mapping]);
 		}
 		buildJointPolicyFromSequentialPolicy(strat, seqTeamMDP.teamMDPWithSwitches, currentJointState);
-
+		jointMDP.addInitialState(statesMap.get(currentJointState));
 	}
 
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, MDPSimple mdp, int initialJointState) throws PrismException
@@ -632,12 +648,15 @@ public class JointPolicyBuilder
 						}
 
 						boolean usingModifiedStates = false;
-						Entry<String, ArrayList<Entry<int[], Double>>> actionAndCombinations = getActionAndSuccStatesAllRobots(strat,
+						Entry<Entry<String, ArrayList<Double>>, ArrayList<Entry<int[], Double>>> actionAndCombinations = getActionAndSuccStatesAllRobots(strat,
 								modifiedRobotStatesInSeqTeamMDP, robotStatesInSeqTeamMDP, mdp, usingModifiedStates);
 
-						String action = actionAndCombinations.getKey();
+						Entry<String, ArrayList<Double>> actionStringAndRews = actionAndCombinations.getKey();
+						String action = actionStringAndRews.getKey();
+						ArrayList<Double> summedStateActionRewards = actionStringAndRews.getValue();
 						ArrayList<State> succStatesQueue = new ArrayList<State>();
 						ArrayList<Double> succStatesProbQueue = new ArrayList<Double>();
+						double taskProgressionReward = 0;
 						for (Entry<int[], Double> combination : actionAndCombinations.getValue()) {
 
 							int[] modifiedRobotSuccStatesInSeqTeamMDP = combination.getKey();
@@ -658,11 +677,23 @@ public class JointPolicyBuilder
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
 							sharedStateChangesQ.add(sharedStateChanges);
 							// add to mdp
-
+							int numEss = isEssentialState(currentJointState, succJointState, mdp.getVarList());
+							if (numEss > 0) {
+								essStatesList.add(succJointState);
+								taskProgressionReward += ((double) numEss) * combination.getValue();
+							}
 						}
+
 						mainLog.println(action.toString());
-						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
-						jointStatesDiscovered.set(statesMap.get(currentJointState));
+
+						int actionIndex = addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
+						int currentJSIndex = statesMap.get(currentJointState);
+						jointStatesDiscovered.set(currentJSIndex);
+						SimpleEntry<Integer, Integer> saPair = new AbstractMap.SimpleEntry<Integer, Integer>(currentJSIndex, actionIndex);
+						if (taskProgressionReward > 0) {
+							this.progressionRewardsHashMap.put(saPair, taskProgressionReward);
+						}
+						this.otherRewardsHashMap.put(saPair, summedStateActionRewards);
 
 						//						saveMDP(jointMDP, "new");
 					}
@@ -975,7 +1006,7 @@ public class JointPolicyBuilder
 		return index;
 	}
 
-	private void addTranstionToMDP(MDPSimple mdp, State parentStates, ArrayList<State> states, ArrayList<Double> probs, String action, double norm)
+	private int addTranstionToMDP(MDPSimple mdp, State parentStates, ArrayList<State> states, ArrayList<Double> probs, String action, double norm)
 	{
 		int parentIndex = addStateToMDP(parentStates, mdp);
 		int index;
@@ -988,8 +1019,8 @@ public class JointPolicyBuilder
 
 		}
 
-		mdp.addActionLabelledChoice(parentIndex, distr, action);
-
+		int actionIndex = mdp.addActionLabelledChoice(parentIndex, distr, action);
+		return actionIndex;
 	}
 
 	private State getStateFromInd(int stateInd)
@@ -1495,8 +1526,27 @@ public class JointPolicyBuilder
 
 	}
 
+	ArrayList<Double> getRobotRewards(int state, int choice)
+	{
+		double rew = 0;
+		ArrayList<Double> costRewards = new ArrayList<Double>();
+		//rewards 
+		for (int i = 0; i < seqTeamMDPRewards.size(); i++) {
+			//TODO: dont ignore state rewards 
+			//ignoring state rewards!!!!!!
+			rew = 0;
+			if (choice > -1) {
+				rew = seqTeamMDPRewards.get(i).getTransitionReward(state, choice);
+
+			}
+			costRewards.add(rew);
+		}
+		return costRewards;
+	}
+
 	protected Entry<Object, Integer> getActionChoice(MDStrategyArray strat, int state)
 	{
+
 		Entry<Object, Integer> actionChoice;
 		Object action = null;
 		int choice = -1;
@@ -1520,46 +1570,86 @@ public class JointPolicyBuilder
 		return actionChoices;
 	}
 
-	protected double getProgressionReward(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	//commented this cuz I got another function that works just fine 
+	//	protected double getProgressionReward(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	//	{
+	//		double progRew = 0;
+	//		//rewards are sums 
+	//
+	//		for (int i = 0; i < states.length; i++) {
+	//
+	//			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
+	//			progRew += teamMDP.progressionRewards.getTransitionReward(states[i], actionChoice.getValue());
+	//
+	//		}
+	//		return progRew;
+	//	}
+	//
+	//	protected ArrayList<Double> getOtherRewards(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	//	{
+	//		ArrayList<Double> allRews = new ArrayList<Double>();
+	//		for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++)
+	//			allRews.add(0.0);
+	//		for (int i = 0; i < states.length; i++) {
+	//
+	//			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
+	//			for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++) {
+	//				double currentRew = allRews.get(rew);
+	//				double rewForState = teamMDP.rewardsWithSwitches.get(rew).getTransitionReward(states[i], actionChoice.getValue());
+	//				currentRew += rewForState;
+	//				allRews.set(rew, currentRew);
+	//			}
+	//
+	//		}
+	//		return allRews;
+	//	}
+
+	ArrayList<Double> addTwoArrayListElementWise(ArrayList<Double> a1, ArrayList<Double> a2) throws PrismException
 	{
-		double progRew = 0;
-		//rewards are sums 
-
-		for (int i = 0; i < states.length; i++) {
-
-			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
-			progRew += teamMDP.progressionRewards.getTransitionReward(states[i], actionChoice.getValue());
-
+		int s1 = a1.size();
+		int s2 = a2.size();
+		if (s1 == 0 && s2 == 0)
+			return a1;
+		else if (s1 == 0 && s2 > 0) {
+			return a2;
+		} else if (s1 > 0 && s2 == 0) {
+			return a1;
+		} else {
+			if (s1 == s2) {
+				for (int i = 0; i < s1; i++) {
+					double s = a1.get(i) + a2.get(i);
+					a1.set(i, s);
+				}
+				return a1;
+			} else
+				throw new PrismException("Unequal Arrays");
 		}
-		return progRew;
 	}
 
-	protected ArrayList<Double> getOtherRewards(MDStrategyArray strat, int[] states, SequentialTeamMDP teamMDP)
+	ArrayList<Double> getAllRobotRewards(HashMap<Integer, Entry<Object, Integer>> actionChoices) throws PrismException
 	{
-		ArrayList<Double> allRews = new ArrayList<Double>();
-		for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++)
-			allRews.add(0.0);
-		for (int i = 0; i < states.length; i++) {
-
-			Entry<Object, Integer> actionChoice = getActionChoice(strat, states[i]);
-			for (int rew = 0; rew < teamMDP.rewardsWithSwitches.size(); rew++) {
-				double currentRew = allRews.get(rew);
-				double rewForState = teamMDP.rewardsWithSwitches.get(rew).getTransitionReward(states[i], actionChoice.getValue());
-				currentRew += rewForState;
-				allRews.set(rew, currentRew);
-			}
-
+		ArrayList<Double> summedRewards = new ArrayList<Double>();
+		//for each entry in the action choice thing 
+		for (int state : actionChoices.keySet()) {
+			//get the robots reward 
+			Entry<Object, Integer> actionChoice = actionChoices.get(state);
+			int choice = actionChoice.getValue();
+			ArrayList<Double> robotRewards = getRobotRewards(state, choice);
+			summedRewards = addTwoArrayListElementWise(summedRewards, robotRewards);
 		}
-		return allRews;
+
+		return summedRewards;
+
 	}
 
-	protected Entry<String, ArrayList<Entry<int[], Double>>> getActionAndSuccStatesAllRobots(MDStrategyArray strat, int[] modifiedStates, int[] states,
-			MDPSimple mdp, boolean usingModifiedState) throws PrismException
+	protected Entry<Entry<String, ArrayList<Double>>, ArrayList<Entry<int[], Double>>> getActionAndSuccStatesAllRobots(MDStrategyArray strat,
+			int[] modifiedStates, int[] states, MDPSimple mdp, boolean usingModifiedState) throws PrismException
 	{
-		Entry<String, ArrayList<Entry<int[], Double>>> toret = null;
+		Entry<Entry<String, ArrayList<Double>>, ArrayList<Entry<int[], Double>>> toret = null;
 		HashMap<Integer, Entry<Object, Integer>> actionChoices = getActionChoiceAllRobots(strat, modifiedStates);
 		HashMap<Integer, ArrayList<Entry<Integer, Double>>> succArrs = new HashMap<Integer, ArrayList<Entry<Integer, Double>>>();
 		// for each action choice we need to get the successorstates
+		ArrayList<Double> summedRews = getAllRobotRewards(actionChoices);
 		String jointAction = "";
 		int[] numSuccs = new int[numRobots];
 
@@ -1615,7 +1705,9 @@ public class JointPolicyBuilder
 			combProb = succStateProbList.get(i).getValue();
 			succStateProbList.get(i).setValue(combProb / sumSuccProb);
 		}
-		toret = new AbstractMap.SimpleEntry<String, ArrayList<Entry<int[], Double>>>(jointAction, succStateProbList);
+		Entry<String, ArrayList<Double>> actionStringAndRews = new AbstractMap.SimpleEntry<String, ArrayList<Double>>(jointAction, summedRews);
+
+		toret = new AbstractMap.SimpleEntry<Entry<String, ArrayList<Double>>, ArrayList<Entry<int[], Double>>>(actionStringAndRews, succStateProbList);
 		return toret;
 
 	}
@@ -1697,6 +1789,31 @@ public class JointPolicyBuilder
 
 	}
 
+	int isEssentialState(State ps, State cs, VarList varlist)
+	{
+		int essState = 0;
+
+		int jj = 0;
+		for (int j = 0; j < varlist.getNumVars(); j++) {
+			String name = varlist.getName(j);
+			if (name.contains("da")) {
+
+				int jsIndex = varListMapping.get(name);
+				if ((int) ps.varValues[jsIndex] != (int) cs.varValues[jsIndex]) {
+					if ((int) cs.varValues[jsIndex] == daFinalStates.get(jj)) {
+						if (daFinalStates.get(jj) != daInitialStates.get(jj)) {
+							essState++;
+						}
+					}
+				}
+				jj++;
+			}
+
+		}
+
+		return essState;
+	}
+
 	protected State createJointState(int[] states, List<State> statesList, VarList varlist, State parentState,
 			HashMap<Integer, ArrayList<Entry<Integer, Entry<Integer, Integer>>>> sharedStateChanges)
 	{
@@ -1717,14 +1834,16 @@ public class JointPolicyBuilder
 			//				if (parentState.varValues[j] != das[j] && das[j] != this.daInitialStates.get(j))
 			//					stateToRet.setValue(j, das[j]);
 			//			}
+
 			int jj = 0;
 			for (int j = 0; j < varlist.getNumVars(); j++) {
 
 				String name = varlist.getName(j);
 				if (name.contains("da")) {
 					int jsIndex = varListMapping.get(name);
-					if ((int) parentState.varValues[jsIndex] != (int) das[jj] && (int) das[jj] != this.daInitialStates.get(jj))
+					if ((int) parentState.varValues[jsIndex] != (int) das[jj] && (int) das[jj] != this.daInitialStates.get(jj)) {
 						stateToRet.setValue(jsIndex, das[jj]);
+					}
 					jj++;
 				}
 			}
@@ -1973,4 +2092,35 @@ public class JointPolicyBuilder
 		return getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(0).getKey());
 	}
 
+	public void createRewardStructures()
+	{
+		MDPSimple mdp = jointMDP;
+
+		//the assumption is we're all done 
+		//so we can just add stuff 
+		if (otherRewardsHashMap != null & progressionRewardsHashMap != null) {
+			progressionRewards = new MDPRewardsSimple(mdp.getNumStates());
+			otherRewards = new ArrayList<MDPRewardsSimple>();
+
+			for (Entry<Integer, Integer> saPair : progressionRewardsHashMap.keySet()) {
+				progressionRewards.addToTransitionReward(saPair.getKey(), saPair.getValue(), progressionRewardsHashMap.get(saPair));
+			}
+			for (Entry<Integer, Integer> saPair : otherRewardsHashMap.keySet()) {
+				for (int i = 0; i < otherRewardsHashMap.get(saPair).size(); i++) {
+					if (otherRewards.size() < (i + 1)) {
+						otherRewards.add(new MDPRewardsSimple(mdp.getNumStates()));
+					}
+					otherRewards.get(i).addToTransitionReward(saPair.getKey(), saPair.getValue(), otherRewardsHashMap.get(saPair).get(i));
+
+				}
+			}
+		}
+	}
+	public ArrayList<MDPRewardsSimple> getExpTaskAndCostRewards()
+	{
+		ArrayList<MDPRewardsSimple> rewstoret = new ArrayList<MDPRewardsSimple>(); 
+		rewstoret.add(progressionRewards); 
+		rewstoret.add(otherRewards.get(0));
+		return rewstoret;
+	}
 }
