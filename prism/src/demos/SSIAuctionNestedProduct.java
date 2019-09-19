@@ -454,6 +454,8 @@ public class SSIAuctionNestedProduct
 			ArrayList<MDStrategy> nviStrategies = new ArrayList<MDStrategy>();
 			ArrayList<MDP> productMDPs = new ArrayList<MDP>();
 			ArrayList<ArrayList<DAInfo>> finalDAList = new ArrayList<ArrayList<DAInfo>>();
+			ArrayList<MDPRewardsSimple> costRewards = new ArrayList<MDPRewardsSimple>();
+
 			for (rnum = 0; rnum < numRobots; rnum++) {
 				ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(robotsTasksBroken.get(rnum), mainLog);
 
@@ -463,6 +465,8 @@ public class SSIAuctionNestedProduct
 				SingleAgentNestedProductMDP res = buildSingleAgentNestedProductMDP("r" + rnum, mdps.get(rnum), daList, null, prism, mcs.get(rnum), mainLog);
 
 				ArrayList<MDPRewardsSimple> rewards = createMaxExpTaskRewStruct(res, costsModel);
+
+				costRewards.add(rewards.get(1)); //cuz its always 2 for now 
 
 				mainLog.println(res.combinedAcceptingStates.toString());
 				mainLog.println(res.combinedEssentialStates.toString());
@@ -476,26 +480,11 @@ public class SSIAuctionNestedProduct
 				productMDPs.add(res.finalProduct.getProductModel());
 				nviStrategies.add(nviSol.strat);
 				finalDAList.add(res.daList);
-				//				for (int dathing = 0; dathing < daList.size(); dathing++) {
-				//					//				mainLog.println(daList.get(dathing));
-				//					DAInfo daInfo = res.daList.get(dathing);
-				//					if (!daInfo.isSafeExpr)
-				//						mainLog.println(daInfo.daAccStates.toString());
-				//					else
-				//						mainLog.println(daInfo.da.getStartState());
-				//					daInfo.da.print(mainLog, "txt");
-				//				}
+
 			}
-			//so now we just replace this whole thing with a nested product thing 
-			//cuz we have all the tasks 
-			//well now robotTasks are a series of tasks 
-			//so first we change robotTasks to be a list 
-			//			
-			//			buildSingleAgentNestedProductMDP( "kuchbhi",mdps.get(0) , ArrayList<DAInfo> daList, null,
-			//					ProbModelChecker mcProb, ModulesFile modulesFile,mainLog);
-			//			getSingleAgentPlansUsingNVI(numRobots, mdps, rewExpr, mcs, robotsTasks, nviStrategies, productMDPs, mainLog, saveplace, filename);
-			//
-			Queue<State> potentialReallocStates = createJointPolicy(finalDAList, numRobots, mainLog, productMDPs, nviStrategies, saveplace, filename, ssNames);
+
+			Queue<State> potentialReallocStates = createJointPolicy(costRewards, finalDAList, numRobots, mainLog, productMDPs, nviStrategies, saveplace,
+					filename, ssNames,prism);
 
 			mainLog.println("Potential ReallocStates");
 			while (!potentialReallocStates.isEmpty()) {
@@ -735,8 +724,8 @@ public class SSIAuctionNestedProduct
 
 	}
 
-	Queue<State> createJointPolicy(ArrayList<ArrayList<DAInfo>> daList, int numRobots, PrismLog mainLog, ArrayList<MDP> productMDPs,
-			ArrayList<MDStrategy> nviStrategies, String saveplace, String filename, ArrayList<String> ssNames) throws PrismException
+	Queue<State> createJointPolicy(ArrayList<MDPRewardsSimple> costRewards, ArrayList<ArrayList<DAInfo>> daList, int numRobots, PrismLog mainLog,
+			ArrayList<MDP> productMDPs, ArrayList<MDStrategy> nviStrategies, String saveplace, String filename, ArrayList<String> ssNames,Prism prism) throws PrismException
 	{
 		//things to do here 
 		//make the mdp stuff for reallocations too 
@@ -811,6 +800,8 @@ public class SSIAuctionNestedProduct
 				ArrayList<ArrayList<Double>> robotStatesProbs = new ArrayList<ArrayList<Double>>();
 				String infoString = "";
 
+				double stateActionCost = 0;
+
 				for (int i = 0; i < numRobots; i++) {
 					ArrayList<Integer> nextRobotStates = new ArrayList<Integer>();
 
@@ -820,8 +811,11 @@ public class SSIAuctionNestedProduct
 					MDP mdp = productMDPs.get(i);
 
 					int actionChoice = strat.getChoiceIndex(currentStates[i]);
-					if (actionChoice > -1) {
 
+					//+= cuz sum can change this to not sum 
+
+					if (actionChoice > -1) {
+						stateActionCost += costRewards.get(i).getTransitionReward(currentStates[i], actionChoice);
 						actions[i] = strat.getChoiceAction(currentStates[i]);
 
 						infoString += i + ":" + currentStates[i] + mdp.getStatesList().get(currentStates[i]).toString() + "->" + actions[i].toString() + " ";
@@ -886,7 +880,7 @@ public class SSIAuctionNestedProduct
 						//					statesProbQueue.add(comboProb);
 						successorsWithProbs.add(new AbstractMap.SimpleEntry<State, Double>(nextJointState, comboProb));
 					}
-					mdpCreator.addAction(currentJointState, ja, successorsWithProbs, essAndAcc);
+					mdpCreator.addAction(currentJointState, ja, successorsWithProbs, essAndAcc, stateActionCost);
 
 				} else {
 					//lets add these to a queue!!! 
@@ -901,8 +895,15 @@ public class SSIAuctionNestedProduct
 		mdpCreator.saveMDP(saveplace + "results/", filename + "_jp");
 		mainLog.println(mdpCreator.essStates.toString());
 		mainLog.println(mdpCreator.accStates.toString());
+		mdpCreator.createRewardStructures();
+		mdpCreator.setInitialState(jointState);
 		mainLog.println("Goal Prob:" + mdpCreator.getProbabilityToReachAccStateFromJointMDP(jointState));
-
+		
+		//lets just do nvi on this here quickly
+		//		ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(res.finalProduct.getProductModel(), res.combinedAcceptingStates,
+//		res.combinedStatesToAvoid, rewards, 0, true, prism, mainLog);
+		mdpCreator.mdp.findDeadlocks(true);
+		ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mdpCreator.mdp,mdpCreator.accStates,new BitSet(),mdpCreator.getRewardsInArray(),0,true,prism,mainLog);
 		return possibleReallocStates;
 
 	}

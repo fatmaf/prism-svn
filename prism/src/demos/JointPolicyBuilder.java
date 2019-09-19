@@ -151,8 +151,8 @@ public class JointPolicyBuilder
 	protected MDPSimple jointMDP;
 	MDPRewardsSimple progressionRewards = null;
 	ArrayList<MDPRewardsSimple> otherRewards = null;
-	HashMap<State, Double> progressionRewardsHashMap = null;
-	ArrayList<HashMap<State, Double>> otherRewardsHashMap = null;
+	HashMap<Entry<State, Object>, Double> progressionRewardsHashMap = null;
+	ArrayList<HashMap<Entry<State, Object>, Double>> otherRewardsHashMap = null;
 
 	// helper bits
 	PriorityQueue<StateExtended> failedStatesQueue = null;
@@ -182,8 +182,7 @@ public class JointPolicyBuilder
 			}
 		}
 		initialize(nrobots, ntasks, sharedStatesList, isolatedStatesList, seqTeamMDPVarList, log);
-		HashMap<State, Double> progressionRewardsHashMap = new HashMap<State, Double>();
-		ArrayList<HashMap<State, Double>> otherRewardsHashMap = new ArrayList<HashMap<State, Double>>();
+
 	}
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, ArrayList<String> isolatedStatesList, VarList seqTeamMDPVarList,
@@ -261,6 +260,9 @@ public class JointPolicyBuilder
 		jointMDP.setStatesList(new ArrayList<State>());
 		this.failedStatesQueue = new PriorityQueue<StateExtended>();
 		this.statesExploredOrder = new ArrayList<Entry<State, Double>>();
+
+		progressionRewardsHashMap = new HashMap<Entry<State, Object>, Double>();
+		otherRewardsHashMap = new ArrayList<HashMap<Entry<State, Object>, Double>>();
 
 	}
 
@@ -359,11 +361,10 @@ public class JointPolicyBuilder
 	private double getProbabilityToReachAccStateFromJointMDP(State js)
 	{
 		int s = statesMap.get(js);
-		
 
 		MDPSimple mdp = jointMDP;
 		double prob = getStateProb(s, mdp, 0, mdp.getNumStates());
-		this.mainLog.println("Probability of satisfaction from state "+js.toString()+": "+prob);
+		this.mainLog.println("Probability of satisfaction from state " + js.toString() + ": " + prob);
 		return prob;
 		//		int s = statesMap.get(js);
 		//		double prob = 1.0;
@@ -657,8 +658,7 @@ public class JointPolicyBuilder
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
 							sharedStateChangesQ.add(sharedStateChanges);
 							// add to mdp
-							//							if (succJointState.toString().contains("(0,0,0,1,-1,1,18)"))
-							//								mainLog.println("Debug here");
+
 						}
 						mainLog.println(action.toString());
 						this.addTranstionToMDP(jointMDP, currentJointState, succStatesQueue, succStatesProbQueue, action, 1.0);
@@ -1961,13 +1961,13 @@ public class JointPolicyBuilder
 	{
 
 		for (int i = 0; i < statesExploredOrder.size(); i++) {
-			double prob= getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(i).getKey());
-			this.mainLog.println(i + 1 + ":" + statesExploredOrder.get(i).toString() + " - "+ prob);
-			
+			double prob = getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(i).getKey());
+			this.mainLog.println(i + 1 + ":" + statesExploredOrder.get(i).toString() + " - " + prob);
+
 		}
 
 	}
-	
+
 	public double getProbabilityOfSatisfactionFromInitState()
 	{
 		return getProbabilityToReachAccStateFromJointMDP(statesExploredOrder.get(0).getKey());
