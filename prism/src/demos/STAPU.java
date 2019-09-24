@@ -59,7 +59,7 @@ public class STAPU
 		//		stapu.runTest();
 		//		stapu.runGUITest();
 		//		stapu.debugOne();
-		stapu.runGUISimpleTestsOne();
+		stapu.runGUISimpleTests();
 	}
 
 	// long timeout = 100 * 60 * 1000;
@@ -827,7 +827,7 @@ public class STAPU
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
 
-	public double[] runGUISimpleTestsOne()
+	public double[] runGUISimpleTestsOne(String fn,int numRobots, int numFS, int numGoals, int numDoors)
 	{
 		double[] res = null;
 		// saving filenames etc
@@ -843,23 +843,23 @@ public class STAPU
 		ArrayList<String> examples = new ArrayList<String>();
 		ArrayList<String> example_ids = new ArrayList<String>();
 
-		int numRobots = 2;
-		int numFS = 1;
-		int numGoals = 4;
-		int numDoors = 2;
+//		int numRobots = 2;
+//		int numFS = 1;
+//		int numGoals = 4;
+//		int numDoors = 2;
 		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
-		String example = "g5_r2_t3_d2_fs1";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
+		String example = fn;//"g5_r2_t3_d2_fs1";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
 		String example_id = example;//example + "r" + numRobots;//cumberland_doors; 
 		String example_to_run = example;//cumberland_doors; 
 		
-		numRobots = 4;
-		numFS = 8;
-		numGoals = 7;
-		numDoors = 4;
-		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
-		example = "g10_r4_t6_d4_fs8";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
-		example_id = example;//example + "r" + numRobots;//cumberland_doors; 
-		example_to_run = example;//cumberland_doors; 
+//		numRobots = 4;
+//		numFS = 8;
+//		numGoals = 7;
+//		numDoors = 4;
+//		//simpleTests/g5_r3_t3_d0_fs0.png  simpleTests/g5_r3_t3_d0_fs3.png  simpleTests/g5_r3_t3_d2_fs3.png
+//		example = "g10_r4_t6_d4_fs8";//"g5_r3_t3_d0_fs0";//"test_grid_nodoors_nofs";
+//		example_id = example;//example + "r" + numRobots;//cumberland_doors; 
+//		example_to_run = example;//cumberland_doors; 
 
 		example_has_door_list.put(example_id, numDoors > 0);
 		example_num_door_list.put(example_id, numDoors);
