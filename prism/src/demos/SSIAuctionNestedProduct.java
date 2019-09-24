@@ -416,13 +416,23 @@ public class SSIAuctionNestedProduct
 
 	public double[] run()
 	{
+
+		int numRobots = 2;
+		int numFS = 1;
+		int numGoals = 4;
+		int numDoors = 2;
+		String fn = "g5_r2_t3_d2_fs1";
+		return run(fn,numRobots,numDoors);
+	}
+	public double[] run(String fn, int numRobots, int numDoors)
+	{
 		try {
 			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename = "g5_r2_t3_d2_fs1";//"g10_r4_t6_d4_fs8";//"g5_r2_t3_d2_fs1";//"g7_r5_t6_d3_fs2";//"g7x3_r2_t3_d0_fs1";//"robot";
+			String filename = fn;//"g5_r2_t3_d2_fs1";//"g10_r4_t6_d4_fs8";//"g5_r2_t3_d2_fs1";//"g7_r5_t6_d3_fs2";//"g7x3_r2_t3_d0_fs1";//"robot";
 			ArrayList<String> ssNames = new ArrayList<String>();
-			int numRobots = 2;//4; //numRobots
+//			int numRobots = 2;//4; //numRobots
 
-			int numDoors = 2;//4;
+//			int numDoors = 2;//4;
 			for (int i = 0; i < numDoors; i++)
 				ssNames.add("door" + i);
 			//			ssNames.add("door0");
