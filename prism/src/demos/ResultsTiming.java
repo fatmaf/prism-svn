@@ -52,6 +52,7 @@ public class ResultsTiming
 	String saveLoc;
 	boolean thts = false;
 
+	String prefix; 
 	HashMap<String,Double>values; 
 	public enum varIDs {
 
@@ -64,12 +65,13 @@ public class ResultsTiming
 
 	}
 
-	public ResultsTiming(PrismLog mainLog, String res_trial_name, String saveLoc, boolean thts)
+	public ResultsTiming(PrismLog mainLog, String res_trial_name, String saveLoc, boolean thts,String prefix)
 	{
 		this.mainLog = mainLog;
 		this.res_trial_name = res_trial_name;
 		this.saveLoc = saveLoc;
 		this.thts = thts;
+		this.prefix = prefix; 
 	}
 
 	public void writeResults()
@@ -118,10 +120,10 @@ public class ResultsTiming
 		json_text += createJsonStyleString("Total Time", System.nanoTime() - global_start_time);
 		json_text += "}";
 		if (!thts)
-			resLog = new PrismFileLog(saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + ".json");
+			resLog = new PrismFileLog(saveLoc + prefix + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + ".json");
 		else
 			resLog = new PrismFileLog(
-					saveLoc + "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "_thts.json");
+					saveLoc + prefix+ res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "_thts.json");
 
 		resLog.print(json_text);
 		resLog.close();
@@ -129,8 +131,8 @@ public class ResultsTiming
 
 	void saveJointPolicy(JointPolicyBuilder jointPolicyBuilder)
 	{
-		StatesHelper.saveMDP(jointPolicyBuilder.jointMDP, null, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "jointPolicy", true);
-		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", "_trial_" + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
+		StatesHelper.saveMDP(jointPolicyBuilder.jointMDP, null, "", prefix + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "jointPolicy", true);
+		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", prefix + res_trial_name + "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
 	}
 	
 	public String createJsonStyleString(String varname, HashMap<String, Double> varvalues)

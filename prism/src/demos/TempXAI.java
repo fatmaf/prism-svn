@@ -352,7 +352,7 @@ public class TempXAI
 	public void mdpActionsToDAPropsProduct() throws PrismException, FileNotFoundException
 	{
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-		String filename = "g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
+		String filename = "xai_r1_d1_g1_fs1notgoal";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
 
 		PropertiesFile propertiesFile = readModel(saveplace, filename);
 

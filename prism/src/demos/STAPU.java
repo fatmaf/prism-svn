@@ -117,16 +117,16 @@ public class STAPU
 				res.daList.get(otherDAs).updateStateNumbers(product);
 				res.daList.get(otherDAs).associatedIndexInProduct++; //and everyone else also gets shifted once. 
 
-				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
-				//						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
-				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
-				//						name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
+								StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
+										name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
+								StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
+										name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
 			}
-			//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//					name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
+						StatesHelper.saveHashMap(res.productStateToMDPState, "",
+								name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
 			res.updateProductToMDPStateMapping(product);
-			//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
+						StatesHelper.saveHashMap(res.productStateToMDPState, "",
+								name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
 		DAInfo daInfo = res.daList.get(res.daList.size() - 1);
@@ -300,6 +300,7 @@ public class STAPU
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
 
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
+		
 		mainLog.println("InitState = " + initialState);
 
 		// *************************************************************//
@@ -827,11 +828,11 @@ public class STAPU
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
 
-	public double[] runGUISimpleTestsOne(String fn,int numRobots, int numFS, int numGoals, int numDoors)
+	public double[] runGUISimpleTestsOne(String dir,String fn,int numRobots, int numFS, int numGoals, int numDoors)
 	{
 		double[] res = null;
 		// saving filenames etc
-		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+//		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
 		//System.getProperty("user.dir");
 		String modelLocation = dir;
 		StatesHelper.setSavePlace(modelLocation + "results/");
@@ -882,12 +883,17 @@ public class STAPU
 						modelLocation, true, dir + "results/stapu", true);
 
 			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				
 				System.out.println("Error: " + e.getMessage());
 				//						System.exit(1);
 			} catch (PrismException e) {
+				e.printStackTrace();
+				
 				System.out.println("Error: " + e.getMessage());
 				//						System.exit(1);
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.out.println("Error: " + e.getMessage());
 			}
 
@@ -2441,7 +2447,7 @@ public class STAPU
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
 
-		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false,"stapu");
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
@@ -2602,7 +2608,7 @@ public class STAPU
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
 
-		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false,"stapu");
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);
@@ -2763,7 +2769,7 @@ public class STAPU
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
 
-		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false);
+		resSaver = new ResultsTiming(mainLog, filename, StatesHelper.getLocation(), false,"stapu");
 
 		//record num robots and doors 
 		resSaver.recordInits(numRobots, "Robots", varIDs.numrobots);

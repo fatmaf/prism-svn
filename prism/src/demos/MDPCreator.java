@@ -16,6 +16,7 @@ import explicit.MDP;
 import explicit.MDPSimple;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
+import parser.VarList;
 import prism.PrismFileLog;
 import prism.PrismLog;
 
@@ -412,5 +413,9 @@ public class MDPCreator
 	{
 		saveMDP(mdp, saveLoc, name, null);
 
+	}
+	public void setVarList(VarList vl)
+	{
+		mdp.setVarList((VarList)vl.clone());
 	}
 }
