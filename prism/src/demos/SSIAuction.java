@@ -56,8 +56,8 @@ public class SSIAuction
 			currentTask = taskSet.get(exprNum);
 			if (agentTasks != null)
 				currentTask = Expression.And(agentTasks, currentTask);
-			StateValues nvicosts = mc.checkPartialSatExposed(agentMDP, currentTask, rewardExpr, null);
-			double costInInitState = nvicosts.getDoubleArray()[agentMDP.getFirstInitialState()];
+			double costInInitState = mc.checkPartialSatExposed(agentMDP, currentTask, rewardExpr, null)[2];
+			
 			if (costInInitState < bidValue) {
 				bidPick = taskSet.get(exprNum);
 				bidValue = costInInitState;

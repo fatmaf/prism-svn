@@ -51,7 +51,8 @@ public class SSIAuctionNestedProduct
 	private HashMap<Integer, int[]> jsToRobotState;
 	private MDPCreator mdpCreator = null;
 	private boolean doingReallocs = false;
-	String fnPrefix = "ssi"; 
+	String fnPrefix = "ssi";
+	HashMap<Expression,String> expressionLabels = null;
 
 	public ArrayList<MDPRewardsSimple> createMaxExpTaskRewStruct(SingleAgentNestedProductMDP saMDP, MDPRewardsSimple costsModel)
 	{
@@ -185,12 +186,12 @@ public class SSIAuctionNestedProduct
 		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference, p, m);
 	}
 
-	public Entry<Integer, Double> getSingleAgentBid(MDP agentMDP, ArrayList<Expression> taskSet, Expression agentTasks, ExpressionReward rewardExpr,
-			MDPModelChecker mc) throws PrismException
+	public Entry<Integer, double[]> getSingleAgentBid(MDP agentMDP, ArrayList<Expression> taskSet, Expression agentTasks, ExpressionReward rewardExpr,
+			MDPModelChecker mc, double sumOfCosts) throws PrismException
 	{
 
 		Expression bidPick = null;
-		double bidValue = 100000;
+		double[] bidValue = new double[] { 0, 0, 10000 };
 		//		Expression robotTasks = null;
 		Expression currentTask = null;
 		int indexOfChosenTask = -1;
@@ -199,19 +200,40 @@ public class SSIAuctionNestedProduct
 			currentTask = getInnerExpression(taskSet.get(exprNum));
 			if (agentTasks != null)
 				currentTask = Expression.And(agentTasks, currentTask);
-			StateValues nvicosts = mc.checkPartialSatExposed(agentMDP, currentTask, rewardExpr, null);
-			double costInInitState = nvicosts.getDoubleArray()[agentMDP.getFirstInitialState()];
-			if (costInInitState < bidValue) {
+			double[] nvicosts = mc.checkPartialSatExposed(agentMDP, currentTask, rewardExpr, null);
+
+			//			nvicosts[2] +=sumOfCosts;
+			if (probProgCostIsBetter(nvicosts, bidValue, sumOfCosts)) {
 				bidPick = taskSet.get(exprNum);
-				bidValue = costInInitState;
+				bidValue = nvicosts.clone();
 				indexOfChosenTask = exprNum;
 			}
 
 		}
-		return new AbstractMap.SimpleEntry<Integer, Double>(indexOfChosenTask, bidValue);
+		//		bidValue[2]-=sumOfCosts;
+		return new AbstractMap.SimpleEntry<Integer, double[]>(indexOfChosenTask, bidValue);
 	}
 
-	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties(PropertiesFile propertiesFile, PrismLog mainLog,int numGoals)
+	boolean probProgCostIsBetter(double[] newValues, double[] oldValues, double sumofcosts)
+	{
+		boolean doUpdate = false;
+		if (newValues[0] <= oldValues[0]) {
+			if (newValues[1] <= oldValues[1]) {
+				if ((newValues[2] + sumofcosts) > oldValues[2]) {
+					doUpdate = false;
+				} else {
+					doUpdate = true;
+				}
+			} else {
+				doUpdate = true;
+			}
+		} else {
+			doUpdate = true;
+		}
+		return doUpdate;
+	}
+
+	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties(PropertiesFile propertiesFile, PrismLog mainLog, int numGoals)
 	{
 		// Model check the first property from the file using the model checker
 		for (int i = 0; i < propertiesFile.getNumProperties(); i++)
@@ -227,12 +249,14 @@ public class SSIAuctionNestedProduct
 			mainLog.println(ltlExpressions.get(exprNum));
 			if (ltlExpressions.get(exprNum) instanceof ExpressionReward)
 				rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
+			//just initialise the hashmap here 
+			expressionLabels.put(ltlExpressions.get(exprNum), "da"+exprNum);
 
 		}
 		Expression safetyExpr = ltlExpressions.get(numOp - 1);
 		ArrayList<Expression> taskSet = new ArrayList<Expression>();
 
-		for (int exprNum = 0; exprNum < numGoals-1; exprNum++) {
+		for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
 
 			Expression currentExpr = ltlExpressions.get(exprNum);
 			//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
@@ -248,6 +272,72 @@ public class SSIAuctionNestedProduct
 		return ((ExpressionQuant) expr).getExpression();
 	}
 
+	public ArrayList<ArrayList<Expression>> auctionTasksSumOfCosts(ArrayList<Expression> taskSet, int numRobots, ArrayList<MDPSimple> mdps,
+			ExpressionReward rewExpr, Expression safetyExpr, ArrayList<MDPModelChecker> mcs) throws PrismException
+	{
+		ArrayList<Expression> robotsTasks = new ArrayList<Expression>();
+		ArrayList<ArrayList<Expression>> robotsTasksBroken = new ArrayList<ArrayList<Expression>>();
+		double[] sumOfCostsFromOtherRobots = new double[numRobots];
+
+		//so what we've got to do here is 
+		//we got to mix the single agent bid with the sum of costs 
+		//so we have this current sum of costs 
+		//then we get the bid for one agent 
+		//if its less than the current sum, that agent gets the bid 
+		// so technically we're merging the whole process 
+
+		for (int i = 0; i < numRobots; i++) {
+			robotsTasks.add(getInnerExpression(safetyExpr));
+			robotsTasksBroken.add(new ArrayList<Expression>());
+			sumOfCostsFromOtherRobots[i] = 0;
+		}
+
+		while (!taskSet.isEmpty()) {
+
+			int bestBidIndex = -1;
+			double[] bestBidValues = new double[] { 0, 0, 10000 };
+			Expression bestBidExpression = null;
+			int bestBidRobotIndex = -1;
+
+			for (int i = 0; i < numRobots; i++) {
+
+				Entry<Integer, double[]> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i), sumOfCostsFromOtherRobots[i]);
+				int bidTaskIndex = bid.getKey();
+				double[] bidValues = bid.getValue();
+
+				if (this.probProgCostIsBetter(bidValues, bestBidValues, sumOfCostsFromOtherRobots[i])) {
+					bestBidValues = bidValues;
+					bestBidIndex = bidTaskIndex;
+					bestBidRobotIndex = i;
+					bestBidExpression = taskSet.get(bestBidIndex);
+
+				}
+			}
+
+			//now that we have the best single bid 
+			//lets add it 
+			for (int i = 0; i < numRobots; i++) {
+				if (i != bestBidRobotIndex) {
+					sumOfCostsFromOtherRobots[i] += bestBidValues[2];
+				}
+			}
+			Expression robotTasks = robotsTasks.get(bestBidRobotIndex);
+			robotsTasksBroken.get(bestBidRobotIndex).add(bestBidExpression);
+			if (robotTasks != null) {
+				bestBidExpression = Expression.And(robotTasks, getInnerExpression(bestBidExpression));
+
+			}
+
+			robotsTasks.set(bestBidRobotIndex, bestBidExpression);
+			taskSet.remove(bestBidIndex);
+
+		}
+		for (int i = 0; i < numRobots; i++) {
+			robotsTasksBroken.get(i).add(safetyExpr);
+		}
+		return robotsTasksBroken;
+	}
+
 	public ArrayList<ArrayList<Expression>> auctionTasks(ArrayList<Expression> taskSet, int numRobots, ArrayList<MDPSimple> mdps, ExpressionReward rewExpr,
 			Expression safetyExpr, ArrayList<MDPModelChecker> mcs) throws PrismException
 	{
@@ -261,17 +351,17 @@ public class SSIAuctionNestedProduct
 		while (!taskSet.isEmpty()) {
 
 			int bestBidIndex = -1;
-			double bestBidValue = 10000;
+			double[] bestBidValues = new double[] { 0, 0, 10000 };
 			Expression bestBidExpression = null;
 			int bestBidRobotIndex = -1;
 
 			for (int i = 0; i < numRobots; i++) {
-				Entry<Integer, Double> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i));
+				Entry<Integer, double[]> bid = getSingleAgentBid(mdps.get(i), taskSet, robotsTasks.get(i), rewExpr, mcs.get(i), 0);
 				int bidTaskIndex = bid.getKey();
-				double bidValue = bid.getValue();
+				double[] bidValues = bid.getValue();
 
-				if (bidValue < bestBidValue) {
-					bestBidValue = bidValue;
+				if (this.probProgCostIsBetter(bidValues, bestBidValues, 0.0)) {
+					bestBidValues = bidValues;
 					bestBidIndex = bidTaskIndex;
 					bestBidRobotIndex = i;
 					bestBidExpression = taskSet.get(bestBidIndex);
@@ -314,7 +404,7 @@ public class SSIAuctionNestedProduct
 			mainLog.println(i + ":" + robotsTasks.get(i).toString());
 			PolicyCreator pc = new PolicyCreator();
 			pc.createPolicy(productMDP, nviStrategy);
-			pc.savePolicy(saveplace + "results/"+fnPrefix, filename + "_" + i);
+			pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "_" + i);
 			nviStrategies.add(nviStrategy);
 		}
 	}
@@ -421,22 +511,18 @@ public class SSIAuctionNestedProduct
 		int numGoals = 4;
 		int numDoors = 2;
 		String fn = "g5_r2_t3_d2_fs1";
-		return run(saveplace,fn, numRobots,numGoals, numDoors);
+		return run(saveplace, fn, numRobots, numGoals, numDoors);
 	}
 
-	public double[] run(String saveplace,String fn, int numRobots, int numGoals,int numDoors)
+	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors)
 	{
-		fnPrefix +="r"+numRobots+"_g"+numGoals+"d"+numDoors; 
+		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
-//			String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-			String filename = fn;//"g5_r2_t3_d2_fs1";//"g10_r4_t6_d4_fs8";//"g5_r2_t3_d2_fs1";//"g7_r5_t6_d3_fs2";//"g7x3_r2_t3_d0_fs1";//"robot";
+			String filename = fn;
 			ArrayList<String> ssNames = new ArrayList<String>();
-			//			int numRobots = 2;//4; //numRobots
 
-			//			int numDoors = 2;//4;
 			for (int i = 0; i < numDoors; i++)
 				ssNames.add("door" + i);
-			//			ssNames.add("door0");
 
 			// Create a log for PRISM output (hidden or stdout)
 			//PrismLog mainLog = new PrismDevNullLog();
@@ -455,7 +541,7 @@ public class SSIAuctionNestedProduct
 
 			//do things to the properties 
 
-			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog,numGoals);
+			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals);
 			ExpressionReward rewExpr = processedProperties.getKey();
 			Entry<Expression, ArrayList<Expression>> safetyExprAndList = processedProperties.getValue();
 			Expression safetyExpr = safetyExprAndList.getKey();
@@ -466,7 +552,9 @@ public class SSIAuctionNestedProduct
 			ArrayList<MDPRewardsSimple> costsModels = new ArrayList<MDPRewardsSimple>();
 			getCostsModels(numRobots, rewExpr, mcs, mdps, costsModels);
 
-			ArrayList<ArrayList<Expression>> robotsTasksBroken = auctionTasks(taskSetToEdit, numRobots, mdps, rewExpr, safetyExpr, mcs);
+			ArrayList<ArrayList<Expression>> robotsTasksBroken =
+					//					auctionTasks
+					auctionTasksSumOfCosts(taskSetToEdit, numRobots, mdps, rewExpr, safetyExpr, mcs);
 			mainLog.println("\n\nAssigned Tasks");
 			mainLog.println(robotsTasksBroken.toString());
 
@@ -585,7 +673,8 @@ public class SSIAuctionNestedProduct
 				mainLog.println(res.combinedAcceptingStates.toString());
 				mainLog.println(res.combinedEssentialStates.toString());
 				mainLog.println(res.combinedStatesToAvoid.toString());
-				new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/"+fnPrefix, filename + "_prod_" + 0, res.combinedAcceptingStates);
+				new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + 0,
+						res.combinedAcceptingStates);
 				mainLog.println(res.numMDPVars);
 				ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(res.finalProduct.getProductModel(), res.combinedAcceptingStates,
 						res.combinedStatesToAvoid, rewards, 0, true, prism, mainLog);
@@ -1206,10 +1295,10 @@ public class SSIAuctionNestedProduct
 				}
 			}
 		} catch (PrismException e) {
-			mdpCreator.saveMDP(saveplace + "results/"+fnPrefix, filename + "_jp");
+			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 			throw e;
 		}
-		mdpCreator.saveMDP(saveplace + "results/"+fnPrefix, filename + "_jp");
+		mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 		mainLog.println(mdpCreator.essStates.toString());
 		mainLog.println(mdpCreator.accStates.toString());
 		mdpCreator.createRewardStructures();
