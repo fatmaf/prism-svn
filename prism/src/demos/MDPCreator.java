@@ -404,6 +404,7 @@ public class MDPCreator
 	public void saveMDP(MDP mdp, String saveLoc, String name, BitSet statesToMark)
 	{
 		String fn = saveLoc + name + ".dot";
+		System.out.println("Saving MDP to "+fn);
 		PrismLog out = new PrismFileLog(fn);
 		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();
