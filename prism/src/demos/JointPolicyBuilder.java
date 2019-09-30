@@ -297,6 +297,10 @@ public class JointPolicyBuilder
 
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP) throws PrismException
 	{
+		PolicyCreator pc = new PolicyCreator(); 
+		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+		pc.savePolicy("/home/fatma/", "justapolicy.dot");
+		
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
 			daFinalStates = new ArrayList<Integer>();

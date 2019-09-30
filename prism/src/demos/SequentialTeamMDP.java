@@ -490,7 +490,7 @@ public class SequentialTeamMDP {
 		this.teamMDPTemplate = teamMDP;
 		this.teamRewardsTemplate = teamRewardsList;
 
-//		StatesHelper.saveMDP(teamMDP, acceptingStates, "", "teamMDPTemplate", true);
+		StatesHelper.saveMDP(teamMDP, acceptingStates, "", "teamMDPTemplate", true);
 
 		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
 		// just return this
