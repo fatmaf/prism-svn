@@ -241,7 +241,8 @@ public class SSIAuctionNestedProduct
 		return doUpdate;
 	}
 
-	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties(PropertiesFile propertiesFile, PrismLog mainLog, int numGoals)
+	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties
+	(PropertiesFile propertiesFile, PrismLog mainLog, int numGoals,ArrayList<Integer> goalNumbers)
 	{
 		expressionLabels = new HashMap<Expression, String>();
 
@@ -268,7 +269,8 @@ public class SSIAuctionNestedProduct
 		ArrayList<Expression> taskSet = new ArrayList<Expression>();
 
 		int lastExprNum = 0; 
-		for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
+		if(goalNumbers == null)
+		{for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
 
 			Expression currentExpr = ltlExpressions.get(exprNum);
 			//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
@@ -276,6 +278,19 @@ public class SSIAuctionNestedProduct
 			
 				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
 				lastExprNum = exprNum;
+		}
+		}
+		else
+		{
+			for(int exprNum : goalNumbers)
+			{
+				Expression currentExpr = ltlExpressions.get(exprNum);
+				//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
+				taskSet.add(currentExpr);
+				
+					expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
+					lastExprNum = exprNum;
+			}
 		}
 		lastExprNum++;
 		expressionLabels.put(Expression.Not(getInnerExpression(safetyExpr)), "da" + lastExprNum);
@@ -427,14 +442,20 @@ public class SSIAuctionNestedProduct
 		}
 	}
 
-	public PropertiesFile loadFiles(Prism prism, String saveplace, String filename, int numRobots, ArrayList<MDPSimple> mdps, ArrayList<MDPModelChecker> mcs)
+	public PropertiesFile loadFiles(Prism prism, String saveplace, String filename, 
+			int numRobots, ArrayList<MDPSimple> mdps, ArrayList<MDPModelChecker> mcs,ArrayList<Integer>robotNumbers)
 			throws FileNotFoundException, PrismException
 	{
 		PropertiesFile propertiesFile = null;
 		//load the files 
 		//could be a separate function 
+		int fnNumber = 0; 
 		for (int i = 0; i < numRobots; i++) {
-			String modelFileName = saveplace + filename + i + ".prism";
+			if(robotNumbers == null)
+				fnNumber = i; 
+			else 
+				fnNumber = robotNumbers.get(i);
+			String modelFileName = saveplace + filename + fnNumber + ".prism";
 			ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
 			prism.loadPRISMModel(modulesFile);
 			propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + ".prop"));
@@ -529,7 +550,7 @@ public class SSIAuctionNestedProduct
 		int numGoals = 4;
 		int numDoors = 2;
 		String fn = "g5_r2_t3_d2_fs1";
-		return run(saveplace, fn, numRobots, numGoals, numDoors);
+		return run(saveplace, fn, numRobots, numGoals, numDoors,null,null);
 	}
 
 	VarList createJointVarList(ArrayList<String> ssNames, ArrayList<MDPSimple> mdps, ArrayList<Integer> daIndices) throws PrismLangException
@@ -651,7 +672,8 @@ public class SSIAuctionNestedProduct
 		return jvlTosvl;
 	}
 
-	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors)
+	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors,
+			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
 	{
 		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
@@ -674,7 +696,7 @@ public class SSIAuctionNestedProduct
 			ArrayList<MDPSimple> mdps = new ArrayList<MDPSimple>();
 			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
 
-			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs);
+			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs,robotNumbers);
 
 			int[] mdpInitialStates = new int[mdps.size()];
 			for (int i = 0; i < mdpInitialStates.length; i++) {
@@ -682,7 +704,7 @@ public class SSIAuctionNestedProduct
 			}
 			//do things to the properties 
 
-			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals);
+			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals,goalNumbers);
 			ExpressionReward rewExpr = processedProperties.getKey();
 			Entry<Expression, ArrayList<Expression>> safetyExprAndList = processedProperties.getValue();
 			Expression safetyExpr = safetyExprAndList.getKey();
