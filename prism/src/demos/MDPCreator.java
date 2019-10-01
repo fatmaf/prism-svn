@@ -145,6 +145,12 @@ public class MDPCreator
 
 		accStates.set(s);
 	}
+	
+	public boolean getAccState(State js)
+	{
+		int s = getStateIndex(js); 
+		return accStates.get(s);
+	}
 
 	public void setEssState(State js)
 	{
