@@ -803,7 +803,10 @@ public class SSIAuctionNestedProduct
 					}
 				}
 			}
-			return resultvalues;
+			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
+					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
+			return resultValues(nviSol, mdpCreator.mdp);
+//			return resultvalues;
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1355,7 +1358,7 @@ public class SSIAuctionNestedProduct
 
 		if (parentState == null)
 			mdpCreator.setInitialState(jointState);
-		
+
 		mainLog.println("Goal Prob:" + mdpCreator.getProbabilityToReachAccStateFromJointMDP(jointState));
 		mdpCreator.createRewardStructures();
 		mdpCreator.mdp.findDeadlocks(true);
@@ -1366,7 +1369,6 @@ public class SSIAuctionNestedProduct
 		} else {
 			return new double[] { 0.0, 0.0, 0.0 };
 		}
-		//	}
 
 	}
 
