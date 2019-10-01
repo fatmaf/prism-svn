@@ -117,24 +117,24 @@ public class STAPU
 				res.daList.get(otherDAs).updateStateNumbers(product);
 				res.daList.get(otherDAs).associatedIndexInProduct++; //and everyone else also gets shifted once. 
 
-								StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
-										name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
-								StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
-										name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
+//								StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
+//										name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
+//								StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
+//										name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
 			}
-						StatesHelper.saveHashMap(res.productStateToMDPState, "",
-								name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
+//						StatesHelper.saveHashMap(res.productStateToMDPState, "",
+//								name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
 			res.updateProductToMDPStateMapping(product);
-						StatesHelper.saveHashMap(res.productStateToMDPState, "",
-								name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
+//						StatesHelper.saveHashMap(res.productStateToMDPState, "",
+//								name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
 		DAInfo daInfo = res.daList.get(res.daList.size() - 1);
 		int daNum = res.daList.size() - 1;
-		StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-		StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-		StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-		StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
+//		StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
+//		StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
+//		StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
+//		StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 		res.setDAListAndFinalProduct(product);
 		return res;
@@ -289,10 +289,14 @@ public class STAPU
 
 		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
 
+//		mainLog.println("Team MDP essential states: "+combinedEssentialStates.toString());
 		resSaver.recordTime("Team MDP Time (including single agent time)", varIDs.totalteammdpcreationtime, false);
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
 
+//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
+//		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches,  "", "teamMDPWithSwitches", true);
+		
 		resSaver.setLocalStartTime();
 		resSaver.setScopeStartTime();
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
@@ -828,7 +832,7 @@ public class STAPU
 		System.out.println("Models Tested: " + modelsTested.size());
 	}
 
-	public double[] runGUISimpleTestsOne(String dir,String fn,int numRobots, int numFS, int numGoals, int numDoors)
+	public double[] runGUISimpleTestsOne(String dir,String fn,int numRobots, int numFS, int numGoals, int numDoors,boolean noReallocations)
 	{
 		double[] res = null;
 		// saving filenames etc
@@ -880,7 +884,7 @@ public class STAPU
 			try {
 
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals, example_num_fs_list,
-						modelLocation, true, dir + "results/stapu", true);
+						modelLocation, true, dir + "results/stapu", noReallocations);
 
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
