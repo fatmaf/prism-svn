@@ -93,10 +93,10 @@ public class CompareSTAPUSSINVI
 
 	}
 
-	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors)
+	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors,boolean noreallocs)
 	{
 		STAPU stapu = new STAPU();
-		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors);
+		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors,noreallocs);
 		//		System.out.println(res.toString());
 		return res;
 	}
@@ -122,7 +122,7 @@ public class CompareSTAPUSSINVI
 			resArr[ssiInd][i] = (float) ssiRes[i];
 		resArr[ssiInd][3] = durationSSI;
 
-		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors);
+		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors,false);
 		endTime = System.nanoTime();
 		long durationStapu = (endTime - startTime);
 		resArr[stapuInd] = new float[4];
@@ -237,49 +237,7 @@ public class CompareSTAPUSSINVI
 		String fn = "g5_r2_t3_d2_fs1";
 
 		String resString = "";
-		//		//				doCompare(dir,fn,numRobots,numFS,numGoals,numDoors);
-		//		//	
-		//		//		numRobots = 2;
-		//		//		numFS = 2;//5;//1;
-		//		//		numGoals = 3;//6;//4;
-		//		//		numDoors = 0;//2;
-		//		//
-		//		//		fn = "g4_r2_t3_d0_fs2";
-		//		//		 
-		//		//		resString+=doCompare(dir,fn,numRobots,numFS,numGoals,numDoors);
-		//		//		
-		//		////		numRobots = 2;
-		//		////		numFS = 2;//5;//1;
-		//		////		numGoals = 5;//6;//4;
-		//		////		numDoors = 2;//2;
-		//		////
-		//		////		fn = "g5x10_r2_t5_d2_fs2";
-		//		////		 
-		//		////		resString+=doCompare(dir,fn,numRobots,numFS,numGoals,numDoors);
-		//		////		
-		//		////		numRobots = 2;
-		//		////		numFS = 2;//5;//1;
-		//		////		numGoals = 3;//6;//4;
-		//		////		numDoors = 2;//2;
-		//		////
-		//		////		fn = "g5x10_r2_t5_d2_fs2";
-		//		////		resString+="\nGoals=3";
-		//		////		resString+=doCompare(dir,fn,numRobots,numFS,numGoals,numDoors);
-		//		////		
-		//		//		numRobots = 5;
-		//		//		numFS = 0;//5;//1;
-		//		//		numGoals = 6;//6;//4;
-		//		//		numDoors = 0;//2;
-		//		//		fn = "g9x5_r5_t5_d0_fs0";
-		//		//
-		//		//		for(int r = 2; r<=numRobots; r++)
-		//		//		{
-		//		//			for(int g = 2; g<=numGoals; g+=2) {
-		//		//		resString+="\nR:"+r+"\tG:"+g;
-		//		//		 
-		//		//		resString+=doCompare(dir,fn,r,numFS,g,numDoors);
-		//		//		}
-		//		//		}
+	
 		numRobots = 10;
 		numFS = 0;//5;//1;
 		numGoals = 11;//6;//4;
@@ -295,10 +253,11 @@ public class CompareSTAPUSSINVI
 				float[][] resArr = new float[2][4];
 				resString += "\nR:" + r + "\tG:" + g;
 
-				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
+ 				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
 				results.get(fn).put(rgdf, resArr);
-
+				break;
 			}
+			break;
 		}
 		System.out.println("***************************************************************");
 		System.out.println(resString);

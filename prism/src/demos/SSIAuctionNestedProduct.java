@@ -261,21 +261,25 @@ public class SSIAuctionNestedProduct
 				rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
 			//just initialise the hashmap here 
 
-			if (exprNum == numOp - 1)
-				expressionLabels.put(Expression.Not(getInnerExpression(ltlExpressions.get(exprNum))), "da" + exprNum);
-			else
-				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
+		
 
 		}
 		Expression safetyExpr = ltlExpressions.get(numOp - 1);
 		ArrayList<Expression> taskSet = new ArrayList<Expression>();
 
+		int lastExprNum = 0; 
 		for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
 
 			Expression currentExpr = ltlExpressions.get(exprNum);
 			//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
 			taskSet.add(currentExpr);
+			
+				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
+				lastExprNum = exprNum;
 		}
+		lastExprNum++;
+		expressionLabels.put(Expression.Not(getInnerExpression(safetyExpr)), "da" + lastExprNum);
+
 		//		taskSet.add(safetyExpr);
 		return new AbstractMap.SimpleEntry<ExpressionReward, Entry<Expression, ArrayList<Expression>>>(rewExpr,
 				new SimpleEntry<Expression, ArrayList<Expression>>(safetyExpr, taskSet));
