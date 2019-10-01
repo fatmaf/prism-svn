@@ -57,6 +57,7 @@ public class SSIAuctionNestedProduct
 	private boolean doingReallocs = true;
 	String fnPrefix = "ssi";
 	HashMap<Expression, String> expressionLabels = null;
+	private ArrayList<String> ssNames;
 
 	public ArrayList<MDPRewardsSimple> createMaxExpTaskRewStruct(SingleAgentNestedProductMDP saMDP, MDPRewardsSimple costsModel)
 	{
@@ -221,25 +222,16 @@ public class SSIAuctionNestedProduct
 	boolean probProgCostIsBetter(double[] newValues, double[] oldValues, double sumofcosts)
 	{
 		boolean doUpdate = false;
-		if(newValues[0] > oldValues[0])
-		{
-			doUpdate = true; 
-		}
-		else
-		{
-			if(newValues[0]== oldValues[0])
-			{
-				if(newValues[1] > oldValues[1])
-				{
-					doUpdate = true; 
-				}
-				else
-				{
-					if(newValues[1] == oldValues[1])
-					{
-						if(newValues[2]+sumofcosts < oldValues[2])
-						{
-							doUpdate = true; 
+		if (newValues[0] > oldValues[0]) {
+			doUpdate = true;
+		} else {
+			if (newValues[0] == oldValues[0]) {
+				if (newValues[1] > oldValues[1]) {
+					doUpdate = true;
+				} else {
+					if (newValues[1] == oldValues[1]) {
+						if (newValues[2] + sumofcosts < oldValues[2]) {
+							doUpdate = true;
 						}
 					}
 				}
@@ -598,55 +590,58 @@ public class SSIAuctionNestedProduct
 			//			svlTojvl.add(new HashMap<Integer,Integer>()); 
 
 			ArrayList<DAInfo> robotDAList = finalDAList.get(i);
-			VarList svl = productMDPs.get(i).getVarList();
-			//so now we've got the dainfo thingi 
-			for (int j = 0; j < robotDAList.size(); j++) {
-				DAInfo daInfo = robotDAList.get(j);
-				Expression expr = daInfo.daExpr;
-				int nestedProductIndex = daInfo.associatedIndexInProduct;
-				String jvlName = expressionLabels.get(expr);
-				int jvlIndex = jvl.getIndex(jvlName);
-				if (!jvlTosvl.containsKey(jvlIndex)) {
-					jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
-				}
-				jvlTosvl.get(jvlIndex).put(i, nestedProductIndex);
-				jvlDAMap.put(jvlIndex, daInfo);
-				//				svlTojvl.get(i).put(nestedProductIndex,jvlIndex);
+			if (robotDAList != null) {
+				VarList svl = productMDPs.get(i).getVarList();
+				//so now we've got the dainfo thingi 
+				for (int j = 0; j < robotDAList.size(); j++) {
+					DAInfo daInfo = robotDAList.get(j);
+					Expression expr = daInfo.daExpr;
+					int nestedProductIndex = daInfo.associatedIndexInProduct;
+					String jvlName = expressionLabels.get(expr);
+					int jvlIndex = jvl.getIndex(jvlName);
+					if (!jvlTosvl.containsKey(jvlIndex)) {
+						jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
+					}
+					jvlTosvl.get(jvlIndex).put(i, nestedProductIndex);
+					if (jvlDAMap != null)
+						jvlDAMap.put(jvlIndex, daInfo);
+					//				svlTojvl.get(i).put(nestedProductIndex,jvlIndex);
 
-			}
-			//we've got to do the same thing for shared variables 
-			for (int j = 0; j < ssNames.size(); j++) {
-				String svlName = ssNames.get(j);
-				int svlIndex = svl.getIndex(svlName);
-				int jvlIndex = jvl.getIndex(svlName);
-				if (svlIndex == -1 | jvlIndex == -1)
-					throw new PrismException("Shared state does not exist");
-				if (!jvlTosvl.containsKey(jvlIndex)) {
-					jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
 				}
-				jvlTosvl.get(jvlIndex).put(i, svlIndex);
-				//				svlTojvl.get(i).put(svlIndex,jvlIndex);
+				//we've got to do the same thing for shared variables 
+				for (int j = 0; j < ssNames.size(); j++) {
+					String svlName = ssNames.get(j);
+					int svlIndex = svl.getIndex(svlName);
+					int jvlIndex = jvl.getIndex(svlName);
+					if (svlIndex == -1 | jvlIndex == -1)
+						throw new PrismException("Shared state does not exist");
+					if (!jvlTosvl.containsKey(jvlIndex)) {
+						jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
+					}
+					jvlTosvl.get(jvlIndex).put(i, svlIndex);
+					//				svlTojvl.get(i).put(svlIndex,jvlIndex);
 
-			}
-			//lastly for the individual variables 
-			//so like we know they're at the end 
-			//so i'm just going to start from the end 
-			for (int j = svl.getNumVars() - 1; j >= 0; j--) {
-				String svlName = svl.getName(j);
-				if (ssNames.contains(svlName))
-					continue;
-				if (svlName.contains("da"))
-					continue;
-				String jvlName = svlName + "_r" + i;
-				int jvlIndex = jvl.getIndex(jvlName);
-				int svlIndex = j;
-				if (svlIndex == -1 | jvlIndex == -1)
-					throw new PrismException("Private state does not exist - " + svlName + " " + jvlName + "," + svlIndex + " " + jvlIndex);
-				if (!jvlTosvl.containsKey(jvlIndex)) {
-					jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
 				}
-				jvlTosvl.get(jvlIndex).put(i, svlIndex);
-				//				svlTojvl.get(i).put(svlIndex,jvlIndex);
+				//lastly for the individual variables 
+				//so like we know they're at the end 
+				//so i'm just going to start from the end 
+				for (int j = svl.getNumVars() - 1; j >= 0; j--) {
+					String svlName = svl.getName(j);
+					if (ssNames.contains(svlName))
+						continue;
+					if (svlName.contains("da"))
+						continue;
+					String jvlName = svlName + "_r" + i;
+					int jvlIndex = jvl.getIndex(jvlName);
+					int svlIndex = j;
+					if (svlIndex == -1 | jvlIndex == -1)
+						throw new PrismException("Private state does not exist - " + svlName + " " + jvlName + "," + svlIndex + " " + jvlIndex);
+					if (!jvlTosvl.containsKey(jvlIndex)) {
+						jvlTosvl.put(jvlIndex, new HashMap<Integer, Integer>());
+					}
+					jvlTosvl.get(jvlIndex).put(i, svlIndex);
+					//				svlTojvl.get(i).put(svlIndex,jvlIndex);
+				}
 			}
 		}
 		return jvlTosvl;
@@ -657,7 +652,7 @@ public class SSIAuctionNestedProduct
 		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
 			String filename = fn;
-			ArrayList<String> ssNames = new ArrayList<String>();
+			ssNames = new ArrayList<String>();
 
 			for (int i = 0; i < numDoors; i++)
 				ssNames.add("door" + i);
@@ -677,6 +672,10 @@ public class SSIAuctionNestedProduct
 
 			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs);
 
+			int[] mdpInitialStates = new int[mdps.size()];
+			for (int i = 0; i < mdpInitialStates.length; i++) {
+				mdpInitialStates[i] = mdps.get(i).getFirstInitialState();
+			}
 			//do things to the properties 
 
 			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals);
@@ -723,20 +722,29 @@ public class SSIAuctionNestedProduct
 				Queue<int[]> correspondingMDPInitialStates = new LinkedList<int[]>();
 				Queue<State> correspondingJointStates = new LinkedList<State>();
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
-						mainLog);
+						mdpInitialStates, mainLog);
 
 				//so now we just repeat for each remainingTasks thing 
 				while (!remainingTasks.isEmpty()) {
 					ArrayList<Expression> currentTaskSet = remainingTasks.remove();
 					int[] currentMDPInitialStates = correspondingMDPInitialStates.remove();
 					State ps = correspondingJointStates.remove();
+					String ms = ps.toString() + " - ";
+					boolean bc = false;
+					if (ps.toString().contains("0,0,1,0,0,1,-1,-1"))
+						bc = true;
 					if (currentTaskSet.size() > 0) {
-					
+
 						//now lets just do this again 
 						//one time 
 						for (int i = 0; i < mdps.size(); i++) {
+
 							((MDPSimple) mdps.get(i)).clearInitialStates();
-							((MDPSimple) mdps.get(i)).addInitialState(currentMDPInitialStates[i]);
+							if (currentMDPInitialStates[i] != -1) {
+								((MDPSimple) mdps.get(i)).addInitialState(currentMDPInitialStates[i]);
+								ms += ((MDPSimple) mdps.get(i)).getStatesList().get(currentMDPInitialStates[i]).toString() + "=";
+								ms += ((MDPSimple) mdps.get(i)).getStatesList().get(((MDPSimple) mdps.get(i)).getFirstInitialState()).toString() + " ";
+							}
 						}
 						robotsTasksBroken = auctionTasksSumOfCosts(currentTaskSet, numRobots, mdps, rewExpr, safetyExpr, mcs);
 						mainLog.println("\n\nAssigned Tasks");
@@ -764,6 +772,11 @@ public class SSIAuctionNestedProduct
 						//						continue;
 						getRobotPlansUsingNVINestedProduct(numRobots, robotsTasksBroken, rewExpr, productMDPs, mainLog, mcs, mdps, costRewards, saveplace,
 								filename, prism, nviStrategies, finalDAList, costsModels);
+						for (int i = 0; i < productMDPs.size(); i++) {
+							if (productMDPs.get(i) != null)
+								ms += productMDPs.get(i).getStatesList().get(productMDPs.get(i).getFirstInitialState()) + " ";
+						}
+						mainLog.println(ms);
 						//so now this bit is the bane of my existence really 
 						//we have to find a super smart way to create the policy 
 						//step 1 we fix a varlist for the joint policy 
@@ -776,16 +789,17 @@ public class SSIAuctionNestedProduct
 						//well for the life of me i cant get myself to do it alice 
 						//begs the question of liff does it not 
 						//indeed liff 
-						jvlDAMap = new HashMap<Integer, DAInfo>();
-						jvlTosvl = mapJointVarListToRobotVarList(ssNames, finalDAList, jvl, productMDPs, jvlDAMap);
+						//						jvlDAMap = new HashMap<Integer, DAInfo>(); 
+						//the jvlDAMap should NOT change!!! 
+						jvlTosvl = mapJointVarListToRobotVarList(ssNames, finalDAList, jvl, productMDPs, null);
 
 						resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
 								ssNames, prism, ps);
 
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
-								jvlTosvl, mainLog);
+								jvlTosvl, currentMDPInitialStates, mainLog);
 
-						break;
+						//						break;
 					}
 				}
 			}
@@ -839,18 +853,44 @@ public class SSIAuctionNestedProduct
 				productMDPs.add(res.finalProduct.getProductModel());
 				nviStrategies.add(nviSol.strat);
 				finalDAList.add(res.daList);
+			} else {
+				productMDPs.add(null);
+				nviStrategies.add(null);
+				finalDAList.add(null);
+				costRewards.add(null);
 			}
 
 		}
 	}
 
+	int updateMDPStateUsingSS(HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, MDPSimple mdp, int state, ArrayList<String> ssNames, State js, VarList jvl)
+	{
+
+		State stateState = mdp.getStatesList().get(state);
+		VarList svl = mdp.getVarList();
+		for (String ss : ssNames) {
+			int svlIndex = svl.getIndex(ss);
+			int jvlIndex = jvl.getIndex(ss);
+			Object jsVal = js.varValues[jvlIndex];
+			stateState.setValue(svlIndex, jsVal);
+
+		}
+		return this.findStateIndexFromState(mdp, stateState);
+	}
+
 	void processReallocations(int numRobots, ArrayList<Expression> taskSet, Queue<ArrayList<Expression>> remainingTasks,
 			Queue<int[]> correspondingMDPInitialStates, Queue<State> correspondingJointStates, ArrayList<MDP> productMDPs, ArrayList<MDPSimple> mdps,
-			HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, PrismLog mainLog) throws PrismException
+			HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, int[] mdpInitialStatesFromBefore, PrismLog mainLog) throws PrismException
 	{
+		VarList jvl = mdpCreator.mdp.getVarList();
+		mainLog.println("Processing Reallocation States");
 		while (!possibleReallocStates.isEmpty()) {
+			String mlString = "";
 			Entry<State, ArrayList<Expression>> reallocStateTaskPair = possibleReallocStates.remove();
 			State s = reallocStateTaskPair.getKey();
+			boolean bc = false;
+			if (s.toString().contains("0,0,1,0,0,1,-1,-1"))
+				bc = true;
 			ArrayList<Expression> completedTasks = reallocStateTaskPair.getValue();
 			ArrayList<Expression> newTaskSet = new ArrayList<Expression>();
 			for (int i = 0; i < taskSet.size(); i++) {
@@ -863,14 +903,28 @@ public class SSIAuctionNestedProduct
 			correspondingJointStates.add(s);
 			int[] mdpStates = new int[currentStates.length];
 			for (int i = 0; i < productMDPs.size(); i++) {
-				mdpStates[i] = productStateToMDPState(currentStates[i], productMDPs.get(i), mdps.get(i));
+				if (productMDPs.get(i) != null) {
+					mdpStates[i] = productStateToMDPState(currentStates[i], productMDPs.get(i), mdps.get(i));
 
+				} else {
+					mdpStates[i] = updateMDPStateUsingSS(jvlTosvl, mdps.get(i), mdpInitialStatesFromBefore[i], ssNames, s, jvl);
+				}
 			}
 
 			remainingTasks.add(newTaskSet);
 			correspondingMDPInitialStates.add(mdpStates);
+			mlString += s.toString() + " - ";
+			for (int i = 0; i < productMDPs.size(); i++) {
+				if (productMDPs.get(i) != null)
+					mlString += productMDPs.get(i).getStatesList().get(currentStates[i]) + ":" + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
+				else
+					mlString += "x : " + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
+			}
+			mainLog.println(mlString);
 
 		}
+		mainLog.println("Done Processing Reallocation States");
+
 	}
 
 	protected double[] resultValues(ModelCheckerMultipleResult res2, MDPSimple mdp)
@@ -915,6 +969,12 @@ public class SSIAuctionNestedProduct
 			int pI = pvl.getIndex(name);
 			mdpStateState.setValue(i, productStateState.varValues[pI]);
 		}
+
+		return findStateIndexFromState(mdp, mdpStateState);
+	}
+
+	int findStateIndexFromState(MDP mdp, State mdpStateState)
+	{
 		//now we've got to find this state 
 		int mdpState = -1;
 		List<State> mdpStatesList = mdp.getStatesList();
@@ -1031,7 +1091,10 @@ public class SSIAuctionNestedProduct
 
 		ArrayList<State> robotStateStates = new ArrayList<State>();
 		for (int i = 0; i < productMDPs.size(); i++) {
-			robotStateStates.add(productMDPs.get(i).getStatesList().get(currentStates[i]));
+			if (productMDPs.get(i) != null) {
+				robotStateStates.add(productMDPs.get(i).getStatesList().get(currentStates[i]));
+			} else
+				robotStateStates.add(null);
 		}
 		for (int jvlIndex = 0; jvlIndex < numVars; jvlIndex++) {
 			String name = jvl.getName(jvlIndex);
@@ -1081,12 +1144,14 @@ public class SSIAuctionNestedProduct
 			jointState.setValue(jvlIndex, valToSet);
 			if (isDA & ps != null) {
 				int psVal = (int) ps.varValues[jvlIndex];
-				DAInfo daInfo = processedDAList.get(jvlIndex);
-				if (!daInfo.isSafeExpr) {
-					if (daInfo.daAccStates.get((int) (valToSet))) {
-						numAcc++;
-						if (!daInfo.daAccStates.get(psVal))
-							numEss++;
+				if (processedDAList.containsKey(jvlIndex)) {
+					DAInfo daInfo = processedDAList.get(jvlIndex);
+					if (!daInfo.isSafeExpr) {
+						if (daInfo.daAccStates.get((int) (valToSet))) {
+							numAcc++;
+							if (!daInfo.daAccStates.get(psVal))
+								numEss++;
+						}
 					}
 
 				}
@@ -1109,166 +1174,18 @@ public class SSIAuctionNestedProduct
 
 	}
 
-	//	Object[] createJointState(int numStateVars,
-	//			//			int numRobots, 
-	//			ArrayList<MDP> productMDPs, int[] currentStates, ArrayList<ArrayList<Integer>> daIndices, HashMap<String, ArrayList<Integer>> ssIndices,
-	//			ArrayList<ArrayList<Integer>> privateIndices, HashMap<Integer, int[]> jsToRobotState, State parentState, HashMap<String, Integer> jsSSIndices)
-	//			throws PrismException
-	//	{
-	//
-	//		Object[] res = new Object[3];
-	//		boolean isEss = false;
-	//		boolean isAcc = false;
-	//		int numAcc = 0;
-	//		int numDAs = 0;
-	//		int numEss = 0;
-	//		State jointState = new State(numStateVars);
-	//		//so we have the dastate indices 
-	//		//we have the private state indices 
-	//		//we have the shared state vars 
-	//		//for now i'm ignoring the shared state vars 
-	//		//TODO: add shared state stuff 
-	//
-	//		//so we do this for each robot really 
-	//		//its easier to do the da first and then the ss then the ps 
-	//		int jsIndex = 0;
-	//		ArrayList<State> robotStateStates = new ArrayList<State>();
-	//		for (int i = 0; i < daIndices.size(); i++) {
-	//
-	//			//so we're on the stuff for robot i 
-	//			//so we want the dalist for that robot 
-	//			HashMap<Integer, DAInfo> rDAList = daList.get(i);
-	//			numDAs += daIndices.get(i).size() - 1;
-	//			State rs = productMDPs.get(i).getStatesList().get(currentStates[i]);
-	//			robotStateStates.add(rs);
-	//
-	//			//now lets add these in succession 
-	//			for (int j = 0; j < daIndices.get(i).size(); j++) {
-	//				//so now we want to find the robot in the da list that has the same index as daInd hmmm... trickyyy 
-	//				//so this is a bit of a loop everytime but we could preprocess this so its not 
-	//				//let us 
-	//				//we have fixed it 
-	//				//so now we're chilling 
-	//
-	//				int daInd = daIndices.get(i).get(j);
-	//				Object daVal = rs.varValues[daInd];
-	//				if (!rDAList.get(daInd).isSafeExpr) {
-	//					if (rDAList.get(daInd).daAccStates.get((int) daVal)) {
-	//
-	//						numAcc++;
-	//
-	//						if (parentState != null) {
-	//							if (!rDAList.get(daInd).daAccStates.get((int) parentState.varValues[jsIndex])) {
-	//								if (!isEss) {
-	//									isEss = true;
-	//								}
-	//								numEss++;
-	//							}
-	//						}
-	//					}
-	//				}
-	//				jointState.setValue(jsIndex, daVal);
-	//				if (parentState == null) {
-	//					int[] arr = new int[2];
-	//					arr[0] = i;
-	//					arr[1] = daInd;
-	//					jsToRobotState.put(jsIndex, arr.clone());
-	//				}
-	//				jsIndex++;
-	//
-	//			}
-	//
-	//		}
-	//		//ss stuff 
-	//
-	//		if (ssIndices != null) {
-	//			for (String ss : ssIndices.keySet()) {
-	//				//to resolve here - race conditions for the shared state 
-	//				//so we need an original or reference 
-	//
-	//				//we have no reference so we just take both
-	//				int r = 0;
-	//				State rs = robotStateStates.get(r);
-	//				int currentJSValue = (int) rs.varValues[ssIndices.get(ss).get(r)];
-	//				for (r = 1; r < productMDPs.size(); r++) {
-	//					rs = robotStateStates.get(r);
-	//					int nextJSValue = (int) rs.varValues[ssIndices.get(ss).get(r)];
-	//					if (currentJSValue != nextJSValue) {
-	//						if (parentState != null) {
-	//							//if they're not the same 
-	//							//use reference 
-	//							if (nextJSValue != (int) parentState.varValues[jsSSIndices.get(ss)])
-	//
-	//							{
-	//								currentJSValue = nextJSValue;
-	//							}
-	//						} else {
-	//							throw new PrismException("Shared State values aren't the same in the initial state!!");
-	//						}
-	//					}
-	//
-	//				}
-	//				jointState.setValue(jsIndex, currentJSValue);
-	//				if (parentState == null) {
-	//					int arr[] = new int[productMDPs.size() + 1];
-	//					arr[0] = -1;
-	//					ArrayList<Integer> ssInds = ssIndices.get(ss);
-	//					for (int i = 0; i < ssInds.size(); i++) {
-	//						arr[i + 1] = ssInds.get(i);
-	//					}
-	//					jsToRobotState.put(jsIndex, arr.clone());
-	//					jsSSIndices.put(ss, jsIndex);
-	//
-	//				}
-	//				jsIndex++;
-	//			}
-	//		}
-	//		for (int i = 0; i < privateIndices.size(); i++) {
-	//
-	//			State rs = robotStateStates.get(i);
-	//
-	//			//now lets add these in succession 
-	//			for (int j = 0; j < privateIndices.get(i).size(); j++) {
-	//				int daInd = privateIndices.get(i).get(j);
-	//				jointState.setValue(jsIndex, rs.varValues[daInd]);
-	//				if (parentState == null) {
-	//					int[] arr = new int[2];
-	//					arr[0] = i;
-	//					arr[1] = daInd;
-	//					jsToRobotState.put(jsIndex, arr.clone());
-	//				}
-	//				jsIndex++;
-	//			}
-	//
-	//		}
-	//
-	//		//checking if its an accepting state 
-	//
-	//		if (numAcc == numDAs)
-	//			isAcc = true;
-	//		if (numEss > 0) {
-	//			System.out.println("Essential State: " + jointState.toString());
-	//
-	//		}
-	//		if (isAcc)
-	//			System.out.println("Accepting State: " + jointState.toString());
-	//		res[0] = jointState;
-	//		res[1] = numEss;
-	//		res[2] = isAcc;
-	//
-	//		return res;
-	//
-	//	}
-
 	double[] createJointPolicy(ArrayList<Integer> daIndices, HashMap<Integer, DAInfo> jvlDAMap, HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl,
 			ArrayList<MDPRewardsSimple> costRewards, ArrayList<MDP> productMDPs, PrismLog mainLog, ArrayList<MDStrategy> nviStrategies, String saveplace,
 			String filename, ArrayList<String> ssNames, Prism prism, State parentState) throws PrismException
 	{
 		for (int i = 0; i < productMDPs.size(); i++) {
-			//			String pfn = saveplace + "results/" + fnPrefix, filename + "_jp"
-			PolicyCreator pc = new PolicyCreator();
-			pc.createPolicy(productMDPs.get(i), nviStrategies.get(i));
-			pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "_pt" + i);
+			if (productMDPs.get(i) != null) {
+				//			String pfn = saveplace + "results/" + fnPrefix, filename + "_jp"
+				PolicyCreator pc = new PolicyCreator();
+
+				pc.createPolicy(productMDPs.get(i), nviStrategies.get(i));
+				pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "_pt" + i);
+			}
 		}
 
 		int numRobots = productMDPs.size();
@@ -1284,8 +1201,12 @@ public class SSIAuctionNestedProduct
 
 		//for each robot mdp get initial state 
 		int[] currentStates = new int[numRobots];
-		for (int i = 0; i < numRobots; i++)
-			currentStates[i] = productMDPs.get(i).getFirstInitialState();
+		for (int i = 0; i < numRobots; i++) {
+			if (productMDPs.get(i) != null) {
+				currentStates[i] = productMDPs.get(i).getFirstInitialState();
+			} else
+				currentStates[i] = -1;
+		}
 		Queue<State> statesQueues = new LinkedList<State>();
 		//= new LinkedList<int[]>();
 		Queue<Double> statesProbQueue = new LinkedList<Double>();
@@ -1303,19 +1224,20 @@ public class SSIAuctionNestedProduct
 
 		ArrayList<State> visited = new ArrayList<State>();
 		State currentJointState;
-
+		boolean bc = false;
 		try {
 			while (!statesQueues.isEmpty()) {
 				currentJointState = statesQueues.remove();
+				if (currentJointState.toString().contains("0,0,1,0,-1,-1,-1,-1"))
+					bc = true;
+
 				if (!visited.contains(currentJointState))
 					visited.add(currentJointState);
 				else
 					continue;
 
 				currentStates = jointStateToRobotStates(productMDPs, currentJointState, jvlTosvl, mainLog);
-				//createJointState(numStateVars, productMDPs, currentStates, numSS, ssNames, daIndices, ssIndices, privateIndices, null);
 
-				//				mainLog.println(jointState.toString());
 				ArrayList<ArrayList<Integer>> robotStates = new ArrayList<ArrayList<Integer>>();
 				ArrayList<ArrayList<Double>> robotStatesProbs = new ArrayList<ArrayList<Double>>();
 				String infoString = "";
@@ -1330,7 +1252,9 @@ public class SSIAuctionNestedProduct
 					MDStrategy strat = nviStrategies.get(i);
 					MDP mdp = productMDPs.get(i);
 
-					int actionChoice = strat.getChoiceIndex(currentStates[i]);
+					int actionChoice = -1;
+					if (strat != null)
+						actionChoice = strat.getChoiceIndex(currentStates[i]);
 
 					//+= cuz sum can change this to not sum 
 
@@ -1410,6 +1334,10 @@ public class SSIAuctionNestedProduct
 						if (currentJointState.compareTo(parentState) == 0)
 							continue;
 					}
+					if (mdpCreator.getAccState(currentJointState)) {
+						mainLog.println("Accepting State: " + currentJointState);
+						continue;
+					}
 					//okay so lets do the essential state check again here 
 					//basically we take the processedDAList and the stuff we had to convert it to individual robot states 
 					ArrayList<Expression> tasksCompleted = tasksCompletedHere(currentJointState, jvlDAMap, jsToRobotState);
@@ -1424,11 +1352,12 @@ public class SSIAuctionNestedProduct
 		mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 		mainLog.println(mdpCreator.essStates.toString());
 		mainLog.println(mdpCreator.accStates.toString());
-		mdpCreator.createRewardStructures();
+
 		if (parentState == null)
 			mdpCreator.setInitialState(jointState);
+		
 		mainLog.println("Goal Prob:" + mdpCreator.getProbabilityToReachAccStateFromJointMDP(jointState));
-
+		mdpCreator.createRewardStructures();
 		mdpCreator.mdp.findDeadlocks(true);
 		if (mdpCreator.accStates.cardinality() > 0) {
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
@@ -1464,13 +1393,18 @@ public class SSIAuctionNestedProduct
 		int[] robotStates = new int[numRobots];
 		State[] robotStatesStates = new State[numRobots];
 		for (int i = 0; i < numRobots; i++) {
-			robotStatesStates[i] = new State(productMDPs.get(i).getVarList().getNumVars());
+			if (productMDPs.get(i) != null) {
+				robotStatesStates[i] = new State(productMDPs.get(i).getVarList().getNumVars());
+			} else
+				robotStatesStates[i] = null;
 		}
 		for (int jvlIndex : jvlTosvl.keySet()) {
 			HashMap<Integer, Integer> rm = jvlTosvl.get(jvlIndex);
 			Object valToSet = jointState.varValues[jvlIndex];
 			for (int r : rm.keySet()) {
 				int svlIndex = rm.get(r);
+				if (robotStatesStates[r] == null)
+					throw new PrismException("trying to get a state for a robot that is not participating here " + r);
 				robotStatesStates[r].setValue(svlIndex, valToSet);
 			}
 
@@ -1478,59 +1412,19 @@ public class SSIAuctionNestedProduct
 		for (int r = 0; r < numRobots; r++) {
 
 			State rs = robotStatesStates[r];
-			//			mainLog.println(rs.toString());
-			//we need to find the corresponding state 
-			MDP mdp = productMDPs.get(r);
-			int matchingS = findMatchingStateNum(mdp, rs);
-			robotStates[r] = matchingS;
+			if (rs != null) {
+				//			mainLog.println(rs.toString());
+				//we need to find the corresponding state 
+				MDP mdp = productMDPs.get(r);
+				int matchingS = findMatchingStateNum(mdp, rs);
+				robotStates[r] = matchingS;
+			} else
+				robotStates[r] = -1;
 			//			mainLog.println(matchingS);
 
 		}
 		return robotStates;
 	}
-	//	int[] jointStatetoRobotStates(int numRobots, State jointState,
-	//			HashMap<Integer, int[]> jsToRobotState, ArrayList<MDP> productMDPs, PrismLog mainLog)
-	//			throws PrismException
-	//	{
-	//		int[] currentStates = new int[numRobots];
-	//		ArrayList<State> jsToRobotStateStates = new ArrayList<State>();
-	//		for (int key : jsToRobotState.keySet()) {
-	//			int[] rIndCombo = jsToRobotState.get(key);
-	//			int rnum = rIndCombo[0];
-	//			int indVal = rIndCombo[1];
-	//			//say -1 is for an ss 
-	//			if (rnum > -1) {
-	//				//so jstorobotstate gives us the index 
-	//				//of the index in the robot state 
-	//
-	//				while (jsToRobotStateStates.size() <= rnum)
-	//					jsToRobotStateStates.add(new State(productMDPs.get(rnum).getVarList().getNumVars()));
-	//				State s = jsToRobotStateStates.get(rnum);
-	//				s.setValue(indVal, jointState.varValues[key]);
-	//			} else {
-	//				//its a shared state 
-	//				for (int r = 0; r < rIndCombo.length - 1; r++) {
-	//					indVal = rIndCombo[r + 1];
-	//					while (jsToRobotStateStates.size() <= r)
-	//						jsToRobotStateStates.add(new State(productMDPs.get(rnum).getVarList().getNumVars()));
-	//					State s = jsToRobotStateStates.get(r);
-	//					s.setValue(indVal, jointState.varValues[key]);
-	//				}
-	//			}
-	//		}
-	//		for (int r = 0; r < numRobots; r++) {
-	//
-	//			State rs = jsToRobotStateStates.get(r);
-	//			//			mainLog.println(rs.toString());
-	//			//we need to find the corresponding state 
-	//			MDP mdp = productMDPs.get(r);
-	//			int matchingS = findMatchingStateNum(mdp, rs);
-	//			currentStates[r] = matchingS;
-	//			//			mainLog.println(matchingS);
-	//
-	//		}
-	//		return currentStates;
-	//	}
 
 	int findMatchingStateNum(MDP mdp, State rs) throws PrismException
 	{
