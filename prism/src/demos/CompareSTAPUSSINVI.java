@@ -4,8 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import cern.colt.Arrays;
 
@@ -93,26 +96,31 @@ public class CompareSTAPUSSINVI
 
 	}
 
-	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors,boolean noreallocs)
+	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noreallocs, ArrayList<Integer> robotNumbers,
+			ArrayList<Integer> goalNumbers)
 	{
 		STAPU stapu = new STAPU();
-		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors,noreallocs);
+		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors, noreallocs, robotNumbers, goalNumbers);
 		//		System.out.println(res.toString());
 		return res;
 	}
 
-	public double[] doSSI(String dir, String fn, int numRobots, int numGoals, int numDoors)
+	public double[] doSSI(String dir, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
 	{
-		double[] res = new SSIAuctionNestedProduct().run(dir, fn, numRobots, numGoals, numDoors);
+		double[] res = new SSIAuctionNestedProduct().run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
 		//		System.out.println(res.toString());
 		return res;
 	}
 
-	public String doCompare(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, float[][] resArr)
+	public String doCompare(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, float[][] resArr, ArrayList<Integer> robotNumbers,
+			ArrayList<Integer> goalNumbers)
 	{
+
 		String resString = "\n" + fn;
 		long startTime = System.nanoTime();
-		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors);
+		if (robotNumbers != null && goalNumbers != null)
+			System.out.println("R:" + numRobots + "-" + robotNumbers.toString() + " G:" + numGoals + " " + goalNumbers.toString());
+		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
 		long endTime = System.nanoTime();
 
 		long durationSSI = (endTime - startTime);
@@ -121,8 +129,9 @@ public class CompareSTAPUSSINVI
 		for (int i = 0; i < 3; i++)
 			resArr[ssiInd][i] = (float) ssiRes[i];
 		resArr[ssiInd][3] = durationSSI;
-
-		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors,false);
+		if (robotNumbers != null && goalNumbers != null)
+			System.out.println("R:" + numRobots + "-" + robotNumbers.toString() + " G:" + numGoals + " " + goalNumbers.toString());
+		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors, false, robotNumbers, goalNumbers);
 		endTime = System.nanoTime();
 		long durationStapu = (endTime - startTime);
 		resArr[stapuInd] = new float[4];
@@ -166,7 +175,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
 					results.get(fn).put(rgdf, resArr);
 
 				}
@@ -187,7 +196,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
 					results.get(fn).put(rgdf, resArr);
 
 				}
@@ -208,7 +217,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
 					results.get(fn).put(rgdf, resArr);
 
 				}
@@ -226,7 +235,7 @@ public class CompareSTAPUSSINVI
 		}
 	}
 
-	public void runRobots()
+	public void runRobots() throws Exception
 	{
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
 		//		String dir= "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSI/";
@@ -237,7 +246,7 @@ public class CompareSTAPUSSINVI
 		String fn = "g5_r2_t3_d2_fs1";
 
 		String resString = "";
-	
+
 		numRobots = 10;
 		numFS = 0;//5;//1;
 		numGoals = 11;//6;//4;
@@ -249,15 +258,19 @@ public class CompareSTAPUSSINVI
 
 		for (int r = 2; r <= numRobots; r++) {
 			for (int g = 3; g <= numGoals; g += 2) {
+				ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+				ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
 				int[] rgdf = new int[] { r, g, numDoors, numFS };
 				float[][] resArr = new float[2][4];
 				resString += "\nR:" + r + "\tG:" + g;
 
- 				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr);
+				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
 				results.get(fn).put(rgdf, resArr);
-				break;
+				if (g > 5)
+					break;
 			}
-			break;
+
 		}
 		System.out.println("***************************************************************");
 		System.out.println(resString);
@@ -267,9 +280,33 @@ public class CompareSTAPUSSINVI
 		this.printResults(resSavePlace + resname);
 	}
 
+	public ArrayList<Integer> generateListOfRandomNumbers(int listSize, int maxR) throws Exception
+	{
+		//generating random numbers 
+		Random rgen = new Random();
+
+		ArrayList<Integer> listToRet = new ArrayList<Integer>();
+		if (listSize > maxR)
+			throw new Exception("Can not generate " + listSize + " unique numbers from a range of " + maxR);
+		int randomNumber = rgen.nextInt(maxR);
+		listToRet.add(randomNumber);
+		while (listToRet.size() != listSize) {
+			randomNumber = rgen.nextInt(maxR);
+			if (!listToRet.contains(randomNumber))
+				listToRet.add(randomNumber);
+		}
+		return listToRet;
+	}
+
 	public void run()
 	{
-		runRobots();
+
+		try {
+			runRobots();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public static void main(String[] args)
