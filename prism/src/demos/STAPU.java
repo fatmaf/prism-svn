@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -225,9 +227,12 @@ public class STAPU
 			numRobots = models.size();
 
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
-		ArrayList<Expression> ltlExpressions = getLTLExpressionsLimit(expr, numGoals,goalNumbers);
-		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
+		Entry<ArrayList<Expression>,ExpressionReward> ltlExpressionsAndExprRew = getLTLExpressionsLimit(expr, numGoals,goalNumbers);
+		ArrayList<Expression> ltlExpressions = ltlExpressionsAndExprRew.getKey(); 
+		ExpressionReward rewToAttach = ltlExpressionsAndExprRew.getValue(); 
+		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions,rewToAttach);
 
+		
 		//record num tasks here
 		resSaver.recordInits(daList.size(), "Num Tasks", varIDs.numtasks);
 
@@ -437,7 +442,7 @@ public class STAPU
 
 		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
 		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
-		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions);
+		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions,null);
 
 		//record num tasks here
 		resSaver.recordInits(daList.size(), "Num Tasks", varIDs.numtasks);
@@ -678,9 +683,12 @@ public class STAPU
 	/**
 	 * Return a list of expressions
 	 */
-	protected ArrayList<Expression> getLTLExpressionsLimit(ExpressionFunc expr, int lim, ArrayList<Integer> goalNumbers) throws PrismException
+	protected Entry<ArrayList<Expression>,ExpressionReward> getLTLExpressionsLimit(ExpressionFunc expr, int lim, ArrayList<Integer> goalNumbers) throws PrismException
 	{
+		ExpressionReward exprRew = null;
 		int numOp = expr.getNumOperands();
+		//lets get one reward structure 
+		ArrayList<Integer> rewardFuncIndices = new ArrayList<Integer>(); 
 		String exprString = "";
 		ExpressionFunc conjunctionOfExpressions = null;
 		ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
@@ -694,14 +702,19 @@ public class STAPU
 					}
 				}
 			}
+			if(expr.getOperand(exprNum) instanceof ExpressionReward)
+				rewardFuncIndices.add(exprNum);
 
 		}
 
+		boolean noRewardIndices = true; 
 		//limiting the expressions 
 		ArrayList<Expression> ltlExpressionsLimited = new ArrayList<Expression>(lim);
 		exprString = "";
 		if (goalNumbers == null) {
 			for (int exprNum = 0; exprNum < numOp; exprNum++) {
+				if(noRewardIndices && rewardFuncIndices.contains(exprNum))
+					noRewardIndices = false; 
 				Expression current = ltlExpressions.get(exprNum);
 				if (exprNum < (lim - 1)) {
 					exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
@@ -714,6 +727,8 @@ public class STAPU
 			}
 		} else {
 			for (int exprNum : goalNumbers) {
+				if(noRewardIndices && rewardFuncIndices.contains(exprNum))
+					noRewardIndices = false; 
 				Expression current = ltlExpressions.get(exprNum);
 
 				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
@@ -725,12 +740,24 @@ public class STAPU
 
 		}
 
+		if(noRewardIndices)
+		{
+			//just pick a reward expression
+			//any 
+			if(rewardFuncIndices.size()>0)
+			exprRew =(ExpressionReward) expr.getOperand(rewardFuncIndices.get(0)); 
+			else
+				throw new PrismException("No reward expression!!!");
+		}
 		mainLog.println("LTL Mission: " + exprString);
-		return ltlExpressionsLimited;
+		return new AbstractMap.SimpleEntry<ArrayList<Expression>,ExpressionReward>(ltlExpressionsLimited,exprRew);
 	}
 
-	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs)
+	protected ArrayList<DAInfo> initializeDAInfoFromLTLExpressions(ArrayList<Expression> exprs,ExpressionReward rewToAttach)
 	{
+		//if no one has their own reward 
+		//we're going to attach the reward to the first DA that is not a safety condition 
+		boolean rewardAttached = false; 
 		int numExprs = exprs.size();
 		ArrayList<DAInfo> daInfoList = new ArrayList<DAInfo>(numExprs);
 
@@ -742,6 +769,11 @@ public class STAPU
 			else
 				thisExpr = ((ExpressionQuant) exprs.get(daNum)).getExpression();
 			DAInfo daInfo = new DAInfo(mainLog, thisExpr, hasReward);
+			if(rewToAttach !=null && !daInfo.isSafeExpr &&  !rewardAttached)
+			{
+				daInfo.daExprRew = rewToAttach; 
+				rewardAttached = true; 
+			}
 			daInfoList.add(daInfo);
 		}
 
