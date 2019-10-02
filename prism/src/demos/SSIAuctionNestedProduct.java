@@ -241,8 +241,8 @@ public class SSIAuctionNestedProduct
 		return doUpdate;
 	}
 
-	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties
-	(PropertiesFile propertiesFile, PrismLog mainLog, int numGoals,ArrayList<Integer> goalNumbers)
+	public Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processProperties(PropertiesFile propertiesFile, PrismLog mainLog, int numGoals,
+			ArrayList<Integer> goalNumbers)
 	{
 		expressionLabels = new HashMap<Expression, String>();
 
@@ -262,37 +262,33 @@ public class SSIAuctionNestedProduct
 				rewExpr = (ExpressionReward) ltlExpressions.get(exprNum);
 			//just initialise the hashmap here 
 
-		
-
 		}
 		Expression safetyExpr = ltlExpressions.get(numOp - 1);
 		ArrayList<Expression> taskSet = new ArrayList<Expression>();
 
-		int lastExprNum = 0; 
-		if(goalNumbers == null)
-		{for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
+		int lastExprNum = 0;
+		if (goalNumbers == null) {
+			for (int exprNum = 0; exprNum < numGoals - 1; exprNum++) {
 
-			Expression currentExpr = ltlExpressions.get(exprNum);
-			//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
-			taskSet.add(currentExpr);
-			
-				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
-				lastExprNum = exprNum;
-		}
-		}
-		else
-		{
-			for(int exprNum : goalNumbers)
-			{
 				Expression currentExpr = ltlExpressions.get(exprNum);
 				//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
 				taskSet.add(currentExpr);
-				
-					expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
-					lastExprNum = exprNum;
+
+				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
+				lastExprNum = exprNum;
+			}
+		} else {
+			
+			for (int exprNum : goalNumbers) {
+				Expression currentExpr = ltlExpressions.get(exprNum);
+				//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
+				taskSet.add(currentExpr);
+
+				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + lastExprNum);
+				lastExprNum ++;
 			}
 		}
-		lastExprNum++;
+//		lastExprNum++;
 		expressionLabels.put(Expression.Not(getInnerExpression(safetyExpr)), "da" + lastExprNum);
 
 		//		taskSet.add(safetyExpr);
@@ -442,18 +438,17 @@ public class SSIAuctionNestedProduct
 		}
 	}
 
-	public PropertiesFile loadFiles(Prism prism, String saveplace, String filename, 
-			int numRobots, ArrayList<MDPSimple> mdps, ArrayList<MDPModelChecker> mcs,ArrayList<Integer>robotNumbers)
-			throws FileNotFoundException, PrismException
+	public PropertiesFile loadFiles(Prism prism, String saveplace, String filename, int numRobots, ArrayList<MDPSimple> mdps, ArrayList<MDPModelChecker> mcs,
+			ArrayList<Integer> robotNumbers) throws FileNotFoundException, PrismException
 	{
 		PropertiesFile propertiesFile = null;
 		//load the files 
 		//could be a separate function 
-		int fnNumber = 0; 
+		int fnNumber = 0;
 		for (int i = 0; i < numRobots; i++) {
-			if(robotNumbers == null)
-				fnNumber = i; 
-			else 
+			if (robotNumbers == null)
+				fnNumber = i;
+			else
 				fnNumber = robotNumbers.get(i);
 			String modelFileName = saveplace + filename + fnNumber + ".prism";
 			ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
@@ -550,7 +545,7 @@ public class SSIAuctionNestedProduct
 		int numGoals = 4;
 		int numDoors = 2;
 		String fn = "g5_r2_t3_d2_fs1";
-		return run(saveplace, fn, numRobots, numGoals, numDoors,null,null);
+		return run(saveplace, fn, numRobots, numGoals, numDoors, null, null);
 	}
 
 	VarList createJointVarList(ArrayList<String> ssNames, ArrayList<MDPSimple> mdps, ArrayList<Integer> daIndices) throws PrismLangException
@@ -672,8 +667,7 @@ public class SSIAuctionNestedProduct
 		return jvlTosvl;
 	}
 
-	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors,
-			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
+	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
 	{
 		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
@@ -696,7 +690,7 @@ public class SSIAuctionNestedProduct
 			ArrayList<MDPSimple> mdps = new ArrayList<MDPSimple>();
 			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
 
-			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs,robotNumbers);
+			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs, robotNumbers);
 
 			int[] mdpInitialStates = new int[mdps.size()];
 			for (int i = 0; i < mdpInitialStates.length; i++) {
@@ -704,7 +698,8 @@ public class SSIAuctionNestedProduct
 			}
 			//do things to the properties 
 
-			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals,goalNumbers);
+			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals,
+					goalNumbers);
 			ExpressionReward rewExpr = processedProperties.getKey();
 			Entry<Expression, ArrayList<Expression>> safetyExprAndList = processedProperties.getValue();
 			Expression safetyExpr = safetyExprAndList.getKey();
@@ -832,7 +827,7 @@ public class SSIAuctionNestedProduct
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
 			return resultValues(nviSol, mdpCreator.mdp);
-//			return resultvalues;
+			//			return resultvalues;
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1167,11 +1162,10 @@ public class SSIAuctionNestedProduct
 
 				}
 			} else {
-				if(ps!=null)
-				valToSet = ps.varValues[jvlIndex];
-				else
-				{
-					throw new PrismException("Seems like we dont have a value for this index?? "+jvlIndex+" "+robotStateStates.toString());
+				if (ps != null)
+					valToSet = ps.varValues[jvlIndex];
+				else {
+					throw new PrismException("Seems like we dont have a value for this index?? " + jvlIndex + " " + robotStateStates.toString());
 				}
 
 			}
