@@ -120,7 +120,7 @@ public class CompareSTAPUSSINVI
 		long startTime = System.nanoTime();
 		if (robotNumbers != null && goalNumbers != null)
 			System.out.println("R:" + numRobots + "-" + robotNumbers.toString() + " G:" + numGoals + " " + goalNumbers.toString());
-		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
+		double[] ssiRes = 	doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
 		long endTime = System.nanoTime();
 
 		long durationSSI = (endTime - startTime);
@@ -260,15 +260,15 @@ public class CompareSTAPUSSINVI
 			for (int g = 3; g <= numGoals; g += 2) {
 				ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
 				ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
-
+		
+				
 				int[] rgdf = new int[] { r, g, numDoors, numFS };
 				float[][] resArr = new float[2][4];
 				resString += "\nR:" + r + "\tG:" + g;
 
 				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
 				results.get(fn).put(rgdf, resArr);
-				if (g > 5)
-					break;
+
 			}
 
 		}
@@ -276,7 +276,7 @@ public class CompareSTAPUSSINVI
 		System.out.println(resString);
 		System.out.println("***************************************************************");
 		String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
-		String resname = "robots2";
+		String resname = "robots3";
 		this.printResults(resSavePlace + resname);
 	}
 
@@ -302,7 +302,8 @@ public class CompareSTAPUSSINVI
 	{
 
 		try {
-			runRobots();
+		//	runRobots();
+			runDoors();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
