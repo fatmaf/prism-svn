@@ -1535,6 +1535,8 @@ public class JointPolicyBuilder
 		double rew = 0;
 		ArrayList<Double> costRewards = new ArrayList<Double>();
 		//rewards 
+		if(seqTeamMDPRewards == null)
+			mainLog.println("seqTeamMDPRewards are null!!! I think I get why!! ");
 		for (int i = 0; i < seqTeamMDPRewards.size(); i++) {
 			//TODO: dont ignore state rewards 
 			//ignoring state rewards!!!!!!

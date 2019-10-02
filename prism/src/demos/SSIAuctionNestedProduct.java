@@ -1167,7 +1167,12 @@ public class SSIAuctionNestedProduct
 
 				}
 			} else {
+				if(ps!=null)
 				valToSet = ps.varValues[jvlIndex];
+				else
+				{
+					throw new PrismException("Seems like we dont have a value for this index?? "+jvlIndex+" "+robotStateStates.toString());
+				}
 
 			}
 			jointState.setValue(jvlIndex, valToSet);
