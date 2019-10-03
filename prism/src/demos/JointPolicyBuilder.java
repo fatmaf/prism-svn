@@ -297,10 +297,10 @@ public class JointPolicyBuilder
 
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP) throws PrismException
 	{
-//		PolicyCreator pc = new PolicyCreator(); 
-//		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-//		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/results/", "seqTeamPolicy.dot");
-		
+		//		PolicyCreator pc = new PolicyCreator(); 
+		//		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+		//		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/results/", "seqTeamPolicy.dot");
+
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
 			daFinalStates = new ArrayList<Integer>();
@@ -518,7 +518,7 @@ public class JointPolicyBuilder
 
 					int stateIndex = findStateIndex(currentJointState);
 					boolean discovered = false;
-					boolean stateReset = false;
+					//					boolean stateReset = false;
 
 					if (stateIndex != StatesHelper.BADVALUE) {
 						if (jointStatesDiscovered.get(stateIndex)) {
@@ -527,65 +527,65 @@ public class JointPolicyBuilder
 						}
 					}
 					if (!discovered) {
-						Entry<boolean[], Integer> numFailedPlusFlagsInState = numFailedInJointState(currentJointState);
-						int numFailedInState = numFailedPlusFlagsInState.getValue();
-						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
+						//						Entry<boolean[], Integer> numFailedPlusFlagsInState = numFailedInJointState(currentJointState);
+						//						int numFailedInState = numFailedPlusFlagsInState.getValue();
+						//						boolean[] failedInState = numFailedPlusFlagsInState.getKey();
+						//
+						//						double probVar = currentJointStateProbPair.getValue();
 
-						double probVar = currentJointStateProbPair.getValue();
-
-						if (numFailedInState > numFailedInInitialState) {
-							// the assumption is we have seen fail states before
-							if (stateIndex != StatesHelper.BADVALUE) {
-								probVar = probVar * this.currentStateProbability;
-								if (numFailedInState != numRobots) {
-									if (doreset) {
-										// here we need to check if states are to be reset
-										// basically for the robots that have failed, if they were allocated any tasks
-										// where we are in an intermediate state
-										// if this happens we need to add a "reset" action from the current state
-										// to the new state we create purely to help us figure out what happened
-										Entry<State, String> updatedJointStateString = resetTasksForFailedRobot(failedInInitialState, failedInState,
-												currentJointState, mostProbableTaskAllocationStateValuesBeforeProcessing);
-										State updatedJointState = updatedJointStateString.getKey();
-										if (updatedJointState != null) {
-											{
-												addResetTransitionToJointPolicyMDP(currentJointState, updatedJointState, jointMDP,
-														updatedJointStateString.getValue());
-												stateReset = true;
-											}
-											stateIndex = findStateIndex(updatedJointState);
-
-										}
-									}
-									if (!inStatesExplored(currentJointState)) {
-
-										// if anyone other than the failed robot is assigned a seq task //i.e we did not
-										// do a reset
-										BitSet statesToAvoidDueToSeqTask = null;
-										if (doreset) {
-											if (!stateReset) {
-												// think of a better function name atleast yaar
-												// what is this
-												statesToAvoidDueToSeqTask = getStatesToAvoidDueToSeqTask(currentJointState,
-														mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
-												if (statesToAvoidDueToSeqTask == null || statesToAvoidDueToSeqTask.isEmpty())
-													mainLog.println("kabhi kabhi aisa hota hai janab");
-												else
-													mainLog.println("fazool zid karna");
-											}
-										}
-										// get all states for all robots which don't have the exact seq task value
-										StateExtended failState = new StateExtended(stateIndex, probVar);
-										if (statesToAvoidDueToSeqTask != null && !statesToAvoidDueToSeqTask.isEmpty())
-											failState.statesToAvoid = (BitSet) statesToAvoidDueToSeqTask.clone();
-										this.failedStatesQueue.add(failState);
-
-									}
-									continue;
-								}
-							}
-
-						}
+						//						if (numFailedInState > numFailedInInitialState) {
+						//							// the assumption is we have seen fail states before
+						//							if (stateIndex != StatesHelper.BADVALUE) {
+						//								probVar = probVar * this.currentStateProbability;
+						//								if (numFailedInState != numRobots) {
+						//									if (doreset) {
+						//										// here we need to check if states are to be reset
+						//										// basically for the robots that have failed, if they were allocated any tasks
+						//										// where we are in an intermediate state
+						//										// if this happens we need to add a "reset" action from the current state
+						//										// to the new state we create purely to help us figure out what happened
+						//										Entry<State, String> updatedJointStateString = resetTasksForFailedRobot(failedInInitialState, failedInState,
+						//												currentJointState, mostProbableTaskAllocationStateValuesBeforeProcessing);
+						//										State updatedJointState = updatedJointStateString.getKey();
+						//										if (updatedJointState != null) {
+						//											{
+						//												addResetTransitionToJointPolicyMDP(currentJointState, updatedJointState, jointMDP,
+						//														updatedJointStateString.getValue());
+						//												stateReset = true;
+						//											}
+						//											stateIndex = findStateIndex(updatedJointState);
+						//
+						//										}
+						//									}
+						//									if (!inStatesExplored(currentJointState)) {
+						//
+						//										// if anyone other than the failed robot is assigned a seq task //i.e we did not
+						//										// do a reset
+						//										BitSet statesToAvoidDueToSeqTask = null;
+						//										if (doreset) {
+						//											if (!stateReset) {
+						//												// think of a better function name atleast yaar
+						//												// what is this
+						//												statesToAvoidDueToSeqTask = getStatesToAvoidDueToSeqTask(currentJointState,
+						//														mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
+						//												if (statesToAvoidDueToSeqTask == null || statesToAvoidDueToSeqTask.isEmpty())
+						//													mainLog.println("kabhi kabhi aisa hota hai janab");
+						//												else
+						//													mainLog.println("fazool zid karna");
+						//											}
+						//										}
+						//										// get all states for all robots which don't have the exact seq task value
+						//										StateExtended failState = new StateExtended(stateIndex, probVar);
+						//										if (statesToAvoidDueToSeqTask != null && !statesToAvoidDueToSeqTask.isEmpty())
+						//											failState.statesToAvoid = (BitSet) statesToAvoidDueToSeqTask.clone();
+						//										this.failedStatesQueue.add(failState);
+						//
+						//									}
+						//									continue;
+						//								}
+						//							}
+						//
+						//						}
 
 						mainLog.println(currentJointState.toString());
 						int[] robotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(), mdp.getVarList());
@@ -700,15 +700,32 @@ public class JointPolicyBuilder
 						this.otherRewardsHashMap.put(saPair, summedStateActionRewards);
 
 						//						saveMDP(jointMDP, "new");
-					}
-					if (isAcc) {
-						accStates.set(statesMap.get(currentJointState));
+					} else {
+						if (!isAcc) {
+							// get all states for all robots which don't have the exact seq task value
+							//						StateExtended failState = new StateExtended(stateIndex, probVar);
+							//						if (statesToAvoidDueToSeqTask != null && !statesToAvoidDueToSeqTask.isEmpty())
+							//							failState.statesToAvoid = (BitSet) statesToAvoidDueToSeqTask.clone();
+							//						this.failedStatesQueue.add(failState);
+							//
+							//so we've seen this state before right ? 
+							//okay so lets go ahead and add this state to our list 
+							double probVar = currentJointStateProbPair.getValue();
+							StateExtended failState = new StateExtended(stateIndex, probVar);
+							this.failedStatesQueue.add(failState);
+
+						} else {
+							//							if (isAcc) {
+							accStates.set(statesMap.get(currentJointState));
+							//							}
+						}
+
 					}
 				}
+				//			saveMDP(jointMDP, "new");
 			}
-			//			saveMDP(jointMDP, "new");
-		}
 
+		}
 	}
 
 	private int[] modifyRobotStatesToReflectExpectedTaskCompletionSeq(ArrayList<ArrayList<StateExtended>> statesDiscovered, int[] robotStatesInSeqTeamMDP,
@@ -1535,7 +1552,7 @@ public class JointPolicyBuilder
 		double rew = 0;
 		ArrayList<Double> costRewards = new ArrayList<Double>();
 		//rewards 
-		if(seqTeamMDPRewards == null)
+		if (seqTeamMDPRewards == null)
 			mainLog.println("seqTeamMDPRewards are null!!! I think I get why!! ");
 		for (int i = 0; i < seqTeamMDPRewards.size(); i++) {
 			//TODO: dont ignore state rewards 
@@ -2122,10 +2139,11 @@ public class JointPolicyBuilder
 			}
 		}
 	}
+
 	public ArrayList<MDPRewardsSimple> getExpTaskAndCostRewards()
 	{
-		ArrayList<MDPRewardsSimple> rewstoret = new ArrayList<MDPRewardsSimple>(); 
-		rewstoret.add(progressionRewards); 
+		ArrayList<MDPRewardsSimple> rewstoret = new ArrayList<MDPRewardsSimple>();
+		rewstoret.add(progressionRewards);
 		rewstoret.add(otherRewards.get(0));
 		return rewstoret;
 	}
