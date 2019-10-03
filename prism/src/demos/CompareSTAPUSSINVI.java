@@ -25,43 +25,45 @@ public class CompareSTAPUSSINVI
 	int costInd = 2;
 	int timeInd = 3;
 
-	HashMap<String, HashMap<int[], float[][]>> results = new HashMap<String, HashMap<int[], float[][]>>();
+	HashMap<String, HashMap<int[], ArrayList<float[][]>>> results = new HashMap<String, HashMap<int[], ArrayList<float[][]>>>();
 
 	public void printResults(String contest)
 	{
-		File file = new File(contest + ".txt");
+		PrintStream outLog = System.out;
+		File file = null;
 		FileOutputStream fileOutputStream = null;
-		PrintStream outLog = null;
-		try {
-			fileOutputStream = new FileOutputStream(file);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if (contest != null) {
+			file = new File(contest + ".txt");
+
+			try {
+				fileOutputStream = new FileOutputStream(file);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (fileOutputStream != null)
+				outLog = new PrintStream(fileOutputStream);
 		}
-		if (fileOutputStream != null)
-			outLog = new PrintStream(fileOutputStream);
-		else
-			outLog = System.out;
 
 		String header = "fn\tr\tg\td\tf\tl\tp\tt\tc\tt(s)\n";
 		outLog.print(header);
 		for (String fn : results.keySet()) {
 			//String row = fn;
-			HashMap<int[], float[][]> datahere = results.get(fn);
+			HashMap<int[], ArrayList<float[][]>> datahere = results.get(fn);
 			for (int[] rgdf : datahere.keySet()) {
-				float[][] valuesall = datahere.get(rgdf);
-
-				int resInd = ssiInd;
-				float[] values = valuesall[resInd];
-				String row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tssi\t" + values[probInd] + "\t"
-						+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
-				outLog.println(row);
-				resInd = stapuInd;
-				values = valuesall[stapuInd];
-				row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tstapu\t" + values[probInd] + "\t"
-						+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
-				outLog.println(row);
-
+				ArrayList<float[][]> valueslist = datahere.get(rgdf);
+				for (float[][] valuesall : valueslist) {
+					int resInd = ssiInd;
+					float[] values = valuesall[resInd];
+					String row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tssi\t" + values[probInd] + "\t"
+							+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
+					outLog.println(row);
+					resInd = stapuInd;
+					values = valuesall[stapuInd];
+					row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tstapu\t" + values[probInd] + "\t"
+							+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
+					outLog.println(row);
+				}
 			}
 		}
 
@@ -70,29 +72,7 @@ public class CompareSTAPUSSINVI
 	public void printResults()
 	{
 
-		PrintStream outLog = System.out;
-
-		String header = "fn\tr\tg\td\tf\tl\tp\tt\tc\tt(s)\n";
-		outLog.print(header);
-		for (String fn : results.keySet()) {
-			//String row = fn;
-			HashMap<int[], float[][]> datahere = results.get(fn);
-			for (int[] rgdf : datahere.keySet()) {
-				float[][] valuesall = datahere.get(rgdf);
-
-				int resInd = ssiInd;
-				float[] values = valuesall[resInd];
-				String row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tssi\t" + values[probInd] + "\t"
-						+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
-				outLog.println(row);
-				resInd = stapuInd;
-				values = valuesall[stapuInd];
-				row = fn + "\t" + rgdf[rInd] + "\t" + rgdf[gInd] + "\t" + rgdf[dInd] + "\t" + rgdf[fInd] + "\tstapu\t" + values[probInd] + "\t"
-						+ values[taskInd] + "\t" + values[costInd] + "\t" + values[timeInd];
-				outLog.println(row);
-
-			}
-		}
+		printResults(null);
 
 	}
 
@@ -120,7 +100,7 @@ public class CompareSTAPUSSINVI
 		long startTime = System.nanoTime();
 		if (robotNumbers != null && goalNumbers != null)
 			System.out.println("R:" + numRobots + "-" + robotNumbers.toString() + " G:" + numGoals + " " + goalNumbers.toString());
-		double[] ssiRes = 	doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
+		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers);
 		long endTime = System.nanoTime();
 
 		long durationSSI = (endTime - startTime);
@@ -158,6 +138,7 @@ public class CompareSTAPUSSINVI
 		int numDoors = 2;
 		String fn = "g5_r2_t3_d2_fs1";
 
+		String allfn = "";
 		String resString = "";
 		try {
 			numRobots = 2;
@@ -166,19 +147,31 @@ public class CompareSTAPUSSINVI
 			numDoors = 2;//2;
 			fn = "andar_r2_g3_d2_fs0";
 
+			allfn += fn;
 			if (!results.containsKey(fn))
-				results.put(fn, new HashMap<int[], float[][]>());
+				results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 
 			for (int r = 2; r <= numRobots; r++) {
-				for (int g = 2; g <= numGoals; g += 2) {
+				for (int g = 3; g <= numGoals; g += 2) {
 					int[] rgdf = new int[] { r, g, numDoors, numFS };
+					ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+					ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+					if (!results.get(fn).containsKey(rgdf))
+						results.get(fn).put(rgdf, new ArrayList<float[][]>());
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
-					results.get(fn).put(rgdf, resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+					results.get(fn).get(rgdf).add(resArr);
 
 				}
+				System.out.println("***************************************************************");
+				System.out.println(resString);
+				System.out.println("***************************************************************");
+				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+				String resname = "doors2_" + numDoors + "_robots_" + r + "_" + fn;
+				this.printResults(resSavePlace + resname);
 			}
 
 			numRobots = 5;
@@ -187,19 +180,33 @@ public class CompareSTAPUSSINVI
 			numDoors = 3;//2;
 			fn = "andar_r5_g5_d3_fs0";
 
+			allfn += fn;
 			if (!results.containsKey(fn))
-				results.put(fn, new HashMap<int[], float[][]>());
+				results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 
 			for (int r = 2; r <= numRobots; r++) {
-				for (int g = 2; g <= numGoals; g += 2) {
-					int[] rgdf = new int[] { r, g, numDoors, numFS };
-					float[][] resArr = new float[2][4];
-					resString += "\nR:" + r + "\tG:" + g;
+				for (int g = 3; g <= numGoals; g += 2) {
+//					for (int t = 0; t < 5; t++) {
+						int[] rgdf = new int[] { r, g, numDoors, numFS };
+						if (!results.get(fn).containsKey(rgdf))
+							results.get(fn).put(rgdf, new ArrayList<float[][]>());
+						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
-					results.get(fn).put(rgdf, resArr);
+						float[][] resArr = new float[2][4];
+						resString += "\nR:" + r + "\tG:" + g;
 
-				}
+						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+						results.get(fn).get(rgdf).add(resArr);
+
+					}
+//				}
+				System.out.println("***************************************************************");
+				System.out.println(resString);
+				System.out.println("***************************************************************");
+				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+				String resname = "doors2_" + numDoors + "_robots_" + r + "_" + fn;
+				this.printResults(resSavePlace + resname);
 			}
 
 			numRobots = 8;
@@ -208,19 +215,33 @@ public class CompareSTAPUSSINVI
 			numDoors = 4;//2;
 			fn = "andar_r8_g10_d4_fs0";
 
+			allfn += fn;
 			if (!results.containsKey(fn))
-				results.put(fn, new HashMap<int[], float[][]>());
+				results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 
 			for (int r = 2; r <= numRobots; r++) {
-				for (int g = 2; g <= numGoals; g += 2) {
-					int[] rgdf = new int[] { r, g, numDoors, numFS };
-					float[][] resArr = new float[2][4];
-					resString += "\nR:" + r + "\tG:" + g;
+				for (int g = 3; g <= numGoals; g += 2) {
+//					for (int t = 0; t < 5; t++) {
+						int[] rgdf = new int[] { r, g, numDoors, numFS };
+						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, null, null);
-					results.get(fn).put(rgdf, resArr);
+						if (!results.get(fn).containsKey(rgdf))
+							results.get(fn).put(rgdf, new ArrayList<float[][]>());
+						float[][] resArr = new float[2][4];
+						resString += "\nR:" + r + "\tG:" + g;
 
-				}
+						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+						results.get(fn).get(rgdf).add(resArr);
+
+					}
+//				}
+				System.out.println("***************************************************************");
+				System.out.println(resString);
+				System.out.println("***************************************************************");
+				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+				String resname = "doors2_" + numDoors + "_robots_" + r + "_" + fn;
+				this.printResults(resSavePlace + resname);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -229,7 +250,7 @@ public class CompareSTAPUSSINVI
 			System.out.println(resString);
 			System.out.println("***************************************************************");
 			String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
-			String resname = "doors";
+			String resname = "doors2_" + allfn;
 			this.printResults(resSavePlace + resname);
 			printResults();
 		}
@@ -253,31 +274,114 @@ public class CompareSTAPUSSINVI
 		numDoors = 0;//2;
 		fn = "g19x5_r10_t11_d0_fs0";
 
+		int maxGoals = numGoals;
+		int maxRobots = numRobots;
 		if (!results.containsKey(fn))
-			results.put(fn, new HashMap<int[], float[][]>());
+			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
+		try {
+			for (int r = 2; r <= maxRobots; r++) {
+				//lets do this multiple times 
+				//like 5 times 
+				for (int t = 0; t < 5; t++) {
+					for (int g = 3; g <= maxGoals; g += 2) {
+						if(r <= 5 && g <=7)
+							continue;
+						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-		for (int r = 2; r <= numRobots; r++) {
-			for (int g = 3; g <= numGoals; g += 2) {
-				ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
-				ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
-		
-				
-				int[] rgdf = new int[] { r, g, numDoors, numFS };
-				float[][] resArr = new float[2][4];
-				resString += "\nR:" + r + "\tG:" + g;
+						int[] rgdf = new int[] { r, g, numDoors, numFS };
+						if (!results.get(fn).containsKey(rgdf))
+							results.get(fn).put(rgdf, new ArrayList<float[][]>());
+						float[][] resArr = new float[2][4];
+						resString += "\nR:" + r + "\tG:" + g;
 
-				resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
-				results.get(fn).put(rgdf, resArr);
+						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+						results.get(fn).get(rgdf).add(resArr);
+					}
+				}
+				System.out.println("***************************************************************");
+				System.out.println(resString);
+				System.out.println("***************************************************************");
+				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+				String resname = "robots2_" + r + "_" + fn;
+				this.printResults(resSavePlace + resname);
 
 			}
-
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			System.out.println("***************************************************************");
+			System.out.println(resString);
+			System.out.println("***************************************************************");
+			String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+			String resname = "robots2_" + fn;
+			this.printResults(resSavePlace + resname);
+			printResults();
 		}
-		System.out.println("***************************************************************");
-		System.out.println(resString);
-		System.out.println("***************************************************************");
-		String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
-		String resname = "robots3";
-		this.printResults(resSavePlace + resname);
+
+	}
+
+	public void runFSGoalsOnly() throws Exception
+	{
+		//	String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSI/";
+		int numRobots = 2;
+		int numFS = 1;
+		int numGoals = 4;
+		int numDoors = 2;
+		String fn = "g5_r2_t3_d2_fs1";
+
+		String resString = "";
+
+		numRobots = 10;
+		numFS = 0;//5;//1;
+		numGoals = 11;//6;//4;
+		numDoors = 0;//2;
+		fn = "g20x4_r10_g11_d0_fs10";
+
+		int maxGoals = 7;//9;
+		int maxRobots = 5;//numRobots;
+		if (!results.containsKey(fn))
+			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
+		try {
+			for (int r = 2; r <= maxRobots; r++) {
+				//lets do this multiple times 
+				//like 5 times 
+//				for (int t = 0; t < 5; t++) {
+					for (int g = 3; g <= maxGoals; g += 2) {
+						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+						int[] rgdf = new int[] { r, g, numDoors, numFS };
+						if (!results.get(fn).containsKey(rgdf))
+							results.get(fn).put(rgdf, new ArrayList<float[][]>());
+						float[][] resArr = new float[2][4];
+						resString += "\nR:" + r + "\tG:" + g;
+
+						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+						results.get(fn).get(rgdf).add(resArr);
+					}
+//				}
+				System.out.println("***************************************************************");
+				System.out.println(resString);
+				System.out.println("***************************************************************");
+				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+				String resname = "fsgoalonly2_" + r + "_" + fn;
+				this.printResults(resSavePlace + resname);
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			System.out.println("***************************************************************");
+			System.out.println(resString);
+			System.out.println("***************************************************************");
+			String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+			String resname = "fsgoalsonly2_" + fn;
+			this.printResults(resSavePlace + resname);
+			printResults();
+		}
+
 	}
 
 	public ArrayList<Integer> generateListOfRandomNumbers(int listSize, int maxR) throws Exception
@@ -298,12 +402,19 @@ public class CompareSTAPUSSINVI
 		return listToRet;
 	}
 
-	public void run()
+	public void run(String[] args)
 	{
 
 		try {
-		//	runRobots();
-			runDoors();
+			String option = args[0];
+			if (option.contains("robot"))
+				runRobots();
+			else if (option.contains("door"))
+				runDoors();
+			else if (option.contains("fsgoal"))
+				runFSGoalsOnly();
+			else
+				System.out.println("invalid option, options are: robot, door,fsgoal");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -312,7 +423,8 @@ public class CompareSTAPUSSINVI
 
 	public static void main(String[] args)
 	{
-		new CompareSTAPUSSINVI().run();
+
+		new CompareSTAPUSSINVI().run(args);
 
 	}
 }

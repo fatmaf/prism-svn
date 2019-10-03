@@ -277,18 +277,19 @@ public class SSIAuctionNestedProduct
 				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + exprNum);
 				lastExprNum = exprNum;
 			}
+			lastExprNum++;
 		} else {
-			
+
 			for (int exprNum : goalNumbers) {
 				Expression currentExpr = ltlExpressions.get(exprNum);
 				//			Expression currentExprWithSafetyExpr = Expression.And(currentExpr, safetyExpr);
 				taskSet.add(currentExpr);
 
 				expressionLabels.put(getInnerExpression(ltlExpressions.get(exprNum)), "da" + lastExprNum);
-				lastExprNum ++;
+				lastExprNum++;
 			}
 		}
-//		lastExprNum++;
+		//		lastExprNum++;
 		expressionLabels.put(Expression.Not(getInnerExpression(safetyExpr)), "da" + lastExprNum);
 
 		//		taskSet.add(safetyExpr);
