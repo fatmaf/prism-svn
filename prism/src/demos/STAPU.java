@@ -82,6 +82,9 @@ public class STAPU
 
 		int maxRobots = 2; 
 		int maxGoals = 3; 
+		fn = "testingmaxexprewfs4"; 
+		numFS = 4; 
+		numDoors = 0; 
 		
 		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false,null,null);
 
@@ -182,19 +185,13 @@ public class STAPU
 
 		BitSet statesToRemainIn = (BitSet) statesToAvoid.clone();
 		statesToRemainIn.flip(0, mdp.getNumStates());
+		BitSet statesToIgnoreForVI = (BitSet)target.clone(); 
+		statesToIgnoreForVI.or(statesToAvoid);
 		MDPModelChecker mc = new MDPModelChecker(prismC);
 		mc.setGenStrat(true);
-		// mc.genStrat = true;
-		// lets set them all to true
-		//		ModelCheckerResult anotherSol = mc.computeUntilProbs(mdp, statesToRemainIn, target, false);
-		//		StatesHelper.saveStrategy(anotherSol.strat, target, "", "computeUntilProbsStrat" + mdp.getFirstInitialState(),
-		//				true);
-		//		StateValues testValues = StateValues.createFromDoubleArray(anotherSol.soln, mdp);
-		//		mainLog.println("Compute Until Probs Vals\n " + Arrays.toString(testValues.getDoubleArray()));
-		//		if (mdp.getFirstInitialState() != -1)
-		//			mainLog.println("Prob in init" + testValues.getDoubleArray()[mdp.getFirstInitialState()]);
 
-		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray(mdp, target, statesToRemainIn, rewards, null, minRewards, target, probPreference,
+		ModelCheckerMultipleResult res2 = mc.computeNestedValIterArray
+				(mdp, target, statesToRemainIn, rewards, null, minRewards, statesToIgnoreForVI, probPreference,
 				probInitVal);
 
 		ArrayList<double[]> solns = res2.solns;
@@ -325,7 +322,7 @@ public class STAPU
 		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
 
 		//		StatesHelper.saveMDP(seqTeamMDP.teamMDPWithSwitches, combinedEssentialStates, "", "teamMDPWithSwitches", true);
-		//		StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches,  "", "teamMDPWithSwitches", true);
+				StatesHelper.saveMDPstatra(seqTeamMDP.teamMDPWithSwitches,  "", "teamMDPWithSwitches", true);
 
 		resSaver.setLocalStartTime();
 		resSaver.setScopeStartTime();
@@ -333,6 +330,7 @@ public class STAPU
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
 
+		mainLog.println("seq team mdp accepting states "+seqTeamMDP.acceptingStates.toString());
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
 
 		mainLog.println("InitState = " + initialState);

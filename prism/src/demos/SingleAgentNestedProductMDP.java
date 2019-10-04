@@ -50,28 +50,43 @@ public class SingleAgentNestedProductMDP {
 
 	public boolean addRewardForTaskCompletion(int childState, int parentState) {
 		boolean toreturn = false;
-		if (allAcceptingStatesCombined == null)
-			allAcceptingStatesCombined = getAllAcceptingStates();
-		if (combinedEssentialStates.get(childState) /* || combinedAcceptingStates.get(childState) */) {
-			// you could remove all this and just check if the two da bits are unequal
-			if (allAcceptingStatesCombined.get(parentState)) {
-				if (childState != parentState) {
-
-					List<State> statesList = this.finalProduct.getProductModel().getStatesList();
-					if (!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),
-							statesList.get(parentState), numMDPVars)) {
-						toreturn = true;
-					}
+		State cs = this.finalProduct.getProductModel().getStatesList().get(childState); 
+		State ps = this.finalProduct.getProductModel().getStatesList().get(parentState); 
+		for(int i = 0; i<this.daList.size(); i++)
+		{
+			if(!daList.get(i).isSafeExpr)
+			{
+				DAInfo dainfo = daList.get(i);
+				int val = (int)cs.varValues[dainfo.associatedIndexInProduct];
+				if(dainfo.daAccStates.get(val))
+				{
+					if((int)ps.varValues[dainfo.associatedIndexInProduct] != val)
+						toreturn = true; 
 				}
-				// if (acceptingStatesFromSeparateDAs(childState,parentState))
-				// {
-				// toreturn = true;
-				// }
-			} else {
-				toreturn = true;
 			}
-
 		}
+//		if (allAcceptingStatesCombined == null)
+//			allAcceptingStatesCombined = getAllAcceptingStates();
+//		if (combinedEssentialStates.get(childState) /* || combinedAcceptingStates.get(childState) */) {
+//			// you could remove all this and just check if the two da bits are unequal
+//			if (allAcceptingStatesCombined.get(parentState)) {
+//				if (childState != parentState) {
+//
+//					List<State> statesList = this.finalProduct.getProductModel().getStatesList();
+//					if (!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),
+//							statesList.get(parentState), numMDPVars)) {
+//						toreturn = true;
+//					}
+//				}
+//				// if (acceptingStatesFromSeparateDAs(childState,parentState))
+//				// {
+//				// toreturn = true;
+//				// }
+//			} else {
+//				toreturn = true;
+//			}
+//
+//		}
 		return toreturn;
 	}
 
