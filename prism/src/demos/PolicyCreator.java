@@ -20,7 +20,7 @@ import strat.Strategy;
 public class PolicyCreator
 {
 
-	MDPCreator mdpCreator;
+	protected MDPCreator mdpCreator;
 
 	public PolicyCreator()
 	{
@@ -54,7 +54,7 @@ public class PolicyCreator
 		return actionIndex;
 	}
 
-	private MDPSimple createPolicy(int initialState, MDP mdp, Strategy strat)
+	public MDPSimple createPolicy(int initialState, MDP mdp, Strategy strat)
 	{
 		Stack<Integer> toVisit = new Stack<Integer>();
 		BitSet visited = new BitSet();
