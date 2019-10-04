@@ -97,13 +97,15 @@ public class MDPModelChecker extends ProbModelChecker
 			return super.checkExpressionFunc(model, expr, statesOfInterest);
 		}
 	}
-	public StateValues checkPartialSatExposed(Model model, Expression expr,ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
+
+	public double[] checkPartialSatExposed(Model model, Expression expr, ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
 	{
-		return checkPartialSatExpr(model,expr,rewExpr,statesOfInterest);
+		return checkPartialSatExpr(model, expr, rewExpr, statesOfInterest);
 	}
-	
-	protected StateValues checkPartialSatExpr(Model model, Expression expr,ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
+
+	protected double[] checkPartialSatExpr(Model model, Expression expr, ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
 	{
+		double[] probprogcost = new double[3];
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
 		MDPModelChecker mcProduct;
@@ -136,10 +138,11 @@ public class MDPModelChecker extends ProbModelChecker
 		labelBS = new Vector<BitSet>();
 		da = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
 
-		if (!(da.getAcceptance() instanceof AcceptanceReach)  && !(da.getAcceptance() instanceof AcceptanceRabin)) {
+		if (!(da.getAcceptance() instanceof AcceptanceReach) && !(da.getAcceptance() instanceof AcceptanceRabin)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
-			return new StateValues(TypeInt.getInstance(), model);
+			//			return new StateValues(TypeInt.getInstance(), model);
+			return probprogcost;
 		}
 		// calculate distances to accepting states
 		long time = System.currentTimeMillis();
@@ -246,6 +249,9 @@ public class MDPModelChecker extends ProbModelChecker
 		costs = product.projectToOriginalModel(costsProduct);
 		double minCost = costs.getDoubleArray()[model.getFirstInitialState()];
 		mainLog.println("\nFor p = " + maxProb + ", r = " + +maxRew + " the minimum expected  cummulative cost to satisfy specification is " + minCost);
+		probprogcost[0] = maxProb;
+		probprogcost[1] = maxRew;
+		probprogcost[2] = minCost;
 		// System.out.println("Probability to find objects: " + maxProb);
 		// System.out.println("Expected progression reward: " + maxRew);
 		// System.out.println("Expected time to execute task: " + minCost);
@@ -258,10 +264,12 @@ public class MDPModelChecker extends ProbModelChecker
 			out.close();
 		}
 
-		return costs;
+		return probprogcost;
 
 	}
-	public Entry<MDP,MDStrategy> checkPartialSatExprReturnStrategy(Model model, Expression expr,ExpressionReward rewExpr, BitSet statesOfInterest) throws PrismException
+
+	public Entry<MDP, MDStrategy> checkPartialSatExprReturnStrategy(Model model, Expression expr, ExpressionReward rewExpr, BitSet statesOfInterest)
+			throws PrismException
 	{
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
@@ -295,7 +303,7 @@ public class MDPModelChecker extends ProbModelChecker
 		labelBS = new Vector<BitSet>();
 		da = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
 
-		if (!(da.getAcceptance() instanceof AcceptanceReach)  && !(da.getAcceptance() instanceof AcceptanceRabin)) {
+		if (!(da.getAcceptance() instanceof AcceptanceReach) && !(da.getAcceptance() instanceof AcceptanceRabin)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
 			return null;
@@ -372,8 +380,7 @@ public class MDPModelChecker extends ProbModelChecker
 
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
 		ModelCheckerPartialSatResult res = mcProduct.computeNestedValIter(productMdp, acc, progRewards, prodCosts, progStates);
-	
-		
+
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 
 		// Mapping probabilities in the original model
@@ -419,9 +426,10 @@ public class MDPModelChecker extends ProbModelChecker
 			out.close();
 		}
 
-		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
+		return new AbstractMap.SimpleEntry<MDP, MDStrategy>(productMdp, (MDStrategy) res.strat);
 
 	}
+
 	protected StateValues checkPartialSat(Model model, ExpressionFunc expr, BitSet statesOfInterest) throws PrismException
 	{
 		LTLModelChecker mcLtl;
@@ -456,7 +464,7 @@ public class MDPModelChecker extends ProbModelChecker
 		labelBS = new Vector<BitSet>();
 		da = mcLtl.constructDAForLTLFormula(this, model, ltl, labelBS, allowedAcceptance);
 
-		if (!(da.getAcceptance() instanceof AcceptanceReach)  && !(da.getAcceptance() instanceof AcceptanceRabin)) {
+		if (!(da.getAcceptance() instanceof AcceptanceReach) && !(da.getAcceptance() instanceof AcceptanceRabin)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
 			return new StateValues(TypeInt.getInstance(), model);
@@ -1332,9 +1340,6 @@ public class MDPModelChecker extends ProbModelChecker
 		boolean min = false;
 		int numRewards = rewards.size();
 
-		boolean debugDetails = false;
-		int debugGranularity = 3; // 1 = fine, 2 okay, 3 coarse
-
 		timerGlobal = System.currentTimeMillis();
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
@@ -1426,62 +1431,24 @@ public class MDPModelChecker extends ProbModelChecker
 		initValProb = 0.0;
 		initValCost = 0.0;
 
-		// (valIterDir == ValIterDir.BELOW) ? 0.0 : 1.0;
-
 		// Determine set of states actually need to compute values for
 		unknown = new BitSet();
 		unknown.set(0, n);
 		unknown.andNot(yes);
 		unknown.andNot(no);
 		for (i = 0; i < n; i++) {
-			// solnProb[i] = soln2Prob[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 :
-			// initValProb;
-			// solnProg[i] = soln2Prog[i] = initValRew;
-			// solnCost[i] = soln2Cost[i] = initValCost;
+
 			if (probInitVal == null)
-				solnProb[i] = target.get(i) ? 1.0 : 0.0; // yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
+				solnProb[i] = target.get(i) ? 1.0 : 0.0;
 			else
 				solnProb[i] = probInitVal[i];
 			for (int rew = 0; rew < numRewards; rew++) {
 				if (minRewards.get(rew)) {
 					solnReward.get(rew)[i] = 0.0;
-					//					solnReward.get(rew)[i]=target.get(i) ? 0.0 : statesToIgnoreForVI.get(i) ? 0.0 : 100; 
 				} else
 					solnReward.get(rew)[i] = 0.0;
 			}
-			// if (probPreference != 0)
-			// {
-			// //then we care about the reward first
-			// if(minRewards.get(0))
-			// {
-			// solnReward.get(0)[i] = target.get(i) ? 0.0 : 0.0;//no.get(i) ?
-			// Double.POSITIVE_INFINITY : 0.0;
-			//// solnProg[i] = target.get(i) ? 0.0 : inf.get(i) ? Double.POSITIVE_INFINITY :
-			// 0.0;
-			// }
-			// else
-			// {
-			// solnReward.get(0)[i] = target.get(i) ? 1.0 : 0.0;//no.get(i) ? 0.0 : 0.0;
-			// }
-			// }
-
 		}
-		//commenting this out for the new stuff 
-
-		//		int startRew = 0;
-		//		// if (probPreference != 0)
-		//		// startRew = 1;
-		//		for (int rew = startRew; rew < numRewards; rew++) {
-		//
-		//			if (rewardsInitVal == null)
-		//				Arrays.fill(solnReward.get(rew), initValCost);
-		//			else {
-		//				if (rewardsInitVal.get(rew) == null) {
-		//					Arrays.fill(solnReward.get(rew), initValCost);
-		//				}
-		//
-		//			}
-		//		}
 
 		// Start iterations
 		iters = 0;
@@ -1496,75 +1463,22 @@ public class MDPModelChecker extends ProbModelChecker
 		boolean sameCostVal;
 		ArrayList<Boolean> sameCost = new ArrayList<Boolean>();
 
-		if (statesToIgnoreForVI == null) // set it to unkown
+		if (statesToIgnoreForVI == null) // set it to unknown
 		{
 			statesToIgnoreForVI = (BitSet) unknown.clone();
 			statesToIgnoreForVI.flip(0, unknown.size());
 		}
 
-		boolean turnOffRewPrint = true;
+	
 
 		while (!done && iters < maxIters) {
 
-			if (debugDetails && debugGranularity > 0) {
-				if (!turnOffRewPrint) {
-					System.out.println("\nIter " + iters);
-					String str = String.format("%25s", "Index Number: ");
-					String str2 = String.format("%25s", "Probs: ");
-					for (int num = 0; num < solnProb.length; num++) {
-						str += String.format("%5d ,", num);
-						str2 += String.format("%3.3f ,", solnProb[num]);
-					}
-					System.out.println(str);
-					System.out.println(str2);
-					//					System.out.println("Prob Values: " + Arrays.toString(solnProb));
-
-					for (int rews = 0; rews < numRewards; rews++) {
-						str = String.format("%25s", "Rew" + rews + ": ");
-						for (int num = 0; num < solnReward.get(rews).length; num++)
-							str += String.format("%3.3f ,", solnReward.get(rews)[num]);
-						System.out.println(str);
-						//System.out.println("Rew " + rews + " Values: " + Arrays.toString(solnReward.get(rews)));
-					}
-				}
-			}
-			int[] pvarArr = { 24, 27, 16 };
-
 			iters++;
 			done = true;
-			boolean meh = false;
-			if (iters > 15)
-				meh = true;
 
 			for (i = 0; i < n; i++) {
-				if (!statesToIgnoreForVI.get(i)) {// (unknown.get(i)) {
+				if (!statesToIgnoreForVI.get(i)) {
 
-					if (debugDetails && debugGranularity < 2) {
-						boolean dopvar = false;
-						for (int pvar = 0; pvar < pvarArr.length; pvar++) {
-							if (i == pvarArr[pvar]) {
-								dopvar = true;
-								break;
-							}
-
-						}
-						if (dopvar) {
-							String pvarString = "\n" + iters + ":" + i;
-							for (int pvar = 0; pvar < pvarArr.length; pvar++) {
-								pvarString += "(" + pvarArr[pvar] + " p" + solnProb[pvarArr[pvar]] + " a" + strat[pvarArr[pvar]];
-								if (strat[pvarArr[pvar]] >= 0) {
-									int actnum = strat[pvarArr[pvar]];
-									pvarString += mdp.getAction(pvarArr[pvar], actnum).toString();
-								}
-								for (int rewsp = 0; rewsp < solnReward.size(); rewsp++)
-									pvarString += " r" + rewsp + "-" + solnReward.get(rewsp)[pvarArr[pvar]];
-
-								pvarString += ")";
-							}
-							mainLog.println(pvarString);
-						}
-
-					}
 					numChoices = mdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 						currentProbVal = mdp.mvMultJacSingle(i, j, solnProb);
@@ -1585,133 +1499,37 @@ public class MDPModelChecker extends ProbModelChecker
 						}
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 
-						if (probPreference == 0) {
-							if (!sameProb && currentProbVal > solnProb[i]) {
+						boolean firstCheck;
+						boolean secondCheck;
+						for (int rew = 0; rew < numRewards; rew++) {
+							secondCheck = sameCost.get(rew);
+							if (minRewards.get(rew))
+								firstCheck = (!secondCheck) && currentCostVal.get(rew) < solnReward.get(rew)[i];
+							else
+								firstCheck = (!secondCheck) && currentCostVal.get(rew) > solnReward.get(rew)[i];
+							if (firstCheck) {
 								done = false;
+
 								solnProb[i] = currentProbVal;
-								for (int rew = 0; rew < numRewards; rew++) {
-									solnReward.get(rew)[i] = currentCostVal.get(rew);
+								for (int rews = 0; rews < numRewards; rews++) {
+									solnReward.get(rews)[i] = currentCostVal.get(rews);
 								}
 								if (genStrat || exportAdv) {
 									strat[i] = j;
 								}
+								break;
 							} else {
-								if (sameProb) {
-									boolean firstCheck;
-									boolean secondCheck;
-									for (int rew = 0; rew < numRewards; rew++) {
-										secondCheck = sameCost.get(rew);
-										if (minRewards.get(rew))
-											firstCheck = (!secondCheck) && currentCostVal.get(rew) < solnReward.get(rew)[i];
-										else
-											firstCheck = (!secondCheck) && currentCostVal.get(rew) > solnReward.get(rew)[i];
-										if (firstCheck) {
-											done = false;
-											// if(iters > 1000)
-											// {
-											if (debugDetails && debugGranularity < 3) {
-												if (!turnOffRewPrint)
-													mainLog.print(rew + ":s" + i + "->" + j + ",");
-											}
-											// }
-											// update
-											solnProb[i] = currentProbVal;
-											for (int rews = 0; rews < numRewards; rews++) {
-												solnReward.get(rews)[i] = currentCostVal.get(rews);
-											}
-											if (genStrat || exportAdv) {
-												strat[i] = j;
-											}
-											break;
-										} else {
-											if (secondCheck)
-												continue;
-											else
-												break;
-										}
-
-									}
-								}
-								// else // i'm adding this for the bits when the probability has been set to one
-								// beforehand and we need to choose something
-								// {
-								// if(currentProbVal == solnProb[i])
-								// {
-								// for(int rews = 0; rews<numRewards; rews++)
-								// {
-								// solnReward.get(rews)[i]=currentCostVal.get(rews);
-								// }
-								// if (genStrat || exportAdv) {
-								// strat[i] = j;
-								// }
-								// break;
-								// }
-								// }
-							}
-						} else {
-							boolean keepChecking = true;
-							// if its not pref 0
-
-							boolean firstCheck;
-							boolean secondCheck;
-							for (int rew = 0; rew < numRewards; rew++) {
-								if (rew == probPreference) {
-									if (!sameProb && currentProbVal > solnProb[i]) {
-										done = false;
-										solnProb[i] = currentProbVal;
-										for (int rews = 0; rews < numRewards; rews++) {
-											solnReward.get(rews)[i] = currentCostVal.get(rews);
-										}
-										if (genStrat || exportAdv) {
-											strat[i] = j;
-										}
-										break;
-									} else {
-										if (!sameProb) {
-											keepChecking = false;
-											break;
-										}
-									}
-								}
-								secondCheck = sameCost.get(rew);
-								if (minRewards.get(rew))
-									firstCheck = (!secondCheck) && currentCostVal.get(rew) < solnReward.get(rew)[i];
+								if (secondCheck)
+									continue;
 								else
-									firstCheck = (!secondCheck) && currentCostVal.get(rew) > solnReward.get(rew)[i];
-								if (firstCheck) {
-									done = false;
-									// update
-									solnProb[i] = currentProbVal;
-									for (int rews = 0; rews < numRewards; rews++) {
-										solnReward.get(rews)[i] = currentCostVal.get(rews);
-									}
-									if (genStrat || exportAdv) {
-										strat[i] = j;
-									}
 									break;
-								} else {
-									if (secondCheck)
-										continue;
-									else
-										break;
-								}
 							}
+
 						}
 					}
 				}
 			}
 
-			if (iters == 10000) {
-				mainLog.print("");
-			}
-
-			if (debugDetails) {
-				if ((debugGranularity == 2 && (iters) % 1000 == 1) || (debugGranularity == 1) || (debugGranularity < 3 && iters == maxIters - 1)) {
-					// //print this strategy so we can debug
-					MDStrategyArray tempStrat = new MDStrategyArray(mdp, strat);
-					StatesHelper.saveStrategy(tempStrat, target, "", "strat" + iters, true);
-				}
-			}
 		}
 
 		// Finished value iteration
