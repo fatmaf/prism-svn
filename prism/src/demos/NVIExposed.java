@@ -1,7 +1,10 @@
 package demos;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
@@ -38,13 +41,17 @@ public class NVIExposed
 	public HashMap<Integer, HashMap<Integer, Double>> stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
 	public HashMap<Integer, HashMap<Integer, Double>> stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
 
-	MDP productmdp; 
+	MDP productmdp;
 	protected TermCrit termCrit = TermCrit.RELATIVE;
 	// Parameter for iterative numerical method termination criteria
 	protected double termCritParam = 1e-8;
+	MDPRewardsSimple progRewards;
+	MDPRewardsSimple costRewards;
 
-	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr, BitSet statesOfInterest,
-			ModulesFile modulesFile, MDPModelChecker mc) throws PrismException
+	BitSet accStates;
+
+	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr,
+			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc) throws PrismException
 
 	{
 		int maxIters = 10000;
@@ -126,6 +133,9 @@ public class NVIExposed
 		time = System.currentTimeMillis() - time;
 		mainLog.println("Time for lifting cost function from original model to product: " + time / 1000.0 + " seconds.");
 
+		this.progRewards = (MDPRewardsSimple) progRewards;
+		this.costRewards = (MDPRewardsSimple) prodCosts;
+
 		BitSet progStates = mc.progressionTrim(product, (MDPRewardsSimple) progRewards, (MDPRewardsSimple) prodCosts);
 
 		mcProduct = mc;
@@ -138,8 +148,9 @@ public class NVIExposed
 		}
 
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates);
-		this.productmdp = productMdp; 
+		accStates = (BitSet) acc.clone();
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true);
+		this.productmdp = productMdp;
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 
 		// Mapping probabilities in the original model
@@ -161,6 +172,52 @@ public class NVIExposed
 		// System.out.println("Expected progression reward: " + maxRew);
 		// System.out.println("Expected time to execute task: " + minCost);
 		// System.out.println("--------------------------------------------------------------");
+		return res;
+
+		//		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
+
+	}
+
+	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc) throws PrismException
+
+	{
+		int maxIters = 10000;
+		pc.pc.mdpCreator.createRewardStructures();
+		MDPSimple productMdp = pc.pc.mdpCreator.mdp;
+		BitSet acc = pc.pc.mdpCreator.accStates;
+		MDPRewardsSimple progRewards = pc.pc.mdpCreator.expectedTaskCompletionRewards;
+		MDPRewardsSimple prodCosts = pc.pc.mdpCreator.stateActionCostRewards;
+
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false);
+
+		// Get final prob result
+		double maxProb = res.solnProb[productMdp.getFirstInitialState()];
+		mainLog.println("\nMaximum probability to satisfy specification is " + maxProb);
+
+		double maxRew = res.solnProg[productMdp.getFirstInitialState()];
+		mainLog.println("\nFor p = " + maxProb + ", the maximum expected cummulative reward to satisfy specification is " + maxRew);
+
+		double minCost = res.solnCost[productMdp.getFirstInitialState()];
+		mainLog.println("\nFor p = " + maxProb + ", r = " + +maxRew + " the minimum expected  cummulative cost to satisfy specification is " + minCost);
+		// System.out.println("Probability to find objects: " + maxProb);
+		// System.out.println("Expected progression reward: " + maxRew);
+		// System.out.println("Expected time to execute task: " + minCost);
+		// System.out.println("--------------------------------------------------------------");
+		return res;
+
+		//		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
+
+	}
+
+	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc) throws PrismException
+
+	{
+		int maxIters = 10000;
+		MDPSimple productMdp = pc.pc.mdpCreator.mdp;
+		BitSet acc = pc.pc.mdpCreator.accStates;
+
+		ModelCheckerPartialSatResult res = computeOccupationFrequencyForPath(maxIters, mainLog, mc, productMdp, acc);
+
 		return res;
 
 		//		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
@@ -190,15 +247,16 @@ public class NVIExposed
 	 *            be given and is used for the exact values.
 	 */
 	protected ModelCheckerPartialSatResult computeNestedValIter(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
-			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates) throws PrismException
+			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals) throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
 		int i, n, iters, numYes, numNo;
 		double initValProb, initValRew, initValCost;
-		stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
-		stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
-		stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
-
+		if (saveVals) {
+			stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
+			stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
+			stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
+		}
 		double solnProb[], soln2Prob[];
 		double solnProg[], soln2Prog[];
 		double solnCost[], soln2Cost[];
@@ -216,24 +274,10 @@ public class NVIExposed
 		// Store num states
 		n = trimProdMdp.getNumStates();
 
-		// If required, export info about target states
-		//			if (getExportTarget()) {
-		//				BitSet bsInit = new BitSet(n);
-		//				for (i = 0; i < n; i++) {
-		//					bsInit.set(i, trimProdMdp.isInitialState(i));
-		//				}
-		//				List<BitSet> labels = Arrays.asList(bsInit, target);
-		//				List<String> labelNames = Arrays.asList("init", "target");
-		//				mainLog.println("\nExporting target states info to file \"" + getExportTargetFilename() + "\"...");
-		//				PrismLog out = new PrismFileLog(getExportTargetFilename());
-		//				exportLabels(trimProdMdp, labels, labelNames, Prism.EXPORT_PLAIN, out);
-		//				out.close();
-		//			}
-
-		// If required, create/initialise strategy storage
-		// Set choices to -1, denoting unknown
-		// (except for target states, which are -2, denoting arbitrary)
-		//			if (genStrat || exportAdv) {
+		if (progStates == null) {
+			progStates = new BitSet(n);
+			progStates.flip(0, n);
+		}
 		strat = new int[n];
 		for (i = 0; i < n; i++) {
 			strat[i] = target.get(i) ? -2 : -1;
@@ -261,10 +305,6 @@ public class NVIExposed
 		numNo = no.cardinality();
 		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
-		// If still required, store strategy for no/yes (0/1) states.
-		// This is just for the cases max=0 and min=1, where arbitrary choices
-		// suffice (denoted by -2)
-		//			if (genStrat || exportAdv) {
 		if (min) {
 			for (i = yes.nextSetBit(0); i >= 0; i = yes.nextSetBit(i + 1)) {
 				if (!target.get(i))
@@ -327,12 +367,14 @@ public class NVIExposed
 			done = true;
 			for (i = 0; i < n; i++) {
 				if (progStates.get(i)) {
-					if (!stateActionProbValues.containsKey(i))
-						stateActionProbValues.put(i, new HashMap<Integer, Double>());
-					if (!stateActionProgValues.containsKey(i))
-						stateActionProgValues.put(i, new HashMap<Integer, Double>());
-					if (!stateActionCostValues.containsKey(i))
-						stateActionCostValues.put(i, new HashMap<Integer, Double>());
+					if (saveVals) {
+						if (!stateActionProbValues.containsKey(i))
+							stateActionProbValues.put(i, new HashMap<Integer, Double>());
+						if (!stateActionProgValues.containsKey(i))
+							stateActionProgValues.put(i, new HashMap<Integer, Double>());
+						if (!stateActionCostValues.containsKey(i))
+							stateActionCostValues.put(i, new HashMap<Integer, Double>());
+					}
 					numChoices = trimProdMdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 
@@ -342,37 +384,39 @@ public class NVIExposed
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
-						stateActionProbValues.get(i).put(j, currentProbVal);
-						stateActionProgValues.get(i).put(j, currentProgVal);
-						stateActionCostValues.get(i).put(j, currentCostVal);
+						if (saveVals) {
+
+							stateActionProbValues.get(i).put(j, currentProbVal);
+							stateActionProgValues.get(i).put(j, currentProgVal);
+							stateActionCostValues.get(i).put(j, currentCostVal);
+						}
 						if (!sameProb && currentProbVal > solnProb[i]) {
 							done = false;
 							solnProb[i] = currentProbVal;
 							solnProg[i] = currentProgVal;
 							solnCost[i] = currentCostVal;
-							//								if (genStrat || exportAdv) {
+
 							strat[i] = j;
-							//								}
+
 						} else {
 							if (sameProb) {
 								if (!sameProg && currentProgVal > solnProg[i]) {
 									done = false;
-									// solnProb[i] = currentProbVal;
+
 									solnProg[i] = currentProgVal;
 									solnCost[i] = currentCostVal;
-									//										if (genStrat || exportAdv) {
+
 									strat[i] = j;
-									//										}
+
 								} else {
 									if (sameProg) {
 										if (!sameCost && currentCostVal < solnCost[i]) {
 											done = false;
-											// solnProb[i] = currentProbVal;
-											// solnProg[i] = currentProgVal;
+
 											solnCost[i] = currentCostVal;
-											//												if (genStrat || exportAdv) {
+
 											strat[i] = j;
-											//												}
+
 										}
 									}
 								}
@@ -381,18 +425,7 @@ public class NVIExposed
 					}
 				}
 			}
-			// Check termination
-			// done = PrismUtils.doublesAreClose(solnProb, soln2Prob,
-			// termCritParam, termCrit == TermCrit.ABSOLUTE);
-			// done = done && PrismUtils.doublesAreClose(solnProg, soln2Prog,
-			// termCritParam, termCrit == TermCrit.ABSOLUTE);
-			// done = done && PrismUtils.doublesAreClose(solnCost, soln2Cost,
-			// termCritParam, termCrit == TermCrit.ABSOLUTE);
 
-			// Save previous iter
-			// soln2Prob = solnProb.clone();
-			// soln2Prog = solnProg.clone();
-			// soln2Cost = solnCost.clone();
 		}
 
 		// Finished value iteration
@@ -411,19 +444,8 @@ public class NVIExposed
 		}
 
 		res = new ModelCheckerPartialSatResult();
-		// Store strategy
-		//			if (genStrat) {
+
 		res.strat = new MDStrategyArray(trimProdMdp, strat);
-		//			}
-		// Export adversary
-		//			if (exportAdv) {
-		//				// Prune strategy
-		//				// restrictStrategyToReachableStates(trimProdMdp, strat);
-		//				// Export
-		//				PrismLog out = new PrismFileLog(exportAdvFilename);
-		//				new DTMCFromMDPMemorylessAdversary(trimProdMdp, strat).exportToPrismExplicitTra(out);
-		//				out.close();
-		//			}
 
 		// Return results
 		res.solnProb = solnProb;
@@ -434,4 +456,141 @@ public class NVIExposed
 		return res;
 	}
 
+	/**
+	 * Compute reachability probabilities using value iteration. Optionally, store
+	 * optimal (memoryless) strategy info.
+	 * 
+	 * @param progStates
+	 * @param mdp
+	 *            The MDP
+	 * @param no
+	 *            Probability 0 states
+	 * @param yes
+	 *            Probability 1 states
+	 * @param min
+	 *            Min or max probabilities (true=min, false=max)
+	 * @param init
+	 *            Optionally, an initial solution vector (will be overwritten)
+	 * @param known
+	 *            Optionally, a set of states for which the exact answer is known
+	 * @param strat
+	 *            Storage for (memoryless) strategy choice indices (ignored if null)
+	 *            Note: if 'known' is specified (i.e. is non-null, 'init' must also
+	 *            be given and is used for the exact values.
+	 */
+
+	protected ModelCheckerPartialSatResult computeOccupationFrequencyForPath(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target)
+			throws PrismException
+	{
+		ModelCheckerPartialSatResult res;
+		int i, n, iters;
+
+		double solnProb[];
+
+		boolean done;
+
+		long timerVI, timerGlobal;
+		int strat[] = null;
+		boolean min = false;
+
+		timerGlobal = System.currentTimeMillis();
+
+		// Check for deadlocks in non-target state (because breaks e.g. prob1)
+		trimProdMdp.checkForDeadlocks(target);
+
+		// Store num states
+		n = trimProdMdp.getNumStates();
+
+		strat = new int[n];
+		for (i = 0; i < n; i++) {
+			strat[i] = target.get(i) ? -2 : -1;
+		}
+
+		// Start value iteration
+		timerVI = System.currentTimeMillis();
+		mainLog.println("Starting prioritised value iteration (" + (min ? "min" : "max") + ")...");
+
+		// Create solution vector(s)
+		solnProb = new double[n];
+
+		for (i = 0; i < n; i++) {
+
+			solnProb[i] = (trimProdMdp.isInitialState(i)) ? 1.0 : 0.0;
+
+		}
+
+		// Start iterations
+		iters = 0;
+		done = false;
+
+		int j;
+		int numChoices;
+		double currentProbVal;
+		boolean sameProb;
+
+		while (!done && iters < maxIters) {
+			iters++;
+			done = true;
+			for (i = 0; i < n; i++) {
+
+				if (trimProdMdp.isInitialState(i))
+					currentProbVal = 1;
+				else
+					currentProbVal = 0;
+				for (int i_ = 0; i_ < n; i_++) {
+					if (!target.get(i_)) {
+						if (trimProdMdp.isSuccessor(i_, i)) {
+							//get the number of choices from i_ 
+							numChoices = trimProdMdp.getNumChoices(i_);
+							for (j = 0; j < numChoices; j++) {
+								Iterator<Entry<Integer, Double>> tranIter = trimProdMdp.getTransitionsIterator(i_, j);
+								while (tranIter.hasNext()) {
+									Entry<Integer, Double> sapair = tranIter.next();
+									if (sapair.getKey() == i) {
+										currentProbVal += sapair.getValue() * solnProb[i_];
+									}
+								}
+
+							}
+						}
+					}
+				}
+				//currentProbVal += //trimProdMdp.mvMultJacSingle(i, j, solnProb);
+
+				sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
+
+				if (!sameProb) {
+					done = false;
+					solnProb[i] = currentProbVal;
+
+				}
+			}
+		}
+
+		// Finished value iteration
+		timerVI = System.currentTimeMillis() - timerVI;
+		mainLog.print("Prioritised value iteration (" + (min ? "min" : "max") + ")");
+		mainLog.println(" took " + iters + " iterations and " + timerVI / 1000.0 + " seconds.");
+
+		timerGlobal = System.currentTimeMillis() - timerGlobal;
+		mainLog.println("Overall policy calculation took  " + timerGlobal / 1000.0 + " seconds.");
+
+		// Non-convergence is an error (usually)
+		if (!done /*&& errorOnNonConverge*/) {
+			String msg = "Iterative method did not converge within " + iters + " iterations.";
+			msg += "\nConsider using a different numerical method or increasing the maximum number of iterations";
+			throw new PrismException(msg);
+		}
+
+		res = new ModelCheckerPartialSatResult();
+
+		res.strat = new MDStrategyArray(trimProdMdp, strat);
+
+		// Return results
+		res.solnProb = solnProb;
+		res.numIters = iters;
+		res.timeTaken = timerGlobal / 1000.0;
+		mainLog.println(Arrays.toString(solnProb));
+		return res;
+	}
 }
