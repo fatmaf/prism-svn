@@ -186,21 +186,21 @@ public class CompareSTAPUSSINVI
 
 			for (int r = 2; r <= numRobots; r++) {
 				for (int g = 3; g <= numGoals; g += 2) {
-//					for (int t = 0; t < 5; t++) {
-						int[] rgdf = new int[] { r, g, numDoors, numFS };
-						if (!results.get(fn).containsKey(rgdf))
-							results.get(fn).put(rgdf, new ArrayList<float[][]>());
-						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
-						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+					//					for (int t = 0; t < 5; t++) {
+					int[] rgdf = new int[] { r, g, numDoors, numFS };
+					if (!results.get(fn).containsKey(rgdf))
+						results.get(fn).put(rgdf, new ArrayList<float[][]>());
+					ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+					ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-						float[][] resArr = new float[2][4];
-						resString += "\nR:" + r + "\tG:" + g;
+					float[][] resArr = new float[2][4];
+					resString += "\nR:" + r + "\tG:" + g;
 
-						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
-						results.get(fn).get(rgdf).add(resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+					results.get(fn).get(rgdf).add(resArr);
 
-					}
-//				}
+				}
+				//				}
 				System.out.println("***************************************************************");
 				System.out.println(resString);
 				System.out.println("***************************************************************");
@@ -221,21 +221,21 @@ public class CompareSTAPUSSINVI
 
 			for (int r = 2; r <= numRobots; r++) {
 				for (int g = 3; g <= numGoals; g += 2) {
-//					for (int t = 0; t < 5; t++) {
-						int[] rgdf = new int[] { r, g, numDoors, numFS };
-						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
-						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+					//					for (int t = 0; t < 5; t++) {
+					int[] rgdf = new int[] { r, g, numDoors, numFS };
+					ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+					ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-						if (!results.get(fn).containsKey(rgdf))
-							results.get(fn).put(rgdf, new ArrayList<float[][]>());
-						float[][] resArr = new float[2][4];
-						resString += "\nR:" + r + "\tG:" + g;
+					if (!results.get(fn).containsKey(rgdf))
+						results.get(fn).put(rgdf, new ArrayList<float[][]>());
+					float[][] resArr = new float[2][4];
+					resString += "\nR:" + r + "\tG:" + g;
 
-						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
-						results.get(fn).get(rgdf).add(resArr);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+					results.get(fn).get(rgdf).add(resArr);
 
-					}
-//				}
+				}
+				//				}
 				System.out.println("***************************************************************");
 				System.out.println(resString);
 				System.out.println("***************************************************************");
@@ -284,8 +284,8 @@ public class CompareSTAPUSSINVI
 				//like 5 times 
 				for (int t = 0; t < 5; t++) {
 					for (int g = 3; g <= maxGoals; g += 2) {
-						if(r <= 5 && g <=7)
-							continue;
+						//						if(r <= 5 && g <=7)
+						//							continue;
 						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
 						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
@@ -347,21 +347,21 @@ public class CompareSTAPUSSINVI
 			for (int r = 2; r <= maxRobots; r++) {
 				//lets do this multiple times 
 				//like 5 times 
-//				for (int t = 0; t < 5; t++) {
-					for (int g = 3; g <= maxGoals; g += 2) {
-						ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
-						ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+				//				for (int t = 0; t < 5; t++) {
+				for (int g = 3; g <= maxGoals; g += 2) {
+					ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+					ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-						int[] rgdf = new int[] { r, g, numDoors, numFS };
-						if (!results.get(fn).containsKey(rgdf))
-							results.get(fn).put(rgdf, new ArrayList<float[][]>());
-						float[][] resArr = new float[2][4];
-						resString += "\nR:" + r + "\tG:" + g;
+					int[] rgdf = new int[] { r, g, numDoors, numFS };
+					if (!results.get(fn).containsKey(rgdf))
+						results.get(fn).put(rgdf, new ArrayList<float[][]>());
+					float[][] resArr = new float[2][4];
+					resString += "\nR:" + r + "\tG:" + g;
 
-						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
-						results.get(fn).get(rgdf).add(resArr);
-					}
-//				}
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+					results.get(fn).get(rgdf).add(resArr);
+				}
+				//				}
 				System.out.println("***************************************************************");
 				System.out.println(resString);
 				System.out.println("***************************************************************");

@@ -38,105 +38,7 @@ import strat.MDStrategyArray;
 public class JointPolicyBuilder
 {
 
-	/*
-	 * Storing state realted information parent state, robot number, probability etc
-	 * just for ease of use
-	 */
-	public class StateExtended implements Comparable<StateExtended>
-	{
-		protected int parentState = -1;
-		protected int parentStateRobot = -1;
-		protected int childState = -1;
-		protected int childStateRobot = -1;
-		protected double parentToChildTransitionProbability = -1;
-		protected String actionInChildState = null;
-		protected int choice = -1;
-		public BitSet statesToAvoid = null;
-
-		public StateExtended()
-		{
-			// dummy
-		}
-
-		public StateExtended(int ps, int psr, int cs, int csr, double prob, String a)
-		{
-			parentState = ps;
-			parentStateRobot = psr;
-			childState = cs;
-			childStateRobot = csr;
-			parentToChildTransitionProbability = prob;
-			actionInChildState = a;
-		}
-
-		public StateExtended(int s, double prob, String a)
-		{
-			childState = s;
-			parentToChildTransitionProbability = prob;
-			actionInChildState = a;
-		}
-
-		public StateExtended(StateExtended other)
-		{
-			this.parentState = other.parentState;
-			this.parentStateRobot = other.parentStateRobot;
-			this.childState = other.childState;
-			this.childStateRobot = other.childStateRobot;
-			this.parentToChildTransitionProbability = other.parentToChildTransitionProbability;
-			this.actionInChildState = other.actionInChildState;
-		}
-
-		public StateExtended(int initialState, double d)
-		{
-			childState = initialState;
-			parentToChildTransitionProbability = d;
-
-		}
-
-		@Override
-		public int compareTo(StateExtended other)
-		{
-			double comp = this.parentToChildTransitionProbability - other.parentToChildTransitionProbability;
-			int res = 0;
-			if (comp > 0)
-				res = -1;
-			else {
-				if (comp < 0) {
-					res = 1;
-				}
-			}
-			return res;
-		}
-
-		@Override
-		public String toString()
-		{
-			String strtoret = "[";
-
-			if (parentState != -1)
-				strtoret += "ps=" + parentState;
-
-			if (parentStateRobot != -1)
-				strtoret += ", psRob=" + parentStateRobot;
-
-			if (childState != -1)
-				strtoret += ", cs=" + childState;
-
-			if (childStateRobot != -1)
-				strtoret += ", csRob=" + childStateRobot;
-
-			if (parentToChildTransitionProbability > 0)
-				strtoret += ", ps->csProb=" + parentToChildTransitionProbability;
-
-			if (actionInChildState != null)
-				strtoret += ", a=" + actionInChildState;
-			strtoret += "]";
-
-			return strtoret; //"[ps=" + parentState + ", psRob=" + parentStateRobot + ", cs="
-			//+ childState + ", csRob=" + childStateRobot + ", ps->csProb="
-			//+ parentToChildTransitionProbability + ", a=" + actionInChildState + "]";
-		}
-
-	}
+	
 	// elements
 	// store the joint policy - mdp
 	// things to help us remember stuff for the mdp
@@ -436,8 +338,8 @@ public class JointPolicyBuilder
 					currentJointState = currentJointStateProbPair.getKey();
 					boolean isAcc = this.isAcceptingState(currentJointState);
 
-					if (currentJointState.toString().contains("0,0,1,-1,5"))
-						mainLog.println("possible reallocation here");
+//					if (currentJointState.toString().contains("0,0,1,-1,5"))
+//						mainLog.println("possible reallocation here");
 					int stateIndex = findStateIndex(currentJointState);
 					boolean discovered = false;
 					//					boolean stateReset = false;

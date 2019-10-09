@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 
 import acceptance.AcceptanceType;
 
@@ -50,7 +51,7 @@ import strat.MDStrategy;
 
 public class SSIAuctionNestedProduct
 {
-	Queue<Entry<State, ArrayList<Expression>>> possibleReallocStates;
+	Queue<Entry<StateExtended, ArrayList<Expression>>> possibleReallocStates;
 	MDPCreator jointPolicyCreator;
 	private HashMap<Integer, int[]> jsToRobotState;
 	private MDPCreator mdpCreator = null;
@@ -232,27 +233,7 @@ public class SSIAuctionNestedProduct
 
 	}
 
-	boolean probProgCostIsBetter(double[] newValues, double[] oldValues, double sumofcosts)
-	{
-		boolean doUpdate = false;
-		if (newValues[0] > oldValues[0]) {
-			doUpdate = true;
-		} else {
-			if (newValues[0] == oldValues[0]) {
-				if (newValues[1] > oldValues[1]) {
-					doUpdate = true;
-				} else {
-					if (newValues[1] == oldValues[1]) {
-						if (newValues[2] + sumofcosts < oldValues[2]) {
-							doUpdate = true;
-						}
-					}
-				}
-			}
-		}
 
-		return doUpdate;
-	}
 
 	boolean progCostIsBetter(double[] newValues, double[] oldValues)
 	{
@@ -652,6 +633,8 @@ public class SSIAuctionNestedProduct
 
 			prism.initialise();
 			prism.setEngine(Prism.EXPLICIT);
+			Queue<StateExtended> reallocStatesPQ = new PriorityQueue<StateExtended>();
+			HashMap<State, Integer> reallocStatesMapToList = new HashMap<State, Integer>();
 
 			ArrayList<MDPSimple> mdps = new ArrayList<MDPSimple>();
 			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
@@ -706,20 +689,29 @@ public class SSIAuctionNestedProduct
 			HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl = mapJointVarListToRobotVarList(ssNames, finalDAList, jvl, productMDPs, jvlDAMap);
 
 			double[] resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
-					ssNames, prism, null, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends);
-
+					ssNames, prism, null, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, 1.0);
+			ArrayList<ArrayList<Expression>> remainingTasks = new ArrayList<ArrayList<Expression>>();
+			ArrayList<int[]> correspondingMDPInitialStates = new ArrayList<int[]>();
+			ArrayList<State> correspondingJointStates = new ArrayList<State>();
 			if (doingReallocs) {
-				Queue<ArrayList<Expression>> remainingTasks = new LinkedList<ArrayList<Expression>>();
-				Queue<int[]> correspondingMDPInitialStates = new LinkedList<int[]>();
-				Queue<State> correspondingJointStates = new LinkedList<State>();
+
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
-						mdpInitialStates, mainLog);
+						mdpInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
 
 				//so now we just repeat for each remainingTasks thing 
-				while (!remainingTasks.isEmpty()) {
-					ArrayList<Expression> currentTaskSet = remainingTasks.remove();
-					int[] currentMDPInitialStates = correspondingMDPInitialStates.remove();
-					State ps = correspondingJointStates.remove();
+				while (!reallocStatesPQ.isEmpty()) {
+					StateExtended currentSE = reallocStatesPQ.remove();
+					State ps = currentSE.getChildStateState();
+					double stateProb = currentSE.parentToChildTransitionProbability;
+
+					int stateIndex = reallocStatesMapToList.get(ps);
+
+					ArrayList<Expression> currentTaskSet = remainingTasks.get(stateIndex);
+					int[] currentMDPInitialStates = correspondingMDPInitialStates.get(stateIndex);
+					//sanity check 
+					State sanityCheckS = correspondingJointStates.get(stateIndex);
+					if (ps.compareTo(sanityCheckS) != 0)
+						throw new PrismException("Whoops the states dont match");
 					String ms = ps.toString() + " - ";
 
 					if (currentTaskSet.size() > 0) {
@@ -787,10 +779,10 @@ public class SSIAuctionNestedProduct
 						jvlTosvl = mapJointVarListToRobotVarList(ssNames, finalDAList, jvl, productMDPs, null);
 
 						resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
-								ssNames, prism, ps, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends);
+								ssNames, prism, ps, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, stateProb);
 
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
-								jvlTosvl, currentMDPInitialStates, mainLog);
+								jvlTosvl, currentMDPInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
 
 						//						break;
 					}
@@ -876,19 +868,22 @@ public class SSIAuctionNestedProduct
 		return this.findStateIndexFromState(mdp, stateState);
 	}
 
-	void processReallocations(int numRobots, ArrayList<Expression> taskSet, Queue<ArrayList<Expression>> remainingTasks,
-			Queue<int[]> correspondingMDPInitialStates, Queue<State> correspondingJointStates, ArrayList<MDP> productMDPs, ArrayList<MDPSimple> mdps,
-			HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, int[] mdpInitialStatesFromBefore, PrismLog mainLog) throws PrismException
+	void processReallocations(int numRobots, ArrayList<Expression> taskSet, ArrayList<ArrayList<Expression>> remainingTasks,
+			ArrayList<int[]> correspondingMDPInitialStates, ArrayList<State> correspondingJointStates, ArrayList<MDP> productMDPs, ArrayList<MDPSimple> mdps,
+			HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, int[] mdpInitialStatesFromBefore, PrismLog mainLog, Queue<StateExtended> reallocStatesPQ,
+			HashMap<State, Integer> reallocStatesMapToList) throws PrismException
 	{
 		VarList jvl = mdpCreator.mdp.getVarList();
 		mainLog.println("Processing Reallocation States");
 		while (!possibleReallocStates.isEmpty()) {
 			String mlString = "";
-			Entry<State, ArrayList<Expression>> reallocStateTaskPair = possibleReallocStates.remove();
-			State s = reallocStateTaskPair.getKey();
-			boolean bc = false;
-			if (s.toString().contains("0,0,1,0,0,1,-1,-1"))
-				bc = true;
+			Entry<StateExtended, ArrayList<Expression>> reallocStateTaskPair = possibleReallocStates.remove();
+			StateExtended se = reallocStateTaskPair.getKey();
+			reallocStatesPQ.add(se);
+			State s = se.getChildStateState();
+			//			boolean bc = false;
+			//			if (s.toString().contains("0,0,1,0,0,1,-1,-1"))
+			//				bc = true;
 			ArrayList<Expression> completedTasks = reallocStateTaskPair.getValue();
 			ArrayList<Expression> newTaskSet = new ArrayList<Expression>();
 			for (int i = 0; i < taskSet.size(); i++) {
@@ -911,6 +906,8 @@ public class SSIAuctionNestedProduct
 
 			remainingTasks.add(newTaskSet);
 			correspondingMDPInitialStates.add(mdpStates);
+			//saving the value 
+			reallocStatesMapToList.put(s, remainingTasks.size() - 1);
 			mlString += s.toString() + " - ";
 			for (int i = 0; i < productMDPs.size(); i++) {
 				if (productMDPs.get(i) != null)
@@ -1102,7 +1099,7 @@ public class SSIAuctionNestedProduct
 	double[] createJointPolicy(ArrayList<Integer> daIndices, HashMap<Integer, DAInfo> jvlDAMap, HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl,
 			ArrayList<MDPRewardsSimple> costRewards, ArrayList<MDP> productMDPs, PrismLog mainLog, ArrayList<MDStrategy> nviStrategies, String saveplace,
 			String filename, ArrayList<String> ssNames, Prism prism, State parentState, ArrayList<BitSet> singleAgentNPAcceptingStates,
-			boolean stopAtFirstDeadend) throws PrismException
+			boolean stopAtFirstDeadend, double initStateProb) throws PrismException
 	{
 		//		for (int i = 0; i < productMDPs.size(); i++) {
 		//			if (productMDPs.get(i) != null) {
@@ -1116,11 +1113,11 @@ public class SSIAuctionNestedProduct
 
 		int numRobots = productMDPs.size();
 
-		//saving the acc and ess states 
-		BitSet accStates = new BitSet();
-		BitSet essStates = new BitSet();
+		//		//saving the acc and ess states 
+		//		BitSet accStates = new BitSet();
+		//		BitSet essStates = new BitSet();
 
-		possibleReallocStates = new LinkedList<Entry<State, ArrayList<Expression>>>();
+		possibleReallocStates = new LinkedList<Entry<StateExtended, ArrayList<Expression>>>();
 
 		//get the actions 
 		Object[] actions = new Object[numRobots];
@@ -1146,14 +1143,16 @@ public class SSIAuctionNestedProduct
 		if (isAcc)
 			return new double[] { 1.0, 0.0, 0.0 };
 		statesQueues.add(jointState);
-		statesProbQueue.add(1.0);
+		statesProbQueue.add(initStateProb);
 
 		ArrayList<State> visited = new ArrayList<State>();
 		State currentJointState;
-		boolean bc = false;
+		double currentJointStateProb;
+		//		boolean bc = false;
 		try {
 			while (!statesQueues.isEmpty()) {
 				currentJointState = statesQueues.remove();
+				currentJointStateProb = statesProbQueue.remove();
 				//				if (currentJointState.toString().contains("0,0,1,0,-1,-1,-1,-1"))
 				//					bc = true;
 
@@ -1276,7 +1275,8 @@ public class SSIAuctionNestedProduct
 						boolean isAccNextjs = (boolean) nextJSPlusEssAccFlags[2];
 						essAndAcc.add(new Object[] { numEssNextjs, isAccNextjs });
 						statesQueues.add(nextJointState);
-						//					statesProbQueue.add(comboProb);
+						statesProbQueue.add(currentJointStateProb * comboProb);
+
 						successorsWithProbs.add(new AbstractMap.SimpleEntry<State, Double>(nextJointState, comboProb));
 					}
 					mdpCreator.addAction(currentJointState, ja, successorsWithProbs, essAndAcc, stateActionCost);
@@ -1296,7 +1296,8 @@ public class SSIAuctionNestedProduct
 					//basically we take the processedDAList and the stuff we had to convert it to individual robot states 
 					ArrayList<Expression> tasksCompleted = tasksCompletedHere(currentJointState, jvlDAMap, jsToRobotState);
 					//					mainLog.println(tasksCompleted.size());
-					possibleReallocStates.add(new AbstractMap.SimpleEntry<State, ArrayList<Expression>>(currentJointState, tasksCompleted));
+					StateExtended se = new StateExtended(currentJointState, currentJointStateProb);
+					possibleReallocStates.add(new AbstractMap.SimpleEntry<StateExtended, ArrayList<Expression>>(se, tasksCompleted));
 				}
 			}
 		} catch (PrismException e) {
