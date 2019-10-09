@@ -364,11 +364,11 @@ public class SequentialTeamMDP {
 				 
 				for (int j = 0; j < numChoices; j++) {
 					boolean addProgReward = false;
-//					int ssCount = 0;
+//				int ssCount = 0;
 					iter = agentMDP.getTransitionsIterator(s, j);
 					Distribution distr = new Distribution();
 					while (iter.hasNext()) {
-						ssCount++; 
+//						ssCount++; 
 						Entry<Integer, Double> nextStatePair = iter.next();
 						int nextState = nextStatePair.getKey();
 						double nextStateProb = nextStatePair.getValue();

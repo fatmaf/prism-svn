@@ -311,7 +311,43 @@ public class MDPCreator
 		mdp.addActionLabelledChoice(stateIndex, distr, a);
 		return actionIndex;
 	}
+	public int addAction(State s, Object a, ArrayList<Entry<State, Double>> successorsWithProbs,double progRew, double cost)
+	{
 
+		//add an action to a state
+		//does not check if the same action is added twice!!! 
+		//it shouldnt be you know 
+		Distribution distr = new Distribution();
+		int stateIndex = getStateIndex(s);
+		int actionIndex = mdp.getNumChoices(stateIndex);
+		for (int i = 0; i < successorsWithProbs.size(); i++) {
+			Entry<State, Double> stateProbPair = successorsWithProbs.get(i);
+			State succState = stateProbPair.getKey();
+			double prob = stateProbPair.getValue();
+			int succStateIndex = getStateIndex(succState);
+			distr.add(succStateIndex, prob);
+		}
+		mdp.addActionLabelledChoice(stateIndex, distr, a);
+		
+		
+		if (progRew > 0) {
+			if (stateActionTaskCompletionRewards == null) {
+				stateActionTaskCompletionRewards = new HashMap<Entry<Integer, Integer>, Double>();
+
+			}
+
+			stateActionTaskCompletionRewards.put(new AbstractMap.SimpleEntry<Integer, Integer>(stateIndex, actionIndex), progRew);
+		}
+		if (cost > 0) {
+			if (this.stateActionCosts == null)
+				stateActionCosts = new HashMap<Entry<Integer, Integer>, Double>();
+			stateActionCosts.put(new AbstractMap.SimpleEntry<Integer, Integer>(stateIndex, actionIndex), cost);
+		}
+		
+		
+		
+		return actionIndex;
+	}
 	public int addAction(int s, Object a, ArrayList<Entry<Integer, Double>> successorsWithProbs)
 	{
 

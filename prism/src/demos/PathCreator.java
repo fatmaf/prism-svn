@@ -1,13 +1,16 @@
 package demos;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Map.Entry;
 
 import explicit.MDP;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
+import prism.PrismException;
 import strat.Strategy;
 
 //uses policy creator to make a path 
@@ -18,17 +21,24 @@ public class PathCreator
 
 	PolicyCreator pc = new PolicyCreator();
 
-	public void createPathPolicy(int s, MDP m, Strategy strat, String savePath, String saveName)
+	public void createPathPolicy(int s, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple progRews, MDPRewardsSimple costs,
+			BitSet accStates) throws PrismException
 	{
-
-		pc.createPolicy(s, m, strat);
+		boolean hasRewards = (progRews != null) & (costs != null);
+		if (hasRewards)
+			pc.createPolicyWithRewardsStructures(s, m, strat, progRews, costs, accStates);
+		else
+			pc.createPolicy(s, m, strat);
 		State ps = m.getStatesList().get(s);
 		pc.mdpCreator.setInitialState(ps);
+		pc.mdpCreator.mdp.findDeadlocks(true);
 		pc.savePolicy(savePath, saveName);
 	}
 
-	public void creatPath(int s, int a, MDP m, Strategy strat, String savePath, String saveName)
+	public void creatPath(int s, int a, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple progRews, MDPRewardsSimple costs,
+			BitSet accStates) throws PrismException
 	{
+		boolean hasRewards = (progRews != null) & (costs != null);
 		//from the mdp get the states at this action index 
 		Iterator<Entry<Integer, Double>> tranIter = m.getTransitionsIterator(s, a);
 		ArrayList<Entry<State, Double>> succPairs = new ArrayList<Entry<State, Double>>();
@@ -40,18 +50,25 @@ public class PathCreator
 			State sState = m.getStatesList().get(state);
 
 			succPairs.add(new AbstractMap.SimpleEntry<State, Double>(sState, prob));
-			pc.createPolicy(state, m, strat);
+			pc.createPolicyWithRewardsStructures(state, m, strat, progRews, costs, accStates);
 		}
 		State ps = m.getStatesList().get(s);
 		Object action = m.getAction(s, a);
-		pc.mdpCreator.addAction(ps, action, succPairs);
+		if (hasRewards) {
+			double progRew = progRews.getTransitionReward(s, a);
+			double cost = costs.getTransitionReward(s, a);
+			pc.mdpCreator.addAction(ps, action, succPairs, progRew, cost);
+		} else
+			pc.mdpCreator.addAction(ps, action, succPairs);
 		pc.mdpCreator.setInitialState(ps);
+		pc.mdpCreator.mdp.findDeadlocks(true);
 		pc.savePolicy(savePath, saveName);
 	}
 
-	public void creatPath(ArrayList<Integer> states, ArrayList<Integer> actions, MDP m, Strategy strat, String savePath, String saveName)
+	public void creatPath(ArrayList<Integer> states, ArrayList<Integer> actions, MDP m, Strategy strat, String savePath, String saveName,
+			MDPRewardsSimple progCosts, MDPRewardsSimple costs, BitSet accStates) throws PrismException
 	{
-
+		boolean hasRewards = (progCosts != null) & (costs != null);
 		//from the mdp get the states at this action index 
 		//first create the path from the saPairs 
 		//basically we just assume this is what happened 
@@ -73,19 +90,24 @@ public class PathCreator
 
 				succPairs.add(new AbstractMap.SimpleEntry<State, Double>(sState, prob));
 				if (!states.contains(state)) {
-					pc.createPolicy(state, m, strat);
+					pc.createPolicyWithRewardsStructures(state, m, strat, progCosts, costs, accStates);
 				}
 			}
 			State ps = m.getStatesList().get(s);
 			Object action = m.getAction(s, a);
-			pc.mdpCreator.addAction(ps, action, succPairs);
+			if (hasRewards) {
+				double progRew = progCosts.getTransitionReward(s, a);
+				double cost = costs.getTransitionReward(s, a);
+				pc.mdpCreator.addAction(ps, action, succPairs, progRew, cost);
+			} else
+				pc.mdpCreator.addAction(ps, action, succPairs);
 
 			if (!initStateSet) {
 				pc.mdpCreator.setInitialState(ps);
 				initStateSet = true;
 			}
 		}
-
+		pc.mdpCreator.mdp.findDeadlocks(true);
 		pc.savePolicy(savePath, saveName);
 	}
 }
