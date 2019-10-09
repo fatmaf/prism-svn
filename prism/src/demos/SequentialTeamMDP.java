@@ -82,8 +82,10 @@ public class SequentialTeamMDP {
 			teamMDPWithSwitches.addInitialState(state);
 		boolean[] isFailedState = new boolean[numRobots];
 		for (int i = 0; i < numRobots; i++) {
-			// check if there are any fail states
-			isFailedState[i] = StatesHelper.isFailState(teamMDPTemplate.getStatesList().get(robotStates[i]));
+			// check if there are any deadend states
+			//replaced failstate check with deadend states 
+			isFailedState[i] = StatesHelper.stateIsDeadend(teamMDPTemplate, robotStates[i]);
+					//StatesHelper.isFailState(teamMDPTemplate.getStatesList().get(robotStates[i]));
 			// also if you have an initial state that is an accepting state
 			// you need to figure out what to do with it
 			// because it could be the first robot - which is fine cuz thats the initial
