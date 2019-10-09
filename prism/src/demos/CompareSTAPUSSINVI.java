@@ -256,6 +256,35 @@ public class CompareSTAPUSSINVI
 		}
 	}
 
+	public void singleTests() throws Exception
+	{
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
+
+		int numRobots = 2;
+		int numFS = 1;
+		int numGoals = 4;
+		int numDoors = 2;
+		String fn = "g5_r2_t3_d2_fs1";
+		String resString = "";
+		int r = numRobots; 
+		int g = numGoals; 
+		
+		if (!results.containsKey(fn))
+			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
+		ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+		ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+		int[] rgdf = new int[] { r, g, numDoors, numFS };
+		if (!results.get(fn).containsKey(rgdf))
+			results.get(fn).put(rgdf, new ArrayList<float[][]>());
+		float[][] resArr = new float[2][4];
+		resString += "\nR:" + r + "\tG:" + g;
+
+		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers);
+		results.get(fn).get(rgdf).add(resArr);
+		printResults();
+		
+	}
 	public void runRobots() throws Exception
 	{
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
@@ -413,6 +442,8 @@ public class CompareSTAPUSSINVI
 				runDoors();
 			else if (option.contains("fsgoal"))
 				runFSGoalsOnly();
+			else if (option.contains("single"))
+				singleTests();
 			else
 				System.out.println("invalid option, options are: robot, door,fsgoal");
 		} catch (Exception e) {

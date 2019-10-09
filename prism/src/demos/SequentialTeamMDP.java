@@ -239,13 +239,11 @@ public class SequentialTeamMDP {
 				
 				teamMDPVarList.addVar( decl,productMDP.getVarList().getModule(i),productMDP.getConstantValues());
 			}
-			//(VarList) (productMDP.getVarList()).clone();
+	
 
 			//String
 			daVar = "r";// "_da"; // TODO: come back to fix this
-			// while (teamMDPVarList.getIndex(daVar) != -1) {
-			// daVar = "_" + daVar;
-			// }
+
 			// NB: if DA only has one state, we add an extra dummy state
 			daint = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
 			decl = new Declaration(daVar, daint);
@@ -253,17 +251,6 @@ public class SequentialTeamMDP {
 			// //lets rename all the other ones
 			// //so from 1 all the way to the end minus s
 			// //we want to do stuff like dan, dan-1, dan-2
-//			 int numVar = teamMDPVarList.getNumVars();
-//			 
-//			 for(int i = 1; i< numVar; i++)
-//			 {
-//				 String name= teamMDPVarList.getName(i); 
-//				 if(name.contains("da")) {
-//			 decl = teamMDPVarList.getDeclaration(i);
-//			 decl.setName("da"+i);//(numVar-(i-1)));
-//			 //teamMDPVarList.addVar(i, decl, teamMDPVarList.getModule(i), productMDP.getConstantValues());
-//			 }
-//				 }
 
 		}
 
@@ -309,25 +296,17 @@ public class SequentialTeamMDP {
 		BitSet statesToAvoid = new BitSet(numTeamStates); // for the team mdp they are bad for r1 || bad for r2 || bad
 															// for r3
 
-		// ArrayList<BitSet> initialStates = new ArrayList<BitSet>(); // for the team
-		// mdp they are different for each robot
-		// ArrayList<BitSet> switchStates = new ArrayList<BitSet>(); // for the team mdp
-		// they are different for each robot
 
 		int numStates = 0;
 		int numChoices;
 		double expectedProgRewardValue = 1.0;
-		// double acceptingStateRewardValue = agentMDPs.get(0).daList.size();
 		double progRewardFixedValue = 1.0;
 
 		StatesHelper.setMDPVar(teamMDPVarList.getNumVars() - StatesHelper.numMdpVars); // cuz there is door too
 
 		for (int r = 0; r < agentMDPs.size(); r++) {
 
-			// check for self
-			// if (numStates * (r) != teamMDP.getNumStates())
-			// mainLog.println("Something is wrong here cuz the number of states isnt what
-			// you expected");
+	
 			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
 			// BitSet allAcceptingStates = singleAgentNestedMDP.getAllAcceptingStates();
 			BitSet essentialStates = new BitSet(numTeamStates);
@@ -382,11 +361,6 @@ public class SequentialTeamMDP {
 
 				Iterator<Map.Entry<Integer, Double>> iter;
 
-				//simple trick 
-				//remove any self loops 
-				//if the number of actions is 1 
-				boolean removeSelfLoop = (numChoices == 1); 
-				boolean hasSelfLoop = false; 
 				 
 				for (int j = 0; j < numChoices; j++) {
 					boolean addProgReward = false;
@@ -420,48 +394,27 @@ public class SequentialTeamMDP {
 								expectedProgRewardValue = nextStateProb * progRewardFixedValue;
 							}
 						}
-						// if (singleAgentNestedMDP.combinedEssentialStates.get(nextState) ) {
-						// if(!allAcceptingStates.get(s)) {
-						// addProgReward = true;
-						// expectedProgRewardValue = nextStateProb*progRewardFixedValue; }
-						// }
-						// if (singleAgentNestedMDP.combinedAcceptingStates.get(nextState)) {
-						// addProgReward = true;
-						// expectedProgRewardValue = nextStateProb*acceptingStateRewardValue;
-						// }
+	
 						distr.add(indexInTeamNextState, nextStateProb);
-						if(removeSelfLoop)
-						{
-							if(indexInTeamNextState == indexInTeamState)
-							{
-								if(ssCount == 1)
-								{
-									hasSelfLoop = true; 
-								}
-							}
-						}
-					}
-					if(removeSelfLoop && hasSelfLoop)
-					{
-						if(ssCount > 1)
-							hasSelfLoop = false; 
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
-					
+					boolean isDeadend = StatesHelper.stateIsDeadend(agentMDP, s);
 
 					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
 						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;				 
 						
-						//if this has a self loop set the reward to 0
 						int singleAgentState = singleAgentNestedMDP.productStateToMDPState.get(s);
 						double rewardHere = rewardStruct
 								.getTransitionReward(singleAgentState, j);
-						if(removeSelfLoop && hasSelfLoop)
-							rewardHere = 0; 
 
+						//if its a deadend state set the reward to 0 
+
+//						if(isDeadend)
+//							rewardHere = 0.0;
+						
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 
 					}

@@ -623,7 +623,7 @@ public class SSIAuctionNestedProduct
 			for (int i = 0; i < numDoors; i++)
 				ssNames.add("door" + i);
 
-			boolean stopReallocationWhenAnyRobotDeadends = false;
+			boolean stopReallocationWhenAnyRobotDeadends = true;//false;
 			// Create a log for PRISM output (hidden or stdout)
 			//PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");
