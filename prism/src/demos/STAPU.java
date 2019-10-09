@@ -232,7 +232,7 @@ public class STAPU
 
 	protected double[] doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
-			boolean completeSwitchRing, int numGoals, boolean noReallocs, ArrayList<Integer> goalNumbers) throws PrismException
+			boolean completeSwitchRing, int numGoals, boolean noReallocs, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend) throws PrismException
 	{
 
 		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
@@ -346,7 +346,7 @@ public class STAPU
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
 				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
 
-		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
+		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState,reallocateOnSingleAgentDeadend);
 		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation, true);
 		// *************************************************************//
 		// while failedstatesQ is not empty
@@ -391,7 +391,8 @@ public class STAPU
 
 					resSaver.recordTime("Solution Time", varIDs.reallocations, true);
 					resSaver.setScopeStartTime();
-					jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
+					jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, 
+							seqTeamMDP.teamMDPWithSwitches, stateToExplore,reallocateOnSingleAgentDeadend);
 					resSaver.recordTime("Joint Policy Time", varIDs.jointpolicycreation, true);
 				}
 			}
@@ -551,6 +552,7 @@ public class STAPU
 	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noReallocations,
 			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
 	{
+		 boolean reallocateOnSingleAgentDeadend = true;//false;
 		double[] res = null;
 		// saving filenames etc
 		//		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
@@ -601,7 +603,7 @@ public class STAPU
 			try {
 
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals,
-						example_num_fs_list, modelLocation, true, dir + "results/stapu", noReallocations,robotNumbers,goalNumbers);
+						example_num_fs_list, modelLocation, true, dir + "results/stapu", noReallocations,robotNumbers,goalNumbers,reallocateOnSingleAgentDeadend);
 
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
@@ -627,7 +629,7 @@ public class STAPU
 	public double[] runOneExampleNumRobotsGoals(String example_name, String example_id, HashMap<String, Boolean> example_has_door_list,
 
 			HashMap<String, Integer> example_num_door_list, int numRobots, int numGoals, HashMap<String, Integer> example_num_fs_list, String modelLocation,
-			boolean doorVarNameHas0, String resLoc, boolean noReallocs, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
+			boolean doorVarNameHas0, String resLoc, boolean noReallocs, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend)
 
 			throws PrismException, FileNotFoundException
 	{
@@ -750,7 +752,7 @@ public class STAPU
 		//				// do your task
 		//				try {
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
-				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers);
+				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers,reallocateOnSingleAgentDeadend);
 
 		//				} catch (PrismException e) {
 		//					// TODO Auto-generated catch block
