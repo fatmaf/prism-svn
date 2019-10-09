@@ -168,8 +168,10 @@ public class DAInfo {
 			// but its okay we can do this later
 			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
 		}
-		mainLog.println("Product Model Initial States " + product.getProductModel().getFirstInitialState() + " "
-				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
+		mainLog.println("Product Model Initial States " + product.getProductModel().getFirstInitialState() 
+				+ " "
+				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState())
+				);
 		return product;
 	}
 
