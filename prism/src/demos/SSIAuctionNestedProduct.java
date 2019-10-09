@@ -491,7 +491,8 @@ public class SSIAuctionNestedProduct
 		int numDoors = 2;
 		String fn = "g5_r2_t3_d2_fs1";
 
-		return run(saveplace, fn, numRobots, numGoals, numDoors, null, null);
+		boolean reallocOnFirstRobotDeadend = false;
+		return run(saveplace, fn, numRobots, numGoals, numDoors, null, null,reallocOnFirstRobotDeadend );
 	}
 
 	VarList createJointVarList(ArrayList<String> ssNames, ArrayList<MDPSimple> mdps, ArrayList<Integer> daIndices) throws PrismLangException
@@ -613,7 +614,7 @@ public class SSIAuctionNestedProduct
 		return jvlTosvl;
 	}
 
-	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers)
+	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean stopReallocationWhenAnyRobotDeadends)
 	{
 		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
@@ -623,7 +624,7 @@ public class SSIAuctionNestedProduct
 			for (int i = 0; i < numDoors; i++)
 				ssNames.add("door" + i);
 
-			boolean stopReallocationWhenAnyRobotDeadends = true;//false;
+//			boolean stopReallocationWhenAnyRobotDeadends = true;//false;
 			// Create a log for PRISM output (hidden or stdout)
 			//PrismLog mainLog = new PrismDevNullLog();
 			PrismLog mainLog = new PrismFileLog("stdout");

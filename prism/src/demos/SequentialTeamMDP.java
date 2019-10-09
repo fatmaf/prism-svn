@@ -364,7 +364,7 @@ public class SequentialTeamMDP {
 				 
 				for (int j = 0; j < numChoices; j++) {
 					boolean addProgReward = false;
-					int ssCount = 0;
+//					int ssCount = 0;
 					iter = agentMDP.getTransitionsIterator(s, j);
 					Distribution distr = new Distribution();
 					while (iter.hasNext()) {
@@ -399,7 +399,7 @@ public class SequentialTeamMDP {
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
-					boolean isDeadend = StatesHelper.stateIsDeadend(agentMDP, s);
+//					boolean isDeadend = StatesHelper.stateIsDeadend(agentMDP, s);
 
 					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
