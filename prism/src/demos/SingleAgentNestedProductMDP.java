@@ -216,9 +216,9 @@ public class SingleAgentNestedProductMDP {
 
 		// make sure no accepting state is a switch state
 		combinedEssentialStates.andNot(combinedAcceptingStates);
-		mainLog.println("Accepting States: " + combinedAcceptingStates.toString());
-		mainLog.println("Essential States: " + combinedEssentialStates.toString());
-		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
+//		mainLog.println("Accepting States: " + combinedAcceptingStates.toString());
+//		mainLog.println("Essential States: " + combinedEssentialStates.toString());
+//		mainLog.println("States To Avoid : " + combinedStatesToAvoid.toString());
 	}
 
 	public void setDAListAndFinalProduct(LTLProduct<MDP> product) {
