@@ -402,12 +402,12 @@ public class STAPU
 			//		jointPolicyBuilder.saveJointPolicyMDP();
 			mainLog.println("All done");
 			mainLog.println("NVI done " + numPlanning + " times");
-			jointPolicyBuilder.printStatesExploredOrder();
+//			jointPolicyBuilder.printStatesExploredOrder();
 		}
 		resSaver.saveJointPolicy(jointPolicyBuilder);
 		mainLog.println(jointPolicyBuilder.accStates.toString());
 		HashMap<String, Double> values = new HashMap<String, Double>();
-		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
+//		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
 		jointPolicyBuilder.createRewardStructures();
 		ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
 		jointPolicyBuilder.jointMDP.findDeadlocks(true);
@@ -742,49 +742,13 @@ public class STAPU
 		}
 		Expression expr = propFiles.get(0).getProperty(0);
 
-		//		ExecutorService executor = Executors.newSingleThreadExecutor();
+
 		StatesHelper.setNumMDPVars(maxMDPVars);
-		//		Runnable task = new Runnable()
-		//		{
-		//			@Override
-		//			public void run()
-		//			{
-		//				// do your task
-		//				try {
+
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
 				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers,reallocateOnSingleAgentDeadend);
 
-		//				} catch (PrismException e) {
-		//					// TODO Auto-generated catch block
-		//
-		//					e.printStackTrace();
-		//					//					System.exit(1);
-		//				}
-		//			}
-		//		};
-		//
-		//		Future<?> future = executor.submit(task);
-		//
-		//		try {
-		//			future.get(resSaver.timeout, TimeUnit.MILLISECONDS);
-		//
-		//		} catch (InterruptedException e) {
-		//			// TODO Auto-generated catch block
-		//			e.printStackTrace();
-		//			//			System.exit(1);
-		//		} catch (ExecutionException e) {
-		//			// TODO Auto-generated catch block
-		//			e.printStackTrace();
-		//			//			System.exit(1);
-		//		} catch (TimeoutException e) {
-		//			mainLog.println("Timed out - " + TimeUnit.SECONDS.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " seconds, "
-		//					+ TimeUnit.MINUTES.convert(resSaver.timeout, TimeUnit.MILLISECONDS) + " mins");
-		//			// TODO Auto-generated catch block
-		//			//			if (jointPolicy != null)
-		//			//				mainLog.println("States " + jointPolicy.allFailStatesSeen.toString());
-		//			e.printStackTrace();
-		//			//			System.exit(1);
-		//		} // awaits termination
+	
 
 		resSaver.writeResults();
 		// Close down PRISM
@@ -792,11 +756,4 @@ public class STAPU
 		return res;
 
 	}
-
-
-//	public int exampleNumber()
-//	{
-//		return 5;
-//	}
-
 }
