@@ -82,12 +82,13 @@ public class STAPU
 
 		int maxRobots = 2; 
 		int maxGoals = 3; 
+
+		
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false,null,null);
 		fn = "testingmaxexprewfs4"; 
 		numFS = 4; 
 		numDoors = 0; 
-		
 		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false,null,null);
-
 
 	}
 
@@ -215,19 +216,19 @@ public class STAPU
 		return res2;
 	}
 
-	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,
-			int probPreference, boolean doMaxTasks) throws PrismException
-	{
-
-		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>();
-		int rewinit = 0;
-		if (doMaxTasks) {
-			minMaxRew.add(false);
-		}
-		for (int rew = rewinit; rew < rewards.size(); rew++)
-			minMaxRew.add(true);
-		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference);
-	}
+//	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,
+//			int probPreference, boolean doMaxTasks) throws PrismException
+//	{
+//
+//		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>();
+//		int rewinit = 0;
+//		if (doMaxTasks) {
+//			minMaxRew.add(false);
+//		}
+//		for (int rew = rewinit; rew < rewards.size(); rew++)
+//			minMaxRew.add(true);
+//		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference);
+//	}
 
 	protected double[] doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
@@ -270,12 +271,12 @@ public class STAPU
 
 			int initState = model.getFirstInitialState();
 
-			if (i != 0 && sameModelForAll) {
-				initState = getInitState(i, exampleNumber());
-				((MDPSparse) model).clearInitialStates();
-				((MDPSparse) model).addInitialState(initState);
-
-			}
+//			if (i != 0 && sameModelForAll) {
+//				initState = getInitState(i, exampleNumber());
+//				((MDPSparse) model).clearInitialStates();
+//				((MDPSparse) model).addInitialState(initState);
+//
+//			}
 
 			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP("" + i, model, daList, statesOfInterest, mcProb, modulesFile);
 
@@ -445,262 +446,7 @@ public class STAPU
 
 	}
 
-	protected void doSTAPU(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb, ArrayList<ModulesFile> modulesFiles,
-			ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars, boolean completeSwitchRing) throws PrismException
-	{
 
-		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
-		resSaver.setLocalStartTime();
-
-		int probPreference = 0;
-
-		// process ltl expressions
-		int numRobots = models.size();// getNumRobots(exampleNumber());
-		boolean sameModelForAll = false;
-		if (numRobots != models.size() && models.size() == 1)
-			sameModelForAll = true;
-		else
-			numRobots = models.size();
-
-		ArrayList<SingleAgentNestedProductMDP> singleAgentProductMDPs = new ArrayList<SingleAgentNestedProductMDP>();
-		ArrayList<Expression> ltlExpressions = getLTLExpressions(expr);
-		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(ltlExpressions,null);
-
-		//record num tasks here
-		resSaver.recordInits(daList.size(), "Num Tasks", varIDs.numtasks);
-
-		Model model = models.get(0);
-		ModulesFile modulesFile = modulesFiles.get(0);
-		resSaver.setScopeStartTime();
-
-		for (int i = 0; i < numRobots; i++) {
-			if (!sameModelForAll) {
-				model = models.get(i);
-				modulesFile = modulesFiles.get(i);
-			}
-
-			int initState = model.getFirstInitialState();
-
-			if (i != 0 && sameModelForAll) {
-				initState = getInitState(i, exampleNumber());
-				((MDPSparse) model).clearInitialStates();
-				((MDPSparse) model).addInitialState(initState);
-
-			}
-
-			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP("" + i, model, daList, statesOfInterest, mcProb, modulesFile);
-
-			singleAgentProductMDPs.add(nestedProduct);
-			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
-			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(), "Nested Product States", varIDs.nestedproductstates);
-
-		}
-
-		resSaver.recordTime("Total Single Agent Nested Product Time", varIDs.allnestedproductcreationtime, false);
-		resSaver.setScopeStartTime();
-
-		// create team automaton from a set of MDP DA stuff
-		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this.mainLog, numRobots, matchSharedVars); // buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
-
-		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
-
-		int firstRobot = 0; // fix this
-
-		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
-
-		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly, true);
-
-		BitSet combinedEssentialStates = new BitSet();
-		for (int i = 0; i < seqTeamMDP.essentialStates.size(); i++) {
-			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
-
-		}
-
-		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
-		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
-		for (int rew = 0; rew < rewards.size(); rew++) {
-			minRewards.add(true);
-		}
-		rewards.add(0, seqTeamMDP.progressionRewards);
-
-		minRewards.add(0, false);
-
-		combinedEssentialStates.or(seqTeamMDP.acceptingStates);
-
-		resSaver.recordTime("Team MDP Time (including single agent time)", varIDs.totalteammdpcreationtime, false);
-		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumStates(), "Team MDP States", varIDs.teammdpstates);
-		resSaver.recordValues(seqTeamMDP.teamMDPWithSwitches.getNumTransitions(), "Team MDP Transitions", varIDs.teammdptransitions);
-
-		resSaver.setLocalStartTime();
-		resSaver.setScopeStartTime();
-		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
-				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
-		resSaver.recordTime("First Solution", varIDs.reallocations, true);
-
-		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
-		mainLog.println("InitState = " + initialState);
-
-		// *************************************************************//
-		// testing the new joint policy stuff
-		// this is a build as you go along kind of thing
-		// so it doesn't really work right now okay
-		// cuz soy un perdedor (sp?) i'm a loser baybay:P so why dont you kill me
-
-		resSaver.setScopeStartTime();
-		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
-				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
-
-		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState);
-		resSaver.recordTime("Joint Policy Creationg Time", varIDs.jointpolicycreation, true);
-		// *************************************************************//
-		// while failedstatesQ is not empty
-		// statextended stateToExplore = failedStatesQ.remove()
-		// State stateToExploreState =jointPolicyBuilder.getStateState(stateToExplore)
-		// Get initial states from this state
-		// update initial states for team mdp
-		// update switches
-		// solve
-		// add to joint policy
-		int numPlanning = 1;
-		while (jointPolicyBuilder.hasFailedStates()) {
-
-			Entry<State, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState();
-			State stateToExplore = stateToExploreAndBitSet.getKey();
-			BitSet statesToAvoid = stateToExploreAndBitSet.getValue();
-
-			if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
-
-				// get first failed robot
-				numPlanning++;
-				resSaver.recordValues(numPlanning, "Realloc", varIDs.numreallocationsincode);
-				resSaver.setScopeStartTime();
-
-				int[] robotStates = jointPolicyBuilder.extractIndividualRobotStatesFromJointState(stateToExplore,
-						seqTeamMDP.teamMDPWithSwitches.getStatesList(), seqTeamMDP.teamMDPWithSwitches.getVarList());
-				firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates, seqTeamMDP.teamMDPWithSwitches);
-
-				seqTeamMDP.setInitialStates(robotStates);
-				seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
-
-				if (statesToAvoid == null)
-					statesToAvoid = seqTeamMDP.statesToAvoid;
-				else {
-
-					statesToAvoid.or(seqTeamMDP.statesToAvoid);
-				}
-
-				solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
-						probPreference);// ,probInitVals);
-
-				resSaver.recordTime("Solution Time", varIDs.reallocations, true);
-				resSaver.setScopeStartTime();
-				jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore);
-				resSaver.recordTime("Joint Policy Time", varIDs.jointpolicycreation, true);
-			}
-		}
-		resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
-		resSaver.saveJointPolicy(jointPolicyBuilder);
-		//		jointPolicyBuilder.saveJointPolicyMDP();
-		mainLog.println("All done");
-		mainLog.println("NVI done " + numPlanning + " times");
-		jointPolicyBuilder.printStatesExploredOrder();
-		mainLog.println("All done");
-
-	}
-
-	private int getInitState(int robotNum, int robotModel)
-	{
-		int initState = -1;
-
-		if (robotModel == 0)
-			initState = 2;// hardcoding this realy
-		else if (robotModel == 1) {
-			if (robotNum == 1)
-				initState = 3;
-			if (robotNum == 2)
-				initState = 5;
-			if (robotNum == 3)
-				initState = 13;
-		} else if (robotModel == 2) {
-			if (robotNum == 0) {
-				initState = 2;
-			}
-			if (robotNum == 1)
-				initState = 7;
-			if (robotNum == 2)
-				initState = 8;
-		} else if (robotModel == 3) {
-			if (robotNum == 0)
-				initState = 6;
-			if (robotNum == 1)
-				initState = 2;
-			if (robotNum == 2)
-				initState = 3;
-		} else if (robotModel == 4) {
-			int initPoses[] = { 4, 8, 21, 28, 27, 17, 22, 20, 24, 26, 1, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 23, 25, 29, 30 };
-			// int notHave = 2;
-
-			initState = initPoses[robotNum] + 1;
-
-			// 5 -4
-			// 29-8
-			// 26-21
-			// 24-28
-			// 11-27
-			// 10-17
-			// 12-22
-			// 13-21
-			// 14-20
-			// 18-24
-			// 21-26
-
-		} else if (robotModel == 5) {
-			if (robotNum == 0)
-				initState = 1;
-			if (robotNum == 1)
-				initState = 4;
-			if (robotNum == 2)
-				initState = 7;
-
-		} else if (robotModel == 6) {
-			switch (robotNum) {
-			case 0:
-				initState = 1;
-				break;
-			case 1:
-				initState = 4;
-				break;
-			}
-		}
-		///////////////////////////////////// DECIDE Robot init states
-		///////////////////////////////////// HERE///////////////////////////////////////
-		return initState;
-	}
-
-	/**
-	 * Return a list of expressions
-	 */
-	protected ArrayList<Expression> getLTLExpressions(ExpressionFunc expr) throws PrismException
-	{
-		int numOp = expr.getNumOperands();
-		String exprString = "";
-		ExpressionFunc conjunctionOfExpressions = null;
-		ArrayList<Expression> ltlExpressions = new ArrayList<Expression>(numOp);
-		for (int exprNum = 0; exprNum < numOp; exprNum++) {
-			if (expr.getOperand(exprNum) instanceof ExpressionQuant) {
-				ltlExpressions.add((expr.getOperand(exprNum)));
-				exprString += ((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString();
-				if (Expression.isCoSafeLTLSyntactic(expr.getOperand(exprNum))) {
-					if (conjunctionOfExpressions == null) {
-						conjunctionOfExpressions = new ExpressionFunc(((ExpressionQuant) ltlExpressions.get(exprNum)).getExpression().toString());
-					}
-				}
-			}
-		}
-
-		mainLog.println("LTL Mission: " + exprString);
-		return ltlExpressions;
-	}
 
 	/**
 	 * Return a list of expressions
@@ -1046,9 +792,9 @@ public class STAPU
 	}
 
 
-	public int exampleNumber()
-	{
-		return 5;
-	}
+//	public int exampleNumber()
+//	{
+//		return 5;
+//	}
 
 }
