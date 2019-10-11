@@ -427,8 +427,9 @@ def allDone():
     gfr = GeneratePrismFile()
     global xside
     global yside
+    doFour = True #four grid actions
 
-    smap=gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn)
+    smap=gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorPairs,xside,yside,fn,doFour)
     for ij in smap:
         i = ij[0]
         j = ij[1]

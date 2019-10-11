@@ -171,9 +171,11 @@ class GeneratePrismFile(object):
             pfr.addLabel(svar,sstr,mod.variables)
         return pfr
     
-    def createActionsFromLists(self,pfr,mod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates):
+    def createActionsFromLists(self,pfr,mod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates,doFour):
         smap = {}
         scount = len(smap)
+        #doFour = True
+        #default = 8
         for xy in connectedStates:
             x = xy[0]
             y = xy[1]
@@ -191,7 +193,10 @@ class GeneratePrismFile(object):
             yy = min(y+1,yside-1)
             _x = max(x-1,0)
             _y = max(y-1,0)
-            combs = [(x,yy),(x,_y),(xx,y),(_x,y),(_x,yy),(xx,yy),(_x,_y),(xx,_y)]
+            if doFour:
+                combs = [(x,yy),(x,_y),(xx,y),(_x,y)]
+            else:
+                combs = [(x,yy),(x,_y),(xx,y),(_x,y),(_x,yy),(xx,yy),(_x,_y),(xx,_y)]
             combs = list(set(combs))
             for xyp in combs:
                 xp = xyp[0]
@@ -314,7 +319,7 @@ class GeneratePrismFile(object):
                     gmod.actions.append(pa)
         return [gmod,gpfr]
     
-    def generateModuleLinesFromLists(self,initStates,blockedStates,goalStates,avoidStates,failstates,connectedStates,doorStates,xside,yside,pfr,modName):
+    def generateModuleLinesFromLists(self,initStates,blockedStates,goalStates,avoidStates,failstates,connectedStates,doorStates,xside,yside,pfr,modName,doFour):
         pfr = self.addFailstateConstant(pfr)
         pfr = self.addSuccProbConstant(pfr)
         pfr = self.checkModInPFR(pfr,modName)
@@ -330,7 +335,7 @@ class GeneratePrismFile(object):
             pfr.rewardNames.append(rewName)
         if pfr.modVars is None:
             pfr.modVars = []
-        [gmod,pfr,smap] = self.createActionsFromLists(pfr,gmod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates)
+        [gmod,pfr,smap] = self.createActionsFromLists(pfr,gmod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates,doFour)
         for pa in gmod.actions:
             print pa.prismStringReward(rewName)
         pfr.modVars.append(gmod)
@@ -383,10 +388,10 @@ class GeneratePrismFile(object):
 
         # In[ ]:
 
-    def generateFromGUIGrid(self,initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorStates,xside,yside,fn):
+    def generateFromGUIGrid(self,initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorStates,xside,yside,fn,doFour):
         pfr = PrismFileReader(None)
         modName = 'grid'
-        [pfr,smap,varname] = self.generateModuleLinesFromLists(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorStates,xside,yside,pfr,modName)
+        [pfr,smap,varname] = self.generateModuleLinesFromLists(initStates,blockedStates,goalStates,avoidStates,failStates,connectedStates,doorStates,xside,yside,pfr,modName,doFour)
         #print smap
         #print varname
         #print pfr
