@@ -1,0 +1,142 @@
+package demos;
+
+import java.util.HashMap;
+
+import parser.State;
+
+public class StateInformation
+{
+	public enum ValueLabel {
+		cost, probability, progression, frequency
+	}
+
+	State state;
+	int stateIndexInPath;
+	int stateIndexInMDP;
+	Object chosenAction;
+	HashMap<Object, Integer> allActionIndicesInMDP;
+	HashMap<Object, HashMap<ValueLabel, Double>> actionValues;
+	HashMap<Object, HashMap<ValueLabel, Double>> actionValuesDifference;
+
+	/**
+	 * @return the state
+	 */
+	public State getState()
+	{
+		return state;
+	}
+
+	/**
+	 * @param state the state to set
+	 */
+	public void setState(State state)
+	{
+		this.state = state;
+	}
+
+	/**
+	 * @return the stateIndexInPath
+	 */
+	public int getStateIndexInPath()
+	{
+		return stateIndexInPath;
+	}
+
+	/**
+	 * @param stateIndexInPath the stateIndexInPath to set
+	 */
+	public void setStateIndexInPath(int stateIndexInPath)
+	{
+		this.stateIndexInPath = stateIndexInPath;
+	}
+
+	/**
+	 * @return the stateIndexInMDP
+	 */
+	public int getStateIndexInMDP()
+	{
+		return stateIndexInMDP;
+	}
+
+	/**
+	 * @param stateIndexInMDP the stateIndexInMDP to set
+	 */
+	public void setStateIndexInMDP(int stateIndexInMDP)
+	{
+		this.stateIndexInMDP = stateIndexInMDP;
+	}
+
+	/**
+	 * @return the chosenAction
+	 */
+	public Object getChosenAction()
+	{
+		return chosenAction;
+	}
+
+	/**
+	 * @param chosenAction the chosenAction to set
+	 */
+	public void setChosenAction(Object chosenAction)
+	{
+		this.chosenAction = chosenAction;
+	}
+
+	public void addValuesForState(Object action, HashMap<ValueLabel, Double> labels)
+	{
+		actionValues.put(action, labels);
+	}
+
+	StateInformation(State s, int sI, Object a)
+	{
+		initialise();
+		stateIndexInPath = sI;
+		chosenAction = a;
+		state = s;
+
+	}
+
+	void initialise()
+	{
+		state = null;
+		stateIndexInPath = -1;
+		chosenAction = null;
+		allActionIndicesInMDP = new HashMap<Object, Integer>();
+		actionValues = new HashMap<Object, HashMap<ValueLabel, Double>>();
+		actionValuesDifference = new HashMap<Object, HashMap<ValueLabel, Double>>();
+	}
+
+	public boolean isEqual(int sI, Object a)
+	{
+		return (stateIndexInPath == sI && a.toString().contentEquals(chosenAction.toString()));
+	}
+
+	public boolean isEqual(State s, Object a)
+	{
+		if(a !=null && chosenAction !=null)
+		return (s.compareTo(state) == 0 && a.toString().contentEquals(chosenAction.toString()));
+		else
+		{
+			return ((chosenAction == a) && s.compareTo(state) == 0 );
+		}
+			
+	}
+
+	public boolean isSameState(State s)
+	{
+		return (s.compareTo(state) == 0);
+	}
+
+	public boolean isEqual(int sI, int aI)
+	{
+		return (sI == stateIndexInPath && allActionIndicesInMDP.get(chosenAction) == aI);
+	}
+
+	@Override
+	public String toString()
+	{
+		return "StateInformation [state=" + state + ", stateIndexInPath=" + stateIndexInPath + ", chosenAction=" + chosenAction + ", actionValues="
+				+ actionValues + ", actionValuesDifference=" + actionValuesDifference + "]";
+	}
+
+}
