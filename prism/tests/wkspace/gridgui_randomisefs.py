@@ -21,6 +21,11 @@ blockedCells = None
 doorPairs = []
 fn = ""
 
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+        
 class Cell():
     FILLED_COLOR_BG = "black"
     EMPTY_COLOR_BG = "white"
@@ -340,6 +345,7 @@ def allDone():
     fn = tkFileDialog.asksaveasfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/guiFiles",title="Save file as", filetypes=(("grid",".grid"),("prism",".prism"),("prop",".prop"),("props",".props"),("all files","*.*")))
     app.update()
     fn = fn.split('.')[0]
+    
     #get all the goal states and stuff
     goalStates = []
     failStates = []
@@ -370,15 +376,17 @@ def allDone():
                 d = (i,j)
                 if c.fill:
                     blockedStates.append(d)
-                elif c.isInitPos:
+                else:
+                    failStateChoices.append(d)
+                if c.isInitPos:
                     initStates.append(d)
-                elif c.isGoalPos:
+                if c.isGoalPos:
                     goalStates.append(d)
-                    if c.isFailState:
-                        failStates.append(d)
-                elif c.isFailState:
+                    #if c.isFailState:
+                    #    failStates.append(d)
+                if c.isFailState:
                     failStates.append(d)
-                elif c.isAvoidState:
+                if c.isAvoidState:
                     avoidStates.append(d)
                 if not c.fill:
                     connectedStates.append(d)
@@ -388,15 +396,17 @@ def allDone():
                             if c.otherDoor is None:
                                 potentialDoors.append(d)
                 if doDoors:
-                    if d not in potentialDoors:
-                        if d in connectedStates:
-                            failStateChoices.append(d)
-                else:
-                    if d in connectedStates:
-                        failStateChoices.append(d)
+                    if d in potentialDoors:
+                        #if d in connectedStates:
+                        failStateChoices.remove(d)
+                #else:
+                #    if d in connectedStates:
+                #        failStateChoices.append(d)
                             
 
-        
+        print failStateChoices
+        print len(failStateChoices)
+        raw_input("Fail state choices ^")
         
         #lets make door pairs
         #doors should be 1 apart
@@ -418,32 +428,58 @@ def allDone():
                     doorPairs = doorPairs + potDoors
                 
         gridWriteFile.close()
+        originalFailStates = []
+        for fs in failStates:
+            originalFailStates.append(fs)
         
-        numFailStates = len(failStates)
+        maxNumFailStates = len(failStates)
         numConnectedStates = len(connectedStates)
+       
         #so lets say we want to generate like nfs% files
-        numFilesToGenerate = 9
+        numFilesToGenerate = 10
         fsLists = []
+        #fs bins
+        #so like I want a nice resolution
+        if(maxNumFailStates < 11):
+            fsStep = 1
+        elif maxNumFailStates < 51:
+            fsStep = 5
+        elif maxNumFailStates < 101:
+            fsStep = 10
+        else:
+            fsStep = 10
+            
         import random
         print "Generating Random states"
-        for nfs in range(numFilesToGenerate):
-            fsLists.append(random.sample(failStateChoices,numFailStates))
-            print fsLists[nfs]
-            gridWriteFile = open(fn+'fsgen'+str(nfs+1)+'.grid','w')
-            lenx = len(gridArray)
-            leny = len(gridArray[0])
-            gsize = gridArray[0][0].size
-            gridWriteFile.write(str(lenx)+','+str(leny)+','+str(gsize)+'\n')
-            for i in range(len(gridArray)):
-                for j in range(len(gridArray[i])):
-                    c = gridArray[i][j]
-                    d = (i,j)
-                    if c.isFailState:
-                        c.isFailState = False
-                    if d in fsLists[nfs]:
-                        c.isFailState = True
-                    gridWriteFile.write(str(c)+'\n')
-            gridWriteFile.close()
+        if(maxNumFailStates > 0):
+            for numfs in range(1,maxNumFailStates,fsStep):
+
+                for nfs in range(numFilesToGenerate):
+                    print numfs
+                    print len(failStateChoices) 
+                    fsLists.append(random.sample(failStateChoices,numfs))
+                    print fsLists[nfs]
+                    gridWriteFile = open(fn+'fs'+str(numfs-1)+'fsgen'+str(nfs+1)+'.grid','w')
+                    lenx = len(gridArray)
+                    leny = len(gridArray[0])
+                    gsize = gridArray[0][0].size
+                    gridWriteFile.write(str(lenx)+','+str(leny)+','+str(gsize)+'\n')
+                    for i in range(len(gridArray)):
+                        for j in range(len(gridArray[i])):
+                            c = gridArray[i][j]
+                            d = (i,j)
+                            if c.isFailState:
+                                c.isFailState = False
+                            if d in fsLists[nfs]:
+                                c.isFailState = True
+                            gridWriteFile.write(str(c)+'\n')
+                    gridWriteFile.close()
+                    print "printing len"
+                    print len(fsLists[nfs])
+                print fsLists
+            print "all fail states"
+            print fsLists
+        
                     
             
         
@@ -494,13 +530,19 @@ def allDone():
     comm = "import -window root "+fn+".png"
     os.system(comm)
     #cv.postscript(file=fn+"_img.ps", colormode='color')
-    for i in range(numFilesToGenerate):
+    fscount = 0
+    currentFSLen = len(fsLists[0])
+    for i in range(len(fsLists)):
+        if(len(fsLists[i]))!= currentFSLen:
+            currentFSLen = len(fsLists[i])
+            fscount = 0
+        fscount = fscount + 1
         gfr = GeneratePrismFile()
         global xside
         global yside
         doFour = True #four grid actions
 
-        smap=gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,fsLists[i],connectedStates,doorPairs,xside,yside,fn+"_fsgen"+str(i+1)+"_",doFour)
+        smap=gfr.generateFromGUIGrid(initStates,blockedStates,goalStates,avoidStates,fsLists[i],connectedStates,doorPairs,xside,yside,fn+'fs'+str(len(fsLists[i]))+"_fsgen"+str(fscount)+"_",doFour)
         for ij in smap:
             i = ij[0]
             j = ij[1]
@@ -525,6 +567,7 @@ def allDone():
         comm = "import -window root "+fn+".png"
         os.system(comm)
         #cv.postscript(file=fn+"_img.ps", colormode='color')
+    print "Done"
 
 def screenshot():
     global fn 
