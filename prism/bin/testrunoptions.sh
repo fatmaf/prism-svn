@@ -1,5 +1,6 @@
 #!/bin/sh
 
+echo $1
 # PRISM directory to link to
 if [ "$PRISM_DIR" = "" ]; then
 	PRISM_DIR="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism"
@@ -37,4 +38,4 @@ if [ "$PRISM_JAVA" = "" ]; then
 fi
 
 # Run PRISM through Java
-"$PRISM_JAVA" -Djava.library.path="$PRISM_LIB_PATH" -classpath "$PRISM_CLASSPATH" "-Xss50m" $PRISM_MAINCLASS "$@"
+"$PRISM_JAVA" -Djava.library.path="$PRISM_LIB_PATH" -classpath "$PRISM_CLASSPATH" "-Xss50m" $PRISM_MAINCLASS "$@" $1
