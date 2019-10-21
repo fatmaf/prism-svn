@@ -480,7 +480,23 @@ public class JointPolicyBuilder
 						if (taskProgressionReward > 0) {
 							this.progressionRewardsHashMap.put(saPair, taskProgressionReward);
 						}
+						
+						for(int ri = 0; ri <summedStateActionRewards.size(); ri++)
+						{
+							if(summedStateActionRewards.get(ri)==0)
+							{
+								System.out.print("Why are the state rewards 0??");
+							}
+						}
+						if(this.otherRewardsHashMap.containsKey(saPair))
+						{
+							
+								System.out.print("Your fears have been realised - the rewards are being replaced");
+								
+						}
+					
 						this.otherRewardsHashMap.put(saPair, summedStateActionRewards);
+						
 
 						//						saveMDP(jointMDP, "new");
 					} else {

@@ -11,6 +11,7 @@ import common.IterableStateSet;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
+import explicit.MDPSimple;
 import explicit.Model;
 import explicit.ProbModelChecker;
 import explicit.LTLModelChecker.LTLProduct;
@@ -123,6 +124,9 @@ public class DAInfo {
 			// prism code is confusing
 			// but its okay we can do this later
 			costsModel = (MDPRewardsSimple) mcProb.constructRewards(model, costStruct);
+			System.out.println("Initial State: "+model.getStatesList().get(model.getFirstInitialState())); 
+			System.out.println("First action name: "+((MDPSimple)model).getAction(model.getFirstInitialState(), 0).toString());
+			System.out.println("Reward for first action "+costsModel.getTransitionReward(model.getFirstInitialState(), 0));
 		}
 		mainLog.println("Product Model Initial States " + product.getProductModel().getFirstInitialState() + " "
 				+ product.getProductModel().getStatesList().get(product.getProductModel().getFirstInitialState()));
