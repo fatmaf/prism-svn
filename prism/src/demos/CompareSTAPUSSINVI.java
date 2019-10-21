@@ -83,26 +83,26 @@ public class CompareSTAPUSSINVI
 	}
 
 	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noreallocs, ArrayList<Integer> robotNumbers,
-			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend, PrismLog fileLog)
+			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mlfn)
 	{
 		STAPU stapu = new STAPU();
 		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors, noreallocs, robotNumbers, goalNumbers,
-				reallocOnFirstRobotDeadend, fileLog);
+				reallocOnFirstRobotDeadend, fileLog, mlfn);
 		//		System.out.println(res.toString());
 		return res;
 	}
 
 	public double[] doSSI(String dir, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
-			boolean reallocOnFirstRobotDeadend, PrismLog fileLog)
+			boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mainLogFile)
 	{
-		double[] res = new SSIAuctionNestedProduct().run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,
-				fileLog);
+		double[] res = new SSIAuctionNestedProduct().run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog,
+				mainLogFile);
 		//		System.out.println(res.toString());
 		return res;
 	}
 
 	public String doCompare(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, float[][] resArr, ArrayList<Integer> robotNumbers,
-			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend)
+			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend,boolean nullML)
 	{
 
 		Path path = Paths.get(dir + "results/logs/");
@@ -122,7 +122,10 @@ public class CompareSTAPUSSINVI
 		}
 
 		PrismLog ssiLog = new PrismFileLog(dir + "results/logs/" + fn + "_r" + numRobots + "_g" + numGoals + logSuffix + "_ssi.txt");
-		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, ssiLog);
+		String mainLogFileName = dir + "results/logs/" + fn + "_r" + numRobots + "_g" + numGoals + logSuffix + "_ssi_mainLog.txt";
+		if(nullML)
+			mainLogFileName = null;
+		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, ssiLog, mainLogFileName);
 
 		long endTime = System.nanoTime();
 
@@ -139,7 +142,11 @@ public class CompareSTAPUSSINVI
 		if (robotNumbers != null && goalNumbers != null)
 			System.out.println("R:" + numRobots + "-" + robotNumbers.toString() + " G:" + numGoals + " " + goalNumbers.toString());
 		PrismLog stapuLog = new PrismFileLog(dir + "results/logs/" + fn + "_r" + numRobots + "_g" + numGoals + logSuffix + "_stapu.txt");
-		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog);
+		mainLogFileName = dir + "results/logs/" + fn + "_r" + numRobots + "_g" + numGoals + logSuffix + "_stapu_mainLog.txt";
+		if(nullML)
+			mainLogFileName = null;
+		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog,
+				mainLogFileName);
 
 		endTime = System.nanoTime();
 		long durationStapu = (endTime - startTime);
@@ -154,6 +161,19 @@ public class CompareSTAPUSSINVI
 		resString += "\nSTAPU Res: " + Arrays.toString(stapuRes);
 		resString += "\nSSI Res: " + durationSSI + " " + TimeUnit.MILLISECONDS.convert(durationSSI, TimeUnit.NANOSECONDS) + " ms";
 		resString += "\nSTAPU Res: " + durationStapu + " " + TimeUnit.MILLISECONDS.convert(durationStapu, TimeUnit.NANOSECONDS) + " ms";
+
+		if (resArr[ssiInd][0] > resArr[stapuInd][0]) {
+			System.out.println("*********************************************************");
+			System.out.println("Error: " + fn + logSuffix);
+			System.out.println(resString);
+			System.out.println("*********************************************************");
+		}
+		if (resArr[ssiInd][1] > resArr[stapuInd][1]) {
+			System.out.println("*********************************************************");
+			System.out.println("Error: " + fn + logSuffix);
+			System.out.println(resString);
+			System.out.println("*********************************************************");
+		}
 		return resString;
 
 	}
@@ -193,7 +213,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 					results.get(fn).get(rgdf).add(resArr);
 
 				}
@@ -227,7 +247,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 					results.get(fn).get(rgdf).add(resArr);
 
 				}
@@ -262,7 +282,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 					results.get(fn).get(rgdf).add(resArr);
 
 				}
@@ -296,29 +316,34 @@ public class CompareSTAPUSSINVI
 
 		//g20x4_r10_g10_fs10_fsgen0
 		int numRobots = 10;
-		int numFS = 10;
+		int numFS = 1;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
+		String fn = "g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
 		String resString = "";
 		int r = 2;//numRobots;
 		int g = 3;//numGoals;
 
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
-		ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
-		ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
+		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
+		robotNumbers.add(8); 
+		robotNumbers.add(5); 
+		goalNumbers.add(0); 
+		goalNumbers.add(4);
+		
 		int[] rgdf = new int[] { r, g, numDoors, numFS };
 		if (!results.get(fn).containsKey(rgdf))
 			results.get(fn).put(rgdf, new ArrayList<float[][]>());
 		float[][] resArr = new float[2][4];
 		resString += "\nR:" + r + "\tG:" + g;
 
-		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,true);
 		results.get(fn).get(rgdf).add(resArr);
 		reallocOnFirstRobotDeadend = true;
-		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,true);
 		results.get(fn).get(rgdf).add(resArr);
 
 		printResults();
@@ -366,7 +391,7 @@ public class CompareSTAPUSSINVI
 						float[][] resArr = new float[2][4];
 						resString += "\nR:" + r + "\tG:" + g;
 
-						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+						resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 						results.get(fn).get(rgdf).add(resArr);
 					}
 				}
@@ -431,7 +456,7 @@ public class CompareSTAPUSSINVI
 					float[][] resArr = new float[2][4];
 					resString += "\nR:" + r + "\tG:" + g;
 
-					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+					resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 					results.get(fn).get(rgdf).add(resArr);
 				}
 				//				}
@@ -543,7 +568,7 @@ public class CompareSTAPUSSINVI
 							float[][] resArr = new float[2][4];
 							resString += "\nR:" + r + "\tG:" + g;
 
-							resString += doCompare(dir, fn, r, fs, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend);
+							resString += doCompare(dir, fn, r, fs, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend,false);
 							results.get(fn).get(rgdf).add(resArr);
 
 						}
