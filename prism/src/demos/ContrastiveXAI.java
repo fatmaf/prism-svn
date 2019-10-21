@@ -174,8 +174,9 @@ public class ContrastiveXAI
 	public void doStuff() throws PrismException, FileNotFoundException
 	{
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-		String filename = "xai_r1_d1_g1_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
+		String filename = "xai_r1_d1_g1";//"xai_r1_d1_g1_key";//_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
 
+		double discount = 1;
 		readModel(saveplace, filename);
 
 		ExpressionReward exprRew = (ExpressionReward) propertiesFile.getProperty(0);
@@ -186,30 +187,46 @@ public class ContrastiveXAI
 		Expression expr = exprRew.getExpression();
 
 		NVIExposed nvi = new NVIExposed();
-		ModelCheckerPartialSatResult res = nvi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc);
+		ModelCheckerPartialSatResult res = nvi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc, discount);
 		PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
 		nvi.productmdp.exportToDotFile(pfl, null, true);
 		pfl.close();
 		PathCreator pathO = new PathCreator();
 		pathO.createPathPolicy(0, nvi.productmdp, res.strat, saveplace + "results/", "xai_" + filename + "_path" + 0, nvi.progRewards, nvi.costRewards,
 				nvi.accStates);
-		ModelCheckerPartialSatResult pathONVI = nvi.doPathNVI(prism, mainLog, pathO, mc);
-		ModelCheckerPartialSatResult pathOoccfreq = nvi.doPathOccupancyFreq(prism, mainLog, pathO, mc);
+		ModelCheckerPartialSatResult pathONVI = nvi.doPathNVI(prism, mainLog, pathO, mc, discount);
+		ModelCheckerPartialSatResult pathOoccfreq = nvi.doPathOccupancyFreq(prism, mainLog, pathO, mc, discount);
 		//state1 action 2 the door action 
 		PathCreator pathC = new PathCreator();
 		ArrayList<Integer> prefixStates = new ArrayList<Integer>();
 		ArrayList<Integer> prefixActions = new ArrayList<Integer>();
+		if(filename.contains("key")) {
+			prefixStates.add(1); 
+			prefixActions.add(0);
+			prefixStates.add(2); 
+			prefixActions.add(3); 
+			prefixStates.add(5); 
+			prefixActions.add(3);
+			
+		}else {
 		prefixStates.add(0);
-		prefixActions.add(0);
-		prefixStates.add(1);
-		prefixActions.add(1);
+		prefixActions.add(2);
+		prefixStates.add(3);
+		prefixActions.add(6);
+		prefixStates.add(4);
+		prefixActions.add(2);}
 		pathC.creatPath(prefixStates, prefixActions, nvi.productmdp, res.strat, saveplace + "results/", "xai_" + filename + "_path" + prefixStates.toString(),
 				nvi.progRewards, nvi.costRewards, nvi.accStates);
-		ModelCheckerPartialSatResult pathCNVI = nvi.doPathNVI(prism, mainLog, pathC, mc);
-		ModelCheckerPartialSatResult pathCoccfreq = nvi.doPathOccupancyFreq(prism, mainLog, pathC, mc);
+		ModelCheckerPartialSatResult pathCNVI = nvi.doPathNVI(prism, mainLog, pathC, mc, discount);
+		ModelCheckerPartialSatResult pathCoccfreq = nvi.doPathOccupancyFreq(prism, mainLog, pathC, mc, discount);
 		PolicyPath pathCPath = traversePath(pathC, pathCNVI, pathCoccfreq);
 		doActionValuesDifference(pathCPath);
+		
 		printMostInfluentialStates(pathCPath);
+
+		PolicyPath pathOPath = traversePath(pathO, pathONVI, pathOoccfreq);
+		doActionValuesDifference(pathOPath);
+		printMostInfluentialStates(pathOPath);
 		//now lets compare these paths 
 		//we can go home if we do this. 
 
@@ -231,8 +248,7 @@ public class ContrastiveXAI
 		PolicyPath path = null;
 		while (!stateQ.isEmpty()) {
 			int currentState = stateQ.remove();
-			if (currentState == 15)
-				System.out.println("Investigate");
+
 			if (!seen.get(currentState)) {
 				Object action = null;
 				seen.set(currentState);
@@ -254,10 +270,10 @@ public class ContrastiveXAI
 						path = new PolicyPath(s);
 
 					}
-					System.out.println(s);
+
 					//update the state 
 					s = path.addToStatesList(s).root;
-					System.out.println(s);
+//					System.out.println(s);
 					Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(currentState, 0);
 					while (tranIter.hasNext()) {
 						Entry<Integer, Double> spPair = tranIter.next();
@@ -267,7 +283,6 @@ public class ContrastiveXAI
 						StateInformation nextSI = new StateInformation(nextState, nextS, null);
 						path.addChild(s, nextSI, prob);
 						stateQ.add(nextS);
-						System.out.println(nextSI);
 					}
 
 				}
@@ -303,6 +318,7 @@ public class ContrastiveXAI
 		HashMap<ValueLabel, StateInformation> maxPNs = new HashMap<ValueLabel, StateInformation>();
 		HashMap<ValueLabel, StateInformation> minPNs = new HashMap<ValueLabel, StateInformation>();
 
+		List<State> statesSeen = new ArrayList<State>();
 		PathNode pn = p.root;
 		Stack<PathNode> pQ = new Stack<PathNode>();
 		if (pn.children != null) {
@@ -313,6 +329,10 @@ public class ContrastiveXAI
 
 		while (!pQ.isEmpty()) {
 			pn = pQ.pop();
+			if (!statesSeen.contains(pn.root.getState()))
+				statesSeen.add(pn.root.getState());
+			else
+				continue;
 			HashMap<ValueLabel, Double> pnVals = pn.root.actionValuesDifference.get(pn.root.getChosenAction());
 			for (ValueLabel vl : pnVals.keySet()) {
 				if (pnVals.get(vl) < minVals.get(vl)) {
@@ -326,16 +346,63 @@ public class ContrastiveXAI
 			}
 			if (pn.children != null) {
 				for (PathNode pnc : pn.children.keySet()) {
-					if(pnc!=pn)
-					pQ.push(pnc);
+					if (pnc != pn)
+						pQ.push(pnc);
 				}
 			}
 		}
+		statesSeen = new ArrayList<State>();
+		pn = p.root;
+		pQ = new Stack<PathNode>();
+		if (pn.children != null) {
+			for (PathNode pnc : pn.children.keySet()) {
+				pQ.push(pnc);
+			}
+		}
+		HashMap<ValueLabel, ArrayList<StateInformation>> minPNsAll = new HashMap<ValueLabel, ArrayList<StateInformation>>();
+		HashMap<ValueLabel, ArrayList<StateInformation>> maxPNsAll = new HashMap<ValueLabel, ArrayList<StateInformation>>();
 
+		while (!pQ.isEmpty()) {
+			pn = pQ.pop();
+			if (!statesSeen.contains(pn.root.getState()))
+				statesSeen.add(pn.root.getState());
+			else
+				continue;
+			HashMap<ValueLabel, Double> pnVals = pn.root.actionValuesDifference.get(pn.root.getChosenAction());
+			for (ValueLabel vl : pnVals.keySet()) {
+				if (!minPNsAll.containsKey(vl))
+					minPNsAll.put(vl, new ArrayList<StateInformation>());
+				if (!maxPNsAll.containsKey(vl))
+					maxPNsAll.put(vl, new ArrayList<StateInformation>());
+				if (Math.abs(pnVals.get(vl) -minVals.get(vl)) < 0.0001) {
+					//					minPNs.put(vl, pn.root);
+					minPNsAll.get(vl).add(pn.root);
+				}
+				if (Math.abs(pnVals.get(vl) -maxVals.get(vl)) < 0.0001) {
+					//					maxPNs.put(vl, pn.root);
+					//					maxVals.put(vl, pnVals.get(vl));
+					maxPNsAll.get(vl).add(pn.root);
+				}
+			}
+			if (pn.children != null) {
+				for (PathNode pnc : pn.children.keySet()) {
+					if (pnc != pn)
+						pQ.push(pnc);
+				}
+			}
+		}
 		for (ValueLabel vl : maxPNs.keySet()) {
+			if(vl == ValueLabel.cost) {
 			System.out.println(vl.toString());
-			System.out.println(maxPNs.get(vl));
-			System.out.println(minPNs.get(vl));
+			System.out.println("Max");
+			for (StateInformation sI : maxPNsAll.get(vl))
+				System.out.println(sI);
+//			System.out.println(maxPNs.get(vl));
+			System.out.println("Min");
+			for (StateInformation sI : minPNsAll.get(vl))
+				System.out.println(sI);
+//			System.out.println(minPNs.get(vl));
+			}
 		}
 	}
 
@@ -352,49 +419,66 @@ public class ContrastiveXAI
 		//the difference is from the root to the successor 
 		//and its just the probability multiplied by the cost of the parent - this nodes cost 
 		PathNode pn = p.root;
+		//assuming a single action for each state 
+		//we should not see the same state twice 
+		//if we do well thats a problem 
+		List<State> statesSeen = new ArrayList<State>();
+		double rootCost = pn.root.actionValues.get(pn.root.getChosenAction()).get(ValueLabel.cost);
 		if (pn != null) {
+			statesSeen.add(pn.root.getState());
 			for (PathNode pnc : pn.children.keySet()) {
-				doActionValuesDifference(pn, pnc, 1.0);
+				doActionValuesDifference(pn, pnc, 1.0, rootCost, statesSeen);
 			}
 		}
 
 	}
 
-	public void doActionValuesDifference(PathNode p, PathNode c, double pProb)
+	public void doActionValuesDifference(PathNode p, PathNode c, double pProb, double rootCost, List<State> statesSeen)
 	{
-		System.out.println(p.root);
-		System.out.println(c.root);
-		if (!p.root.isEqual(c.root.state, c.root.chosenAction)) {
-			HashMap<ValueLabel, Double> parentActionValues = p.root.actionValues.get(p.root.chosenAction);
-			//		if (c.root.chosenAction != null) {
-			HashMap<ValueLabel, Double> childActionValues = c.root.actionValues.get(c.root.chosenAction);
-			HashMap<ValueLabel, Double> diff = new HashMap<ValueLabel, Double>();
-			double cProb = p.children.get(c);
+		//		System.out.println(p.root);
+		//		System.out.println(c.root);
+		if (!statesSeen.contains(c.root.getState())) {
+			statesSeen.add(c.root.getState());
 
-			for (ValueLabel vl : parentActionValues.keySet()) {
-				if (vl == ValueLabel.probability) {
-					double probRatio = cProb / pProb;
-					if (probRatio == 1)
-						probRatio = 0.0;
-					diff.put(vl, probRatio);
+			if (!p.root.isEqual(c.root.state, c.root.chosenAction)) {
+				HashMap<ValueLabel, Double> parentActionValues = p.root.actionValues.get(p.root.chosenAction);
+				//		if (c.root.chosenAction != null) {
+				HashMap<ValueLabel, Double> childActionValues = c.root.actionValues.get(c.root.chosenAction);
+				HashMap<ValueLabel, Double> diff = new HashMap<ValueLabel, Double>();
+				double cProb = p.children.get(c);
 
-				} else {
-					if (vl == ValueLabel.frequency) {
-						diff.put(vl, childActionValues.get(vl));
+				for (ValueLabel vl : parentActionValues.keySet()) {
+					if (vl == ValueLabel.probability) {
+						double probRatio = cProb / pProb;
+						if (probRatio == 1)
+							probRatio = 0.0;
+						diff.put(vl, probRatio);
+
 					} else {
-						double trydiff = cProb * parentActionValues.get(vl) - childActionValues.get(vl);
-						diff.put(vl, trydiff);
+						if (vl == ValueLabel.frequency) {
+							diff.put(vl, childActionValues.get(vl));
+						} else {
+
+							double trydiff = (parentActionValues.get(vl)) - childActionValues.get(vl);
+							if (vl == ValueLabel.progression) {
+								diff.put(vl, trydiff);
+							} else {
+								if (vl == ValueLabel.cost) {
+									double trydiffrel = trydiff / rootCost;
+									diff.put(vl, trydiffrel);
+								}
+							}
+						}
+					}
+				}
+				c.root.actionValuesDifference.put(c.root.getChosenAction(), diff);
+				if (c.children != null) {
+					for (PathNode cc : c.children.keySet()) {
+						doActionValuesDifference(c, cc, cProb, rootCost, statesSeen);
 					}
 				}
 			}
-			c.root.actionValuesDifference.put(c.root.getChosenAction(), diff);
-			if (c.children != null) {
-				for (PathNode cc : c.children.keySet()) {
-					doActionValuesDifference(c, cc, cProb);
-				}
-			}
 		}
-
 	}
 
 	public void openDotFile(String location, String fn) throws IOException

@@ -84,11 +84,11 @@ public class STAPU
 		int maxRobots = 2;
 		int maxGoals = 3;
 		PrismLog fileLog = new PrismDevNullLog();
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog);
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog,null);
 		fn = "testingmaxexprewfs4";
 		numFS = 4;
 		numDoors = 0;
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog);
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog,null);
 		fileLog.close();
 	}
 
@@ -562,7 +562,8 @@ public class STAPU
 	}
 
 	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noReallocations,
-			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog)
+			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog,
+			String mainLogfn)
 	{
 
 		double[] res = null;
@@ -601,7 +602,7 @@ public class STAPU
 
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals,
 						example_num_fs_list, modelLocation, true, dir + "results/stapu", noReallocations, robotNumbers, goalNumbers,
-						reallocateOnSingleAgentDeadend, fileLog);
+						reallocateOnSingleAgentDeadend, fileLog,mainLogfn);
 				endTime = System.currentTimeMillis();
 				fileLog.println("Finished: " + (endTime - startTime));
 			} catch (Exception e) {
@@ -623,7 +624,7 @@ public class STAPU
 
 			HashMap<String, Integer> example_num_door_list, int numRobots, int numGoals, HashMap<String, Integer> example_num_fs_list, String modelLocation,
 			boolean doorVarNameHas0, String resLoc, boolean noReallocs, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
-			boolean reallocateOnSingleAgentDeadend, PrismLog fileLog)
+			boolean reallocateOnSingleAgentDeadend, PrismLog fileLog,String mainLogfn)
 
 			throws PrismException, FileNotFoundException
 	{
@@ -686,6 +687,8 @@ public class STAPU
 		// Create a log for PRISM output (hidden or stdout)
 		// PrismLog mainLog = new PrismDevNullLog();
 		PrismLog mainLog = new PrismFileLog("stdout");
+		if(mainLogfn!=null)
+			mainLog = new PrismFileLog(mainLogfn);
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
 

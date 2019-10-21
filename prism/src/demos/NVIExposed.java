@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Vector;
 
@@ -12,6 +13,7 @@ import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
+import explicit.Distribution;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
@@ -51,10 +53,10 @@ public class NVIExposed
 	BitSet accStates;
 
 	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr,
-			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc) throws PrismException
+			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc,double discount) throws PrismException
 
 	{
-		int maxIters = 10000;
+		int maxIters = 100000;
 		LTLModelChecker mcLtl;
 		StateValues probsProduct, probs, costsProduct, costs, rewsProduct, rews;
 		MDPModelChecker mcProduct;
@@ -149,7 +151,7 @@ public class NVIExposed
 
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
 		accStates = (BitSet) acc.clone();
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true);
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true,discount);
 		this.productmdp = productMdp;
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 
@@ -178,7 +180,7 @@ public class NVIExposed
 
 	}
 
-	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc) throws PrismException
+	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc,double discount) throws PrismException
 
 	{
 		int maxIters = 10000;
@@ -188,7 +190,7 @@ public class NVIExposed
 		MDPRewardsSimple progRewards = pc.pc.mdpCreator.expectedTaskCompletionRewards;
 		MDPRewardsSimple prodCosts = pc.pc.mdpCreator.stateActionCostRewards;
 
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false);
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false,discount);
 
 		// Get final prob result
 		double maxProb = res.solnProb[productMdp.getFirstInitialState()];
@@ -199,24 +201,24 @@ public class NVIExposed
 
 		double minCost = res.solnCost[productMdp.getFirstInitialState()];
 		mainLog.println("\nFor p = " + maxProb + ", r = " + +maxRew + " the minimum expected  cummulative cost to satisfy specification is " + minCost);
-		// System.out.println("Probability to find objects: " + maxProb);
-		// System.out.println("Expected progression reward: " + maxRew);
-		// System.out.println("Expected time to execute task: " + minCost);
-		// System.out.println("--------------------------------------------------------------");
+
+		mainLog.println(Arrays.toString(res.solnProb));
+		mainLog.println(Arrays.toString(res.solnProg));
+		mainLog.println(Arrays.toString(res.solnCost));
 		return res;
 
 		//		return new AbstractMap.SimpleEntry<MDP,MDStrategy>(productMdp,(MDStrategy)res.strat); 
 
 	}
 
-	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc) throws PrismException
+	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc,double discount) throws PrismException
 
 	{
 		int maxIters = 10000;
 		MDPSimple productMdp = pc.pc.mdpCreator.mdp;
 		BitSet acc = pc.pc.mdpCreator.accStates;
 
-		ModelCheckerPartialSatResult res = computeOccupationFrequencyForPath(maxIters, mainLog, mc, productMdp, acc);
+		ModelCheckerPartialSatResult res = computeOccupationFrequencyForPath(maxIters, mainLog, mc, productMdp, acc,discount);
 
 		return res;
 
@@ -247,7 +249,7 @@ public class NVIExposed
 	 *            be given and is used for the exact values.
 	 */
 	protected ModelCheckerPartialSatResult computeNestedValIter(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
-			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals) throws PrismException
+			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals,double discount) throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
 		int i, n, iters, numYes, numNo;
@@ -350,7 +352,7 @@ public class NVIExposed
 			// solnCost[i] = soln2Cost[i] = initValCost;
 			solnProb[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
 			solnProg[i] = initValRew;
-			solnCost[i] = initValCost;
+			solnCost[i] =target.get(i)? 0.0: n*1000;//initValCost;
 		}
 
 		// Start iterations
@@ -366,7 +368,8 @@ public class NVIExposed
 			iters++;
 			done = true;
 			for (i = 0; i < n; i++) {
-				if (progStates.get(i)) {
+//				if (progStates.get(i)) {
+				if(!target.get(i)) {
 					if (saveVals) {
 						if (!stateActionProbValues.containsKey(i))
 							stateActionProbValues.put(i, new HashMap<Integer, Double>());
@@ -380,7 +383,7 @@ public class NVIExposed
 
 						currentProbVal = trimProdMdp.mvMultJacSingle(i, j, solnProb);
 						currentProgVal = trimProdMdp.mvMultRewSingle(i, j, solnProg, progRewards);
-						currentCostVal = trimProdMdp.mvMultRewSingle(i, j, solnCost, prodCosts);
+						currentCostVal =  mvMultRewSingleDiscount((MDPSimple)trimProdMdp,i, j, solnCost, prodCosts,discount);
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
@@ -390,38 +393,40 @@ public class NVIExposed
 							stateActionProgValues.get(i).put(j, currentProgVal);
 							stateActionCostValues.get(i).put(j, currentCostVal);
 						}
-						if (!sameProb && currentProbVal > solnProb[i]) {
-							done = false;
-							solnProb[i] = currentProbVal;
-							solnProg[i] = currentProgVal;
-							solnCost[i] = currentCostVal;
-
-							strat[i] = j;
-
-						} else {
-							if (sameProb) {
-								if (!sameProg && currentProgVal > solnProg[i]) {
-									done = false;
-
-									solnProg[i] = currentProgVal;
-									solnCost[i] = currentCostVal;
-
-									strat[i] = j;
-
-								} else {
-									if (sameProg) {
+//						if (!sameProb && currentProbVal > solnProb[i]) {
+//							done = false;
+//							solnProb[i] = currentProbVal;
+//							solnProg[i] = currentProgVal;
+//							solnCost[i] = currentCostVal;
+//
+//							strat[i] = j;
+//
+//						} 
+//						else {
+//							if (sameProb) {
+//								if (!sameProg && currentProgVal > solnProg[i]) {
+//									done = false;
+//
+//									solnProg[i] = currentProgVal;
+//									solnCost[i] = currentCostVal;
+//
+//									strat[i] = j;
+//
+//								} else {
+//									if (sameProg) {
 										if (!sameCost && currentCostVal < solnCost[i]) {
 											done = false;
-
+											solnProb[i] = currentProbVal;
+											solnProg[i] = currentProgVal;
 											solnCost[i] = currentCostVal;
 
 											strat[i] = j;
 
 										}
-									}
-								}
-							}
-						}
+//									}
+//								}
+//							}
+//						}
 					}
 				}
 			}
@@ -456,6 +461,31 @@ public class NVIExposed
 		return res;
 	}
 
+	public double mvMultRewSingleDiscount(MDPSimple mdp,int s, int i, double[] vect, MDPRewards mdpRewards,double discount)
+	{
+		double d, prob;
+		int k;
+
+//		Distribution distr 
+		Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, i);//trans.get(s).get(i);
+		// Compute sum for this distribution
+		// TODO: use transition rewards when added to DTMCss
+		// d = mcRewards.getTransitionReward(s);
+		d = 0;
+//		for (Map.Entry<Integer, Double> e : distr) {
+		Entry<Integer, Double> e;
+		while(tranIter.hasNext()) {
+			e = tranIter.next();
+			k = (Integer) e.getKey();
+			prob = (Double) e.getValue();
+			d += prob * vect[k];
+		}
+		d *= discount; 
+		d += mdpRewards.getTransitionReward(s, i);
+
+		
+		return d;
+	}
 	/**
 	 * Compute reachability probabilities using value iteration. Optionally, store
 	 * optimal (memoryless) strategy info.
@@ -479,7 +509,8 @@ public class NVIExposed
 	 *            be given and is used for the exact values.
 	 */
 
-	protected ModelCheckerPartialSatResult computeOccupationFrequencyForPath(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target)
+	protected ModelCheckerPartialSatResult computeOccupationFrequencyForPath(int maxIters, PrismLog mainLog,
+			MDPModelChecker mc, MDP trimProdMdp, BitSet target,double discount)
 			throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
@@ -533,9 +564,8 @@ public class NVIExposed
 			done = true;
 			for (i = 0; i < n; i++) {
 
-				if (trimProdMdp.isInitialState(i))
-					currentProbVal = 1;
-				else
+			
+				
 					currentProbVal = 0;
 				for (int i_ = 0; i_ < n; i_++) {
 					if (!target.get(i_)) {
@@ -556,7 +586,9 @@ public class NVIExposed
 					}
 				}
 				//currentProbVal += //trimProdMdp.mvMultJacSingle(i, j, solnProb);
-
+				currentProbVal *= discount;
+				if (trimProdMdp.isInitialState(i))
+					currentProbVal += 1;
 				sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 
 				if (!sameProb) {
