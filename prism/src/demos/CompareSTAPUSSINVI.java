@@ -319,20 +319,29 @@ public class CompareSTAPUSSINVI
 		int numFS = 1;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
+		String fn = "g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
+				//this is an example where ssi exp t > stapu "g20x4_r10_g10_fs80fs11_fsgen5_";//"g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
 		String resString = "";
 		int r = 2;//numRobots;
-		int g = 3;//numGoals;
+		int g = 6;//numGoals;
 
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
 		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-		robotNumbers.add(8); 
-		robotNumbers.add(5); 
+		robotNumbers.add(7); 
+		robotNumbers.add(2); 
+//		goalNumbers.add(5); 
+//		goalNumbers.add(4);
+//		goalNumbers.add(8);
+//		goalNumbers.add(1);
+//		goalNumbers.add(7);
+		goalNumbers.add(7); 
+		goalNumbers.add(3); 
 		goalNumbers.add(0); 
 		goalNumbers.add(4);
+		goalNumbers.add(6);
 		
 		int[] rgdf = new int[] { r, g, numDoors, numFS };
 		if (!results.get(fn).containsKey(rgdf))
