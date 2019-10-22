@@ -38,7 +38,6 @@ import strat.MDStrategyArray;
 public class JointPolicyBuilder
 {
 
-	
 	// elements
 	// store the joint policy - mdp
 	// things to help us remember stuff for the mdp
@@ -338,8 +337,8 @@ public class JointPolicyBuilder
 					currentJointState = currentJointStateProbPair.getKey();
 					boolean isAcc = this.isAcceptingState(currentJointState);
 
-//					if (currentJointState.toString().contains("0,0,1,-1,5"))
-//						mainLog.println("possible reallocation here");
+					//					if (currentJointState.toString().contains("0,0,1,-1,5"))
+					//						mainLog.println("possible reallocation here");
 					int stateIndex = findStateIndex(currentJointState);
 					boolean discovered = false;
 					//					boolean stateReset = false;
@@ -354,21 +353,31 @@ public class JointPolicyBuilder
 
 						int[] robotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(), mdp.getVarList());
 
+						if (isAcc) {
+							accStates.set(statesMap.get(currentJointState));
+							continue;
+						}
 						if (reallocateOnSingleAgentDeadend) {
 							if (currentJointState.compareTo(initialJointState) != 0) {
 								boolean reallocate = false;
+								boolean allDeadend = true;
 								//so in this state has a robot failed 
 								for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
-									reallocate = StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[i]);
+									boolean reallocateHere = StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[i]);
 
-									if (reallocate)
-										break;
+									allDeadend = allDeadend & reallocateHere;
+
+									if (!reallocate)
+										reallocate = reallocateHere;
+
 								}
 								if (reallocate) {
-									double probVar = currentJointStateProbPair.getValue();
-									StateExtended failState = new StateExtended(stateIndex, probVar);
-									this.failedStatesQueue.add(failState);
-									continue;
+									if (!allDeadend) {
+										double probVar = currentJointStateProbPair.getValue();
+										StateExtended failState = new StateExtended(stateIndex, probVar);
+										this.failedStatesQueue.add(failState);
+										continue;
+									}
 								}
 							}
 						}
@@ -480,23 +489,19 @@ public class JointPolicyBuilder
 						if (taskProgressionReward > 0) {
 							this.progressionRewardsHashMap.put(saPair, taskProgressionReward);
 						}
-						
-						for(int ri = 0; ri <summedStateActionRewards.size(); ri++)
-						{
-							if(summedStateActionRewards.get(ri)==0)
-							{
-								System.out.print("Why are the state rewards 0??");
+
+						for (int ri = 0; ri < summedStateActionRewards.size(); ri++) {
+							if (summedStateActionRewards.get(ri) == 0) {
+								if (!action.toString().contains("*") && !action.toString().contains("switch"))
+									System.out.println("Why are the state rewards 0??" + action.toString());
 							}
 						}
-						if(this.otherRewardsHashMap.containsKey(saPair))
-						{
-							
-								System.out.print("Your fears have been realised - the rewards are being replaced");
-								
-						}
-					
-						this.otherRewardsHashMap.put(saPair, summedStateActionRewards);
-						
+						if (this.otherRewardsHashMap.containsKey(saPair)) {
+
+							System.out.print("Your fears have been realised - the rewards are being replaced");
+
+						} else
+							this.otherRewardsHashMap.put(saPair, summedStateActionRewards);
 
 						//						saveMDP(jointMDP, "new");
 					} else {
@@ -509,10 +514,23 @@ public class JointPolicyBuilder
 							//
 							//so we've seen this state before right ? 
 							//okay so lets go ahead and add this state to our list 
-							double probVar = currentJointStateProbPair.getValue();
-							StateExtended failState = new StateExtended(stateIndex, probVar);
-							this.failedStatesQueue.add(failState);
+							int[] robotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(),
+									mdp.getVarList());
 
+							if (currentJointState.compareTo(initialJointState) != 0) {
+								boolean allDeadends = true;
+								//so in this state has a robot failed 
+								for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+									allDeadends &= StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[i]);
+									if (!allDeadends)
+										break;
+								}
+								if (!allDeadends) {
+									double probVar = currentJointStateProbPair.getValue();
+									StateExtended failState = new StateExtended(stateIndex, probVar);
+									this.failedStatesQueue.add(failState);
+								}
+							}
 						} else {
 							//							if (isAcc) {
 							accStates.set(statesMap.get(currentJointState));
