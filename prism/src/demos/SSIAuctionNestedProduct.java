@@ -166,6 +166,7 @@ public class SSIAuctionNestedProduct
 	{
 		double[] resultVals = resultValues(res2, mdp);
 		mainLog.println("\nFor p = " + resultVals[0] + ", max exp tasks completed: " + resultVals[1] + ", min sum of costs: " + resultVals[2]);
+		System.out.println(	"\nFor p = " + resultVals[0] + ", max exp tasks completed: " + resultVals[1] + ", min sum of costs: " + resultVals[2]);
 		return resultVals;
 	}
 
@@ -696,8 +697,12 @@ public class SSIAuctionNestedProduct
 			startTime = System.currentTimeMillis();
 			ArrayList<BitSet> singleAgentNPAccStates = new ArrayList<BitSet>();
 
+			mainLog.println("Solution from Planning:"); 
+			System.out.println("Solution from Planning:");
 			ArrayList<BitSet> statesToAvoid = getRobotPlansUsingNVINestedProduct(numRobots, robotsTasksBroken, rewExpr, productMDPs, mainLog, mcs, mdps, costRewards, saveplace, filename, prism,
 					nviStrategies, finalDAList, costsModels, singleAgentNPAccStates, fileLog);
+			mainLog.println("Solution from Planning above"); 
+			System.out.println("Solution from Planning above");
 			endTime = System.currentTimeMillis();
 			fileLog.println("Planning Time:" + (endTime - startTime));
 			startTime = System.currentTimeMillis();
@@ -720,7 +725,7 @@ public class SSIAuctionNestedProduct
 			fileLog.println("Joint Policy:" + (endTime - startTime));
 			int numPlanning = 0;
 			if (doingReallocs) {
-				numPlanning++;
+				
 				startTime = System.currentTimeMillis();
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
 						mdpInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
@@ -728,6 +733,7 @@ public class SSIAuctionNestedProduct
 				fileLog.println("Processed reallocation states:" + (endTime - startTime));
 				//so now we just repeat for each remainingTasks thing 
 				while (!reallocStatesPQ.isEmpty()) {
+					numPlanning++;
 					StateExtended currentSE = reallocStatesPQ.remove();
 					State ps = currentSE.getChildStateState();
 					double stateProb = currentSE.parentToChildTransitionProbability;
@@ -786,8 +792,10 @@ public class SSIAuctionNestedProduct
 						//					if (robotsTasksBroken.get(1).size() == 1)
 						//						continue;
 						startTime = System.currentTimeMillis();
+						System.out.println("Solution from Planning:");
 						statesToAvoid = getRobotPlansUsingNVINestedProduct(numRobots, robotsTasksBroken, rewExpr, productMDPs, mainLog, mcs, mdps, costRewards, saveplace,
 								filename, prism, nviStrategies, finalDAList, costsModels, singleAgentNPAccStates, fileLog);
+						System.out.println("Solution from Planning above");
 						for (int i = 0; i < productMDPs.size(); i++) {
 							if (productMDPs.get(i) != null)
 								ms += productMDPs.get(i).getStatesList().get(productMDPs.get(i).getFirstInitialState()) + " ";
@@ -814,6 +822,7 @@ public class SSIAuctionNestedProduct
 						resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
 								ssNames, prism, ps, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, stateProb,statesToAvoid);
 						endTime = System.currentTimeMillis();
+						mainLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
 						fileLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
 						startTime = System.currentTimeMillis();
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
@@ -830,6 +839,7 @@ public class SSIAuctionNestedProduct
 			endTime = System.currentTimeMillis();
 			fileLog.println("Finished:" + (endTime - superStartTime));
 
+			mainLog.println("Reallocated "+numPlanning+" times");
 			return resultValues(nviSol, mdpCreator.mdp);
 			//			return resultvalues;
 		} catch (Exception e) {
@@ -851,6 +861,11 @@ public class SSIAuctionNestedProduct
 					mcs.get(rnum).getModulesFile().getConstantValues());
 			MDPRewardsSimple costsModel = (MDPRewardsSimple) mcs.get(rnum).constructRewards(mdps.get(rnum), costStruct);
 			costsModels.add(costsModel);
+			MDPSimple model = mdps.get(rnum);
+			System.out.println("Initial State: "+model.getStatesList().get(model.getFirstInitialState())); 
+			System.out.println("First action name: "+model.getAction(model.getFirstInitialState(), 0).toString());
+			System.out.println("Reward for first action "+costsModel.getTransitionReward(model.getFirstInitialState(), 0));
+
 		}
 	}
 

@@ -21,7 +21,8 @@ import parser.ast.Expression;
 import prism.PrismException;
 import prism.PrismLog;
 
-public class SequentialTeamMDP {
+public class SequentialTeamMDP
+{
 	/**
 	 * 
 	 */
@@ -46,8 +47,8 @@ public class SequentialTeamMDP {
 	public int numRobots;
 	private ArrayList<String> sharedVarList;
 
-
-	public SequentialTeamMDP(PrismLog mainLogRef, int nRobots, boolean useSharedStatesInSwitches) {
+	public SequentialTeamMDP(PrismLog mainLogRef, int nRobots, boolean useSharedStatesInSwitches)
+	{
 		// this.stapu = stapu;
 		essentialStates = new Vector<BitSet>();
 		initialStates = new Vector<BitSet>();
@@ -57,8 +58,8 @@ public class SequentialTeamMDP {
 		this.sharedVarIndices = new Vector<Integer>();
 	}
 
-	public void addSwitchesAndSetInitialState(int firstRobot, boolean includefailstatesinswitches,boolean completeRing)
-			throws PrismException {
+	public void addSwitchesAndSetInitialState(int firstRobot, boolean includefailstatesinswitches, boolean completeRing,boolean excludeRobotInitStates) throws PrismException
+	{
 		int[] robotStates = new int[numRobots];
 		for (int i = 0; i < numRobots; i++) {
 			// these are not the real states but just states that reflect the mdp state
@@ -66,11 +67,11 @@ public class SequentialTeamMDP {
 			// it is a silly thing to do and should be fixed
 			robotStates[i] = initialStates.get(i).nextSetBit(0);
 		}
-		addSwitchesAndSetInitialState(firstRobot, robotStates, includefailstatesinswitches,completeRing);
+		addSwitchesAndSetInitialState(firstRobot, robotStates, includefailstatesinswitches, completeRing,excludeRobotInitStates);
 	}
 
-	public void addSwitchesAndSetInitialState(int firstRobot, int[] robotStates, boolean includefailstates,boolean completeRing)
-			throws PrismException {
+	public void addSwitchesAndSetInitialState(int firstRobot, int[] robotStates, boolean includefailstates, boolean completeRing,boolean excludeRobotInitStates) throws PrismException
+	{
 		// set initial state as those from the first robot
 		// you still need to check if the robot has failed
 		initializeTeamMDPFromTemplate();
@@ -85,7 +86,7 @@ public class SequentialTeamMDP {
 			// check if there are any deadend states
 			//replaced failstate check with deadend states 
 			isFailedState[i] = StatesHelper.stateIsDeadend(teamMDPTemplate, robotStates[i]);
-					//StatesHelper.isFailState(teamMDPTemplate.getStatesList().get(robotStates[i]));
+			//StatesHelper.isFailState(teamMDPTemplate.getStatesList().get(robotStates[i]));
 			// also if you have an initial state that is an accepting state
 			// you need to figure out what to do with it
 			// because it could be the first robot - which is fine cuz thats the initial
@@ -99,11 +100,12 @@ public class SequentialTeamMDP {
 			// TODO: INITIAL STATE STUFF FOR LATER see above
 		}
 
-		addSwitchTransitions(firstRobot, isFailedState, includefailstates,completeRing);
+		addSwitchTransitions(firstRobot, isFailedState, includefailstates, completeRing,excludeRobotInitStates);
 	}
 
-	public int addSwitchTransitions(int firstRobot, boolean[] hasFailed, boolean includefailstates,boolean completeRing)
-			throws PrismException {
+	public int addSwitchTransitions(int firstRobot, boolean[] hasFailed, boolean includefailstates, boolean completeRing, boolean excludeRobotInitStates)
+			throws PrismException
+	{
 
 		int totalSwitches = 0;
 		boolean addSwitches = true; // just going to use this to make sure that the first robot doesnt get a switch
@@ -112,7 +114,7 @@ public class SequentialTeamMDP {
 			int toRobot = (r + 1) % numRobots;
 			// dont add switches to the first robot
 			if (!completeRing)
-			addSwitches = (toRobot != firstRobot);
+				addSwitches = (toRobot != firstRobot);
 			if (addSwitches) {
 
 				BitSet fromRobotEssentialStates = (BitSet) essentialStates.get(fromRobot).clone();
@@ -120,23 +122,27 @@ public class SequentialTeamMDP {
 					fromRobotEssentialStates = initialStates.get(fromRobot);
 				// adding an else so we have switch states from intial states too
 				else {
-					fromRobotEssentialStates.or(initialStates.get(fromRobot));
+					if (!excludeRobotInitStates) {
+						//					if(fromRobot != firstRobot)
+						//					fromRobotEssentialStates.or(initialStates.get(fromRobot));}
+						//					else
+						fromRobotEssentialStates.or(initialStates.get(fromRobot));
+					}
 					if (includefailstates) {
 						fromRobotEssentialStates.or(failStates.get(fromRobot));
 					}
 				}
 
 				BitSet toRobotInitialStates = initialStates.get(toRobot);
-				totalSwitches += addSwitchTransitionsBetweenRobots(toRobot, fromRobot, fromRobotEssentialStates,
-						toRobotInitialStates);
+				totalSwitches += addSwitchTransitionsBetweenRobots(toRobot, fromRobot, fromRobotEssentialStates, toRobotInitialStates);
 			}
 		}
 		teamMDPWithSwitches.findDeadlocks(true);
 		return totalSwitches;
 	}
 
-	private int addSwitchTransitionsBetweenRobots(int toRobot, int fromRobot, BitSet fromRobotEssentialStates,
-			BitSet toRobotInitialStates) {
+	private int addSwitchTransitionsBetweenRobots(int toRobot, int fromRobot, BitSet fromRobotEssentialStates, BitSet toRobotInitialStates)
+	{
 		// from the essential states of from robot
 		// to the initial states of to robot
 		int totalSwitches = 0;
@@ -152,19 +158,16 @@ public class SequentialTeamMDP {
 
 				State toRobotStateVar = teamMDPTemplate.getStatesList().get(toRobotState);
 				// add a link if the automaton progress is the same
-				boolean stateVarsMatch = StatesHelper.statesHaveTheSameAutomataProgress(fromRobotStateVar,
-						toRobotStateVar);
+				boolean stateVarsMatch = StatesHelper.statesHaveTheSameAutomataProgress(fromRobotStateVar, toRobotStateVar);
 				if (this.switchesMatchSharedStatesToo) {
-					stateVarsMatch = stateVarsMatch
-							&& StatesHelper.areEqual(fromRobotStateVar, toRobotStateVar, sharedVarIndices);
+					stateVarsMatch = stateVarsMatch && StatesHelper.areEqual(fromRobotStateVar, toRobotStateVar, sharedVarIndices);
 				}
-//				if(fromRobotState==6720)
-//					mainLog.println("check here");
+				//				if(fromRobotState==6720)
+				//					mainLog.println("check here");
 				if (stateVarsMatch) {
 					Distribution distr = new Distribution();
 					distr.add(toRobotState, switchProb);
-					teamMDPWithSwitches.addActionLabelledChoice(fromRobotState, distr,
-							"switch_" + fromRobot + "-" + toRobot);
+					teamMDPWithSwitches.addActionLabelledChoice(fromRobotState, distr, "switch_" + fromRobot + "-" + toRobot);
 					// TODO check if we need a reward for a switch
 					for (int i = 0; i < rewardsWithSwitches.size(); i++) {
 						int numChoice = teamMDPWithSwitches.getNumChoices(fromRobotState) - 1;
@@ -190,8 +193,9 @@ public class SequentialTeamMDP {
 		return totalSwitches;
 	}
 
-	public SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs,
-			ArrayList<String> sharedVarList) throws PrismException {
+	public SequentialTeamMDP buildSequentialTeamMDPTemplate(ArrayList<SingleAgentNestedProductMDP> agentMDPs, ArrayList<String> sharedVarList)
+			throws PrismException
+	{
 
 		// SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this, agentMDPs.size());
 		this.agentMDPs = agentMDPs;
@@ -221,25 +225,22 @@ public class SequentialTeamMDP {
 		MDP productMDP = agentMDPs.get(0).finalProduct.getProductModel();
 		if (productMDP.getVarList() != null) {
 			teamMDPVarList = new VarList();
-			String daVar="r"; 
+			String daVar = "r";
 			DeclarationInt daint;// = new DeclarationInt(Expression.Int(0), Expression.Int(Math.max(numRobots - 1, 1)));
 			Declaration decl;// = new Declaration(daVar, daint);
 
 			int prodMDPNumVars = productMDP.getVarList().getNumVars();
-			int daCount = 0; 
-			for(int i = 0;i<prodMDPNumVars;i++)
-			{
-				daVar = productMDP.getVarList().getName(i); 
-				decl = productMDP.getVarList().getDeclaration(i); 
-				if(daVar.contains("da"))
-				{
-				decl.setName("da"+daCount);
-				daCount++;
+			int daCount = 0;
+			for (int i = 0; i < prodMDPNumVars; i++) {
+				daVar = productMDP.getVarList().getName(i);
+				decl = productMDP.getVarList().getDeclaration(i);
+				if (daVar.contains("da")) {
+					decl.setName("da" + daCount);
+					daCount++;
 				}
-				
-				teamMDPVarList.addVar( decl,productMDP.getVarList().getModule(i),productMDP.getConstantValues());
+
+				teamMDPVarList.addVar(decl, productMDP.getVarList().getModule(i), productMDP.getConstantValues());
 			}
-	
 
 			//String
 			daVar = "r";// "_da"; // TODO: come back to fix this
@@ -296,7 +297,6 @@ public class SequentialTeamMDP {
 		BitSet statesToAvoid = new BitSet(numTeamStates); // for the team mdp they are bad for r1 || bad for r2 || bad
 															// for r3
 
-
 		int numStates = 0;
 		int numChoices;
 		double expectedProgRewardValue = 1.0;
@@ -306,11 +306,10 @@ public class SequentialTeamMDP {
 
 		for (int r = 0; r < agentMDPs.size(); r++) {
 
-	
 			SingleAgentNestedProductMDP singleAgentNestedMDP = agentMDPs.get(r);
 			// BitSet allAcceptingStates = singleAgentNestedMDP.getAllAcceptingStates();
 			BitSet essentialStates = new BitSet(numTeamStates);
-			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates(this.switchesMatchSharedStatesToo,sharedVarList);
+			BitSet agentInitialStates = singleAgentNestedMDP.getInitialStates(this.switchesMatchSharedStatesToo, sharedVarList);
 			BitSet agentInitialStatesInTeam = new BitSet(numTeamStates);
 			BitSet agentFailStates = new BitSet();
 
@@ -361,14 +360,13 @@ public class SequentialTeamMDP {
 
 				Iterator<Map.Entry<Integer, Double>> iter;
 
-				 
 				for (int j = 0; j < numChoices; j++) {
 					boolean addProgReward = false;
-//				int ssCount = 0;
+					//				int ssCount = 0;
 					iter = agentMDP.getTransitionsIterator(s, j);
 					Distribution distr = new Distribution();
 					while (iter.hasNext()) {
-//						ssCount++; 
+						//						ssCount++; 
 						Entry<Integer, Double> nextStatePair = iter.next();
 						int nextState = nextStatePair.getKey();
 						double nextStateProb = nextStatePair.getValue();
@@ -378,8 +376,7 @@ public class SequentialTeamMDP {
 
 							teamMDP.addState();
 							if (teamMDPStatesList != null) {
-								teamMDPStatesList
-										.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(nextState)));
+								teamMDPStatesList.add(new State(robotNumList.get(r), agentMDP.getStatesList().get(nextState)));
 							}
 
 							map[nextState] = indexInTeamNextState;
@@ -394,40 +391,37 @@ public class SequentialTeamMDP {
 								expectedProgRewardValue = nextStateProb * progRewardFixedValue;
 							}
 						}
-	
+
 						distr.add(indexInTeamNextState, nextStateProb);
 					}
 					Object action = agentMDP.getAction(s, j);
 					teamMDP.addActionLabelledChoice(indexInTeamState, distr, action);
-//					boolean isDeadend = StatesHelper.stateIsDeadend(agentMDP, s);
+					//					boolean isDeadend = StatesHelper.stateIsDeadend(agentMDP, s);
 
 					int transitionNum = teamMDP.getNumChoices(indexInTeamState) - 1;
 					for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 						int daNum = rewardNumToCorrespondingDA.get(rew);
-						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;				 
-						
+						MDPRewardsSimple rewardStruct = singleAgentNestedMDP.daList.get(daNum).costsModel;
+
 						int singleAgentState = singleAgentNestedMDP.productStateToMDPState.get(s);
-						double rewardHere = rewardStruct
-								.getTransitionReward(singleAgentState, j);
+						double rewardHere = rewardStruct.getTransitionReward(singleAgentState, j);
 
 						//if its a deadend state set the reward to 0 
 
-//						if(isDeadend)
-//							rewardHere = 0.0;
-						
+						//						if(isDeadend)
+						//							rewardHere = 0.0;
+
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 
 					}
 					if (addProgReward) {
-						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum,
-								expectedProgRewardValue);
+						this.progressionRewards.addToTransitionReward(indexInTeamState, transitionNum, expectedProgRewardValue);
 					}
 
 				}
 				for (int rew = 0; rew < teamRewardsList.size(); rew++) {
 					int daNum = rewardNumToCorrespondingDA.get(rew);
-					double rewardHere = singleAgentNestedMDP.daList.get(daNum).costsModel
-							.getStateReward(singleAgentNestedMDP.productStateToMDPState.get(s));
+					double rewardHere = singleAgentNestedMDP.daList.get(daNum).costsModel.getStateReward(singleAgentNestedMDP.productStateToMDPState.get(s));
 					teamRewardsList.get(rew).addToStateReward(indexInTeamState, rewardHere);
 				}
 
@@ -454,7 +448,8 @@ public class SequentialTeamMDP {
 
 	}
 
-	private BitSet convertAgentMDPStateToTeamState(BitSet agentStates, int r) {
+	private BitSet convertAgentMDPStateToTeamState(BitSet agentStates, int r)
+	{
 		BitSet teamStates = new BitSet();
 
 		int setBit = agentStates.nextSetBit(0);
@@ -472,7 +467,8 @@ public class SequentialTeamMDP {
 
 	}
 
-	public int getNestedProductStateFromTeamState(int state, int rNum) {
+	public int getNestedProductStateFromTeamState(int state, int rNum)
+	{
 		int nestedProductState = StatesHelper.BADVALUE;
 		int[] mapping = agentMDPsToSeqTeamMDPStateMapping.get(rNum);
 		for (int agentState = 0; agentState < mapping.length; agentState++) {
@@ -484,7 +480,8 @@ public class SequentialTeamMDP {
 		return nestedProductState;
 	}
 
-	public void initializeTeamMDPFromTemplate() {
+	public void initializeTeamMDPFromTemplate()
+	{
 		teamMDPWithSwitches = new MDPSimple(teamMDPTemplate);
 		teamMDPWithSwitches.setStatesList(teamMDPTemplate.getStatesList());
 		rewardsWithSwitches = new ArrayList<MDPRewardsSimple>(teamRewardsTemplate);
@@ -494,14 +491,14 @@ public class SequentialTeamMDP {
 
 	}
 
-	public void setInitialStates(int[] robotStates) {
+	public void setInitialStates(int[] robotStates)
+	{
 		initialStates = new Vector<BitSet>();
 		for (int r = 0; r < robotStates.length; r++) {
 			SingleAgentNestedProductMDP mdp = agentMDPs.get(r);
 			int nestedProductState = getNestedProductStateFromTeamState(robotStates[r], r);
-			BitSet initialStatesForRobot = mdp.getAndSetInitialStates(nestedProductState, false,this.switchesMatchSharedStatesToo,this.sharedVarList);
-			BitSet initialStatesForRobotInTeam = (BitSet) convertAgentMDPStateToTeamState(initialStatesForRobot, r)
-					.clone();
+			BitSet initialStatesForRobot = mdp.getAndSetInitialStates(nestedProductState, false, this.switchesMatchSharedStatesToo, this.sharedVarList);
+			BitSet initialStatesForRobotInTeam = (BitSet) convertAgentMDPStateToTeamState(initialStatesForRobot, r).clone();
 			// if (initialStates.size() > r)
 			// initialStates.set(r, initialStatesForRobot);
 			// else

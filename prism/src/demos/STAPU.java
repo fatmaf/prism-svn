@@ -84,11 +84,14 @@ public class STAPU
 		int maxRobots = 2;
 		int maxGoals = 3;
 		PrismLog fileLog = new PrismDevNullLog();
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog,null);
+		boolean excludeRobotInitStates = false;
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog, null,
+				excludeRobotInitStates);
 		fn = "testingmaxexprewfs4";
 		numFS = 4;
 		numDoors = 0;
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog,null);
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog, null,
+				excludeRobotInitStates);
 		fileLog.close();
 	}
 
@@ -136,7 +139,7 @@ public class STAPU
 		for (int daNum = 0; daNum < daList.size(); daNum++) {
 			DAInfo daInfo = new DAInfo(daList.get(daNum));
 
-			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true);
+			product = daInfo.constructDAandProductModel(mcLTL, mcProb, modulesFile, allowedAcceptance, productMDP, null, true, (MDP) model);
 			daInfo.associatedIndexInProduct++; //should go to zero from -1 
 
 			productMDP = product.getProductModel();
@@ -211,6 +214,7 @@ public class STAPU
 
 			}
 			mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
+			System.out.println("\nFor p = " + maxProb + ", rewards " + resString);
 		}
 		return res2;
 	}
@@ -232,7 +236,7 @@ public class STAPU
 	protected double[] doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
 			boolean completeSwitchRing, int numGoals, boolean noReallocs, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend,
-			PrismLog fileLog) throws PrismException
+			PrismLog fileLog, boolean excludeRobotInitStates) throws PrismException
 	{
 
 		resSaver.recordTime("total models loading time", varIDs.totalmodelloadingtime, false);
@@ -297,7 +301,7 @@ public class STAPU
 
 		int firstRobot = 0; // fix this
 
-		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+		seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing, excludeRobotInitStates);
 		endTime = System.currentTimeMillis();
 		fileLog.println("Built Team MDP with Switches: " + (endTime - startTime));
 		resSaver.recordTime("Team MDP Time", varIDs.teammdptimeonly, true);
@@ -331,8 +335,10 @@ public class STAPU
 		resSaver.setScopeStartTime();
 		startTime = System.currentTimeMillis();
 
+		System.out.println("Solution from planning:");
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+		System.out.println("Solution from planning above");
 		endTime = System.currentTimeMillis();
 		fileLog.println("NVI solution: " + (endTime - startTime));
 		resSaver.recordTime("First Solution", varIDs.reallocations, true);
@@ -366,6 +372,7 @@ public class STAPU
 		// update switches
 		// solve
 		// add to joint policy
+//		ArrayList<State> reallocatedStates = new ArrayList<State>();
 		if (!noReallocs) {
 			int numPlanning = 1;
 			while (jointPolicyBuilder.hasFailedStates()) {
@@ -376,6 +383,17 @@ public class STAPU
 
 				if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
 
+//					if (reallocatedStates.contains(stateToExplore))
+//
+//					{
+//						mainLog.println("Repeating state: " + stateToExplore.toString());
+//						mainLog.println("Repeating state: " + stateToExplore.toString());
+//						mainLog.println("Repeating state: " + stateToExplore.toString());
+//						mainLog.println("Repeating state: " + stateToExplore.toString());
+//						mainLog.println("Repeating state: " + stateToExplore.toString());
+//
+//					} else
+//						reallocatedStates.add(stateToExplore);
 					// get first failed robot
 					numPlanning++;
 					resSaver.recordValues(numPlanning, "Realloc", varIDs.numreallocationsincode);
@@ -386,7 +404,7 @@ public class STAPU
 					firstRobot = jointPolicyBuilder.getFirstFailedRobotFromRobotStates(robotStates, seqTeamMDP.teamMDPWithSwitches);
 
 					seqTeamMDP.setInitialStates(robotStates);
-					seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing);
+					seqTeamMDP.addSwitchesAndSetInitialState(firstRobot, includefailstatesinswitches, completeSwitchRing, excludeRobotInitStates);
 
 					if (statesToAvoid == null)
 						statesToAvoid = seqTeamMDP.statesToAvoid;
@@ -397,8 +415,10 @@ public class STAPU
 					endTime = System.currentTimeMillis();
 					fileLog.println("Realloc" + numPlanning + " team mdp time: " + (endTime - startTime));
 					startTime = System.currentTimeMillis();
+					System.out.println("Solution from planning:"+stateToExplore.toString());
 					solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
 							probPreference);// ,probInitVals);
+					System.out.println("Solution from planning above");
 					endTime = System.currentTimeMillis();
 					fileLog.println("Realloc" + numPlanning + " solution: " + (endTime - startTime));
 					resSaver.recordTime("Solution Time", varIDs.reallocations, true);
@@ -562,8 +582,8 @@ public class STAPU
 	}
 
 	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noReallocations,
-			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog,
-			String mainLogfn)
+			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog, String mainLogfn,
+			boolean excludeRobotInitStates)
 	{
 
 		double[] res = null;
@@ -602,7 +622,7 @@ public class STAPU
 
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals,
 						example_num_fs_list, modelLocation, true, dir + "results/stapu", noReallocations, robotNumbers, goalNumbers,
-						reallocateOnSingleAgentDeadend, fileLog,mainLogfn);
+						reallocateOnSingleAgentDeadend, fileLog, mainLogfn, excludeRobotInitStates);
 				endTime = System.currentTimeMillis();
 				fileLog.println("Finished: " + (endTime - startTime));
 			} catch (Exception e) {
@@ -624,7 +644,7 @@ public class STAPU
 
 			HashMap<String, Integer> example_num_door_list, int numRobots, int numGoals, HashMap<String, Integer> example_num_fs_list, String modelLocation,
 			boolean doorVarNameHas0, String resLoc, boolean noReallocs, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
-			boolean reallocateOnSingleAgentDeadend, PrismLog fileLog,String mainLogfn)
+			boolean reallocateOnSingleAgentDeadend, PrismLog fileLog, String mainLogfn, boolean excludeRobotInitStates)
 
 			throws PrismException, FileNotFoundException
 	{
@@ -687,7 +707,7 @@ public class STAPU
 		// Create a log for PRISM output (hidden or stdout)
 		// PrismLog mainLog = new PrismDevNullLog();
 		PrismLog mainLog = new PrismFileLog("stdout");
-		if(mainLogfn!=null)
+		if (mainLogfn != null)
 			mainLog = new PrismFileLog(mainLogfn);
 		this.mainLog = mainLog;
 		StatesHelper.mainLog = mainLog;
@@ -744,7 +764,8 @@ public class STAPU
 		StatesHelper.setNumMDPVars(maxMDPVars);
 
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
-				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog);
+				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
+				excludeRobotInitStates);
 
 		resSaver.writeResults();
 		// Close down PRISM
