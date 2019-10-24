@@ -336,8 +336,8 @@ class GeneratePrismFile(object):
         if pfr.modVars is None:
             pfr.modVars = []
         [gmod,pfr,smap] = self.createActionsFromLists(pfr,gmod,xside,yside,varname,initStates,blockedStates,failstates,connectedStates,doFour)
-        for pa in gmod.actions:
-            print pa.prismStringReward(rewName)
+        #for pa in gmod.actions:
+        #    print pa.prismStringReward(rewName)
         pfr.modVars.append(gmod)
         updatedDoorStates = [] 
         for ds in doorStates:
