@@ -1,7 +1,9 @@
 package demos;
 
+import java.util.Comparator;
 import java.util.HashMap;
 
+import demos.StateInformation.ValueLabel;
 import parser.State;
 
 public class StateInformation
@@ -140,3 +142,5 @@ public class StateInformation
 	}
 
 }
+
+
