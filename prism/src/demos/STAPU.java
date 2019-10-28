@@ -56,10 +56,12 @@ public class STAPU
 	public static void main(String[] args)
 	{
 
-		boolean reallocOnFirstRobotDeadend = false;
+		boolean reallocOnFirstRobotDeadend = true;
+		boolean excludeRobotInitStates = false;
 		STAPU stapu = new STAPU();
 		//		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
-		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSI/";
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
+		dir=dir+"simpleTests/";//"compareSTAPUSSI/";
 		int numRobots = 2;
 		int numFS = 1;
 		int numGoals = 4;
@@ -68,30 +70,47 @@ public class STAPU
 
 		String resString = "";
 
-		numRobots = 2;
+//		numRobots = 2;
+//		numFS = 0;//5;//1;
+//		numGoals = 3;//6;//4;
+//		numDoors = 2;//2;
+//		fn = "andar_r2_g3_d2_fs0";
+//
+//		//
+//		//		numRobots = 8;
+//		//		numFS = 0;//5;//1;
+//		//		numGoals = 10;//6;//4;
+//		//		numDoors = 4;//2;
+//		//		fn = "andar_r8_g10_d4_fs0";
+		
+		numRobots = 10;
 		numFS = 0;//5;//1;
-		numGoals = 3;//6;//4;
-		numDoors = 2;//2;
-		fn = "andar_r2_g3_d2_fs0";
+		numGoals = 11;//6;//4;
+		numDoors = 0;//2;
+		fn = "g19x5_r10_t11_d0_fs0";
+		
 
-		//
-		//		numRobots = 8;
-		//		numFS = 0;//5;//1;
-		//		numGoals = 10;//6;//4;
-		//		numDoors = 4;//2;
-		//		fn = "andar_r8_g10_d4_fs0";
 
-		int maxRobots = 2;
+		int maxRobots = 4;
 		int maxGoals = 3;
 		PrismLog fileLog = new PrismDevNullLog();
-		boolean excludeRobotInitStates = false;
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog, null,
+
+		
+		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
+		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+		
+		robotNumbers.add(8); 
+		robotNumbers.add(6);
+		robotNumbers.add(0); 
+		robotNumbers.add(7);
+		
+		goalNumbers.add(1);
+		goalNumbers.add(3);
+		
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, null,
 				excludeRobotInitStates);
-		fn = "testingmaxexprewfs4";
-		numFS = 4;
-		numDoors = 0;
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, null, null, reallocOnFirstRobotDeadend, fileLog, null,
-				excludeRobotInitStates);
+	
 		fileLog.close();
 	}
 
@@ -424,7 +443,7 @@ public class STAPU
 					resSaver.recordTime("Solution Time", varIDs.reallocations, true);
 					resSaver.setScopeStartTime();
 					startTime = System.currentTimeMillis();
-					jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore,
+					jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore,seqTeamMDP.acceptingStates,
 							reallocateOnSingleAgentDeadend);
 					endTime = System.currentTimeMillis();
 					fileLog.println("Realloc" + numPlanning + " joint policy: " + (endTime - startTime));
