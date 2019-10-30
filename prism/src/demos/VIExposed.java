@@ -36,7 +36,7 @@ import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategyArray;
 
-public class NVIExposed
+public class VIExposed
 {
 
 	public HashMap<Integer, HashMap<Integer, Double>> stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();

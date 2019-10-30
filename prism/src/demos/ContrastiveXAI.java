@@ -9,6 +9,7 @@ import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -112,6 +113,17 @@ public class ContrastiveXAI
 
 		//find the variable which is the da 
 		VarList vl = mdp.getVarList();
+		setDAVarInd(vl);
+		if (daVarInd != -1) {
+			return (int) s.varValues[daVarInd];
+		} else {
+			throw new PrismException("no da variable!!!");
+		}
+	}
+
+	public void setDAVarInd(VarList vl)
+	{
+
 		if (daVarInd == -1) {
 			for (int i = 0; i < vl.getNumVars(); i++) {
 				String name = vl.getName(i);
@@ -121,11 +133,21 @@ public class ContrastiveXAI
 				}
 			}
 		}
-		if (daVarInd != -1) {
-			return (int) s.varValues[daVarInd];
-		} else {
-			throw new PrismException("no da variable!!!");
+	}
+
+	State getMDPState(VarList vl, State s)
+	{
+		if (daVarInd == -1)
+			setDAVarInd(vl);
+		State toret = new State(vl.getNumVars() - 1);
+		int j = 0;
+		for (int i = 0; i < vl.getNumVars(); i++) {
+			if (i != daVarInd) {
+				toret.setValue(j, s.varValues[i]);
+				j++;
+			}
 		}
+		return toret;
 	}
 
 	int getStateIndex(MDP mdp, State s)
@@ -173,6 +195,138 @@ public class ContrastiveXAI
 		return aI;
 	}
 
+	public void identifySwingStates() throws Exception
+	{
+
+		//example 
+		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/xaiTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
+		String filename = "xai_r1_d1_g1_key";//"xai_r1_d1_g1_key";//_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
+
+		HashMap<String, Double> discountVals = new HashMap<String, Double>();
+		discountVals.put("xai_r1_d1_g1", 1.0);
+		discountVals.put("xai_r1_d1_g1_key", 0.9);
+
+		double discount = discountVals.get(filename);
+
+		//load model 
+		readModel(saveplace, filename);
+
+		//get distance for mdp states 
+		HashMap<State, HashMap<State, Double>> mdpDistshm = mdpDijkstra(mdp);
+		//process reward
+		ExpressionReward exprRew = (ExpressionReward) propertiesFile.getProperty(0);
+		mainLog.println(exprRew.toString());
+
+		//preparing to get the optimal policy 
+		setMCExportOptionsAll(saveplace, filename);
+
+		Expression expr = exprRew.getExpression();
+
+		VIExposed vi = new VIExposed();
+		ModelCheckerPartialSatResult optimalPolicy = vi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc, discount);
+
+		//save the product mdp 
+		PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
+		vi.productmdp.exportToDotFile(pfl, null, true);
+		pfl.close();
+
+		//now create a path from the optimal policy 
+		PathCreator optimalPolicyPaths = new PathCreator();
+		optimalPolicyPaths.createPathPolicy(0, vi.productmdp, optimalPolicy.strat, saveplace + "results/", "xai_" + filename + "optimalPath", vi.progRewards,
+				vi.costRewards, vi.accStates);
+		HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances = calculateStateDistances(optimalPolicyPaths, mdpDistshm);
+
+		//first we need to identify the "swing" states 
+		ArrayList<StateInformation> ssQ = getMostInfluentialStatesListByCost(vi, discount, optimalPolicyPaths);
+
+		//so now we have these ranked 
+		//so lets print out the most influential one 
+		for (int i = 0; i < ssQ.size(); i++) {
+
+			System.out.println(ssQ.get(i));
+		}
+		//so the swing states are kind of at the ends of the list 
+		//so we'll just pick those 
+		StateInformation ssTop = ssQ.get(0);
+		StateInformation ssBottom = ssQ.get(ssQ.size() - 1);
+		listClosestStatesToState(ssTop,optimalPolicyStateDistances,optimalPolicyPaths); 
+		
+		listClosestStatesToState(ssBottom,optimalPolicyStateDistances,optimalPolicyPaths); 
+
+
+		PathCreator alternatePolicyPaths = createAlternatePath(filename, vi, optimalPolicy, saveplace);
+		ArrayList<StateInformation> alternateSSQ = getMostInfluentialStatesListByCost(vi, discount, alternatePolicyPaths);
+
+		for (int i = 0; i < alternateSSQ.size(); i++) {
+
+			System.out.println(alternateSSQ.get(i));
+		}
+		HashMap<State, ArrayList<Entry<State, Double>>> alternatePolicyStateDistances = calculateStateDistances(alternatePolicyPaths, mdpDistshm);
+		StateInformation ssTopAlt = alternateSSQ.get(0);
+		StateInformation ssBottomAlt = alternateSSQ.get(alternateSSQ.size() - 1);
+		listClosestStatesToState(ssTopAlt,alternatePolicyStateDistances,alternatePolicyPaths); 
+
+		listClosestStatesToState(ssBottomAlt,alternatePolicyStateDistances,alternatePolicyPaths); 
+
+	}
+	
+
+	public void listClosestStatesToState(StateInformation ssTop,HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,PathCreator optimalPolicyPaths)
+	{
+		//for these two we want the closest states 
+		double prevdist = 0; 
+		ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
+		for (Entry<State, Double> e : ssTopDistances) {
+			State s = e.getKey();
+			Object a = optimalPolicyPaths.getStateAction(s);
+			String aStr = "";
+			if (a != null)
+				aStr = a.toString();
+			if(Math.abs(prevdist-e.getValue()) > 100)
+				break; 
+			else 
+				prevdist = e.getValue(); 
+			System.out.println(e + ":" + aStr);
+			
+		}
+	}
+	public PathCreator createAlternatePath(String filename, VIExposed vi, ModelCheckerPartialSatResult optimalPolicy, String saveplace) throws PrismException
+	{
+		PathCreator alternativePolicyPath = new PathCreator();
+		ArrayList<Integer> prefixStates = new ArrayList<Integer>();
+		ArrayList<Integer> prefixActions = new ArrayList<Integer>();
+		if (filename.contains("key")) {
+			prefixStates.add(1);
+			prefixActions.add(0);
+			prefixStates.add(2);
+			prefixActions.add(3);
+			prefixStates.add(5);
+			prefixActions.add(3);
+
+		} else {
+			prefixStates.add(0);
+			prefixActions.add(2);
+			prefixStates.add(3);
+			prefixActions.add(6);
+			prefixStates.add(4);
+			prefixActions.add(2);
+		}
+		alternativePolicyPath.creatPath(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
+				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates);
+		return alternativePolicyPath;
+	}
+
+	public ArrayList<StateInformation> getMostInfluentialStatesListByCost(VIExposed vi, double discount, PathCreator policyPaths) throws PrismException
+	{
+		ModelCheckerPartialSatResult policyVI = vi.doPathNVI(prism, mainLog, policyPaths, mc, discount);
+		ModelCheckerPartialSatResult policyOccFreq = vi.doPathOccupancyFreq(prism, mainLog, policyPaths, mc, discount);
+
+		PolicyPath policyPathTree = traversePath(policyPaths, policyVI, policyOccFreq);
+		doActionValuesDifference(policyPathTree);
+		ArrayList<StateInformation> mostInfluentialStatesQ = getMostInfluentialStatesListByCost(policyPathTree);
+		return mostInfluentialStatesQ;
+	}
+
 	public void doStuff() throws Exception
 	{
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/xaiTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
@@ -196,7 +350,7 @@ public class ContrastiveXAI
 
 		Expression expr = exprRew.getExpression();
 
-		NVIExposed nvi = new NVIExposed();
+		VIExposed nvi = new VIExposed();
 		ModelCheckerPartialSatResult res = nvi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc, discount);
 		PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
 		nvi.productmdp.exportToDotFile(pfl, null, true);
@@ -204,7 +358,7 @@ public class ContrastiveXAI
 		PathCreator pathO = new PathCreator();
 		pathO.createPathPolicy(0, nvi.productmdp, res.strat, saveplace + "results/", "xai_" + filename + "_path" + 0, nvi.progRewards, nvi.costRewards,
 				nvi.accStates);
-		HashMap<State, PriorityQueue<Entry<State, Double>>> pathOdists = calculateStateDistances(pathO, mdpDistshm);
+		HashMap<State, ArrayList<Entry<State, Double>>> pathOdists = calculateStateDistances(pathO, mdpDistshm);
 		ModelCheckerPartialSatResult pathONVI = nvi.doPathNVI(prism, mainLog, pathO, mc, discount);
 		ModelCheckerPartialSatResult pathOoccfreq = nvi.doPathOccupancyFreq(prism, mainLog, pathO, mc, discount);
 		//state1 action 2 the door action 
@@ -244,23 +398,24 @@ public class ContrastiveXAI
 
 	}
 
-	public HashMap<State, PriorityQueue<Entry<State, Double>>> calculateStateDistances(PathCreator pathC, HashMap<State, HashMap<State, Double>> dijkstraDists)
+	public HashMap<State, ArrayList<Entry<State, Double>>> calculateStateDistances(PathCreator pathC, HashMap<State, HashMap<State, Double>> dijkstraDists)
 			throws Exception
 	{
 		MDP pmdp = pathC.pc.mdpCreator.mdp;
 		int numStates = pmdp.getNumStates();
 		List<State> sl = pmdp.getStatesList();
 		VarList vl = pmdp.getVarList();
-		HashMap<State, PriorityQueue<Entry<State, Double>>> toret = new HashMap<State, PriorityQueue<Entry<State, Double>>>();
+		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
 		for (int i = 0; i < numStates; i++) {
 			State istate = sl.get(i);
-			PriorityQueue<Entry<State, Double>> pq = new PriorityQueue<Entry<State, Double>>((a, b) -> (a.getValue().compareTo(b.getValue())));
+			ArrayList<Entry<State, Double>> pq = new ArrayList<Entry<State, Double>>();
 			for (int j = 0; j < numStates; j++) {
 				State jstate = sl.get(j);
 				double dist = stateDist(istate, jstate, vl, dijkstraDists);
 				Entry<State, Double> e = new AbstractMap.SimpleEntry<State, Double>(jstate, dist);
 				pq.add(e);
 			}
+			Collections.sort(pq, (a, b) -> (a.getValue().compareTo(b.getValue())));
 			toret.put(istate, pq);
 		}
 		return toret;
@@ -445,6 +600,38 @@ public class ContrastiveXAI
 
 	}
 
+	public ArrayList<StateInformation> getMostInfluentialStatesListByCost(PolicyPath p)
+	{
+		List<State> statesSeen = new ArrayList<State>();
+		PathNode pn = p.root;
+		Stack<PathNode> pQ = new Stack<PathNode>();
+		if (pn.children != null) {
+			for (PathNode pnc : pn.children.keySet()) {
+				pQ.push(pnc);
+			}
+		}
+
+		ArrayList<StateInformation> siRankedbycost = new ArrayList<StateInformation>();
+		while (!pQ.isEmpty()) {
+			pn = pQ.pop();
+			if (!statesSeen.contains(pn.root.getState()))
+				statesSeen.add(pn.root.getState());
+			else
+				continue;
+			siRankedbycost.add(pn.root);
+			if (pn.children != null) {
+				for (PathNode pnc : pn.children.keySet()) {
+					if (pnc != pn)
+						pQ.push(pnc);
+				}
+			}
+		}
+
+		Collections.sort(siRankedbycost, new StateInformationRelativeCostComparator());
+		return siRankedbycost;
+
+	}
+
 	//so now lets go over the whole path and do weights 
 	//the idea is to just break things down 
 	//so like for a straight path its weight is just that whole path 
@@ -548,7 +735,7 @@ public class ContrastiveXAI
 			HashMap<State, Double> hm = new HashMap<State, Double>();
 			for (int j = 0; j < numstates; j++) {
 				State ns = mdp.getStatesList().get(j);
-				hm.put(ns, mdpDists[i][j] / (double) numstates);
+				hm.put(ns, mdpDists[i][j]);
 
 			}
 			mdpDistshm.put(s, hm);
@@ -567,11 +754,11 @@ public class ContrastiveXAI
 
 	public double[] mdpDijkstraSingleState(MDP mdp, int s)
 	{
-		State state = mdp.getStatesList().get(s);
 		double maxDist = mdp.getNumStates();
 		double[] dist = new double[mdp.getNumStates()];
 		double[] prevdist = new double[mdp.getNumStates()];
 		for (int i = 0; i < mdp.getNumStates(); i++) {
+
 			dist[i] = maxDist;
 			prevdist[i] = maxDist;
 		}
@@ -602,13 +789,15 @@ public class ContrastiveXAI
 		return dist;
 	}
 
-	public double stateDist(State s1, State s2, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
+	public double stateDist(State s1p, State s2p, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
 	{
 		double dist = 0;
+		State s1 = this.getMDPState(vl, s1p);
+		State s2 = this.getMDPState(vl, s2p);
 		//we're doing a kind of euclidean distance 
 		//for each variable in vl 
 		int numVars = vl.getNumVars();
-		if (!s1.toString().contentEquals(s2.toString())) {
+		if (!s1p.toString().contentEquals(s2p.toString())) {
 
 			double[] dists = new double[numVars];
 			for (int var = 0; var < numVars; var++) {
@@ -618,24 +807,31 @@ public class ContrastiveXAI
 				//if it s we use mdpDijkstraDist 
 				if (vname.contentEquals("s")) {
 
-					if (mdpDijkstraDists.containsKey(s1)) {
-						if (mdpDijkstraDists.get(s1).containsKey(s2)) {
-							dists[var] = mdpDijkstraDists.get(s1).get(s2);
-						} else {
-							throw new Exception("no distance?");
-						}
-					} else if (mdpDijkstraDists.containsKey(s2)) {
-						if (mdpDijkstraDists.get(s2).containsKey(s1)) {
-							dists[var] = mdpDijkstraDists.get(s2).get(s1);
-						} else {
-							throw new Exception("no distance?");
+					//because we're only using dijkstras if the s variable is different 
+					int s1sval = (int) s1p.varValues[var];
+					int s2sval = (int) s2p.varValues[var];
+					if (s1sval != s2sval) {
+						if (mdpDijkstraDists.containsKey(s1)) {
+							if (mdpDijkstraDists.get(s1).containsKey(s2)) {
+								dists[var] = mdpDijkstraDists.get(s1).get(s2);
+							} else {
+								throw new Exception("no distance?");
+							}
+						} else if (mdpDijkstraDists.containsKey(s2)) {
+							if (mdpDijkstraDists.get(s2).containsKey(s1)) {
+								dists[var] = mdpDijkstraDists.get(s2).get(s1);
+							} else {
+								throw new Exception("no distance?");
+							}
 						}
 					}
 
+					//					if (dists[var] == 0)
+					//						System.out.println("Whaaaa?");
 				} else {
 
-					int s1var = (int) s1.varValues[var];
-					int s2var = (int) s2.varValues[var];
+					int s1var = (int) s1p.varValues[var];
+					int s2var = (int) s2p.varValues[var];
 					if (vname.contains("da"))
 						dists[var] = Math.abs(s1var - s2var);
 					else {
@@ -658,7 +854,8 @@ public class ContrastiveXAI
 
 		try {
 
-			doStuff();
+			//			doStuff();
+			identifySwingStates();
 
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block

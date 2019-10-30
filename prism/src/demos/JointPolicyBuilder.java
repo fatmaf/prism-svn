@@ -201,7 +201,7 @@ public class JointPolicyBuilder
 	{
 		PolicyCreator pc = new PolicyCreator();
 		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/results/", "seqTeamPolicy.dot");
+		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
 
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
@@ -297,6 +297,7 @@ public class JointPolicyBuilder
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, MDPSimple mdp, State initialJointState, BitSet seqMDPAccStates,
 			boolean reallocateOnSingleAgentDeadend) throws PrismException
 	{
+		boolean doSeq = false; 
 		State currentJointState = initialJointState;
 		if (!inStatesExplored(currentJointState)) {
 			statesExploredOrder.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, this.currentStateProbability));
@@ -400,8 +401,9 @@ public class JointPolicyBuilder
 									followingPath/* follow a path cuz you dont know anything */, false /*don't use all robot states*/);
 							mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(statesDiscovered,
 									mdp.getStatesList(), mdp.getVarList(), followingPath);
+					
 							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
-
+							
 							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(robotStatesInSeqTeamMDP,
 									mostProbableTaskAllocationStateValues, mdp.getStatesList());
 
@@ -462,6 +464,7 @@ public class JointPolicyBuilder
 							if (usingModifiedStates) {
 								newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletionHolistic(modifiedRobotSuccStatesInSeqTeamMDP,
 										stateValuesBeforeTaskAllocation, mdp.getStatesList());
+								
 							}
 
 							sharedStateChanges = new HashMap<Integer, ArrayList<Entry<Integer, Entry<Integer, Integer>>>>();
@@ -879,6 +882,38 @@ public class JointPolicyBuilder
 				}
 			}
 			newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+		}
+		return newStates;
+	}
+	private int[] modifyRobotStatesToUndoExpectedTaskCompletionSeq(int[] robotStatesInSeqTeamMDP,
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues, List<State> statesList, int firstRobot)
+	{
+		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
+		// For each state
+		// get the states values
+		// modify them
+		// move on
+		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
+		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
+			if (robotNum != firstRobot) {
+				int prevRobot = (robotNum - 1) % (this.numRobots); // ring thing
+
+				Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
+				if (mostProbableTaskAllocationStateValues.containsKey(prevRobot))
+					indicesToChange = mostProbableTaskAllocationStateValues.get(prevRobot);
+				if (indicesToChange != null) {
+					// so now we change this
+					for (int j = 0; j < indicesToChange.size(); j++) {
+
+						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
+					}
+				}
+				newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+			} else {
+				newStates[robotNum] = robotStatesInSeqTeamMDP[i];
+			}
+
 		}
 		return newStates;
 	}
