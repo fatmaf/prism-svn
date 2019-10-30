@@ -61,12 +61,8 @@ public class STAPU
 		STAPU stapu = new STAPU();
 		//		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
-		dir=dir+"simpleTests/";//"compareSTAPUSSI/";
-		int numRobots = 2;
-		int numFS = 1;
-		int numGoals = 4;
-		int numDoors = 2;
-		String fn = "g5_r2_t3_d2_fs1";
+		dir=dir+"compareSTAPUSSIFS/";
+		
 
 		String resString = "";
 
@@ -83,15 +79,13 @@ public class STAPU
 //		//		numDoors = 4;//2;
 //		//		fn = "andar_r8_g10_d4_fs0";
 		
-		numRobots = 10;
-		numFS = 0;//5;//1;
-		numGoals = 11;//6;//4;
-		numDoors = 0;//2;
-		fn = "g19x5_r10_t11_d0_fs0";
-		
+		int numRobots = 10;
+		int numFS = 31;
+		int numGoals = 11;
+		int numDoors = 0;
+		String fn = "g20x4_r10_g10_fs80fs31_fsgen9_";
 
-
-		int maxRobots = 4;
+		int maxRobots = 2;
 		int maxGoals = 3;
 		PrismLog fileLog = new PrismDevNullLog();
 
@@ -100,13 +94,12 @@ public class STAPU
 		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
 		
-		robotNumbers.add(8); 
-		robotNumbers.add(6);
 		robotNumbers.add(0); 
-		robotNumbers.add(7);
+		robotNumbers.add(2);
+
 		
-		goalNumbers.add(1);
-		goalNumbers.add(3);
+		goalNumbers.add(5);
+		goalNumbers.add(2);
 		
 		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, null,
 				excludeRobotInitStates);

@@ -22,6 +22,12 @@ public class PathCreator
 
 	PolicyCreator pc = new PolicyCreator();
 
+	public Object getStateAction(State s)
+	{
+		int sI = pc.mdpCreator.getStateIndex(s);
+		Object action = pc.mdpCreator.mdp.getAction(sI, 0); 
+		return action;
+	}
 	public void createPathPolicy(int s, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple progRews, MDPRewardsSimple costs,
 			BitSet accStates) throws PrismException
 	{

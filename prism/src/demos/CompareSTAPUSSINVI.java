@@ -294,24 +294,19 @@ public class CompareSTAPUSSINVI
 		boolean reallocOnFirstRobotDeadend = true;
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 		//		dir = dir+"simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-		dir = dir + "simpleTests/";//"compareSTAPUSSIFS/";
+		dir = dir + "compareSTAPUSSIFS/";
 
 		//g20x4_r10_g10_fs10_fsgen0
 		int numRobots = 10;
-		int numFS = 1;
+		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs80fs21_fsgen7_";//"g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
+		String fn = "g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
 		//this is an example where ssi exp t > stapu "g20x4_r10_g10_fs80fs11_fsgen5_";//"g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
 		
-		numRobots = 10;
-		numFS = 0;//5;//1;
-		numGoals = 11;//6;//4;
-		numDoors = 0;//2;
-		fn = "g19x5_r10_t11_d0_fs0";
-		
+
 		String resString = "";
-		int r = 4;//numRobots;
+		int r =2;//numRobots;
 		int g = 3;//numGoals;
 
 		if (!results.containsKey(fn))
@@ -319,33 +314,14 @@ public class CompareSTAPUSSINVI
 		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
 		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-		////		robotNumbers.add(2);
-		////		robotNumbers.add(7);
-		//		robotNumbers.add(7);
-		//		robotNumbers.add(2);
-		//		//		goalNumbers.add(5); 
-		//		//		goalNumbers.add(4);
-		//		//		goalNumbers.add(8);
-		//		//		goalNumbers.add(1);
-		//		//		goalNumbers.add(7);
-		//		goalNumbers.add(7);
-		//		goalNumbers.add(3);
-		//		goalNumbers.add(0);
-		//		goalNumbers.add(4);
-		//		goalNumbers.add(6);
-		//R:2-[8,5]_G:3-[1,0]
-//		robotNumbers.add(8);
-//		robotNumbers.add(5);
-//		goalNumbers.add(1);
-//		goalNumbers.add(0);
+
 		
-		robotNumbers.add(8); 
-		robotNumbers.add(6);
 		robotNumbers.add(0); 
-		robotNumbers.add(7);
+		robotNumbers.add(2);
+
 		
-		goalNumbers.add(1);
-		goalNumbers.add(3);
+		goalNumbers.add(5);
+		goalNumbers.add(2);
 		
 
 		int[] rgdf = new int[] { r, g, numDoors, numFS };
@@ -532,6 +508,8 @@ public class CompareSTAPUSSINVI
 
 			} else if (option.contains("single"))
 				singleTests();
+			else if (option.contains("warehouse"))
+				runWarehouse();
 			else
 				System.out.println("invalid option, options are: robot, door,fsgoal");
 		} catch (Exception e) {
@@ -612,6 +590,100 @@ public class CompareSTAPUSSINVI
 				}
 			}
 		}
+	}
+	private void runWarehouse()
+	{
+		String fnPrefix = "shelfDepot_r10_g10";
+		int[] fsShelfDepot = new int[] {0,8,16,24,32,40,48,56,64,72,80};
+		int[] fsDepotShelf = new int[] {0,8,16,24,32,40,48,56,64,72,80};
+		String fsBit = "fs_";
+//		runWarehouse(fnPrefix,fsShelfDepot,fsBit); 
+//		runWarehouse("depotShelf_r10_g10",fsDepotShelf,fsBit);
+		fsBit = "_fs"; 
+		int[] fsShelfDepotOpenSides = new int[] {0,9,18,27,36,45,54,63,72,81,90};
+		int[] fsdepotShelfOpenSides = new int[] {0,9,18,27,36,45,54,63,72,81,90};
+		fnPrefix = "depotShelfSideOpen_r10_g10";
+		runWarehouse(fnPrefix,fsShelfDepotOpenSides,fsBit); 
+		fnPrefix = "shelfDepotSideOpen_r10_g10";
+		runWarehouse(fnPrefix,fsShelfDepotOpenSides,fsBit); 
+	}
+	private void runWarehouse(String fnPrefix,int[] fsShelfDepot,String fsBit)
+	{
+		boolean reallocOnFirstRobotDeadend = true;
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/warehouse/";
+
+		
+		int numRobots = 10;
+		int numGoals = 10;
+		int numDoors = 0;
+		String fn = "";
+
+		String resString = "";
+
+		
+		
+
+		int numFilesPerFS = 10;
+
+		int[] rarr = new int[] { 2, 4 };
+		int[] garr = new int[] { 3, 6 };
+		int r, g;
+		for (int i = 0; i < rarr.length; i++) {
+			r = rarr[i];
+			for (int j = 0; j < garr.length; j++) {
+				g = garr[j];
+				try {
+
+					for (int fs :fsShelfDepot) {
+						for (int fileForFS = 0; fileForFS < numFilesPerFS; fileForFS++) {
+							fn = fnPrefix +  fsBit + fs +"_"+ + fileForFS + "_"; //40fs1_fsgen1_0"
+							if (!results.containsKey(fn))
+								results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
+
+							ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+							ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+							int[] rgdf = new int[] { r, g, numDoors, fs };
+							if (!results.get(fn).containsKey(rgdf))
+								results.get(fn).put(rgdf, new ArrayList<float[][]>());
+							float[][] resArr = new float[2][4];
+							resString += "\nR:" + r + "\tG:" + g;
+
+							resString += doCompare(dir, fn, r, fs, g, numDoors, resArr, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, false);
+							results.get(fn).get(rgdf).add(resArr);
+
+						}
+						System.out.println("***************************************************************");
+						System.out.println(resString);
+						System.out.println("***************************************************************");
+						String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+						String resname = "fsOnly_fs_r" + r + "g" + g + "fs" + fs + "_" + fn;
+						this.printResults(resSavePlace + resname);
+						//			}
+						//				}
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					System.out.println("***************************************************************");
+					System.out.println(resString);
+					System.out.println("***************************************************************");
+					String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+					String resname = "fsOnly_r" + r + "g" + g + "_" + fn;
+					this.printResults(resSavePlace + resname);
+//					printResults();
+				}
+			}
+		}
+		
+		System.out.println("***************************************************************");
+		System.out.println(resString);
+		System.out.println("***************************************************************");
+		String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+		String resname = "fsOnly_" + fn;
+		this.printResults(resSavePlace + resname);
+		printResults();
 	}
 
 	private void runFSGR()
