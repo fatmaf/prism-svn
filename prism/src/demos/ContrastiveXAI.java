@@ -235,6 +235,7 @@ public class ContrastiveXAI
 		optimalPolicyPaths.createPathPolicy(0, vi.productmdp, optimalPolicy.strat, saveplace + "results/", "xai_" + filename + "optimalPath", vi.progRewards,
 				vi.costRewards, vi.accStates);
 		HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances = calculateStateDistances(optimalPolicyPaths, mdpDistshm);
+		HashMap<State, ArrayList<Entry<State, Double>>> allStateDistances = calculateStateDistances(vi.productmdp, mdpDistshm);
 
 		//first we need to identify the "swing" states 
 		ArrayList<StateInformation> ssQ = getMostInfluentialStatesListByCost(vi, discount, optimalPolicyPaths);
@@ -249,10 +250,10 @@ public class ContrastiveXAI
 		//so we'll just pick those 
 		StateInformation ssTop = ssQ.get(0);
 		StateInformation ssBottom = ssQ.get(ssQ.size() - 1);
-		listClosestStatesToState(ssTop,optimalPolicyStateDistances,optimalPolicyPaths); 
-		
-		listClosestStatesToState(ssBottom,optimalPolicyStateDistances,optimalPolicyPaths); 
+		listClosestStatesToState(ssTop, optimalPolicyStateDistances, optimalPolicyPaths);
 
+		listClosestStatesToState(ssTop,allStateDistances,null);
+		listClosestStatesToState(ssBottom, optimalPolicyStateDistances, optimalPolicyPaths);
 
 		PathCreator alternatePolicyPaths = createAlternatePath(filename, vi, optimalPolicy, saveplace);
 		ArrayList<StateInformation> alternateSSQ = getMostInfluentialStatesListByCost(vi, discount, alternatePolicyPaths);
@@ -262,41 +263,47 @@ public class ContrastiveXAI
 			System.out.println(alternateSSQ.get(i));
 		}
 		HashMap<State, ArrayList<Entry<State, Double>>> alternatePolicyStateDistances = calculateStateDistances(alternatePolicyPaths, mdpDistshm);
+		
 		StateInformation ssTopAlt = alternateSSQ.get(0);
 		StateInformation ssBottomAlt = alternateSSQ.get(alternateSSQ.size() - 1);
-		listClosestStatesToState(ssTopAlt,alternatePolicyStateDistances,alternatePolicyPaths); 
+		listClosestStatesToState(ssTopAlt, alternatePolicyStateDistances, alternatePolicyPaths);
 
-		listClosestStatesToState(ssBottomAlt,alternatePolicyStateDistances,alternatePolicyPaths); 
+		listClosestStatesToState(ssBottomAlt, alternatePolicyStateDistances, alternatePolicyPaths);
 
 	}
-	
 
-	public void listClosestStatesToState(StateInformation ssTop,HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,PathCreator optimalPolicyPaths)
+	public void listClosestStatesToState(StateInformation ssTop, HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,
+			PathCreator optimalPolicyPaths)
 	{
 		//for these two we want the closest states 
-		double prevdist = 0; 
+		double prevdist = 0;
+		double threshold = Math.sqrt((double)ssTop.getState().varValues.length);
 		ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
 		for (Entry<State, Double> e : ssTopDistances) {
 			State s = e.getKey();
-			Object a = optimalPolicyPaths.getStateAction(s);
 			String aStr = "";
+			if(optimalPolicyPaths!=null) {
+			Object a = optimalPolicyPaths.getStateAction(s);
+			
 			if (a != null)
 				aStr = a.toString();
-			if(Math.abs(prevdist-e.getValue()) > 100)
-				break; 
-			else 
-				prevdist = e.getValue(); 
+			}
+			if (Math.abs(prevdist - e.getValue()) > threshold)
+				break;
+			else
+				prevdist = e.getValue();
 			System.out.println(e + ":" + aStr);
-			
+
 		}
 	}
+
 	public PathCreator createAlternatePath(String filename, VIExposed vi, ModelCheckerPartialSatResult optimalPolicy, String saveplace) throws PrismException
 	{
 		PathCreator alternativePolicyPath = new PathCreator();
 		ArrayList<Integer> prefixStates = new ArrayList<Integer>();
 		ArrayList<Integer> prefixActions = new ArrayList<Integer>();
 		if (filename.contains("key")) {
-			prefixStates.add(1);
+			prefixStates.add(0);
 			prefixActions.add(0);
 			prefixStates.add(2);
 			prefixActions.add(3);
@@ -311,7 +318,7 @@ public class ContrastiveXAI
 			prefixStates.add(4);
 			prefixActions.add(2);
 		}
-		alternativePolicyPath.creatPath(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
+		alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
 				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates);
 		return alternativePolicyPath;
 	}
@@ -408,14 +415,36 @@ public class ContrastiveXAI
 		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
 		for (int i = 0; i < numStates; i++) {
 			State istate = sl.get(i);
-			ArrayList<Entry<State, Double>> pq = new ArrayList<Entry<State, Double>>();
-			for (int j = 0; j < numStates; j++) {
-				State jstate = sl.get(j);
-				double dist = stateDist(istate, jstate, vl, dijkstraDists);
-				Entry<State, Double> e = new AbstractMap.SimpleEntry<State, Double>(jstate, dist);
-				pq.add(e);
-			}
-			Collections.sort(pq, (a, b) -> (a.getValue().compareTo(b.getValue())));
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			toret.put(istate, pq);
+		}
+		return toret;
+	}
+
+	public ArrayList<Entry<State, Double>> calculateSingleStateDistances(State istate, HashMap<State, HashMap<State, Double>> dijkstraDists, List<State> sl,
+			VarList vl, int numStates) throws Exception
+	{
+		ArrayList<Entry<State, Double>> pq = new ArrayList<Entry<State, Double>>();
+		for (int j = 0; j < numStates; j++) {
+			State jstate = sl.get(j);
+			double dist = stateDist(istate, jstate, vl, dijkstraDists);
+			Entry<State, Double> e = new AbstractMap.SimpleEntry<State, Double>(jstate, dist);
+			pq.add(e);
+		}
+		Collections.sort(pq, (a, b) -> (a.getValue().compareTo(b.getValue())));
+		return pq;
+	}
+
+	public HashMap<State, ArrayList<Entry<State, Double>>> calculateStateDistances(MDP m, HashMap<State, HashMap<State, Double>> dijkstraDists) throws Exception
+	{
+
+		int numStates = m.getNumStates();
+		List<State> sl = m.getStatesList();
+		VarList vl = m.getVarList();
+		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
+		for (int i = 0; i < numStates; i++) {
+			State istate = sl.get(i);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
 			toret.put(istate, pq);
 		}
 		return toret;
