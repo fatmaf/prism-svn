@@ -139,7 +139,56 @@ public class PolicyCreator
 		}
 		return mdpCreator.mdp;
 	}
+	public MDPSimple createPolicyWithRewardsStructuresAsLabels(int initialState, MDP mdp, Strategy strat, MDPRewardsSimple progRews, MDPRewardsSimple costs,
+			BitSet accStates)
+	{
+		boolean hasRewards = (progRews != null) & (costs != null);
+		Stack<Integer> toVisit = new Stack<Integer>();
+		BitSet visited = new BitSet();
+		toVisit.add(initialState);
+		int s;
+		while (!toVisit.isEmpty()) {
+			s = toVisit.pop();
 
+			visited.set(s);
+			State sState = mdp.getStatesList().get(s);
+
+			if (accStates != null) {
+				if (accStates.get(s))
+					this.mdpCreator.setAccState(sState);
+			}
+			strat.initialise(s);
+			//			strat.initialise(s);
+			Object action = strat.getChoiceAction();
+			int actionIndex = findActionIndex(mdp, s, action);
+
+			double progRew = 0;
+
+			double cost = 0;
+			if (actionIndex > -1) {
+				if (hasRewards) {
+					progRew = progRews.getTransitionReward(s, actionIndex);
+					cost = costs.getTransitionReward(s, actionIndex);
+				}
+
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
+				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				while (tranIter.hasNext()) {
+					Entry<Integer, Double> stateProbPair = tranIter.next();
+					int succ = stateProbPair.getKey();
+					State succState = mdp.getStatesList().get(stateProbPair.getKey());
+					double prob = stateProbPair.getValue();
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
+					if (!toVisit.contains(succ) && !visited.get(succ)) {
+						toVisit.add(succ);
+					}
+				}
+				mdpCreator.addActionAndLabelRews(sState, action, successors, progRew, cost);
+
+			}
+		}
+		return mdpCreator.mdp;
+	}
 	void savePolicy(String saveLocation, String name)
 	{
 		mdpCreator.saveMDP(saveLocation, name);
