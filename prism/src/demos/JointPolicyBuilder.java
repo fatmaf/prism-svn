@@ -75,6 +75,7 @@ public class JointPolicyBuilder
 	BitSet accStates = new BitSet();
 	BitSet essStates = new BitSet();
 	ArrayList<State> essStatesList = new ArrayList<State>();
+	boolean doSeq = false;
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, VarList seqTeamMDPVarList, ArrayList<MDPRewardsSimple> rewards,
 			PrismLog log)
@@ -197,11 +198,11 @@ public class JointPolicyBuilder
 	}
 
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP,
-			boolean reallocateOnSingleAgentDeadend) throws PrismException
+			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
 	{
-		PolicyCreator pc = new PolicyCreator();
-		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
+		//		PolicyCreator pc = new PolicyCreator();
+		//		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+		//		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
 
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
@@ -240,7 +241,7 @@ public class JointPolicyBuilder
 				sharedVarsInitialStates.put(sharedStatesNamesList.get(i), (int) currentJointState.varValues[mapping]);
 		}
 		buildJointPolicyFromSequentialPolicy(strat, seqTeamMDP.teamMDPWithSwitches, currentJointState, seqTeamMDP.acceptingStates,
-				reallocateOnSingleAgentDeadend);
+				reallocateOnSingleAgentDeadend,initStateProb);
 		jointMDP.addInitialState(statesMap.get(currentJointState));
 	}
 
@@ -295,15 +296,17 @@ public class JointPolicyBuilder
 	// the real thing
 	// input: \pi_seq, s_J, mdp
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, MDPSimple mdp, State initialJointState, BitSet seqMDPAccStates,
-			boolean reallocateOnSingleAgentDeadend) throws PrismException
+			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
 	{
-		boolean doSeq = false; 
+		
 		State currentJointState = initialJointState;
+		int[] initialRobotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(), mdp.getVarList());
+
 		if (!inStatesExplored(currentJointState)) {
 			statesExploredOrder.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, this.currentStateProbability));
 			Queue<Entry<State, Double>> jointStateQueue = new LinkedList<Entry<State, Double>>();
 
-			jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, 1.0));
+			jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(currentJointState, initStateProb));
 			BitSet jointStatesDiscovered = new BitSet();
 			boolean followingPath = true;// false;
 			boolean doreset = false;//true;// false;
@@ -332,14 +335,17 @@ public class JointPolicyBuilder
 
 				while (!jointStateQueue.isEmpty()) {
 
+					
 					mostProbableTaskAllocationStateValuesBeforeProcessing = mostProbableTaskAllocationStateValuesBeforeProcessingQ.remove();
 					stateValuesBeforeTaskAllocationBeforeProcessing = stateValuesBeforeTaskAllocationBeforeProcessingQ.remove();
 					currentJointStateProbPair = jointStateQueue.remove();
 					statesDiscovered = statesDiscoveredQ.remove();
 					sharedStateChanges = sharedStateChangesQ.remove();
 					currentJointState = currentJointStateProbPair.getKey();
+					double currentJointStateProb = currentJointStateProbPair.getValue();
+					if (currentJointState.toString().contains("0,1,0,65,-1"))
+						mainLog.println("debug");
 					boolean isAcc = this.isAcceptingState(currentJointState);
-				
 
 					//					if (currentJointState.toString().contains("0,0,1,-1,5"))
 					//						mainLog.println("possible reallocation here");
@@ -367,9 +373,13 @@ public class JointPolicyBuilder
 								boolean allDeadend = true;
 								//so in this state has a robot failed 
 								for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
-									boolean reallocateHere = StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[i]);
+									boolean robotIsDeadend = StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[i]);
+									boolean reallocateHere = robotIsDeadend;
+									if (robotStatesInSeqTeamMDP[i] == initialRobotStatesInSeqTeamMDP[i])
+										reallocateHere = false;
 
-									allDeadend = allDeadend & reallocateHere;
+									allDeadend = allDeadend & robotIsDeadend;
+									//TODO: fix this - change the state matching to be independent of DA states so we don't just get new states and say thats a reallocation
 
 									if (!reallocate)
 										reallocate = reallocateHere;
@@ -395,21 +405,36 @@ public class JointPolicyBuilder
 						// this means restructuring all of the code below
 
 						followingPath = true;
+
 						if (statesDiscovered == null) {
 							//							extractPolicyTreeAsDotFile(strat, mdp, robotStatesInSeqTeamMDP[0]);
 							statesDiscovered = getTaskAllocationForAllRobots(strat, mdp, robotStatesInSeqTeamMDP,
 									followingPath/* follow a path cuz you dont know anything */, false /*don't use all robot states*/);
 							mostProbableTaskAllocationStateValuesBeforeProcessing = getStateIndexValuesForTaskAllocationForAllRobots(statesDiscovered,
 									mdp.getStatesList(), mdp.getVarList(), followingPath);
-					
-							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
-							
-							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(robotStatesInSeqTeamMDP,
-									mostProbableTaskAllocationStateValues, mdp.getStatesList());
-
 							stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(statesDiscovered,
 									mdp.getStatesList(), mdp.getVarList(), followingPath);
-							stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
+							if (!doSeq) {
+								mostProbableTaskAllocationStateValues = this
+										.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
+
+								modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(robotStatesInSeqTeamMDP,
+										mostProbableTaskAllocationStateValues, mdp.getStatesList());
+							} else {
+								mostProbableTaskAllocationStateValues = this.processStateIndexValuesSeq(statesDiscovered,
+										mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
+
+								modifiedRobotStatesInSeqTeamMDP = this.modifyRobotStatesToReflectExpectedTaskCompletionSeq(statesDiscovered,
+										robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValuesBeforeProcessing,
+										stateValuesBeforeTaskAllocationBeforeProcessing, sharedStateChanges, mdp.getStatesList(), 0);
+							}
+
+							if (!doSeq) {
+								stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
+							} else {
+								stateValuesBeforeTaskAllocation = this.processStateIndexValuesSeq(statesDiscovered,
+										stateValuesBeforeTaskAllocationBeforeProcessing, mdp.getStatesList());
+							}
 						} else {
 							//update current states to reflect seq task allocation
 							//check if we need a new TA
@@ -436,15 +461,29 @@ public class JointPolicyBuilder
 
 							}
 
-							mostProbableTaskAllocationStateValues = this.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
+							if (!doSeq) {
+								mostProbableTaskAllocationStateValues = this
+										.processStateIndexValuesHolistic(mostProbableTaskAllocationStateValuesBeforeProcessing);
 
-							modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(robotStatesInSeqTeamMDP,
-									mostProbableTaskAllocationStateValues, mdp.getStatesList());
+								modifiedRobotStatesInSeqTeamMDP = modifyRobotStatesToReflectExpectedTaskCompletionHolistic(robotStatesInSeqTeamMDP,
+										mostProbableTaskAllocationStateValues, mdp.getStatesList());
+							} else {
+								mostProbableTaskAllocationStateValues = this.processStateIndexValuesSeq(statesDiscovered,
+										mostProbableTaskAllocationStateValuesBeforeProcessing, mdp.getStatesList());
+
+								modifiedRobotStatesInSeqTeamMDP = this.modifyRobotStatesToReflectExpectedTaskCompletionSeq(statesDiscovered,
+										robotStatesInSeqTeamMDP, mostProbableTaskAllocationStateValuesBeforeProcessing,
+										stateValuesBeforeTaskAllocationBeforeProcessing, sharedStateChanges, mdp.getStatesList(), 0);
+							}
 
 							stateValuesBeforeTaskAllocationBeforeProcessing = getStateIndexValuesBeforeTaskAllocationForAllRobots(statesDiscovered,
 									mdp.getStatesList(), mdp.getVarList(), followingPath);
-							stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
-
+							if (!doSeq) {
+								stateValuesBeforeTaskAllocation = this.processStateIndexValuesHolistic(stateValuesBeforeTaskAllocationBeforeProcessing);
+							} else {
+								stateValuesBeforeTaskAllocation = this.processStateIndexValuesSeq(statesDiscovered,
+										stateValuesBeforeTaskAllocationBeforeProcessing, mdp.getStatesList());
+							}
 						}
 
 						boolean usingModifiedStates = false;
@@ -462,18 +501,24 @@ public class JointPolicyBuilder
 							int[] modifiedRobotSuccStatesInSeqTeamMDP = combination.getKey();
 							int[] newSuccStatesForJointState = modifiedRobotSuccStatesInSeqTeamMDP;
 							if (usingModifiedStates) {
-								newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletionHolistic(modifiedRobotSuccStatesInSeqTeamMDP,
-										stateValuesBeforeTaskAllocation, mdp.getStatesList());
-								
+								if (!doSeq) {
+									newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletionHolistic(modifiedRobotSuccStatesInSeqTeamMDP,
+											stateValuesBeforeTaskAllocation, mdp.getStatesList());
+								} else {
+									newSuccStatesForJointState = modifyRobotStatesToUndoExpectedTaskCompletionSeq(modifiedRobotSuccStatesInSeqTeamMDP,
+											stateValuesBeforeTaskAllocation, mdp.getStatesList(), 0);
+								}
+
 							}
 
 							sharedStateChanges = new HashMap<Integer, ArrayList<Entry<Integer, Entry<Integer, Integer>>>>();
 							State succJointState = createJointState(newSuccStatesForJointState, mdp.getStatesList(), mdp.getVarList(), currentJointState,
 									sharedStateChanges);
-
+							if (succJointState.toString().contains("0,1,0,65,-1"))
+								mainLog.println("debug");
 							succStatesQueue.add(succJointState);
 							succStatesProbQueue.add(combination.getValue());
-							jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue()));
+							jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue()*currentJointStateProb ));
 							statesDiscoveredQ.add(statesDiscovered);
 							mostProbableTaskAllocationStateValuesBeforeProcessingQ.add(mostProbableTaskAllocationStateValuesBeforeProcessing);
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
@@ -586,11 +631,13 @@ public class JointPolicyBuilder
 						currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
 					}
 				}
-				//if the shared state is changed by a robot later we have to undo it here
-				if (sharedStateChanges.containsKey(nextRobot)) {
-					ArrayList<Entry<Integer, Entry<Integer, Integer>>> sharedStatesToChange = sharedStateChanges.get(nextRobot);
-					for (int j = 0; j < sharedStatesToChange.size(); j++) {
-						currentState[sharedStatesToChange.get(j).getKey() + 1] = sharedStatesToChange.get(j).getValue().getValue();
+				if (sharedStateChanges != null) {
+					//if the shared state is changed by a robot later we have to undo it here
+					if (sharedStateChanges.containsKey(nextRobot)) {
+						ArrayList<Entry<Integer, Entry<Integer, Integer>>> sharedStatesToChange = sharedStateChanges.get(nextRobot);
+						for (int j = 0; j < sharedStatesToChange.size(); j++) {
+							currentState[sharedStatesToChange.get(j).getKey() + 1] = sharedStatesToChange.get(j).getValue().getValue();
+						}
 					}
 				}
 				nextRobot = (nextRobot + 1) % (numRobots);
@@ -627,7 +674,6 @@ public class JointPolicyBuilder
 
 		return newStates;
 	}
-
 
 	public boolean inStatesExplored(State currentJointState)
 	{
@@ -826,6 +872,39 @@ public class JointPolicyBuilder
 		return true;
 	}
 
+	private int[] modifyRobotStatesToReflectExpectedTaskCompletionSeqNew(int[] robotStatesInSeqTeamMDP,
+			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues, List<State> statesList) throws PrismException
+	{
+		int[] newStates = (int[]) robotStatesInSeqTeamMDP.clone();
+		// For each state
+		// get the states values
+		// modify them
+		// move on
+		ArrayList<Entry<Integer, Integer>> indicesToChange = null;
+		for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
+			int robotNum = StatesHelper.getRobotNumberFromSeqTeamMDPState(statesList.get(robotStatesInSeqTeamMDP[i]));
+
+			Object[] currentState = (Object[]) statesList.get(robotStatesInSeqTeamMDP[i]).varValues.clone();
+
+			if (mostProbableTaskAllocationStateValues.containsKey(robotNum)) {
+				indicesToChange = mostProbableTaskAllocationStateValues.get(robotNum);
+			}
+			// otherwise just use the one from before because those things should be done
+			// so now we change this
+			if (indicesToChange != null) {
+				for (int j = 0; j < indicesToChange.size(); j++) {
+
+					currentState[indicesToChange.get(j).getKey()] = indicesToChange.get(j).getValue();
+				}
+			}
+			newStates[robotNum] = StatesHelper.getExactlyTheSameState(currentState, statesList);
+			if (newStates[robotNum] == StatesHelper.BADVALUE)
+				throw new PrismException("Bad state when getting new state " + currentState);
+		}
+
+		return newStates;
+	}
+
 	private int[] modifyRobotStatesToReflectExpectedTaskCompletionHolistic(int[] robotStatesInSeqTeamMDP,
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues, List<State> statesList) throws PrismException
 	{
@@ -885,6 +964,7 @@ public class JointPolicyBuilder
 		}
 		return newStates;
 	}
+
 	private int[] modifyRobotStatesToUndoExpectedTaskCompletionSeq(int[] robotStatesInSeqTeamMDP,
 			HashMap<Integer, ArrayList<Entry<Integer, Integer>>> mostProbableTaskAllocationStateValues, List<State> statesList, int firstRobot)
 	{
@@ -1148,6 +1228,10 @@ public class JointPolicyBuilder
 
 			int firstRobot = 0;
 			// the first robot that hasnt failed
+			// but even if you've failed, there's just a switch isn't there ? 
+			// okay but I won't change this 
+			// though I don't know how this works in detail 
+
 			for (int i = 0; i < this.numRobots; i++) {
 				if (!hasFailed(initialStates[i], mdp)) {
 					firstRobot = i;
@@ -1775,7 +1859,7 @@ public class JointPolicyBuilder
 		return !failedStatesQueue.isEmpty();
 	}
 
-	public Entry<State, BitSet> getNextFailedState()
+	public Entry<Entry<State,Double>, BitSet> getNextFailedState()
 	{
 		StateExtended state = failedStatesQueue.remove();
 		this.currentStateProbability = state.parentToChildTransitionProbability;
@@ -1783,7 +1867,8 @@ public class JointPolicyBuilder
 		BitSet failstateBitSetToAvoid = null;
 		if (state.statesToAvoid != null)
 			failstateBitSetToAvoid = (BitSet) state.statesToAvoid.clone();
-		return new AbstractMap.SimpleEntry<State, BitSet>(failstate, failstateBitSetToAvoid);
+		Entry<State,Double> failStateProbPair = new AbstractMap.SimpleEntry<State,Double>(failstate,state.parentToChildTransitionProbability);
+		return new AbstractMap.SimpleEntry<Entry<State,Double>, BitSet>(failStateProbPair, failstateBitSetToAvoid);
 	}
 
 	public void printStatesExploredOrder()
