@@ -268,6 +268,12 @@ class PrismModule(object):
         return pa
 
     def createAction(self,name,rewVals,srcString,destString,probs):
+
+        print "In create action"
+        print name
+        print srcString
+        print destString
+        
         src = []
         dest = [] 
         if type(srcString) is list:
@@ -279,9 +285,15 @@ class PrismModule(object):
         if type(destString) is list:
             for destStr in destString:
                 d = RegexHelper.processState(destStr,self.constants,self.variables)
-                dest = dest +d
+                if len(d) == 1:
+                    dest = dest +d
+                else:
+                    dest = dest+[d]
         else:
             dest = RegexHelper.processState(destString,self.constants,self.variables)
+        #print "Destination Parsed"
+        #print dest
+        
         pa = PrismAction(None,None,None,False)
         pa.name = name
         for s in src:
@@ -291,6 +303,8 @@ class PrismModule(object):
                 pa.addStateToDestination(dest[i],probs[i])
             else:
                 pa.addStateToDestination(dest[i],probs)
+                #print "Adding destination"
+                #print dest[i]
                 
         for rew in rewVals:
             if not rew in self.rewardNames:

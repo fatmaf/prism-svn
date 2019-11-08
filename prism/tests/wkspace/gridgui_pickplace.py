@@ -1,7 +1,7 @@
 from tkinter import *
 import Tkinter, Tkconstants, tkFileDialog, tkSimpleDialog
 
-from GeneratePrismFiles import GeneratePrismFile
+from GeneratePrismFilesPickPlace import GeneratePrismFilePickPlace
 
 from enum import Enum
 
@@ -279,11 +279,13 @@ class GridGuiRandomiseDialog(tkSimpleDialog.Dialog):
         self.numGoals = 3
         self.numFS = 1
         self.numAS = 1
-        defaultNumRandomFiles = StringVar(master,value='0')
+        self.numItems = 1
+        defaultNumRandomFiles = StringVar(master,value='1')
         defaultNumRobots = StringVar(master,value='2')
         defaultNumGoals = StringVar(master,value='3')
         defaultNumFS = StringVar(master,value='0')
         defaultNumAS = StringVar(master,value='0')
+        defaultNumItems = StringVar(master,value='1')
         Label(master,text="Number of Random Files:").grid(row=0,sticky=W)
         self.en = Entry(master,textvariable=defaultNumRandomFiles)
         self.en.grid(row=0,column=1)
@@ -304,6 +306,9 @@ class GridGuiRandomiseDialog(tkSimpleDialog.Dialog):
         self.an = Entry(master,textvariable=defaultNumAS)
         self.an.grid(row=4,column=1)
 
+        Label(master,text="Number of items:").grid(row=5,sticky=W)
+        self.numitems = Entry(master,textvariable=defaultNumItems)
+        self.numitems.grid(row=5,column=1)
         
     def apply(self):
         numRandomFiles = int(self.en.get())
@@ -311,13 +316,15 @@ class GridGuiRandomiseDialog(tkSimpleDialog.Dialog):
         numGoals = int(self.gn.get())
         numFS = int(self.fsn.get())
         numAS = int(self.an.get())
-        print numRandomFiles
+        numItems = int(self.numitems.get())
+        #print numRandomFiles
         self.result = (numRandomFiles,numRobots,numGoals,numFS,numAS)
         self.numRandomFiles = numRandomFiles
         self.numRobots = numRobots
         self.numGoals = numGoals
         self.numFS = numFS
         self.numAS = numAS
+        self.numItems = numItems
 
 
         
@@ -341,6 +348,7 @@ class GridGui(object):
         self.numGoals = 3
         self.numFS = 0
         self.numAS = 0
+        self.numItems = 1
 
     def setShelves(self):
         self.grid.appState = GuiState.OBSTACLES
@@ -509,12 +517,12 @@ class GridGui(object):
                         print "Fail States"
                         print chosenFailStates
 
-                        gfr = GeneratePrismFile()
+                        gfr = GeneratePrismFilePickPlace()
                         doFour = True #four grid actions
 
                         fn = self.fn +"_fs"+str(j)+ "_"+str(i)+"_"
 
-                        smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour)
+                        smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour,self.numItems)
                         self.updateGridArray(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,smap)
                         self.screenshotfn(fn)
                         self.writeGridFileOnly(fn)
@@ -539,12 +547,12 @@ class GridGui(object):
                     print "Fail States"
                     print chosenFailStates
 
-                    gfr = GeneratePrismFile()
+                    gfr = GeneratePrismFilePickPlace()
                     doFour = True #four grid actions
 
                     fn = self.fn +"_fs"+str(self.numFS)+ "_"+str(i)+"_"
 
-                    smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour)
+                    smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour,self.numItems)
                     self.updateGridArray(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,smap)
                     self.screenshotfn(fn)
                     self.writeGridFileOnly(fn)                    
@@ -593,6 +601,7 @@ class GridGui(object):
         self.numGoals = d.numGoals
         self.numFS = d.numFS
         self.numAS = d.numAS
+        self.numItems = d.numItems
         
         
 

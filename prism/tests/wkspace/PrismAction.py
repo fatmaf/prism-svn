@@ -36,6 +36,10 @@ class PrismAction(object):
         self.src.append(pvar)
 
     def addStateToDestination(self,pvar,prob):
+        #print "Adding state to destination"
+        #print pvar
+        #print prob
+        
         self.dest.append(self.createDestinationDict(pvar,prob))
 
     def updateWithFailureState(self,fvar,fprob,sprob):
@@ -48,6 +52,9 @@ class PrismAction(object):
 
         
     def createDestinationDict(self,pvar,prob):
+        #print "Creating destination dict"
+        #print pvar
+        #print prob 
         if type(pvar) is not list:
             pvar = [pvar]
         return {"prob":prob,"states":pvar}
@@ -191,11 +198,14 @@ class PrismAction(object):
     def prismStringAction(self):
         toret = "["+self.name + "] "
         toret = toret + self.stateString(self.src,False)
-        toret = toret + " -> " +self.destString(self.dest) + ";"      
+        toret = toret + " -> " +self.destString(self.dest) + ";"
+        
         return toret 
 
     def destString(self,dest):
-        dests = [] 
+        dests = []
+        #print "In destination string"
+        print dest 
         for d in dest:
             p = d["prob"]
             src = d["states"]
@@ -206,6 +216,9 @@ class PrismAction(object):
             toret = toret + dests[i]
             if i != len(dests)-1:
                 toret = toret + " + "
+        #print "Destination string"
+        #print toret
+        
         return toret
     
     def stateString(self,src,isDest):

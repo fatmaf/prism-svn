@@ -66,8 +66,8 @@ class Cell():
         self.isAvoidState = False
         self.isDoor = False
         self.otherDoor = None
-        self.label = str(x)+","+str(y)
-        self.defaultLabel = str(x)+","+str(y)
+        self.label = str(y)+","+str(x)
+        self.defaultLabel = str(y)+","+str(x)
         
 
     def __str__(self):
@@ -189,7 +189,8 @@ class CellGrid(Canvas):
                 xydict[(int(xys[0]),int(xys[1]))] = eval(flags)
                 
         
-        Canvas.__init__(self, master, width = cellSize * columnNumber , height = cellSize * rowNumber, *args, **kwargs)
+        self.canvast = Canvas.__init__(self, master, width = cellSize * columnNumber , height = cellSize * rowNumber, *args, **kwargs)
+        print type(self.canvast)
 
         self.cellSize = cellSize
 
@@ -406,7 +407,25 @@ class GridGui(object):
                         statesToPickFrom.append(d)
         return statesToPickFrom
     
-                    
+
+    def writeGridFileOnly(self,fn):
+
+        gridArray = self.gridArray 
+
+        gridWriteFile = open(fn+'.grid','w')
+        lenx = len(gridArray)
+        leny = len(gridArray[0])
+        gsize = gridArray[0][0].size
+        gridWriteFile.write(str(lenx)+','+str(leny)+','+str(gsize)+'\n')
+        
+        for i in range(len(gridArray)):
+            for j in range(len(gridArray[i])):
+                c = gridArray[i][j]
+                gridWriteFile.write(str(c)+'\n')
+                
+        gridWriteFile.close()
+
+
     def writeGridFileAndCollectStates(self,fn):
         gridArray = self.gridArray
         
@@ -426,7 +445,7 @@ class GridGui(object):
             doorPair =[]
             potentialDoors = []
 
-        gridWriteFile = open(fn+'fsgen0.grid','w')
+        gridWriteFile = open(fn+'.grid','w')
         lenx = len(gridArray)
         leny = len(gridArray[0])
         gsize = gridArray[0][0].size
@@ -641,6 +660,10 @@ class GridGui(object):
         print ("doors")
         print (doorPairs)
 
+        ex=raw_input("Exit")
+        if ex == "e":
+            print "Exiting"
+            return 
         gfr = GeneratePrismFile()
         doFour = True #four grid actions
 
@@ -651,6 +674,8 @@ class GridGui(object):
             lab = smap[ij]
             self.gridArray[i][j].label = lab
             self.gridArray[i][j].draw()
+        self.writeGridFileOnly(self.fn)
+        
 
         #just a for loop to wait for the dialog to close
         for i in range(1000000):
@@ -697,6 +722,7 @@ class GridGui(object):
                     lab = smap[ij]
                     self.gridArray[i][j].label = lab
                     self.gridArray[i][j].draw()
+                self.writeGridFileOnly(fn)
                 self.app.update()
 
                 #just a for loop to wait for the dialog to close
