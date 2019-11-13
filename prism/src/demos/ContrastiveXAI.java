@@ -1,12 +1,8 @@
 package demos;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -18,24 +14,15 @@ import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Stack;
-import java.util.Vector;
 import acceptance.AcceptanceOmega;
-import acceptance.AcceptanceRabin;
-import acceptance.AcceptanceReach;
-import acceptance.AcceptanceType;
 import automata.DA;
-import cern.colt.Arrays;
-import common.IterableStateSet;
 import demos.PolicyPath.PathNode;
 import demos.StateInformation.ValueLabel;
-import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
 import explicit.MDPSimple;
-import explicit.Model;
 import explicit.ModelCheckerPartialSatResult;
 import parser.ast.Expression;
-import parser.ast.ExpressionProb;
 import parser.ast.ExpressionReward;
 import parser.ast.ModulesFile;
 import parser.ast.PropertiesFile;
@@ -44,7 +31,6 @@ import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 import simulator.ModulesFileModelGenerator;
-import strat.MDStrategy;
 import parser.State;
 import parser.VarList;
 
@@ -57,10 +43,11 @@ public class ContrastiveXAI
 	MDP mdp;
 	DA<BitSet, ? extends AcceptanceOmega> da;
 	BitSet accStates;
-	BitSet sinkStates;
+	BitSet dasinkStates;
 	int daVarInd = -1;
 	PropertiesFile propertiesFile;
 	ModulesFile modulesFile;
+	private ArrayList<String> nonMDPDistVars;
 
 	//main function 
 	public static void main(String[] args)
@@ -69,7 +56,7 @@ public class ContrastiveXAI
 	}
 
 	//
-	public void readModel(String saveplace, String filename) throws FileNotFoundException, PrismException
+	public void readModel(String saveplace, String filename, boolean noappend) throws FileNotFoundException, PrismException
 	{
 		mainLog = new PrismFileLog("stdout");
 
@@ -81,10 +68,19 @@ public class ContrastiveXAI
 
 		//load the mdp for a single model 
 
-		String modelFileName = saveplace + filename + "0.prism";
+		String modelFileName = saveplace + filename;
+		if (!noappend)
+			modelFileName += "0.prism";
+		else
+			modelFileName += ".prism";
 		modulesFile = prism.parseModelFile(new File(modelFileName));
 		prism.loadPRISMModel(modulesFile);
-		propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + "_rew.props"));
+		String propFileName = saveplace + filename;
+		if (!noappend)
+			propFileName += "_rew.props";
+		else
+			propFileName += ".props";
+		propertiesFile = prism.parsePropertiesFile(modulesFile, new File(propFileName));
 		prism.buildModel();
 		mdp = (MDP) prism.getBuiltModelExplicit();
 
@@ -200,19 +196,123 @@ public class ContrastiveXAI
 
 		//example 
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/xaiTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-		String filename = "xai_r1_d1_g1_key";//"xai_r1_d1_g1_key";//_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
+		saveplace = "/home/fatma/Data/PhD/melb/prism/";
+		String filenamec = "xai_r2_i3_pickplace_fs0_0_";//"xai_r1_d1_g1_key";//"xai_r1_d1_g1_key";//_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
 
+		filenamec = "scenario0";//"domainTemplate_updated";
+		String[] filenames = new String[] { "scenario0", "scenario0_alt" };
+		for (String filename : filenames) {
+			HashMap<String, Double> discountVals = new HashMap<String, Double>();
+			discountVals.put("xai_r1_d1_g1", 1.0);
+			discountVals.put("xai_r1_d1_g1_key", 0.9);
+			discountVals.put("xai_r2_i2_pickplace_fs0_0_", 1.0);
+			discountVals.put("xai_r2_i3_pickplace_fs0_0_", 1.0);
+			double discount = 1.0;
+			if (discountVals.containsKey(filename)) {
+				discountVals.get(filename);
+			}
+			boolean noappend = true; //set to true for the ones labeled xai 
+			//load model 
+			readModel(saveplace, filename, noappend);
+
+			//get distance for mdp states 
+			HashMap<State, HashMap<State, Double>> mdpDistshm = null;//mdpDijkstra(mdp);
+			if (!noappend)
+				mdpDistshm = mdpDijkstra(mdp);
+			//process reward
+			ExpressionReward exprRew = (ExpressionReward) propertiesFile.getProperty(0);
+			mainLog.println(exprRew.toString());
+
+			//preparing to get the optimal policy 
+			setMCExportOptionsAll(saveplace, filename);
+
+			Expression expr = exprRew.getExpression();
+
+			VIExposed vi = new VIExposed();
+			ModelCheckerPartialSatResult optimalPolicy = vi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc, discount);
+			this.dasinkStates = vi.daSinkStates;
+			this.da = vi.origda;
+			//save the product mdp 
+			PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
+			vi.productmdp.exportToDotFile(pfl, null, true);
+			pfl.close();
+
+			//now create a path from the optimal policy 
+			PathCreator optimalPolicyPaths = new PathCreator();
+			optimalPolicyPaths.createPathPolicy(0, vi.productmdp, optimalPolicy.strat, saveplace + "results/", "xai_" + filename + "optimalPath",
+					vi.progRewards, vi.costRewards, vi.accStates);
+			if (!noappend) {
+				HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances = calculateStateDistances(optimalPolicyPaths, mdpDistshm);
+				HashMap<State, ArrayList<Entry<State, Double>>> allStateDistances = calculateStateDistances(vi.productmdp, mdpDistshm);
+
+				//first we need to identify the "swing" states 
+				ArrayList<StateInformation> ssQ = getMostInfluentialStatesListByCost(vi, discount, optimalPolicyPaths);
+
+				//so now we have these ranked 
+				//so lets print out the most influential one 
+				for (int i = 0; i < ssQ.size(); i++) {
+
+					System.out.println(ssQ.get(i));
+				}
+				//so the swing states are kind of at the ends of the list 
+				//so we'll just pick those 
+				StateInformation ssTop = ssQ.get(0);
+				StateInformation ssBottom = ssQ.get(ssQ.size() - 1);
+				listClosestStatesToState(ssTop, optimalPolicyStateDistances, optimalPolicyPaths);
+
+				listClosestStatesToState(ssTop, allStateDistances, null);
+				listClosestStatesToState(ssBottom, optimalPolicyStateDistances, optimalPolicyPaths);
+
+				PathCreator alternatePolicyPaths = createAlternatePath(filename, vi, optimalPolicy, saveplace);
+				ArrayList<StateInformation> alternateSSQ = getMostInfluentialStatesListByCost(vi, discount, alternatePolicyPaths);
+
+				for (int i = 0; i < alternateSSQ.size(); i++) {
+
+					System.out.println(alternateSSQ.get(i));
+				}
+				HashMap<State, ArrayList<Entry<State, Double>>> alternatePolicyStateDistances = calculateStateDistances(alternatePolicyPaths, mdpDistshm);
+
+				StateInformation ssTopAlt = alternateSSQ.get(0);
+				StateInformation ssBottomAlt = alternateSSQ.get(alternateSSQ.size() - 1);
+				listClosestStatesToState(ssTopAlt, alternatePolicyStateDistances, alternatePolicyPaths);
+
+				listClosestStatesToState(ssBottomAlt, alternatePolicyStateDistances, alternatePolicyPaths);
+			}
+		}
+	}
+
+	public void identifySwingStatesContext() throws Exception
+	{
+
+		//example 
+		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/xaiTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
+		saveplace = "/home/fatma/Data/PhD/melb/prism/";
+		String filenamec = "xai_r2_i3_pickplace_fs0_0_";//"xai_r1_d1_g1_key";//"xai_r1_d1_g1_key";//_fs1notgoal_noback";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
+
+		filenamec = "scenario0";//"domainTemplate_updated";
+		nonMDPDistVars = new ArrayList<String>();
+		nonMDPDistVars.add("turn");
+		nonMDPDistVars.add("photo1");
+		nonMDPDistVars.add("photo2");
+		String[] filenames = new String[] { "scenario1", "scenario1_alt" };
+				for(String filename:filenames) {
+//		String filename = filenames[0];
 		HashMap<String, Double> discountVals = new HashMap<String, Double>();
 		discountVals.put("xai_r1_d1_g1", 1.0);
 		discountVals.put("xai_r1_d1_g1_key", 0.9);
-
-		double discount = discountVals.get(filename);
-
+		discountVals.put("xai_r2_i2_pickplace_fs0_0_", 1.0);
+		discountVals.put("xai_r2_i3_pickplace_fs0_0_", 1.0);
+		double discount = 1.0;
+		if (discountVals.containsKey(filename)) {
+			discountVals.get(filename);
+		}
+		boolean noappend = true;
 		//load model 
-		readModel(saveplace, filename);
+		readModel(saveplace, filename, noappend);
 
 		//get distance for mdp states 
-		HashMap<State, HashMap<State, Double>> mdpDistshm = mdpDijkstra(mdp);
+		HashMap<State, HashMap<State, Double>> mdpDistshm = null;//mdpDijkstra(mdp);
+
 		//process reward
 		ExpressionReward exprRew = (ExpressionReward) propertiesFile.getProperty(0);
 		mainLog.println(exprRew.toString());
@@ -223,8 +323,12 @@ public class ContrastiveXAI
 		Expression expr = exprRew.getExpression();
 
 		VIExposed vi = new VIExposed();
+		for(int i = 0; i<mdp.getVarList().getNumVars(); i++)
+		System.out.println(mdp.getVarList().getName(i));
 		ModelCheckerPartialSatResult optimalPolicy = vi.nviexposed(prism, mainLog, mdp, expr, exprRew, null, modulesFile, mc, discount);
 
+		this.dasinkStates = vi.daSinkStates;
+		this.da = vi.origda;
 		//save the product mdp 
 		PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
 		vi.productmdp.exportToDotFile(pfl, null, true);
@@ -234,8 +338,9 @@ public class ContrastiveXAI
 		PathCreator optimalPolicyPaths = new PathCreator();
 		optimalPolicyPaths.createPathPolicy(0, vi.productmdp, optimalPolicy.strat, saveplace + "results/", "xai_" + filename + "optimalPath", vi.progRewards,
 				vi.costRewards, vi.accStates);
-		HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances = calculateStateDistances(optimalPolicyPaths, mdpDistshm);
-		HashMap<State, ArrayList<Entry<State, Double>>> allStateDistances = calculateStateDistances(vi.productmdp, mdpDistshm);
+
+		HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances = calculateStateDistancesOnTheFly(optimalPolicyPaths, mdpDistshm, mdp);
+		//		HashMap<State, ArrayList<Entry<State, Double>>> allStateDistances = calculateStateDistances(vi.productmdp, mdpDistshm);
 
 		//first we need to identify the "swing" states 
 		ArrayList<StateInformation> ssQ = getMostInfluentialStatesListByCost(vi, discount, optimalPolicyPaths);
@@ -250,43 +355,46 @@ public class ContrastiveXAI
 		//so we'll just pick those 
 		StateInformation ssTop = ssQ.get(0);
 		StateInformation ssBottom = ssQ.get(ssQ.size() - 1);
+		
 		listClosestStatesToState(ssTop, optimalPolicyStateDistances, optimalPolicyPaths);
 
-		listClosestStatesToState(ssTop,allStateDistances,null);
+		//		listClosestStatesToState(ssTop, allStateDistances, null);
 		listClosestStatesToState(ssBottom, optimalPolicyStateDistances, optimalPolicyPaths);
 
-		PathCreator alternatePolicyPaths = createAlternatePath(filename, vi, optimalPolicy, saveplace);
-		ArrayList<StateInformation> alternateSSQ = getMostInfluentialStatesListByCost(vi, discount, alternatePolicyPaths);
+		//		PathCreator alternatePolicyPaths = createAlternatePath(filename, vi, optimalPolicy, saveplace);
+		//		ArrayList<StateInformation> alternateSSQ = getMostInfluentialStatesListByCost(vi, discount, alternatePolicyPaths);
+		//
+		//		for (int i = 0; i < alternateSSQ.size(); i++) {
+		//
+		//			System.out.println(alternateSSQ.get(i));
+		//		}
+		//		HashMap<State, ArrayList<Entry<State, Double>>> alternatePolicyStateDistances = calculateStateDistances(alternatePolicyPaths, mdpDistshm);
+		//
+		//		StateInformation ssTopAlt = alternateSSQ.get(0);
+		//		StateInformation ssBottomAlt = alternateSSQ.get(alternateSSQ.size() - 1);
+		//		listClosestStatesToState(ssTopAlt, alternatePolicyStateDistances, alternatePolicyPaths);
+		//
+		//		listClosestStatesToState(ssBottomAlt, alternatePolicyStateDistances, alternatePolicyPaths);
 
-		for (int i = 0; i < alternateSSQ.size(); i++) {
-
-			System.out.println(alternateSSQ.get(i));
-		}
-		HashMap<State, ArrayList<Entry<State, Double>>> alternatePolicyStateDistances = calculateStateDistances(alternatePolicyPaths, mdpDistshm);
-		
-		StateInformation ssTopAlt = alternateSSQ.get(0);
-		StateInformation ssBottomAlt = alternateSSQ.get(alternateSSQ.size() - 1);
-		listClosestStatesToState(ssTopAlt, alternatePolicyStateDistances, alternatePolicyPaths);
-
-		listClosestStatesToState(ssBottomAlt, alternatePolicyStateDistances, alternatePolicyPaths);
-
+				}
 	}
 
 	public void listClosestStatesToState(StateInformation ssTop, HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,
 			PathCreator optimalPolicyPaths)
 	{
+		System.out.println("Listing distances from "+ssTop.toString());
 		//for these two we want the closest states 
 		double prevdist = 0;
-		double threshold = Math.sqrt((double)ssTop.getState().varValues.length);
+		double threshold = Math.sqrt((double) ssTop.getState().varValues.length);
 		ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
 		for (Entry<State, Double> e : ssTopDistances) {
 			State s = e.getKey();
 			String aStr = "";
-			if(optimalPolicyPaths!=null) {
-			Object a = optimalPolicyPaths.getStateAction(s);
-			
-			if (a != null)
-				aStr = a.toString();
+			if (optimalPolicyPaths != null) {
+				Object a = optimalPolicyPaths.getStateAction(s);
+
+				if (a != null)
+					aStr = a.toString();
 			}
 			if (Math.abs(prevdist - e.getValue()) > threshold)
 				break;
@@ -344,7 +452,7 @@ public class ContrastiveXAI
 		discountVals.put("xai_r1_d1_g1_key", 0.9);
 
 		double discount = discountVals.get(filename);
-		readModel(saveplace, filename);
+		readModel(saveplace, filename, false);
 
 		//just testing the distance stuff 
 		//		double[] dists = mdpDijkstraSingleState(mdp, mdp.getFirstInitialState());
@@ -415,6 +523,28 @@ public class ContrastiveXAI
 		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
 		for (int i = 0; i < numStates; i++) {
 			State istate = sl.get(i);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			toret.put(istate, pq);
+		}
+		return toret;
+	}
+
+	public HashMap<State, ArrayList<Entry<State, Double>>> calculateStateDistancesOnTheFly(PathCreator pathC,
+			HashMap<State, HashMap<State, Double>> dijkstraDists, MDP originalMDP) throws Exception
+	{
+		MDP pmdp = pathC.pc.mdpCreator.mdp;
+		int numStates = pmdp.getNumStates();
+		List<State> sl = pmdp.getStatesList();
+		VarList vl = pmdp.getVarList();
+		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
+		for (int i = 0; i < numStates; i++) {
+			State istate = sl.get(i);
+			State mdpState = this.getMDPState(vl, istate);
+			if (dijkstraDists == null || !dijkstraDists.containsKey(mdpState)) {
+
+				int oms = this.getStateIndex(originalMDP, mdpState);
+				dijkstraDists = mdpDijkstraUpdate(oms, originalMDP, dijkstraDists);
+			}
 			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
 			toret.put(istate, pq);
 		}
@@ -744,6 +874,30 @@ public class ContrastiveXAI
 	}
 
 	//run function 
+	public HashMap<State, HashMap<State, Double>> mdpDijkstraUpdate(int mdpStateNum, MDP mdp, HashMap<State, HashMap<State, Double>> mdpDistshm)
+	{
+
+		double[] dists = mdpDijkstraSingleState(mdp, mdpStateNum);
+		if (dists[mdpStateNum] != 0)
+			System.out.println("Error");
+
+		//going to normalise the distances so each var has equal influence
+		if (mdpDistshm == null)
+			mdpDistshm = new HashMap<State, HashMap<State, Double>>();
+
+		State s = mdp.getStatesList().get(mdpStateNum);
+		int numstates = mdp.getNumStates();
+		HashMap<State, Double> hm = new HashMap<State, Double>();
+		for (int j = 0; j < numstates; j++) {
+			State ns = mdp.getStatesList().get(j);
+			hm.put(ns, dists[j]);
+
+		}
+		mdpDistshm.put(s, hm);
+
+		return mdpDistshm;
+
+	}
 
 	public HashMap<State, HashMap<State, Double>> mdpDijkstra(MDP mdp)
 	{
@@ -818,58 +972,153 @@ public class ContrastiveXAI
 		return dist;
 	}
 
+	//	public double stateDist(State s1p, State s2p, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
+	//	{
+	//		double dist = 0;
+	//		State s1 = this.getMDPState(vl, s1p);
+	//		State s2 = this.getMDPState(vl, s2p);
+	//		//we're doing a kind of euclidean distance 
+	//		//for each variable in vl 
+	//		int numVars = vl.getNumVars();
+	//		if (!s1p.toString().contentEquals(s2p.toString())) {
+	//
+	//			double[] dists = new double[numVars];
+	//			for (int var = 0; var < numVars; var++) {
+	//				String vname = vl.getName(var);
+	//				//so  the distance measures are different 
+	//				//if the varname has door or key we just do like a change //edit distance 
+	//				//if it s we use mdpDijkstraDist 
+	//				if (vname.contentEquals("s")) {
+	//
+	//					//because we're only using dijkstras if the s variable is different 
+	//					int s1sval = (int) s1p.varValues[var];
+	//					int s2sval = (int) s2p.varValues[var];
+	//					if (s1sval != s2sval) {
+	//						if (mdpDijkstraDists.containsKey(s1)) {
+	//							if (mdpDijkstraDists.get(s1).containsKey(s2)) {
+	//								dists[var] = mdpDijkstraDists.get(s1).get(s2);
+	//							} else {
+	//								throw new Exception("no distance?");
+	//							}
+	//						} else if (mdpDijkstraDists.containsKey(s2)) {
+	//							if (mdpDijkstraDists.get(s2).containsKey(s1)) {
+	//								dists[var] = mdpDijkstraDists.get(s2).get(s1);
+	//							} else {
+	//								throw new Exception("no distance?");
+	//							}
+	//						}
+	//					}
+	//
+	//					//					if (dists[var] == 0)
+	//					//						System.out.println("Whaaaa?");
+	//				} else {
+	//
+	//					int s1var = (int) s1p.varValues[var];
+	//					int s2var = (int) s2p.varValues[var];
+	//					if (vname.contains("da"))
+	//						{dists[var] = Math.abs(s1var - s2var);
+	//						//TODO:the distance to a sink state should be a very large number 
+	//						
+	//						}
+	//					else {
+	//						if (s1var == s2var)
+	//							dists[var] = 0;
+	//						else
+	//							dists[var] = 1;
+	//					}
+	//				}
+	//				dists[var] *= dists[var];
+	//				dist += dists[var];
+	//			}
+	//			dist = Math.sqrt(dist);
+	//		}
+	//		return dist;
+	//	}
 	public double stateDist(State s1p, State s2p, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
 	{
 		double dist = 0;
 		State s1 = this.getMDPState(vl, s1p);
 		State s2 = this.getMDPState(vl, s2p);
+		boolean mdpBitsDone = false;
 		//we're doing a kind of euclidean distance 
 		//for each variable in vl 
 		int numVars = vl.getNumVars();
 		if (!s1p.toString().contentEquals(s2p.toString())) {
 
 			double[] dists = new double[numVars];
+			//so we'll do all vars that are in the special list or part of the da 
 			for (int var = 0; var < numVars; var++) {
 				String vname = vl.getName(var);
-				//so  the distance measures are different 
-				//if the varname has door or key we just do like a change //edit distance 
-				//if it s we use mdpDijkstraDist 
-				if (vname.contentEquals("s")) {
-
-					//because we're only using dijkstras if the s variable is different 
-					int s1sval = (int) s1p.varValues[var];
-					int s2sval = (int) s2p.varValues[var];
-					if (s1sval != s2sval) {
-						if (mdpDijkstraDists.containsKey(s1)) {
-							if (mdpDijkstraDists.get(s1).containsKey(s2)) {
-								dists[var] = mdpDijkstraDists.get(s1).get(s2);
-							} else {
-								throw new Exception("no distance?");
-							}
-						} else if (mdpDijkstraDists.containsKey(s2)) {
-							if (mdpDijkstraDists.get(s2).containsKey(s1)) {
-								dists[var] = mdpDijkstraDists.get(s2).get(s1);
-							} else {
-								throw new Exception("no distance?");
-							}
-						}
-					}
-
-					//					if (dists[var] == 0)
-					//						System.out.println("Whaaaa?");
+				int s1var =0;
+				if(s1p.varValues[var] instanceof Boolean)
+				{
+					if((Boolean) s1p.varValues[var] == true)
+						s1var = 1;
+				}
+				else
+					s1var = (int) s1p.varValues[var];
+				int s2var = 0;
+				if(s2p.varValues[var] instanceof Boolean)
+				{
+					if((Boolean) s2p.varValues[var] == true)
+						s2var = 1;
+				}
+				else
+				 s2var = (int) s2p.varValues[var];
+				if (vname.contains("da")) {
+					dists[var] = Math.abs(s1var - s2var);
+					dists[var] = Math.abs(da.getDistsToAcc().get(s1var) - da.getDistsToAcc().get(s2var));
+					//TODO:the distance to a sink state should be a very large number 
+					if(this.dasinkStates.get(s2var))
+						dists[var] = da.size();
 				} else {
-
-					int s1var = (int) s1p.varValues[var];
-					int s2var = (int) s2p.varValues[var];
-					if (vname.contains("da"))
-						dists[var] = Math.abs(s1var - s2var);
-					else {
+					if (nonMDPDistVars.contains(vname)) {
 						if (s1var == s2var)
 							dists[var] = 0;
 						else
 							dists[var] = 1;
+					} else {
+						if (!mdpBitsDone) {
+							//because we're only using dijkstras if the s variable is different 
+							boolean sameValues = false; 
+							Object s1sval =  s1p.varValues[var];
+							Object s2sval =  s2p.varValues[var];
+							
+							if(s1sval instanceof Boolean)
+							{
+								boolean s1varh = (Boolean) s1sval; 
+								boolean s2varh = (Boolean) s2sval; 
+								sameValues = s1varh == s2varh; 
+							}
+							else
+							{
+								int s1varh = (int)s1sval; 
+								int s2varh = (int)s2sval; 
+								sameValues = s1varh == s2varh; 
+							}
+							if (!sameValues) {
+								if (mdpDijkstraDists.containsKey(s1)) {
+									if (mdpDijkstraDists.get(s1).containsKey(s2)) {
+										dists[var] = mdpDijkstraDists.get(s1).get(s2);
+									} else {
+										throw new Exception("no distance?");
+									}
+								} else if (mdpDijkstraDists.containsKey(s2)) {
+									if (mdpDijkstraDists.get(s2).containsKey(s1)) {
+										dists[var] = mdpDijkstraDists.get(s2).get(s1);
+									} else {
+										throw new Exception("no distance?");
+									}
+								}
+								mdpBitsDone = true;
+							}
+							
+						} else {
+							dists[var] = 0;
+						}
 					}
 				}
+				//				}
 				dists[var] *= dists[var];
 				dist += dists[var];
 			}
@@ -884,7 +1133,8 @@ public class ContrastiveXAI
 		try {
 
 			//			doStuff();
-			identifySwingStates();
+			//			identifySwingStates();
+			identifySwingStatesContext();
 
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block

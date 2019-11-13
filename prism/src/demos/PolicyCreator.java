@@ -3,6 +3,7 @@ package demos;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Stack;
@@ -23,9 +24,12 @@ public class PolicyCreator
 
 	protected MDPCreator mdpCreator;
 
+	public HashMap<Integer, Integer> policyStateToOriginalMDPMap = null;
+
 	public PolicyCreator()
 	{
 		mdpCreator = new MDPCreator();
+		policyStateToOriginalMDPMap = new HashMap<Integer, Integer>();
 	}
 
 	public MDPSimple createPolicy(MDP productMdp, Strategy strat) throws PrismException
@@ -73,9 +77,11 @@ public class PolicyCreator
 			if (actionIndex > -1) {
 				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
 				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();
 				while (tranIter.hasNext()) {
 					Entry<Integer, Double> stateProbPair = tranIter.next();
 					int succ = stateProbPair.getKey();
+					mdpSuccInts.add(succ);
 					State succState = mdp.getStatesList().get(stateProbPair.getKey());
 					double prob = stateProbPair.getValue();
 					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
@@ -84,9 +90,30 @@ public class PolicyCreator
 					}
 				}
 				mdpCreator.addAction(sState, action, successors);
+				addStateToMap(s, sState);
+
+				addSuccessorStatesToMap(successors, mdpSuccInts);
+
 			}
 		}
 		return mdpCreator.mdp;
+	}
+
+	public void addStateToMap(int s, State sState)
+	{
+		if (!policyStateToOriginalMDPMap.containsKey(s)) {
+			int si = mdpCreator.getStateIndex(sState);
+			policyStateToOriginalMDPMap.put(si, s);
+		}
+	}
+
+	public void addSuccessorStatesToMap(ArrayList<Entry<State, Double>> successors, ArrayList<Integer> mdpsucints)
+	{
+		for (int i = 0; i < mdpsucints.size(); i++) {
+			int s = mdpsucints.get(i);
+			State sState = successors.get(i).getKey();
+			addStateToMap(s, sState);
+		}
 	}
 
 	public MDPSimple createPolicyWithRewardsStructures(int initialState, MDP mdp, Strategy strat, MDPRewardsSimple progRews, MDPRewardsSimple costs,
@@ -123,9 +150,11 @@ public class PolicyCreator
 
 				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
 				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();
 				while (tranIter.hasNext()) {
 					Entry<Integer, Double> stateProbPair = tranIter.next();
 					int succ = stateProbPair.getKey();
+					mdpSuccInts.add(succ);
 					State succState = mdp.getStatesList().get(stateProbPair.getKey());
 					double prob = stateProbPair.getValue();
 					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
@@ -134,11 +163,14 @@ public class PolicyCreator
 					}
 				}
 				mdpCreator.addAction(sState, action, successors, progRew, cost);
+				addStateToMap(s, sState);
 
+				addSuccessorStatesToMap(successors, mdpSuccInts);
 			}
 		}
 		return mdpCreator.mdp;
 	}
+
 	public MDPSimple createPolicyWithRewardsStructuresAsLabels(int initialState, MDP mdp, Strategy strat, MDPRewardsSimple progRews, MDPRewardsSimple costs,
 			BitSet accStates)
 	{
@@ -170,12 +202,13 @@ public class PolicyCreator
 					progRew = progRews.getTransitionReward(s, actionIndex);
 					cost = costs.getTransitionReward(s, actionIndex);
 				}
-
+				ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();
 				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
 				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
 				while (tranIter.hasNext()) {
 					Entry<Integer, Double> stateProbPair = tranIter.next();
 					int succ = stateProbPair.getKey();
+					mdpSuccInts.add(succ);
 					State succState = mdp.getStatesList().get(stateProbPair.getKey());
 					double prob = stateProbPair.getValue();
 					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
@@ -184,11 +217,14 @@ public class PolicyCreator
 					}
 				}
 				mdpCreator.addActionAndLabelRews(sState, action, successors, progRew, cost);
+				addStateToMap(s, sState);
 
+				addSuccessorStatesToMap(successors, mdpSuccInts);
 			}
 		}
 		return mdpCreator.mdp;
 	}
+
 	void savePolicy(String saveLocation, String name)
 	{
 		mdpCreator.saveMDP(saveLocation, name);

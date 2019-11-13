@@ -115,6 +115,7 @@ public class PathCreator
 			State ps = m.getStatesList().get(s);
 			
 			if (a != -1) {
+				ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();
 				Iterator<Entry<Integer, Double>> tranIter = m.getTransitionsIterator(s, a);
 				ArrayList<Entry<State, Double>> succPairs = new ArrayList<Entry<State, Double>>();
 				while (tranIter.hasNext()) {
@@ -122,7 +123,7 @@ public class PathCreator
 					int state = stateProb.getKey();
 					double prob = stateProb.getValue();
 					State sState = m.getStatesList().get(state);
-
+					mdpSuccInts.add(state);
 					succPairs.add(new AbstractMap.SimpleEntry<State, Double>(sState, prob));
 					stateQ.add(state);
 				}
@@ -134,6 +135,10 @@ public class PathCreator
 					pc.mdpCreator.addAction(ps, action, succPairs, progRew, cost);
 				} else
 					pc.mdpCreator.addAction(ps, action, succPairs);
+				
+				pc.addStateToMap(s, ps);
+
+				pc.addSuccessorStatesToMap(succPairs, mdpSuccInts);
 			}
 			if (!initStateSet) {
 				pc.mdpCreator.setInitialState(ps);
@@ -165,6 +170,7 @@ public class PathCreator
 		for (int i = 0; i < states.size(); i++) {
 			s = states.get(i);
 			a = actions.get(i);
+			ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();
 			Iterator<Entry<Integer, Double>> tranIter = m.getTransitionsIterator(s, a);
 			ArrayList<Entry<State, Double>> succPairs = new ArrayList<Entry<State, Double>>();
 			while (tranIter.hasNext()) {
@@ -173,7 +179,7 @@ public class PathCreator
 				int state = stateProb.getKey();
 				double prob = stateProb.getValue();
 				State sState = m.getStatesList().get(state);
-
+				mdpSuccInts.add(state);
 				succPairs.add(new AbstractMap.SimpleEntry<State, Double>(sState, prob));
 				if (!states.contains(state)) {
 					pc.createPolicyWithRewardsStructures(state, m, strat, progCosts, costs, accStates);
@@ -187,7 +193,9 @@ public class PathCreator
 				pc.mdpCreator.addAction(ps, action, succPairs, progRew, cost);
 			} else
 				pc.mdpCreator.addAction(ps, action, succPairs);
+			pc.addStateToMap(s, ps);
 
+			pc.addSuccessorStatesToMap(succPairs, mdpSuccInts);
 			if (!initStateSet) {
 				pc.mdpCreator.setInitialState(ps);
 				initStateSet = true;
