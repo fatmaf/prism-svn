@@ -52,6 +52,40 @@ public class VIExposed
 
 	BitSet accStates;
 
+	BitSet daSinkStates; 
+	DA<BitSet, ? extends AcceptanceOmega> origda; 
+	
+	public BitSet getSinkStates(DA<BitSet, ? extends AcceptanceOmega> da)
+	{
+		BitSet daaccStates;
+		//Check if its a DFA
+		if (da.getAcceptance() instanceof AcceptanceReach) {
+			daaccStates = ((AcceptanceReach)da.getAcceptance()).getGoalStates();
+		} else if (da.getAcceptance() instanceof AcceptanceRabin) {
+			daaccStates = da.getRabinAccStates();
+			} else {
+				return null;
+		}
+		
+		BitSet sinkStates = new BitSet();
+		for (int i = 0; i < da.size(); i++) {
+			boolean isSinkState = false;
+			int numEdges = da.getNumEdges(i);
+			int numEdgesSrcToSrc = da.getNumEdges(i, i);
+			if (numEdges == numEdgesSrcToSrc) {
+				isSinkState = true;
+
+			}
+			if (numEdges == 0)
+				isSinkState = true;
+			if (isSinkState) {
+				if (daaccStates.get(i) == false)
+					sinkStates.set(i);
+			}
+		}
+		return sinkStates;
+	}
+	
 	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr,
 			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc,double discount) throws PrismException
 
@@ -97,6 +131,9 @@ public class VIExposed
 		// calculate distances to accepting states
 		long time = System.currentTimeMillis();
 		da.setDistancesToAcc();
+		origda = da;
+	
+		this.daSinkStates = this.getSinkStates(da);
 		time = System.currentTimeMillis() - time;
 		mainLog.println("\nAutomaton state distances to an accepting state: " + da.getDistsToAcc());
 		mainLog.println("Time for DFA distance to acceptance metric calculation: " + time / 1000.0 + " seconds.");
@@ -262,6 +299,7 @@ public class VIExposed
 		double solnProb[], soln2Prob[];
 		double solnProg[], soln2Prog[];
 		double solnCost[], soln2Cost[];
+		double influenceValues[]; 
 		boolean done;
 		BitSet no, yes, unknown;
 		long timerVI, timerProb0, timerProb1, timerGlobal;
@@ -331,6 +369,7 @@ public class VIExposed
 		solnCost = new double[n];
 		// soln2Cost = new double[n];
 
+		influenceValues = new double[n];
 		// Initialise solution vectors to initVal
 		// where initVal is 0.0 or 1.0, depending on whether we converge from
 		// below/above.
@@ -368,7 +407,11 @@ public class VIExposed
 			iters++;
 			done = true;
 			for (i = 0; i < n; i++) {
-//				if (progStates.get(i)) {
+
+				boolean setIS = true; 
+				double maxIS = -1; 
+				double minIS = -1; 
+				//				if (progStates.get(i)) {
 				if(!target.get(i)) {
 					if (saveVals) {
 						if (!stateActionProbValues.containsKey(i))
@@ -381,9 +424,10 @@ public class VIExposed
 					numChoices = trimProdMdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 
+						
 						currentProbVal = trimProdMdp.mvMultJacSingle(i, j, solnProb);
 						currentProgVal = trimProdMdp.mvMultRewSingle(i, j, solnProg, progRewards);
-						currentCostVal =  mvMultRewSingleDiscount((MDPSimple)trimProdMdp,i, j, solnCost, prodCosts,discount);
+						currentCostVal =  mvMultRewSingleDiscount(trimProdMdp,i, j, solnCost, prodCosts,discount);
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
@@ -393,27 +437,21 @@ public class VIExposed
 							stateActionProgValues.get(i).put(j, currentProgVal);
 							stateActionCostValues.get(i).put(j, currentCostVal);
 						}
-//						if (!sameProb && currentProbVal > solnProb[i]) {
-//							done = false;
-//							solnProb[i] = currentProbVal;
-//							solnProg[i] = currentProgVal;
-//							solnCost[i] = currentCostVal;
-//
-//							strat[i] = j;
-//
-//						} 
-//						else {
-//							if (sameProb) {
-//								if (!sameProg && currentProgVal > solnProg[i]) {
-//									done = false;
-//
-//									solnProg[i] = currentProgVal;
-//									solnCost[i] = currentCostVal;
-//
-//									strat[i] = j;
-//
-//								} else {
-//									if (sameProg) {
+
+						if(setIS)
+						{
+							maxIS = currentCostVal; 
+							minIS = currentCostVal;
+							setIS = false; 
+						}
+						if(!setIS)
+						{
+							if(currentCostVal > maxIS)
+								maxIS = currentCostVal; 
+							if(currentCostVal < minIS)
+								minIS = currentCostVal; 
+						
+						}
 										if (!sameCost && currentCostVal < solnCost[i]) {
 											done = false;
 											solnProb[i] = currentProbVal;
@@ -429,6 +467,7 @@ public class VIExposed
 //						}
 					}
 				}
+				influenceValues[i] = maxIS - minIS; 
 			}
 
 		}
@@ -458,10 +497,11 @@ public class VIExposed
 		res.solnCost = solnCost;
 		res.numIters = iters;
 		res.timeTaken = timerGlobal / 1000.0;
+		res.lastSolnCost = influenceValues;
 		return res;
 	}
 
-	public double mvMultRewSingleDiscount(MDPSimple mdp,int s, int i, double[] vect, MDPRewards mdpRewards,double discount)
+	public double mvMultRewSingleDiscount(MDP mdp,int s, int i, double[] vect, MDPRewards mdpRewards,double discount)
 	{
 		double d, prob;
 		int k;

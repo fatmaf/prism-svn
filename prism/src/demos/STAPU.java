@@ -832,7 +832,8 @@ public class STAPU
 		StatesHelper.setNumMDPVars(maxMDPVars);
 
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
-				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
+				matchsharedstatesinswitch, completeSwitchRing, numGoals, 
+				noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
 				excludeRobotInitStates);
 
 		resSaver.writeResults();

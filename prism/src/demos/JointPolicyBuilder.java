@@ -200,9 +200,9 @@ public class JointPolicyBuilder
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP,
 			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
 	{
-		//		PolicyCreator pc = new PolicyCreator();
-		//		pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-		//		pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
+				PolicyCreator pc = new PolicyCreator();
+				pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+				pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
 
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
