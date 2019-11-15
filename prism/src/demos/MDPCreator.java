@@ -200,7 +200,13 @@ public class MDPCreator
 		}
 		return stateIndices.get(s);
 	}
-
+	int getStateIndexNoAddition(State s)
+	{
+		if (!stateIndices.containsKey(s)) {
+			return -1;
+		}
+		return stateIndices.get(s);
+	}
 	int getActionIndex(int stateIndex, Object a)
 	{
 		int actionIndex = -1;

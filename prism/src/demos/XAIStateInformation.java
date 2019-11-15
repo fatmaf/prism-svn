@@ -3,10 +3,10 @@ package demos;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import demos.StateInformation.ValueLabel;
+import demos.XAIStateInformation.ValueLabel;
 import parser.State;
 
-public class StateInformation
+public class XAIStateInformation
 {
 	public enum ValueLabel {
 		cost, probability, progression, frequency
@@ -89,7 +89,7 @@ public class StateInformation
 		actionValues.put(action, labels);
 	}
 
-	StateInformation(State s, int sI, Object a)
+	XAIStateInformation(State s, int sI, Object a)
 	{
 		initialise();
 		stateIndexInPath = sI;
@@ -137,7 +137,7 @@ public class StateInformation
 	@Override
 	public String toString()
 	{
-		return "StateInformation [state=" + state + ", stateIndexInPath=" + stateIndexInPath + ", chosenAction=" + chosenAction + ", actionValues="
+		return "[state=" + state + ", stateIndexInPath=" + stateIndexInPath + ", chosenAction=" + chosenAction + ", actionValues="
 				+ actionValues + ", actionValuesDifference=" + actionValuesDifference + "]";
 	}
 

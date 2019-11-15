@@ -36,7 +36,7 @@ import prism.PrismLog;
 import prism.PrismUtils;
 import strat.MDStrategyArray;
 
-public class VIExposed
+public class XAIvi
 {
 
 	public HashMap<Integer, HashMap<Integer, Double>> stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
@@ -217,7 +217,7 @@ public class VIExposed
 
 	}
 
-	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc,double discount) throws PrismException
+	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc,double discount) throws PrismException
 
 	{
 		int maxIters = 10000;
@@ -248,7 +248,7 @@ public class VIExposed
 
 	}
 
-	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, PathCreator pc, MDPModelChecker mc,double discount) throws PrismException
+	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc,double discount) throws PrismException
 
 	{
 		int maxIters = 10000;
