@@ -3,11 +3,11 @@ package demos;
 
 import java.util.Comparator;
 
-import demos.StateInformation.ValueLabel;
+import demos.XAIStateInformation.ValueLabel;
 
-public class StateInformationRelativeCostComparator implements Comparator<StateInformation>
+public class XAIStateInformationRelativeCostComparator implements Comparator<XAIStateInformation>
 {
-	public int compare(StateInformation s1, StateInformation s2)
+	public int compare(XAIStateInformation s1, XAIStateInformation s2)
 	{
 		ValueLabel vl = ValueLabel.cost;
 		Object a1 = s1.getChosenAction(); 

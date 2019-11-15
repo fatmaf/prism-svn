@@ -6,7 +6,7 @@ import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import parser.State;
 
-public class PolicyPath
+public class XAIPolicyPath
 {
 
 	public class PathNode
@@ -16,21 +16,21 @@ public class PolicyPath
 		//list of successors with probabilities
 		//we have a value for the state action 
 		//we can also have values for other less optimal actions 
-		StateInformation root;
-		ArrayList<StateInformation> parent;
+		XAIStateInformation root;
+		ArrayList<XAIStateInformation> parent;
 		HashMap<PathNode, Double> children;
 
-		PathNode(StateInformation s)
+		PathNode(XAIStateInformation s)
 		{
 			root = s;
-			parent = new ArrayList<StateInformation>();
+			parent = new ArrayList<XAIStateInformation>();
 			children = null;
 		}
 
-		PathNode(StateInformation s, StateInformation p)
+		PathNode(XAIStateInformation s, XAIStateInformation p)
 		{
 			root = s;
-			parent = new ArrayList<StateInformation>();
+			parent = new ArrayList<XAIStateInformation>();
 			parent.add(p);
 			children = null;
 		}
@@ -47,7 +47,7 @@ public class PolicyPath
 	PathNode root;
 	HashMap<String, PathNode> statesList;
 
-	PolicyPath()
+	XAIPolicyPath()
 	{
 
 		root = null;
@@ -55,7 +55,7 @@ public class PolicyPath
 		statesList = new HashMap<String, PathNode>();
 	}
 
-	PolicyPath(StateInformation s)
+	XAIPolicyPath(XAIStateInformation s)
 	{
 		statesList = new HashMap<String, PathNode>();
 		this.setRoot(s);
@@ -67,7 +67,7 @@ public class PolicyPath
 		return s.toString(); //+ a.toString();
 	}
 
-	public PathNode addToStatesList(StateInformation s)
+	public PathNode addToStatesList(XAIStateInformation s)
 	{
 		PathNode sfound = null;
 		State ss = s.getState();
@@ -103,18 +103,18 @@ public class PolicyPath
 
 	}
 
-	public void setRoot(StateInformation s)
+	public void setRoot(XAIStateInformation s)
 	{
 		root = addToStatesList(s);
 
 	}
 
-	public PathNode getNode(StateInformation s)
+	public PathNode getNode(XAIStateInformation s)
 	{
 		return addToStatesList(s);
 	}
 
-	public void addChild(StateInformation p, StateInformation c, double prob)
+	public void addChild(XAIStateInformation p, XAIStateInformation c, double prob)
 	{
 		PathNode parent = addToStatesList(p);
 		parent.addChild(addToStatesList(c), prob);

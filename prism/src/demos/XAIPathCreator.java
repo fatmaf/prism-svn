@@ -19,15 +19,17 @@ import strat.Strategy;
 //uses policy creator to make a path 
 //so you can kind of mix a policy with like a predefined path 
 
-public class PathCreator
+public class XAIPathCreator
 {
 
 	PolicyCreator pc = new PolicyCreator();
 
 	public Object getStateAction(State s)
 	{
-		int sI = pc.mdpCreator.getStateIndex(s);
-		Object action = pc.mdpCreator.mdp.getAction(sI, 0);
+		Object action =null;
+		int sI = pc.mdpCreator.getStateIndexNoAddition(s);
+		if(sI !=-1)
+		 action = pc.mdpCreator.mdp.getAction(sI, 0);
 		return action;
 	}
 
@@ -100,6 +102,7 @@ public class PathCreator
 		BitSet statesSeen = new BitSet();
 		while (!stateQ.isEmpty()) {
 			s = stateQ.remove();
+
 			if (statesSeen.get(s))
 				continue;
 			else
@@ -113,6 +116,8 @@ public class PathCreator
 				a = pc.findActionIndex(m, s, action);
 			}
 			State ps = m.getStatesList().get(s);
+			if(accStates.get(s))
+				pc.mdpCreator.setAccState(ps);
 			
 			if (a != -1) {
 				ArrayList<Integer> mdpSuccInts = new ArrayList<Integer>();

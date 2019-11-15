@@ -35,7 +35,7 @@ import strat.MDStrategy;
 import parser.State;
 import parser.VarList;
 
-public class TempXAI
+public class XAITemp
 {
 
 	Prism prism;
@@ -50,7 +50,7 @@ public class TempXAI
 	//main function 
 	public static void main(String[] args)
 	{
-		new TempXAI().run();
+		new XAITemp().run();
 	}
 
 	public ArrayList<BitSet> setStateLabels(Vector<BitSet> labelBS, MDP mdp)
