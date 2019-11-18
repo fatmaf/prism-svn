@@ -207,6 +207,16 @@ public class CompareSTAPUSSINVI
 			System.out.println(resString);
 			System.out.println("*********************************************************");
 		}
+		else
+		{
+			if(resArr[stapuInd][2] > resArr[ssiInd][2])
+			{
+				System.out.println("*********************************************************");
+				System.out.println("Error: " + fn + logSuffix);
+				System.out.println(resString);
+				System.out.println("*********************************************************");
+			}
+		}
 		return resString;
 
 	}
@@ -299,9 +309,9 @@ public class CompareSTAPUSSINVI
 	{
 		doDebug = true;
 		this.reallocSSIOnFirstDeadend = true; 
-		this.reallocSTAPUOnFirstDeadend = false; 
+		this.reallocSTAPUOnFirstDeadend = true;//false;//true; 
 		
-		this.doSeqSTAPUPolicy = false;//true; 
+		this.doSeqSTAPUPolicy = true;//false; 
 
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 		//		dir = dir+"simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
@@ -312,7 +322,7 @@ public class CompareSTAPUSSINVI
 		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
+		String fn = "g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
 		//this is an example where ssi exp t > stapu "g20x4_r10_g10_fs80fs11_fsgen5_";//"g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
 
 		String resString = "";
@@ -391,11 +401,12 @@ public class CompareSTAPUSSINVI
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 		try {
-			for (int r = 2; r <= maxRobots; r += 2) {
+			
 				//lets do this multiple times 
 				//like 5 times 
 				for (int g = 3; g <= maxGoals; g += 2) {
-					for (int t = 0; t < 10; t++) {
+					for (int r = 2; r <= maxRobots; r += 2) {
+					for (int t = 0; t < 5; t++) {
 
 						//						if(r <= 5 && g <=7)
 						//							continue;
@@ -416,7 +427,7 @@ public class CompareSTAPUSSINVI
 				System.out.println(resString);
 				System.out.println("***************************************************************");
 				String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
-				String resname = "robots_" + r + "_" + fn + suffix;
+				String resname = "robots_g" + g + "_" + fn + suffix;
 				this.printResults(resSavePlace + resname);
 
 			}

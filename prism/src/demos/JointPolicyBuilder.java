@@ -200,9 +200,9 @@ public class JointPolicyBuilder
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP,
 			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
 	{
-				PolicyCreator pc = new PolicyCreator();
-				pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-				pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
+//				PolicyCreator pc = new PolicyCreator();
+//				pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+//				pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
 
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
@@ -377,6 +377,12 @@ public class JointPolicyBuilder
 									boolean reallocateHere = robotIsDeadend;
 									if (robotStatesInSeqTeamMDP[i] == initialRobotStatesInSeqTeamMDP[i])
 										reallocateHere = false;
+									else 
+									{
+										//if its a different da state but still the same robot 
+										if(failedInInitialState[i])
+											reallocateHere = false; 
+									}
 
 									allDeadend = allDeadend & robotIsDeadend;
 									//TODO: fix this - change the state matching to be independent of DA states so we don't just get new states and say thats a reallocation
@@ -390,8 +396,9 @@ public class JointPolicyBuilder
 										double probVar = currentJointStateProbPair.getValue();
 										StateExtended failState = new StateExtended(stateIndex, probVar);
 										this.failedStatesQueue.add(failState);
-										continue;
+										
 									}
+									continue;
 								}
 							}
 						}

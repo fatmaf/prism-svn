@@ -92,8 +92,8 @@ public class SSIAuctionNestedProduct
 					Entry<Integer, Double> currentPair = tranIter.next();
 					int nextS = currentPair.getKey();
 					double prob = currentPair.getValue();
-
-					if (saMDP.addRewardForTaskCompletion(nextS, s)) {
+					boolean[] essAcc = saMDP.addRewardForTaskCompletion(nextS, s);
+					if (essAcc[0]) {
 						choiceRew += prob;
 					}
 				}
@@ -707,8 +707,8 @@ public class SSIAuctionNestedProduct
 			mainLog.println("Solution from Planning:");
 			System.out.println("Solution from Planning:");
 			ArrayList<BitSet> statesToAvoid = getRobotPlansUsingNVINestedProduct(numRobots, robotsTasksBroken, rewExpr, productMDPs, mainLog, mcs, mdps,
-					costRewards, saveplace, filename, prism, nviStrategies, finalDAList,
-					costsModels, singleAgentNPAccStates, fileLog, expTaskRewards,planningValuesSSI);
+					costRewards, saveplace, filename, prism, nviStrategies, finalDAList, costsModels, singleAgentNPAccStates, fileLog, expTaskRewards,
+					planningValuesSSI);
 			mainLog.println("Solution from Planning above");
 			System.out.println("Solution from Planning above");
 			endTime = System.currentTimeMillis();
@@ -742,8 +742,8 @@ public class SSIAuctionNestedProduct
 
 			double[] resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
 					ssNames, prism, null, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, 1.0, statesToAvoid, 0);
-			if(debugSSI) {
-			planningValuesJP.add(resultvalues);
+			if (debugSSI) {
+				planningValuesJP.add(resultvalues);
 			}
 			ArrayList<ArrayList<Expression>> remainingTasks = new ArrayList<ArrayList<Expression>>();
 			ArrayList<int[]> correspondingMDPInitialStates = new ArrayList<int[]>();
@@ -833,8 +833,8 @@ public class SSIAuctionNestedProduct
 						startTime = System.currentTimeMillis();
 						System.out.println("Solution from Planning:");
 						statesToAvoid = getRobotPlansUsingNVINestedProduct(numRobots, robotsTasksBroken, rewExpr, productMDPs, mainLog, mcs, mdps, costRewards,
-								saveplace, filename, prism, nviStrategies,
-								finalDAList, costsModels, singleAgentNPAccStates, fileLog, expTaskRewards,planningValuesSSI);
+								saveplace, filename, prism, nviStrategies, finalDAList, costsModels, singleAgentNPAccStates, fileLog, expTaskRewards,
+								planningValuesSSI);
 						System.out.println("Solution from Planning above");
 						for (int i = 0; i < productMDPs.size(); i++) {
 							if (productMDPs.get(i) != null)
@@ -876,9 +876,9 @@ public class SSIAuctionNestedProduct
 						resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
 								ssNames, prism, ps, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, stateProb, statesToAvoid, numPlanning);
 						endTime = System.currentTimeMillis();
-						if(debugSSI) {
+						if (debugSSI) {
 							planningValuesJP.add(resultvalues);
-							}
+						}
 						mainLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
 						fileLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
 						startTime = System.currentTimeMillis();
@@ -898,11 +898,9 @@ public class SSIAuctionNestedProduct
 
 			mainLog.println("Reallocated " + numPlanning + " times");
 			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
-			if(debugSSI)
-			{
-				for(int i = 0; i<planningValuesSSI.size(); i++)
-				{
-					mainLog.println(i+":"+"P:"+Arrays.toString(planningValuesSSI.get(i))+" C:"+Arrays.toString(planningValuesJP.get(i)));
+			if (debugSSI) {
+				for (int i = 0; i < planningValuesSSI.size(); i++) {
+					mainLog.println(i + ":" + "P:" + Arrays.toString(planningValuesSSI.get(i)) + " C:" + Arrays.toString(planningValuesJP.get(i)));
 				}
 			}
 			return resultValues(nviSol, mdpCreator.mdp);
