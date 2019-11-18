@@ -277,6 +277,7 @@ public class StatesHelper
 		out.close();
 		out = new PrismFileLog(location + "_" + name + ".sta");
 		try {
+			if(mdp.getVarList() != null)
 			mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block

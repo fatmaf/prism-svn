@@ -48,47 +48,44 @@ public class SingleAgentNestedProductMDP {
 		setBitSetsForAccEssentialBadStates();
 	}
 
-	public boolean addRewardForTaskCompletion(int childState, int parentState) {
+	
+	public boolean[] addRewardForTaskCompletion(int childState, int parentState) {
 		boolean toreturn = false;
+		boolean isAvoid = false; 
 		State cs = this.finalProduct.getProductModel().getStatesList().get(childState); 
 		State ps = this.finalProduct.getProductModel().getStatesList().get(parentState); 
+		int countTasks = 0; 
+		int countAcc = 0; 
 		for(int i = 0; i<this.daList.size(); i++)
 		{
 			if(!daList.get(i).isSafeExpr)
+			{
+				countTasks++; 
+				DAInfo dainfo = daList.get(i);
+				int val = (int)cs.varValues[dainfo.associatedIndexInProduct];
+				if(dainfo.daAccStates.get(val))
+				{
+					countAcc++;
+					if((int)ps.varValues[dainfo.associatedIndexInProduct] != val)
+					{	toreturn = true; 
+						
+					}
+				}
+			}
+			else
 			{
 				DAInfo dainfo = daList.get(i);
 				int val = (int)cs.varValues[dainfo.associatedIndexInProduct];
 				if(dainfo.daAccStates.get(val))
 				{
-					if((int)ps.varValues[dainfo.associatedIndexInProduct] != val)
-						toreturn = true; 
+					isAvoid = true; 
 				}
 			}
 		}
-//		if (allAcceptingStatesCombined == null)
-//			allAcceptingStatesCombined = getAllAcceptingStates();
-//		if (combinedEssentialStates.get(childState) /* || combinedAcceptingStates.get(childState) */) {
-//			// you could remove all this and just check if the two da bits are unequal
-//			if (allAcceptingStatesCombined.get(parentState)) {
-//				if (childState != parentState) {
-//
-//					List<State> statesList = this.finalProduct.getProductModel().getStatesList();
-//					if (!StatesHelper.statesHaveTheSameAutomataProgress(statesList.get(childState),
-//							statesList.get(parentState), numMDPVars)) {
-//						toreturn = true;
-//					}
-//				}
-//				// if (acceptingStatesFromSeparateDAs(childState,parentState))
-//				// {
-//				// toreturn = true;
-//				// }
-//			} else {
-//				toreturn = true;
-//			}
-//
-//		}
-		return toreturn;
+		boolean[] arrToRet = new boolean[] {toreturn,countTasks==countAcc,isAvoid};
+		return arrToRet;
 	}
+	
 
 	/**
 	 * 

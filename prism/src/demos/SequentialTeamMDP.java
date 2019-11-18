@@ -346,6 +346,18 @@ public class SequentialTeamMDP
 				}
 				if (singleAgentNestedMDP.combinedStatesToAvoid.get(s)) {
 					statesToAvoid.set(indexInTeamState);
+//					if(teamMDPStatesList.get(indexInTeamState).toString().contains("1,0,1,1,"))
+//					{
+//						
+//							mainLog.println("Error "+indexInTeamState);
+//						
+//					}
+//					if(teamMDPStatesList.get(indexInTeamState).toString().contains("0,0,1,1,"))
+//					{
+//						
+//							mainLog.println("Error "+indexInTeamState);
+//						
+//					}
 				}
 
 				if (singleAgentNestedMDP.combinedEssentialStates.get(s)) {
@@ -383,7 +395,36 @@ public class SequentialTeamMDP
 
 						}
 
-						if (singleAgentNestedMDP.addRewardForTaskCompletion(nextState, s)) {
+//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("1,0,1,1,65"))
+//						{
+//							mainLog.println("debug");
+//						}
+						boolean[] essAcc = singleAgentNestedMDP.addRewardForTaskCompletion(nextState, s);
+//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("1,0,1,1,"))
+//						{
+//							if(essAcc[1]==false)
+//							{
+//								mainLog.println("Error "+indexInTeamNextState);
+//							}
+//						}
+//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("0,0,1,1,"))
+//						{
+//							if(essAcc[1]==false)
+//							{
+//								mainLog.println("Error "+indexInTeamNextState);
+//							}
+//						}
+						if (essAcc[0]) {
+							//somethings off with essential states stuff 
+							//this is a better way to do stuff anyway so just putting it here 
+							
+							essentialStates.set(indexInTeamNextState);
+							if(essAcc[1])
+							{
+								acceptingStates.nextSetBit(indexInTeamNextState);
+							}
+							//end update 
+							
 							if (addProgReward) {
 								expectedProgRewardValue += nextStateProb * progRewardFixedValue;
 							} else {

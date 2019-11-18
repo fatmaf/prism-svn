@@ -355,6 +355,7 @@ public class STAPU
 		System.out.println("Solution from planning:");
 		ModelCheckerMultipleResult solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates,
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference);// ,probInitVals);
+		
 		System.out.println("Solution from planning above");
 		endTime = System.currentTimeMillis();
 		fileLog.println("NVI solution: " + (endTime - startTime));
@@ -376,7 +377,7 @@ public class STAPU
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
 				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
 
-		jointPolicyBuilder.doSeq = doSeqPolicyBuilding; 
+		jointPolicyBuilder.doSeq = doSeqPolicyBuilding;
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState, reallocateOnSingleAgentDeadend, 1.0);
 		endTime = System.currentTimeMillis();
 		fileLog.println("Joint Policy: " + (endTime - startTime));
@@ -389,21 +390,94 @@ public class STAPU
 					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
 			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicyRew.dot");
 			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0_init_seqTeamPolicyRews", true);
-
+			pc = new PolicyCreator();
+			pc.recreateMDPWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches,
+					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
+			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_initTeamMDPWithRews", true);
+			StatesHelper.saveMDPstatra(pc.mdpCreator.mdp, "", "_initTeamMDPWithRews", true);
 			planningValuesSTAPU.add(resultValues(solution, seqTeamMDP.teamMDPWithSwitches));
 
-			jointPolicyBuilder.createRewardStructures();
-			ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
-			jointPolicyBuilder.jointMDP.findDeadlocks(true);
-			ModelCheckerMultipleResult result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
-					finalRewards, minRewards, probPreference);
-			planningValuesJP.add(resultValues(result, jointPolicyBuilder.jointMDP));
+			
+//			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "jpRew.dot");
+//			XAIPathCreator alternativePolicyPath = new XAIPathCreator();
+//			ArrayList<Integer> prefixStates = new ArrayList<Integer>(); 
+//			ArrayList<Integer> prefixActions = new ArrayList<Integer>(); 
+//			prefixStates.add(8);
+//			prefixActions.add(0);
+//			prefixStates.add(9);
+//			prefixActions.add(2);
+//			prefixStates.add(33);
+//			prefixActions.add(0);
+//			prefixStates.add(56);
+//			prefixActions.add(0);
+//			prefixStates.add(80);
+//			prefixActions.add(1);
+//			prefixStates.add(57);
+//			prefixActions.add(2);
+//			prefixStates.add(96);
+//			prefixActions.add(1);
+//			prefixStates.add(120);
+//			prefixActions.add(0);
+//			prefixStates.add(128);
+//			prefixActions.add(0);
+//			prefixStates.add(152);
+//			prefixActions.add(3);
+//			prefixStates.add(177);
+//			prefixActions.add(0);
+//			prefixStates.add(216);
+//			prefixActions.add(0);
+//			prefixStates.add(240);
+//			prefixActions.add(3);
+//			prefixStates.add(264);
+//			prefixActions.add(3);
+//			prefixStates.add(273);
+//			prefixActions.add(2);
+//			prefixStates.add(296);
+//			prefixActions.add(0);
+//
+//			prefixStates.add(548);
+//			prefixActions.add(3);
+//			prefixStates.add(748);
+//			prefixActions.add(0);
+//			prefixStates.add(713);
+//			prefixActions.add(0);
+//			prefixStates.add(736);
+//			prefixActions.add(2);
+//			prefixStates.add(760);
+//			prefixActions.add(2);
+//			prefixStates.add(796);
+//			prefixActions.add(1);
+//			prefixStates.add(820);
+//			prefixActions.add(3);
+//			 alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, 
+//					 seqTeamMDP.teamMDPWithSwitches, solution.strat,"/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/",
+//					"alternatePath" , seqTeamMDP.progressionRewards,
+//					seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
+//			 alternativePolicyPath.pc.mdpCreator.createRewardStructures();
+//				MDPSimple altproductMdp =alternativePolicyPath.pc.mdpCreator.mdp;
+//				BitSet altacc = alternativePolicyPath.pc.mdpCreator.accStates;
+//				MDPRewardsSimple altprogRewards = alternativePolicyPath.pc.mdpCreator.expectedTaskCompletionRewards;
+//				MDPRewardsSimple altprodCosts = alternativePolicyPath.pc.mdpCreator.stateActionCostRewards;
+//				ArrayList<MDPRewardsSimple>altrewards = new ArrayList<MDPRewardsSimple>(); 
+//				altrewards.add(altprogRewards);
+//				altrewards.add(altprodCosts);
+//				ModelCheckerMultipleResult altsolution = computeNestedValIterFailurePrint
+//						(altproductMdp, altacc,
+//						new BitSet(), altrewards, minRewards, probPreference);// ,probInitVals);
+				
+				
+				jointPolicyBuilder.createRewardStructures();
+				ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
+				jointPolicyBuilder.jointMDP.findDeadlocks(true);
+				ModelCheckerMultipleResult result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
+						finalRewards, minRewards, probPreference);
+				planningValuesJP.add(resultValues(result, jointPolicyBuilder.jointMDP));
 
-			pc = new PolicyCreator();
-			pc.createPolicyWithRewardsStructuresAsLabels(jointPolicyBuilder.jointMDP.getFirstInitialState(), jointPolicyBuilder.jointMDP, result.strat,
-					finalRewards.get(0), finalRewards.get(1), jointPolicyBuilder.accStates);
-			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0" + "_init_jpRews", true);
-			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "jpRew.dot");
+				pc = new PolicyCreator();
+				pc.createPolicyWithRewardsStructuresAsLabels(jointPolicyBuilder.jointMDP.getFirstInitialState(), jointPolicyBuilder.jointMDP, result.strat,
+						finalRewards.get(0), finalRewards.get(1), jointPolicyBuilder.accStates);
+				StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0" + "_init_jpRews", true);
+				
 		}
 		// *************************************************************//
 		// while failedstatesQ is not empty
@@ -832,8 +906,7 @@ public class STAPU
 		StatesHelper.setNumMDPVars(maxMDPVars);
 
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
-				matchsharedstatesinswitch, completeSwitchRing, numGoals, 
-				noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
+				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
 				excludeRobotInitStates);
 
 		resSaver.writeResults();
