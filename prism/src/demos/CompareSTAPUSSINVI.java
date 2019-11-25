@@ -34,8 +34,10 @@ public class CompareSTAPUSSINVI
 
 	boolean doDebug = false;
 	boolean reallocSTAPUOnFirstDeadend = false;
-	boolean doSeqSTAPUPolicy = false;
+	boolean doSeqSTAPUPolicy = true;
 	boolean reallocSSIOnFirstDeadend = true;
+	boolean stapuNoReallocs = false; 
+	boolean ssiNoReallocs = false; 
 
 	HashMap<String, HashMap<int[], ArrayList<float[][]>>> results = new HashMap<String, HashMap<int[], ArrayList<float[][]>>>();
 
@@ -88,14 +90,15 @@ public class CompareSTAPUSSINVI
 
 	}
 
-	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noreallocs, ArrayList<Integer> robotNumbers,
+	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, ArrayList<Integer> robotNumbers,
 			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mlfn)
 	{
 		STAPU stapu = new STAPU();
 		boolean excludeRobotInitStates = false;
 		stapu.debugSTAPU = doDebug;
 		stapu.doSeqPolicyBuilding = this.doSeqSTAPUPolicy;
-		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors, noreallocs, robotNumbers, goalNumbers,
+		stapu.noreallocations = this.stapuNoReallocs; 
+		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers,
 				reallocOnFirstRobotDeadend, fileLog, mlfn, excludeRobotInitStates);
 		//		System.out.println(res.toString());
 		return res;
@@ -106,6 +109,7 @@ public class CompareSTAPUSSINVI
 	{
 		SSIAuctionNestedProduct ssi = new SSIAuctionNestedProduct();
 		ssi.debugSSI = doDebug;
+		ssi.doingReallocs = !this.ssiNoReallocs;
 		double[] res = ssi.run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, mainLogFile);
 		//		System.out.println(res.toString());
 		return res;
@@ -121,7 +125,7 @@ public class CompareSTAPUSSINVI
 			mainLogFileName = null;
 		long startTime = System.currentTimeMillis();
 
-		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog,
+		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog,
 				mainLogFileName);
 
 		long endTime = System.currentTimeMillis();
@@ -309,37 +313,52 @@ public class CompareSTAPUSSINVI
 	{
 		doDebug = true;
 		this.reallocSSIOnFirstDeadend = true; 
-		this.reallocSTAPUOnFirstDeadend = true;//false;//true; 
+		this.reallocSTAPUOnFirstDeadend = false;//true; 
 		
-		this.doSeqSTAPUPolicy = true;//false; 
+		this.doSeqSTAPUPolicy = true; 
 
+		this.stapuNoReallocs = true; 
+		this.ssiNoReallocs = true; 
+		
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 		//		dir = dir+"simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
-		dir = dir + "compareSTAPUSSIFS/";
+		dir = dir + "compareSTAPUSSIFS/";//"strangehouse/";//"compareSTAPUSSIFS/";
 
 		//g20x4_r10_g10_fs10_fsgen0
 		int numRobots = 10;
 		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs31_fsgen9_";//"g20x4_r10_g10_fs80fs21_fsgen3_"; //_R:2-[7,2]_G:6-[7,3,0,4,6]
-		//this is an example where ssi exp t > stapu "g20x4_r10_g10_fs80fs11_fsgen5_";//"g20x4_r10_g10_fs80fs1_fsgen3_";//"g20x4_r10_g10_fs10_fsgen0_";//"g5_r2_t3_d2_fs1";
-
+		String fn = "g20x4_r10_g10_fs80fs21_fsgen8_";//"g20x4_r10_g10_fs80fs31_fsgen9_";
+		//fn = "g20x4_r10_g10_fs80fs11_fsgen6_";
+		//fn = "strange_house_r10_g10_fs40_1_";
 		String resString = "";
-		int r = 2;//numRobots;
-		int g = 3;//numGoals;
-
+		int r = 4;//2;//numRobots;
+		int g = 3;//3;//numGoals;
+		//R:4-[2, 4, 1, 7] G:3 [1, 6]
+		//R:4-[5, 6, 9, 4] G:6 [0, 3, 8, 1, 5]
+		//R:2-[8, 9] G:3 [0, 7]
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
 		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-		robotNumbers.add(0);
-		robotNumbers.add(2);
+//		robotNumbers.add(0);
+//		robotNumbers.add(2);
+		robotNumbers.add(2); 
+		robotNumbers.add(4); 
+		robotNumbers.add(1); 
+		robotNumbers.add(7);
 
-		goalNumbers.add(5);
-		goalNumbers.add(2);
+//		goalNumbers.add(5);
+//		goalNumbers.add(2);
 
+		goalNumbers.add(1); 
+		goalNumbers.add(6);
+//		goalNumbers.add(8); 
+//		goalNumbers.add(1);
+//		goalNumbers.add(5);
+		
 		int[] rgdf = new int[] { r, g, numDoors, numFS };
 		if (!results.get(fn).containsKey(rgdf))
 			results.get(fn).put(rgdf, new ArrayList<float[][]>());
@@ -485,10 +504,10 @@ public class CompareSTAPUSSINVI
 			} else if (option.contains(options[4]))
 				singleTests();
 			else if (option.contains(options[5])) {
-				this.reallocSSIOnFirstDeadend = true; 
-				this.reallocSTAPUOnFirstDeadend = false; 
-				this.doDebug=false; 
-				this.doSeqSTAPUPolicy = true; 
+//				this.reallocSSIOnFirstDeadend = true; 
+//				this.reallocSTAPUOnFirstDeadend = false; 
+//				this.doDebug=false; 
+//				this.doSeqSTAPUPolicy = true; 
 				runWarehouse(0, "");
 			}
 			else if (option.contains(options[6]))
@@ -499,10 +518,10 @@ public class CompareSTAPUSSINVI
 				this.runWarehouseVariations();
 			else if (option.contains(options[9]))
 			{
-				this.reallocSSIOnFirstDeadend = true; 
-				this.reallocSTAPUOnFirstDeadend = false; 
-				this.doDebug=false; 
-				this.doSeqSTAPUPolicy = false;//true; 
+//				this.reallocSSIOnFirstDeadend = true; 
+//				this.reallocSTAPUOnFirstDeadend = false; 
+//				this.doDebug=false; 
+//				this.doSeqSTAPUPolicy = false;//true; 
 				runStrangeHouse();
 			}
 			else
@@ -734,7 +753,7 @@ public class CompareSTAPUSSINVI
 
 		String fnPrefix = "strange_house_r10_g10_"; 
 		String fsBit = "fs"; 
-		String fnSuffix = "holpol";
+		String fnSuffix = "";
 		int[] fsList = new int[]{0,5,10,15,20,25,30,35,40,45,50};
 		int[] rarr = new int[] { 2, 4 };
 		int[][] garr = new int[][] { { 3, 6 }, { 3, 6 } };

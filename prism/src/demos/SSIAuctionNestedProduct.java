@@ -56,7 +56,7 @@ public class SSIAuctionNestedProduct
 	MDPCreator jointPolicyCreator;
 	private HashMap<Integer, int[]> jsToRobotState;
 	private MDPCreator mdpCreator = null;
-	private boolean doingReallocs = true;
+	public boolean doingReallocs = true;
 	String fnPrefix = "ssi";
 	HashMap<Expression, String> expressionLabels = null;
 	private ArrayList<String> ssNames;
@@ -751,6 +751,7 @@ public class SSIAuctionNestedProduct
 			endTime = System.currentTimeMillis();
 			fileLog.println("Joint Policy:" + (endTime - startTime));
 			int numPlanning = 0;
+//			doingReallocs = false; 
 			if (doingReallocs) {
 
 				startTime = System.currentTimeMillis();

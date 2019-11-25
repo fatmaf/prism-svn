@@ -76,6 +76,7 @@ public class JointPolicyBuilder
 	BitSet essStates = new BitSet();
 	ArrayList<State> essStatesList = new ArrayList<State>();
 	boolean doSeq = false;
+	public boolean reallocateOnLastRobotFailure=false;
 
 	public JointPolicyBuilder(int nrobots, int ntasks, ArrayList<String> sharedStatesList, VarList seqTeamMDPVarList, ArrayList<MDPRewardsSimple> rewards,
 			PrismLog log)
@@ -198,11 +199,11 @@ public class JointPolicyBuilder
 	}
 
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, SequentialTeamMDP seqTeamMDP, int initialStateInSeqTeamMDP,
-			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
+			boolean reallocateOnSingleAgentDeadend, double initStateProb) throws PrismException
 	{
-//				PolicyCreator pc = new PolicyCreator();
-//				pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
-//				pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
+		//				PolicyCreator pc = new PolicyCreator();
+		//				pc.createPolicy(seqTeamMDP.teamMDPWithSwitches, strat);
+		//				pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicy.dot");
 
 		if (daInitialStates == null) {
 			daInitialStates = new ArrayList<Integer>();
@@ -241,7 +242,7 @@ public class JointPolicyBuilder
 				sharedVarsInitialStates.put(sharedStatesNamesList.get(i), (int) currentJointState.varValues[mapping]);
 		}
 		buildJointPolicyFromSequentialPolicy(strat, seqTeamMDP.teamMDPWithSwitches, currentJointState, seqTeamMDP.acceptingStates,
-				reallocateOnSingleAgentDeadend,initStateProb);
+				reallocateOnSingleAgentDeadend, initStateProb);
 		jointMDP.addInitialState(statesMap.get(currentJointState));
 	}
 
@@ -296,9 +297,9 @@ public class JointPolicyBuilder
 	// the real thing
 	// input: \pi_seq, s_J, mdp
 	protected void buildJointPolicyFromSequentialPolicy(MDStrategyArray strat, MDPSimple mdp, State initialJointState, BitSet seqMDPAccStates,
-			boolean reallocateOnSingleAgentDeadend,double initStateProb) throws PrismException
+			boolean reallocateOnSingleAgentDeadend, double initStateProb) throws PrismException
 	{
-		
+
 		State currentJointState = initialJointState;
 		int[] initialRobotStatesInSeqTeamMDP = extractIndividualRobotStatesFromJointState(currentJointState, mdp.getStatesList(), mdp.getVarList());
 
@@ -335,7 +336,6 @@ public class JointPolicyBuilder
 
 				while (!jointStateQueue.isEmpty()) {
 
-					
 					mostProbableTaskAllocationStateValuesBeforeProcessing = mostProbableTaskAllocationStateValuesBeforeProcessingQ.remove();
 					stateValuesBeforeTaskAllocationBeforeProcessing = stateValuesBeforeTaskAllocationBeforeProcessingQ.remove();
 					currentJointStateProbPair = jointStateQueue.remove();
@@ -367,6 +367,22 @@ public class JointPolicyBuilder
 							accStates.set(statesMap.get(currentJointState));
 							continue;
 						}
+						if (reallocateOnLastRobotFailure) {
+							if (currentJointState.compareTo(initialJointState) != 0) {
+
+								//only checking if the last robot has failed 
+								int lastRobotIndex = robotStatesInSeqTeamMDP.length - 1;
+								if (!failedInInitialState[lastRobotIndex]) {
+									boolean robotIsDeadend = StatesHelper.stateIsDeadend(mdp, robotStatesInSeqTeamMDP[lastRobotIndex]);
+									if (robotIsDeadend) {
+										double probVar = currentJointStateProbPair.getValue();
+										StateExtended failState = new StateExtended(stateIndex, probVar);
+										this.failedStatesQueue.add(failState);
+										continue;
+									}
+								}
+							}
+						}
 						if (reallocateOnSingleAgentDeadend) {
 							if (currentJointState.compareTo(initialJointState) != 0) {
 								boolean reallocate = false;
@@ -377,11 +393,10 @@ public class JointPolicyBuilder
 									boolean reallocateHere = robotIsDeadend;
 									if (robotStatesInSeqTeamMDP[i] == initialRobotStatesInSeqTeamMDP[i])
 										reallocateHere = false;
-									else 
-									{
+									else {
 										//if its a different da state but still the same robot 
-										if(failedInInitialState[i])
-											reallocateHere = false; 
+										if (failedInInitialState[i])
+											reallocateHere = false;
 									}
 
 									allDeadend = allDeadend & robotIsDeadend;
@@ -396,7 +411,7 @@ public class JointPolicyBuilder
 										double probVar = currentJointStateProbPair.getValue();
 										StateExtended failState = new StateExtended(stateIndex, probVar);
 										this.failedStatesQueue.add(failState);
-										
+
 									}
 									continue;
 								}
@@ -525,7 +540,7 @@ public class JointPolicyBuilder
 								mainLog.println("debug");
 							succStatesQueue.add(succJointState);
 							succStatesProbQueue.add(combination.getValue());
-							jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue()*currentJointStateProb ));
+							jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue() * currentJointStateProb));
 							statesDiscoveredQ.add(statesDiscovered);
 							mostProbableTaskAllocationStateValuesBeforeProcessingQ.add(mostProbableTaskAllocationStateValuesBeforeProcessing);
 							stateValuesBeforeTaskAllocationBeforeProcessingQ.add(stateValuesBeforeTaskAllocationBeforeProcessing);
@@ -576,6 +591,7 @@ public class JointPolicyBuilder
 									mdp.getVarList());
 
 							if (currentJointState.compareTo(initialJointState) != 0) {
+
 								boolean allDeadends = true;
 								//so in this state has a robot failed 
 								for (int i = 0; i < robotStatesInSeqTeamMDP.length; i++) {
@@ -1866,7 +1882,7 @@ public class JointPolicyBuilder
 		return !failedStatesQueue.isEmpty();
 	}
 
-	public Entry<Entry<State,Double>, BitSet> getNextFailedState()
+	public Entry<Entry<State, Double>, BitSet> getNextFailedState()
 	{
 		StateExtended state = failedStatesQueue.remove();
 		this.currentStateProbability = state.parentToChildTransitionProbability;
@@ -1874,8 +1890,8 @@ public class JointPolicyBuilder
 		BitSet failstateBitSetToAvoid = null;
 		if (state.statesToAvoid != null)
 			failstateBitSetToAvoid = (BitSet) state.statesToAvoid.clone();
-		Entry<State,Double> failStateProbPair = new AbstractMap.SimpleEntry<State,Double>(failstate,state.parentToChildTransitionProbability);
-		return new AbstractMap.SimpleEntry<Entry<State,Double>, BitSet>(failStateProbPair, failstateBitSetToAvoid);
+		Entry<State, Double> failStateProbPair = new AbstractMap.SimpleEntry<State, Double>(failstate, state.parentToChildTransitionProbability);
+		return new AbstractMap.SimpleEntry<Entry<State, Double>, BitSet>(failStateProbPair, failstateBitSetToAvoid);
 	}
 
 	public void printStatesExploredOrder()
