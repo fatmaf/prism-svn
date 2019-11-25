@@ -46,6 +46,7 @@ public class STAPU
 
 	static String saveplace_suffix = "/tests/decomp_tests/temp/";
 	static String saveplace = "/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/temp/";
+	public boolean noreallocations=false;
 	// long timeout = 100 * 60 * 1000;
 	public PrismLog mainLog;
 	Prism prismC;
@@ -65,7 +66,7 @@ public class STAPU
 
 	public static void main(String[] args)
 	{
-
+		
 		boolean reallocOnFirstRobotDeadend = false;
 		boolean excludeRobotInitStates = false;
 		STAPU stapu = new STAPU();
@@ -107,7 +108,7 @@ public class STAPU
 		goalNumbers.add(5);
 		goalNumbers.add(2);
 
-		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, false, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, null,
+		stapu.runGUISimpleTestsOne(dir, fn, maxRobots, numFS, maxGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, null,
 				excludeRobotInitStates);
 
 		fileLog.close();
@@ -402,6 +403,30 @@ public class STAPU
 //			XAIPathCreator alternativePolicyPath = new XAIPathCreator();
 //			ArrayList<Integer> prefixStates = new ArrayList<Integer>(); 
 //			ArrayList<Integer> prefixActions = new ArrayList<Integer>(); 
+//			prefixStates.add(96);
+//			prefixActions.add(0);
+//			prefixStates.add(57);
+//			prefixActions.add(0);
+//			prefixStates.add(80);
+//			prefixActions.add(2);
+//			prefixStates.add(104);
+//			prefixActions.add(0);
+//			prefixStates.add(504);
+//			prefixActions.add(3);
+//			prefixStates.add(844);
+//			prefixActions.add(3);
+//			prefixStates.add(1336);
+//			prefixActions.add(3);
+//			prefixStates.add(2272);
+//			prefixActions.add(0);
+//			prefixStates.add(2296);
+//			prefixActions.add(1);
+//			prefixStates.add(2273);
+//			prefixActions.add(1);
+//			prefixStates.add(2308);
+//			prefixActions.add(3);
+
+
 //			prefixStates.add(8);
 //			prefixActions.add(0);
 //			prefixStates.add(9);
@@ -449,6 +474,7 @@ public class STAPU
 //			prefixActions.add(1);
 //			prefixStates.add(820);
 //			prefixActions.add(3);
+//			mainLog.println("Creating alternate policy - mimicing the one from ssi");
 //			 alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, 
 //					 seqTeamMDP.teamMDPWithSwitches, solution.strat,"/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/",
 //					"alternatePath" , seqTeamMDP.progressionRewards,
@@ -489,6 +515,7 @@ public class STAPU
 		// solve
 		// add to joint policy
 		//		ArrayList<State> reallocatedStates = new ArrayList<State>();
+//		noReallocs = true; 
 		if (!noReallocs) {
 			int numPlanning = 0;
 			while (jointPolicyBuilder.hasFailedStates()) {
@@ -723,7 +750,7 @@ public class STAPU
 		return daInfoList;
 	}
 
-	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, boolean noReallocations,
+	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, 
 			ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog, String mainLogfn,
 			boolean excludeRobotInitStates)
 	{
@@ -763,7 +790,7 @@ public class STAPU
 			try {
 
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals,
-						example_num_fs_list, modelLocation, true, dir + "results/stapu", noReallocations, robotNumbers, goalNumbers,
+						example_num_fs_list, modelLocation, true, dir + "results/stapu", this.noreallocations, robotNumbers, goalNumbers,
 						reallocateOnSingleAgentDeadend, fileLog, mainLogfn, excludeRobotInitStates);
 				endTime = System.currentTimeMillis();
 				fileLog.println("Finished: " + (endTime - startTime));
