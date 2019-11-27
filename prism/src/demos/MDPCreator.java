@@ -17,6 +17,8 @@ import explicit.MDPSimple;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import parser.VarList;
+import prism.Prism;
+import prism.PrismException;
 import prism.PrismFileLog;
 import prism.PrismLog;
 
@@ -494,6 +496,26 @@ public class MDPCreator
 		System.out.println(mdp.infoStringTable());
 		PrismLog out = new PrismFileLog(fn);
 		mdp.exportToDotFile(out, statesToMark, true);
+		out.close();
+	}
+	public void saveMDPstatra(MDP mdp, String saveLoc, String name, BitSet statesToMark)
+	{
+		String fn = saveLoc + name + ".sta";
+		System.out.println("Saving MDP states to "+fn);
+		
+		PrismLog out = new PrismFileLog(fn);
+		try {
+			mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
+		} catch (PrismException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+//		mdp.exportToDotFile(out, statesToMark, true);
+		out.close();
+		fn = saveLoc + name + ".tra";
+		System.out.println("Saving MDP transitions to "+fn);
+		out = new PrismFileLog(fn);
+		mdp.exportToPrismExplicitTra(out);
 		out.close();
 	}
 

@@ -49,6 +49,8 @@ public class XAIStateAnalyser
 	PropertiesFile propertiesFile;
 	ModulesFile modulesFile;
 	ArrayList<String> nonMDPDistVars;
+	String currentSaveplace = "";
+	String currentFilename = "";
 
 	//main function 
 	public static void main(String[] args)
@@ -69,6 +71,8 @@ public class XAIStateAnalyser
 
 		//load the mdp for a single model 
 
+		currentSaveplace = saveplace;
+		currentFilename = filename;
 		String modelFileName = saveplace + filename;
 		if (!noappend)
 			modelFileName += "0.prism";
@@ -132,14 +136,30 @@ public class XAIStateAnalyser
 		}
 	}
 
+	public int getDAVarInd(VarList vl)
+	{
+		int daVarIndHere = -1;
+
+		for (int i = 0; i < vl.getNumVars(); i++) {
+			String name = vl.getName(i);
+			if (name.contains("da")) {
+				daVarIndHere = i;
+				break;
+			}
+		}
+		return daVarIndHere;
+	}
+
 	State getMDPState(VarList vl, State s)
 	{
-		if (daVarInd == -1)
-			setDAVarInd(vl);
+		//		if (daVarInd == -1)
+		int daVarIndHere = getDAVarInd(vl);
+		if (daVarIndHere == -1)
+			return s;
 		State toret = new State(vl.getNumVars() - 1);
 		int j = 0;
 		for (int i = 0; i < vl.getNumVars(); i++) {
-			if (i != daVarInd) {
+			if (i != daVarIndHere) {
 				toret.setValue(j, s.varValues[i]);
 				j++;
 			}
@@ -178,17 +198,24 @@ public class XAIStateAnalyser
 
 	int getActionIndex(int s, Object a, MDP mdp)
 	{
+		ArrayList<String> actionStrings = new ArrayList<String>();
 		int aI = -1;
 		if (a != null) {
 			int numChoices = mdp.getNumChoices(s);
 			for (int i = 0; i < numChoices; i++) {
 				Object ao = mdp.getAction(s, i);
+				if (ao != null)
+					actionStrings.add(ao.toString());
+				else
+					actionStrings.add("null");
 				if (ao.toString().contentEquals(a.toString())) {
 					aI = i;
 					break;
 				}
 			}
 		}
+		if (aI == -1)
+			System.out.println(actionStrings.toString());
 		return aI;
 	}
 
@@ -197,8 +224,8 @@ public class XAIStateAnalyser
 	{
 		System.out.println("Listing distances from " + ssTop.toString());
 		//for these two we want the closest states 
-		int numStatesListed=0;
-		int maxStatesToList=10;
+		int numStatesListed = 0;
+		int maxStatesToList = 10;
 		double threshold = Math.sqrt((double) ssTop.getState().varValues.length);
 		if (optimalPolicyStateDistances.containsKey(ssTop.getState())) {
 			ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
@@ -212,12 +239,10 @@ public class XAIStateAnalyser
 					if (a != null)
 						aStr = a.toString();
 				}
-				if (Math.abs(e.getValue()) > threshold)
-				{
-					
-					
-					if(numStatesListed >= maxStatesToList)
-					break;
+				if (Math.abs(e.getValue()) > threshold) {
+
+					if (numStatesListed >= maxStatesToList)
+						break;
 					numStatesListed++;
 				}
 
@@ -231,15 +256,16 @@ public class XAIStateAnalyser
 	}
 
 	public void listClosestStatesToStateOnTheFly(XAIStateInformation ssTop, HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,
-			XAIPathCreator optimalPolicyPaths, HashMap<State, HashMap<State, Double>> dijkstraDists, MDP originalMDP,MDP otherMDP,ModelCheckerPartialSatResult nvires) throws Exception
+			XAIPathCreator optimalPolicyPaths, HashMap<State, HashMap<State, Double>> dijkstraDists, MDP originalMDP, MDP otherMDP,
+			ModelCheckerPartialSatResult nvires) throws Exception
 	{
 		System.out.println("Listing distances from " + ssTop.toString());
 		//for these two we want the closest states 
 
 		double threshold = Math.sqrt((double) ssTop.getState().varValues.length);
-		System.out.println("Threshold "+threshold);
-		int numStatesListed = 0; 
-		int maxStatesToList = 10; 
+		System.out.println("Threshold " + threshold);
+		int numStatesListed = 0;
+		int maxStatesToList = 10;
 		if (optimalPolicyStateDistances.containsKey(ssTop.getState())) {
 			ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
 			for (Entry<State, Double> e : ssTopDistances) {
@@ -252,10 +278,9 @@ public class XAIStateAnalyser
 					if (a != null)
 						aStr = a.toString();
 				}
-				if (Math.abs(e.getValue()) > threshold)
-				{
-					if(numStatesListed >= maxStatesToList)
-					break;
+				if (Math.abs(e.getValue()) > threshold) {
+					if (numStatesListed >= maxStatesToList)
+						break;
 					numStatesListed++;
 				}
 				System.out.println(e + ":" + aStr);
@@ -269,16 +294,26 @@ public class XAIStateAnalyser
 			if (dijkstraDists == null || !dijkstraDists.containsKey(mdpState)) {
 
 				int oms = this.getStateIndex(originalMDP, mdpState);
+				if (oms == -1) {
+					//so we cant find this 
+					//we need to find something close to this state in the mdp 
+					//close how ? 
+					//close in terms of distance 
+					calculateSingleStateDistances(mdpState, dijkstraDists, originalMDP.getStatesList(), originalMDP.getVarList(), originalMDP.getNumStates());
+					optimalPolicyPaths.pc.mdpCreator.saveMDPstatra(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
+					optimalPolicyPaths.pc.mdpCreator.saveMDP(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
+					System.out.println("bug here");
+					throw new Exception("no such state in orignial mdp: " + mdpState.toString());
+				}
 				dijkstraDists = mdpDijkstraUpdate(oms, originalMDP, dijkstraDists);
 
 			}
-			ArrayList<Entry<State, Double>> pq; 
-			if(otherMDP ==null)
-				pq=this.calculateSingleStateDistances(istate, dijkstraDists, optimalPolicyPaths.pc.mdpCreator.mdp.getStatesList(),
-					vl, optimalPolicyPaths.pc.mdpCreator.mdp.getNumStates());
+			ArrayList<Entry<State, Double>> pq;
+			if (otherMDP == null)
+				pq = this.calculateSingleStateDistances(istate, dijkstraDists, optimalPolicyPaths.pc.mdpCreator.mdp.getStatesList(), vl,
+						optimalPolicyPaths.pc.mdpCreator.mdp.getNumStates());
 			else
-				pq = this.calculateSingleStateDistances(istate, dijkstraDists, otherMDP.getStatesList(),
-						vl, otherMDP.getNumStates());
+				pq = this.calculateSingleStateDistances(istate, dijkstraDists, otherMDP.getStatesList(), vl, otherMDP.getNumStates());
 			optimalPolicyStateDistances.put(istate, pq);
 			ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
 			for (Entry<State, Double> e : ssTopDistances) {
@@ -290,23 +325,20 @@ public class XAIStateAnalyser
 
 					if (a != null)
 						aStr = a.toString();
-					else
-					{
-						if (nvires!=null)
-						{
-						Strategy strat = nvires.strat; 
-						int si = this.getStateIndex(otherMDP, s);
-						strat.initialise(si);
-						a = strat.getChoiceAction(); 
-						if(a!=null)
-							aStr=a.toString();
+					else {
+						if (nvires != null) {
+							Strategy strat = nvires.strat;
+							int si = this.getStateIndex(otherMDP, s);
+							strat.initialise(si);
+							a = strat.getChoiceAction();
+							if (a != null)
+								aStr = a.toString();
 						}
 					}
 				}
-				if (Math.abs(e.getValue()) > threshold)
-				{
-					if(numStatesListed >= maxStatesToList)
-					break;
+				if (Math.abs(e.getValue()) > threshold) {
+					if (numStatesListed >= maxStatesToList)
+						break;
 					numStatesListed++;
 				}
 
@@ -343,33 +375,46 @@ public class XAIStateAnalyser
 		return alternativePolicyPath;
 	}
 
-	public XAIPathCreator createAlternatePath(XAIPathCreator pathToFollow,String filename, XAIvi vi, ModelCheckerPartialSatResult optimalPolicy, String saveplace) throws PrismException
+	public XAIPathCreator createAlternatePath(XAIPathCreator pathToFollow, String filename, XAIvi vi, ModelCheckerPartialSatResult optimalPolicy,
+			String saveplace) throws PrismException
 	{
 		XAIPathCreator alternativePolicyPath = new XAIPathCreator();
 		ArrayList<Integer> prefixStates = new ArrayList<Integer>();
 		ArrayList<Integer> prefixActions = new ArrayList<Integer>();
-		MDP pfmdp = pathToFollow.pc.mdpCreator.mdp; 
-		for(int i = 0; i<pfmdp.getNumStates(); i++)
-		{
-			State s = pfmdp.getStatesList().get(i); 
-			int sI = this.getStateIndex(vi.productmdp, s);
-			Object a = pfmdp.getAction(i, 0); 
-			int aI = this.getActionIndex(sI, a, vi.productmdp);
-			if(aI!=-1)
-			{
-				prefixStates.add(sI); 
-				prefixActions.add(aI); 
-			}
-			else
-			{
-				System.out.println("No action for "+s.toString());
+		MDP pfmdp = pathToFollow.pc.mdpCreator.mdp;
+		int initialState = pfmdp.getFirstInitialState();
+		Queue<Integer> statesQ = new LinkedList<Integer>();
+		BitSet seenStates = new BitSet();
+		statesQ.add(initialState);
+		while (!statesQ.isEmpty()) {
+			int i = statesQ.remove();
+			if (!seenStates.get(i)) {
+				seenStates.set(i);
+				State s = pfmdp.getStatesList().get(i);
+				int sI = this.getStateIndex(vi.productmdp, s);
+				Object a = pfmdp.getAction(i, 0);
+				if (a != null) {
+					int aI = this.getActionIndex(sI, a, vi.productmdp);
+					if (aI != -1) {
+						prefixStates.add(sI);
+						prefixActions.add(aI);
+					} else {
+						System.out.println("No action " + a.toString() + " for " + s.toString());
+					}
+				}
+				Iterator<Entry<Integer, Double>> tranIter = pfmdp.getTransitionsIterator(i, 0);
+				while (tranIter.hasNext()) {
+					Entry<Integer, Double> sp = tranIter.next();
+					statesQ.add(sp.getKey());
+				}
+
 			}
 		}
 		alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
 				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates);
 		return alternativePolicyPath;
 	}
-	
+
 	public ArrayList<XAIStateInformation> getSwingStatesListByCost(XAIvi vi, double discount, XAIPathCreator policyPaths) throws PrismException
 	{
 		ModelCheckerPartialSatResult policyVI = vi.doPathNVI(prism, mainLog, policyPaths, mc, discount);
@@ -599,6 +644,7 @@ public class XAIStateAnalyser
 
 					XAIStateInformation s = new XAIStateInformation(currentStateState, currentState, action);
 					s.addValuesForState(action, stateValues);
+
 					if (path == null) {
 						path = new XAIPolicyPath(s);
 
@@ -614,6 +660,7 @@ public class XAIStateAnalyser
 						double prob = spPair.getValue();
 						State nextState = mdp.getStatesList().get(nextS);
 						XAIStateInformation nextSI = new XAIStateInformation(nextState, nextS, null);
+						nextSI.addParent(currentStateState);
 						path.addChild(s, nextSI, prob);
 						stateQ.add(nextS);
 					}
@@ -870,12 +917,17 @@ public class XAIStateAnalyser
 		if (mdpDistshm == null)
 			mdpDistshm = new HashMap<State, HashMap<State, Double>>();
 
+		boolean normalize = true;
+
 		State s = mdp.getStatesList().get(mdpStateNum);
 		int numstates = mdp.getNumStates();
 		HashMap<State, Double> hm = new HashMap<State, Double>();
 		for (int j = 0; j < numstates; j++) {
 			State ns = mdp.getStatesList().get(j);
-			hm.put(ns, dists[j]);
+			if (normalize)
+				hm.put(ns, dists[j] / (double) numstates);
+			else
+				hm.put(ns, dists[j]);
 
 		}
 		mdpDistshm.put(s, hm);
@@ -895,6 +947,7 @@ public class XAIStateAnalyser
 			mdpDists[i] = dists;
 
 		}
+		boolean normalize = true;
 		//going to normalise the distances so each var has equal influence
 		HashMap<State, HashMap<State, Double>> mdpDistshm = new HashMap<State, HashMap<State, Double>>();
 		for (int i = 0; i < numstates; i++) {
@@ -903,7 +956,10 @@ public class XAIStateAnalyser
 			HashMap<State, Double> hm = new HashMap<State, Double>();
 			for (int j = 0; j < numstates; j++) {
 				State ns = mdp.getStatesList().get(j);
-				hm.put(ns, mdpDists[i][j]);
+				if (normalize)
+					hm.put(ns, mdpDists[i][j] / (double) numstates);
+				else
+					hm.put(ns, mdpDists[i][j]);
 
 			}
 			mdpDistshm.put(s, hm);
@@ -957,76 +1013,16 @@ public class XAIStateAnalyser
 		return dist;
 	}
 
-	//	public double stateDist(State s1p, State s2p, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
-	//	{
-	//		double dist = 0;
-	//		State s1 = this.getMDPState(vl, s1p);
-	//		State s2 = this.getMDPState(vl, s2p);
-	//		//we're doing a kind of euclidean distance 
-	//		//for each variable in vl 
-	//		int numVars = vl.getNumVars();
-	//		if (!s1p.toString().contentEquals(s2p.toString())) {
-	//
-	//			double[] dists = new double[numVars];
-	//			for (int var = 0; var < numVars; var++) {
-	//				String vname = vl.getName(var);
-	//				//so  the distance measures are different 
-	//				//if the varname has door or key we just do like a change //edit distance 
-	//				//if it s we use mdpDijkstraDist 
-	//				if (vname.contentEquals("s")) {
-	//
-	//					//because we're only using dijkstras if the s variable is different 
-	//					int s1sval = (int) s1p.varValues[var];
-	//					int s2sval = (int) s2p.varValues[var];
-	//					if (s1sval != s2sval) {
-	//						if (mdpDijkstraDists.containsKey(s1)) {
-	//							if (mdpDijkstraDists.get(s1).containsKey(s2)) {
-	//								dists[var] = mdpDijkstraDists.get(s1).get(s2);
-	//							} else {
-	//								throw new Exception("no distance?");
-	//							}
-	//						} else if (mdpDijkstraDists.containsKey(s2)) {
-	//							if (mdpDijkstraDists.get(s2).containsKey(s1)) {
-	//								dists[var] = mdpDijkstraDists.get(s2).get(s1);
-	//							} else {
-	//								throw new Exception("no distance?");
-	//							}
-	//						}
-	//					}
-	//
-	//					//					if (dists[var] == 0)
-	//					//						System.out.println("Whaaaa?");
-	//				} else {
-	//
-	//					int s1var = (int) s1p.varValues[var];
-	//					int s2var = (int) s2p.varValues[var];
-	//					if (vname.contains("da"))
-	//						{dists[var] = Math.abs(s1var - s2var);
-	//						//TODO:the distance to a sink state should be a very large number 
-	//						
-	//						}
-	//					else {
-	//						if (s1var == s2var)
-	//							dists[var] = 0;
-	//						else
-	//							dists[var] = 1;
-	//					}
-	//				}
-	//				dists[var] *= dists[var];
-	//				dist += dists[var];
-	//			}
-	//			dist = Math.sqrt(dist);
-	//		}
-	//		return dist;
-	//	}
-	public double stateDist(State s1p, State s2p, VarList vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
+	
+	public double stateDist(State s1p, State s2p, VarList s1vl, VarList s2vl,  HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
 	{
 		double dist = 0;
-		State s1 = this.getMDPState(vl, s1p);
-		State s2 = this.getMDPState(vl, s2p);
+		State s1 = this.getMDPState(s1vl, s1p);
+		State s2 = this.getMDPState(s2vl, s2p);
 		boolean mdpBitsDone = false;
 		//we're doing a kind of euclidean distance 
 		//for each variable in vl 
+		VarList vl = s1vl;
 		int numVars = vl.getNumVars();
 		if (!s1p.toString().contentEquals(s2p.toString())) {
 
@@ -1054,14 +1050,14 @@ public class XAIStateAnalyser
 						dists[var] = da.size();
 				} else {
 					if (nonMDPDistVars.contains(vname)) {
-						
+
 						if (s1var == s2var)
 							dists[var] = 0;
 						else {
-							if(vname.contains("turn"))
-								dists[var]=mdp.getNumStates();
-								else
-							dists[var] = 1;
+							if (vname.contains("turn"))
+								dists[var] = mdp.getNumStates();
+							else
+								dists[var] = 1;
 						}
 					} else {
 						if (!mdpBitsDone) {

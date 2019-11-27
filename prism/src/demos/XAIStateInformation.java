@@ -1,5 +1,6 @@
 package demos;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 
@@ -19,6 +20,7 @@ public class XAIStateInformation
 	HashMap<Object, Integer> allActionIndicesInMDP;
 	HashMap<Object, HashMap<ValueLabel, Double>> actionValues;
 	HashMap<Object, HashMap<ValueLabel, Double>> actionValuesDifference;
+	ArrayList<State> parents = null; 
 
 	/**
 	 * @return the state
@@ -137,10 +139,28 @@ public class XAIStateInformation
 	@Override
 	public String toString()
 	{
-		return "[state=" + state + ", stateIndexInPath=" + stateIndexInPath + ", chosenAction=" + chosenAction + ", actionValues="
-				+ actionValues + ", actionValuesDifference=" + actionValuesDifference + "]";
+		String strToRet="[state=" + state + ", stateIndexInPath=" + stateIndexInPath + ", chosenAction=" + chosenAction + ", actionValues="
+				+ actionValues + ", actionValuesDifference=" + actionValuesDifference ; 
+		if(parents!=null)
+		{
+			String pars = "ps:[";
+			for(int i = 0; i<parents.size(); i++)
+				pars+=" "+ parents.get(i).toString();
+			pars+="]";
+			strToRet+=pars;
+		}
+		strToRet+= "]";
+		return strToRet;
 	}
 
+	public void addParent(State p)
+	{
+		if (parents == null)
+		{
+			parents = new ArrayList<State>();
+		}
+		parents.add(p);
+	}
 }
 
 

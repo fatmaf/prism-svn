@@ -52,21 +52,21 @@ public class XAIvi
 
 	BitSet accStates;
 
-	BitSet daSinkStates; 
-	DA<BitSet, ? extends AcceptanceOmega> origda; 
-	
+	BitSet daSinkStates;
+	DA<BitSet, ? extends AcceptanceOmega> origda;
+
 	public BitSet getSinkStates(DA<BitSet, ? extends AcceptanceOmega> da)
 	{
 		BitSet daaccStates;
 		//Check if its a DFA
 		if (da.getAcceptance() instanceof AcceptanceReach) {
-			daaccStates = ((AcceptanceReach)da.getAcceptance()).getGoalStates();
+			daaccStates = ((AcceptanceReach) da.getAcceptance()).getGoalStates();
 		} else if (da.getAcceptance() instanceof AcceptanceRabin) {
 			daaccStates = da.getRabinAccStates();
-			} else {
-				return null;
+		} else {
+			return null;
 		}
-		
+
 		BitSet sinkStates = new BitSet();
 		for (int i = 0; i < da.size(); i++) {
 			boolean isSinkState = false;
@@ -85,9 +85,9 @@ public class XAIvi
 		}
 		return sinkStates;
 	}
-	
+
 	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr,
-			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc,double discount) throws PrismException
+			BitSet statesOfInterest, ModulesFile modulesFile, MDPModelChecker mc, double discount) throws PrismException
 
 	{
 		int maxIters = 100000;
@@ -132,7 +132,7 @@ public class XAIvi
 		long time = System.currentTimeMillis();
 		da.setDistancesToAcc();
 		origda = da;
-	
+
 		this.daSinkStates = this.getSinkStates(da);
 		time = System.currentTimeMillis() - time;
 		mainLog.println("\nAutomaton state distances to an accepting state: " + da.getDistsToAcc());
@@ -188,7 +188,7 @@ public class XAIvi
 
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
 		accStates = (BitSet) acc.clone();
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true,discount);
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true, discount);
 		this.productmdp = productMdp;
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 
@@ -217,7 +217,7 @@ public class XAIvi
 
 	}
 
-	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc,double discount) throws PrismException
+	public ModelCheckerPartialSatResult doPathNVI(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc, double discount) throws PrismException
 
 	{
 		int maxIters = 10000;
@@ -227,7 +227,7 @@ public class XAIvi
 		MDPRewardsSimple progRewards = pc.pc.mdpCreator.expectedTaskCompletionRewards;
 		MDPRewardsSimple prodCosts = pc.pc.mdpCreator.stateActionCostRewards;
 
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false,discount);
+		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false, discount);
 
 		// Get final prob result
 		double maxProb = res.solnProb[productMdp.getFirstInitialState()];
@@ -248,14 +248,15 @@ public class XAIvi
 
 	}
 
-	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc,double discount) throws PrismException
+	public ModelCheckerPartialSatResult doPathOccupancyFreq(Prism prism, PrismLog mainLog, XAIPathCreator pc, MDPModelChecker mc, double discount)
+			throws PrismException
 
 	{
 		int maxIters = 10000;
 		MDPSimple productMdp = pc.pc.mdpCreator.mdp;
 		BitSet acc = pc.pc.mdpCreator.accStates;
 
-		ModelCheckerPartialSatResult res = computeOccupationFrequencyForPath(maxIters, mainLog, mc, productMdp, acc,discount);
+		ModelCheckerPartialSatResult res = computeOccupationFrequencyForPath(maxIters, mainLog, mc, productMdp, acc, discount);
 
 		return res;
 
@@ -286,20 +287,20 @@ public class XAIvi
 	 *            be given and is used for the exact values.
 	 */
 	protected ModelCheckerPartialSatResult computeNestedValIter(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
-			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals,double discount) throws PrismException
+			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals, double discount) throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
 		int i, n, iters, numYes, numNo;
 		double initValProb, initValRew, initValCost;
-		if (saveVals) {
-			stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
-			stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
-			stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
-		}
+//		if (saveVals) {
+//			stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
+//			stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
+//			stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
+//		}
 		double solnProb[], soln2Prob[];
 		double solnProg[], soln2Prog[];
 		double solnCost[], soln2Cost[];
-		double influenceValues[]; 
+		double influenceValues[];
 		boolean done;
 		BitSet no, yes, unknown;
 		long timerVI, timerProb0, timerProb1, timerGlobal;
@@ -391,7 +392,7 @@ public class XAIvi
 			// solnCost[i] = soln2Cost[i] = initValCost;
 			solnProb[i] = yes.get(i) ? 1.0 : no.get(i) ? 0.0 : initValProb;
 			solnProg[i] = initValRew;
-			solnCost[i] =target.get(i)? 0.0: n*1000;//initValCost;
+			solnCost[i] = target.get(i) ? 0.0 : n * 1000;//initValCost;
 		}
 
 		// Start iterations
@@ -408,66 +409,63 @@ public class XAIvi
 			done = true;
 			for (i = 0; i < n; i++) {
 
-				boolean setIS = true; 
-				double maxIS = -1; 
-				double minIS = -1; 
+				boolean setIS = true;
+				double maxIS = -1;
+				double minIS = -1;
 				//				if (progStates.get(i)) {
-				if(!target.get(i)) {
-					if (saveVals) {
-						if (!stateActionProbValues.containsKey(i))
-							stateActionProbValues.put(i, new HashMap<Integer, Double>());
-						if (!stateActionProgValues.containsKey(i))
-							stateActionProgValues.put(i, new HashMap<Integer, Double>());
-						if (!stateActionCostValues.containsKey(i))
-							stateActionCostValues.put(i, new HashMap<Integer, Double>());
-					}
+				if (!target.get(i)) {
+//					if (saveVals) {
+//						if (!stateActionProbValues.containsKey(i))
+//							stateActionProbValues.put(i, new HashMap<Integer, Double>());
+//						if (!stateActionProgValues.containsKey(i))
+//							stateActionProgValues.put(i, new HashMap<Integer, Double>());
+//						if (!stateActionCostValues.containsKey(i))
+//							stateActionCostValues.put(i, new HashMap<Integer, Double>());
+//					}
 					numChoices = trimProdMdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 
-						
 						currentProbVal = trimProdMdp.mvMultJacSingle(i, j, solnProb);
 						currentProgVal = trimProdMdp.mvMultRewSingle(i, j, solnProg, progRewards);
-						currentCostVal =  mvMultRewSingleDiscount(trimProdMdp,i, j, solnCost, prodCosts,discount);
+						currentCostVal = mvMultRewSingleDiscount(trimProdMdp, i, j, solnCost, prodCosts, discount);
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
-						if (saveVals) {
-
-							stateActionProbValues.get(i).put(j, currentProbVal);
-							stateActionProgValues.get(i).put(j, currentProgVal);
-							stateActionCostValues.get(i).put(j, currentCostVal);
-						}
-
-						if(setIS)
-						{
-							maxIS = currentCostVal; 
-							minIS = currentCostVal;
-							setIS = false; 
-						}
-						if(!setIS)
-						{
-							if(currentCostVal > maxIS)
-								maxIS = currentCostVal; 
-							if(currentCostVal < minIS)
-								minIS = currentCostVal; 
-						
-						}
-										if (!sameCost && currentCostVal < solnCost[i]) {
-											done = false;
-											solnProb[i] = currentProbVal;
-											solnProg[i] = currentProgVal;
-											solnCost[i] = currentCostVal;
-
-											strat[i] = j;
-
-										}
-//									}
-//								}
-//							}
+//						if (saveVals) {
+//
+//							stateActionProbValues.get(i).put(j, currentProbVal);
+//							stateActionProgValues.get(i).put(j, currentProgVal);
+//							stateActionCostValues.get(i).put(j, currentCostVal);
 //						}
+
+						if (setIS) {
+							maxIS = currentCostVal;
+							minIS = currentCostVal;
+							setIS = false;
+						}
+						if (!setIS) {
+							if (currentCostVal > maxIS)
+								maxIS = currentCostVal;
+							if (currentCostVal < minIS)
+								minIS = currentCostVal;
+
+						}
+						if (!sameCost && currentCostVal < solnCost[i]) {
+							done = false;
+							solnProb[i] = currentProbVal;
+							solnProg[i] = currentProgVal;
+							solnCost[i] = currentCostVal;
+
+							strat[i] = j;
+
+						}
+						//									}
+						//								}
+						//							}
+						//						}
 					}
 				}
-				influenceValues[i] = maxIS - minIS; 
+				influenceValues[i] = maxIS - minIS;
 			}
 
 		}
@@ -501,31 +499,31 @@ public class XAIvi
 		return res;
 	}
 
-	public double mvMultRewSingleDiscount(MDP mdp,int s, int i, double[] vect, MDPRewards mdpRewards,double discount)
+	public double mvMultRewSingleDiscount(MDP mdp, int s, int i, double[] vect, MDPRewards mdpRewards, double discount)
 	{
 		double d, prob;
 		int k;
 
-//		Distribution distr 
+		//		Distribution distr 
 		Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, i);//trans.get(s).get(i);
 		// Compute sum for this distribution
 		// TODO: use transition rewards when added to DTMCss
 		// d = mcRewards.getTransitionReward(s);
 		d = 0;
-//		for (Map.Entry<Integer, Double> e : distr) {
+		//		for (Map.Entry<Integer, Double> e : distr) {
 		Entry<Integer, Double> e;
-		while(tranIter.hasNext()) {
+		while (tranIter.hasNext()) {
 			e = tranIter.next();
 			k = (Integer) e.getKey();
 			prob = (Double) e.getValue();
 			d += prob * vect[k];
 		}
-		d *= discount; 
+		d *= discount;
 		d += mdpRewards.getTransitionReward(s, i);
 
-		
 		return d;
 	}
+
 	/**
 	 * Compute reachability probabilities using value iteration. Optionally, store
 	 * optimal (memoryless) strategy info.
@@ -549,9 +547,8 @@ public class XAIvi
 	 *            be given and is used for the exact values.
 	 */
 
-	protected ModelCheckerPartialSatResult computeOccupationFrequencyForPath(int maxIters, PrismLog mainLog,
-			MDPModelChecker mc, MDP trimProdMdp, BitSet target,double discount)
-			throws PrismException
+	protected ModelCheckerPartialSatResult computeOccupationFrequencyForPath(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
+			double discount) throws PrismException
 	{
 		ModelCheckerPartialSatResult res;
 		int i, n, iters;
@@ -599,42 +596,55 @@ public class XAIvi
 		double currentProbVal;
 		boolean sameProb;
 
+		BitSet selfLoopStates = new BitSet();
 		while (!done && iters < maxIters) {
 			iters++;
 			done = true;
 			for (i = 0; i < n; i++) {
 
-			
-				
-					currentProbVal = 0;
-				for (int i_ = 0; i_ < n; i_++) {
-					if (!target.get(i_)) {
-						if (trimProdMdp.isSuccessor(i_, i)) {
-							//get the number of choices from i_ 
-							numChoices = trimProdMdp.getNumChoices(i_);
-							for (j = 0; j < numChoices; j++) {
-								Iterator<Entry<Integer, Double>> tranIter = trimProdMdp.getTransitionsIterator(i_, j);
-								while (tranIter.hasNext()) {
-									Entry<Integer, Double> sapair = tranIter.next();
-									if (sapair.getKey() == i) {
-										currentProbVal += sapair.getValue() * solnProb[i_];
-									}
-								}
+				if (!selfLoopStates.get(i)) {
 
+					currentProbVal = 0;
+					for (int i_ = 0; i_ < n; i_++) {
+						if (!target.get(i_)) {
+							if (trimProdMdp.isSuccessor(i_, i)) {
+								//get the number of choices from i_ 
+								numChoices = trimProdMdp.getNumChoices(i_);
+								for (j = 0; j < numChoices; j++) {
+									Iterator<Entry<Integer, Double>> tranIter = trimProdMdp.getTransitionsIterator(i_, j);
+									while (tranIter.hasNext()) {
+										Entry<Integer, Double> sapair = tranIter.next();
+										if (sapair.getKey() == i) {
+											if (discount == 1.0) {
+												if (sapair.getKey() == i_) {
+													//a self loop 
+													//we need a discount factor 
+													//or just not add the cost here 
+													currentProbVal += n;
+													selfLoopStates.set(i);
+
+												} else
+													currentProbVal += sapair.getValue() * solnProb[i_];
+											} else
+												currentProbVal += sapair.getValue() * solnProb[i_];
+										}
+									}
+
+								}
 							}
 						}
 					}
-				}
-				//currentProbVal += //trimProdMdp.mvMultJacSingle(i, j, solnProb);
-				currentProbVal *= discount;
-				if (trimProdMdp.isInitialState(i))
-					currentProbVal += 1;
-				sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
+					//currentProbVal += //trimProdMdp.mvMultJacSingle(i, j, solnProb);
+					currentProbVal *= discount;
+					if (trimProdMdp.isInitialState(i))
+						currentProbVal += 1;
+					sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 
-				if (!sameProb) {
-					done = false;
-					solnProb[i] = currentProbVal;
+					if (!sameProb) {
+						done = false;
+						solnProb[i] = currentProbVal;
 
+					}
 				}
 			}
 		}
