@@ -90,29 +90,33 @@ public class CompareSTAPUSSINVI
 
 	}
 
-	public double[] doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, ArrayList<Integer> robotNumbers,
-			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mlfn)
+	public long doSTAPU(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, ArrayList<Integer> robotNumbers,
+			ArrayList<Integer> goalNumbers, boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mlfn,double[] res)
 	{
 		STAPU stapu = new STAPU();
 		boolean excludeRobotInitStates = false;
 		stapu.debugSTAPU = doDebug;
 		stapu.doSeqPolicyBuilding = this.doSeqSTAPUPolicy;
 		stapu.noreallocations = this.stapuNoReallocs; 
-		double[] res = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers,
+		double[] resHere = stapu.runGUISimpleTestsOne(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers,
 				reallocOnFirstRobotDeadend, fileLog, mlfn, excludeRobotInitStates);
 		//		System.out.println(res.toString());
-		return res;
+		for(int i = 0; i<resHere.length; i++)
+			res[i]=resHere[i];
+		return stapu.stapuTimeDuration;
 	}
 
-	public double[] doSSI(String dir, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
-			boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mainLogFile)
+	public long doSSI(String dir, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
+			boolean reallocOnFirstRobotDeadend, PrismLog fileLog, String mainLogFile,double[] res)
 	{
 		SSIAuctionNestedProduct ssi = new SSIAuctionNestedProduct();
 		ssi.debugSSI = doDebug;
 		ssi.doingReallocs = !this.ssiNoReallocs;
-		double[] res = ssi.run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, mainLogFile);
+		 double[] ssires = ssi.run(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, fileLog, mainLogFile);
 		//		System.out.println(res.toString());
-		return res;
+		for(int i = 0; i<ssires.length; i++)
+			res[i]=ssires[i];
+		return ssi.totalTimeDuration;
 	}
 
 	public float[] doSTAPUTime(String dir, String fn, int numRobots, int numGoals, int numFS, int numDoors, ArrayList<Integer> robotNumbers,
@@ -125,15 +129,16 @@ public class CompareSTAPUSSINVI
 			mainLogFileName = null;
 		long startTime = System.currentTimeMillis();
 
-		double[] stapuRes = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog,
-				mainLogFileName);
+		double[] stapuRes = new double[3];
+		long modifiedDurationStapu = doSTAPU(dir, fn, numRobots, numFS, numGoals, numDoors,  robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, stapuLog,
+				mainLogFileName,stapuRes);
 
 		long endTime = System.currentTimeMillis();
 		long durationStapu = (endTime - startTime);
 		resArr[stapuInd] = new float[4];
 		for (int i = 0; i < 3; i++)
 			resArr[stapuInd][i] = (float) stapuRes[i];
-		resArr[stapuInd][3] = durationStapu;
+		resArr[stapuInd][3] = modifiedDurationStapu;//durationStapu;
 		stapuLog.println("Final Values:(p,r,c,t) " + Arrays.toString(resArr[stapuInd]));
 		stapuLog.close();
 		return resArr[stapuInd];
@@ -150,7 +155,8 @@ public class CompareSTAPUSSINVI
 		if (nullML)
 			mainLogFileName = null;
 		long startTime = System.currentTimeMillis();
-		double[] ssiRes = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, ssiLog, mainLogFileName);
+		double[] ssiRes = new double[3];
+		long durationSSIModified = doSSI(dir, fn, numRobots, numGoals, numDoors, robotNumbers, goalNumbers, reallocOnFirstRobotDeadend, ssiLog, mainLogFileName,ssiRes);
 
 		long endTime = System.currentTimeMillis();
 
@@ -159,7 +165,7 @@ public class CompareSTAPUSSINVI
 		resArr[ssiInd] = new float[4];
 		for (int i = 0; i < 3; i++)
 			resArr[ssiInd][i] = (float) ssiRes[i];
-		resArr[ssiInd][3] = durationSSI;
+		resArr[ssiInd][3] = durationSSIModified;//durationSSI;
 
 		ssiLog.println("Final Values:(p,r,c,t) " + Arrays.toString(resArr[ssiInd]));
 		ssiLog.close();
@@ -315,7 +321,7 @@ public class CompareSTAPUSSINVI
 		this.reallocSSIOnFirstDeadend = true; 
 		this.reallocSTAPUOnFirstDeadend = false;//true; 
 		
-		this.doSeqSTAPUPolicy = true; 
+		this.doSeqSTAPUPolicy = false; 
 
 		this.stapuNoReallocs = true; 
 		this.ssiNoReallocs = true; 
