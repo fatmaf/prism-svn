@@ -56,6 +56,7 @@ public class STAPU
 	ResultsTiming resSaver;
 	public boolean debugSTAPU = false;
 	public boolean doSeqPolicyBuilding = false;
+	public long stapuTimeDuration = 0; 
 
 	public STAPU()
 	{
@@ -230,26 +231,14 @@ public class STAPU
 		return res2;
 	}
 
-	//	protected ModelCheckerMultipleResult computeNestedValIterFailurePrint(MDP mdp, BitSet target, BitSet statesToAvoid, ArrayList<MDPRewardsSimple> rewards,
-	//			int probPreference, boolean doMaxTasks) throws PrismException
-	//	{
-	//
-	//		ArrayList<Boolean> minMaxRew = new ArrayList<Boolean>();
-	//		int rewinit = 0;
-	//		if (doMaxTasks) {
-	//			minMaxRew.add(false);
-	//		}
-	//		for (int rew = rewinit; rew < rewards.size(); rew++)
-	//			minMaxRew.add(true);
-	//		return computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minMaxRew, probPreference);
-	//	}
-
 	protected double[] doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
 			boolean completeSwitchRing, int numGoals, boolean noReallocs, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend,
 			PrismLog fileLog, boolean excludeRobotInitStates) throws PrismException
 	{
 
+		long modifiedStartTime = System.currentTimeMillis();
+		long modifiedEndTime, modifiedDuration; 
 		ArrayList<double[]> planningValuesSTAPU = null;
 		ArrayList<double[]> planningValuesJP = null;
 		if (debugSTAPU) {
@@ -282,7 +271,13 @@ public class STAPU
 		ModulesFile modulesFile = modulesFiles.get(0);
 		resSaver.setScopeStartTime();
 		long startTime = System.currentTimeMillis();
+		modifiedEndTime = System.currentTimeMillis(); 
+		modifiedDuration = modifiedEndTime - modifiedStartTime; 
+		stapuTimeDuration+=modifiedDuration;
+		
+		long maxNestedProductDuration = 0; 
 		for (int i = 0; i < numRobots; i++) {
+			long nestedProductStartTime = System.currentTimeMillis(); 
 			if (!sameModelForAll) {
 
 				model = models.get(i);
@@ -291,20 +286,22 @@ public class STAPU
 
 			int initState = model.getFirstInitialState();
 
-			//			if (i != 0 && sameModelForAll) {
-			//				initState = getInitState(i, exampleNumber());
-			//				((MDPSparse) model).clearInitialStates();
-			//				((MDPSparse) model).addInitialState(initState);
-			//
-			//			}
-
 			SingleAgentNestedProductMDP nestedProduct = buildSingleAgentNestedProductMDP("" + i, model, daList, statesOfInterest, mcProb, modulesFile);
 
 			singleAgentProductMDPs.add(nestedProduct);
 			resSaver.recordTime("Nested Product Time", varIDs.nestedproducttimes, true);
 			resSaver.recordValues(nestedProduct.finalProduct.getProductModel().getNumStates(), "Nested Product States", varIDs.nestedproductstates);
+			long nestedProductDuration = System.currentTimeMillis()-nestedProductStartTime; 
+			if(maxNestedProductDuration < nestedProductDuration)
+			{
+				maxNestedProductDuration = nestedProductDuration;
+			}
+			fileLog.println("Built nested product "+i+":"+ + (nestedProductDuration));
 
 		}
+		stapuTimeDuration+=maxNestedProductDuration;
+		modifiedStartTime = System.currentTimeMillis();
+		
 		long endTime = System.currentTimeMillis();
 		fileLog.println("Built all nested products: " + (endTime - startTime));
 		resSaver.recordTime("Total Single Agent Nested Product Time", varIDs.allnestedproductcreationtime, false);
@@ -398,99 +395,6 @@ public class STAPU
 			StatesHelper.saveMDPstatra(pc.mdpCreator.mdp, "", "_initTeamMDPWithRews", true);
 			planningValuesSTAPU.add(resultValues(solution, seqTeamMDP.teamMDPWithSwitches));
 
-			
-//			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "jpRew.dot");
-//			XAIPathCreator alternativePolicyPath = new XAIPathCreator();
-//			ArrayList<Integer> prefixStates = new ArrayList<Integer>(); 
-//			ArrayList<Integer> prefixActions = new ArrayList<Integer>(); 
-//			prefixStates.add(96);
-//			prefixActions.add(0);
-//			prefixStates.add(57);
-//			prefixActions.add(0);
-//			prefixStates.add(80);
-//			prefixActions.add(2);
-//			prefixStates.add(104);
-//			prefixActions.add(0);
-//			prefixStates.add(504);
-//			prefixActions.add(3);
-//			prefixStates.add(844);
-//			prefixActions.add(3);
-//			prefixStates.add(1336);
-//			prefixActions.add(3);
-//			prefixStates.add(2272);
-//			prefixActions.add(0);
-//			prefixStates.add(2296);
-//			prefixActions.add(1);
-//			prefixStates.add(2273);
-//			prefixActions.add(1);
-//			prefixStates.add(2308);
-//			prefixActions.add(3);
-
-
-//			prefixStates.add(8);
-//			prefixActions.add(0);
-//			prefixStates.add(9);
-//			prefixActions.add(2);
-//			prefixStates.add(33);
-//			prefixActions.add(0);
-//			prefixStates.add(56);
-//			prefixActions.add(0);
-//			prefixStates.add(80);
-//			prefixActions.add(1);
-//			prefixStates.add(57);
-//			prefixActions.add(2);
-//			prefixStates.add(96);
-//			prefixActions.add(1);
-//			prefixStates.add(120);
-//			prefixActions.add(0);
-//			prefixStates.add(128);
-//			prefixActions.add(0);
-//			prefixStates.add(152);
-//			prefixActions.add(3);
-//			prefixStates.add(177);
-//			prefixActions.add(0);
-//			prefixStates.add(216);
-//			prefixActions.add(0);
-//			prefixStates.add(240);
-//			prefixActions.add(3);
-//			prefixStates.add(264);
-//			prefixActions.add(3);
-//			prefixStates.add(273);
-//			prefixActions.add(2);
-//			prefixStates.add(296);
-//			prefixActions.add(0);
-//
-//			prefixStates.add(548);
-//			prefixActions.add(3);
-//			prefixStates.add(748);
-//			prefixActions.add(0);
-//			prefixStates.add(713);
-//			prefixActions.add(0);
-//			prefixStates.add(736);
-//			prefixActions.add(2);
-//			prefixStates.add(760);
-//			prefixActions.add(2);
-//			prefixStates.add(796);
-//			prefixActions.add(1);
-//			prefixStates.add(820);
-//			prefixActions.add(3);
-//			mainLog.println("Creating alternate policy - mimicing the one from ssi");
-//			 alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, 
-//					 seqTeamMDP.teamMDPWithSwitches, solution.strat,"/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/",
-//					"alternatePath" , seqTeamMDP.progressionRewards,
-//					seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
-//			 alternativePolicyPath.pc.mdpCreator.createRewardStructures();
-//				MDPSimple altproductMdp =alternativePolicyPath.pc.mdpCreator.mdp;
-//				BitSet altacc = alternativePolicyPath.pc.mdpCreator.accStates;
-//				MDPRewardsSimple altprogRewards = alternativePolicyPath.pc.mdpCreator.expectedTaskCompletionRewards;
-//				MDPRewardsSimple altprodCosts = alternativePolicyPath.pc.mdpCreator.stateActionCostRewards;
-//				ArrayList<MDPRewardsSimple>altrewards = new ArrayList<MDPRewardsSimple>(); 
-//				altrewards.add(altprogRewards);
-//				altrewards.add(altprodCosts);
-//				ModelCheckerMultipleResult altsolution = computeNestedValIterFailurePrint
-//						(altproductMdp, altacc,
-//						new BitSet(), altrewards, minRewards, probPreference);// ,probInitVals);
-				
 				
 				jointPolicyBuilder.createRewardStructures();
 				ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
@@ -528,17 +432,6 @@ public class STAPU
 
 				if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
 
-					//					if (reallocatedStates.contains(stateToExplore))
-					//
-					//					{
-					//						mainLog.println("Repeating state: " + stateToExplore.toString());
-					//						mainLog.println("Repeating state: " + stateToExplore.toString());
-					//						mainLog.println("Repeating state: " + stateToExplore.toString());
-					//						mainLog.println("Repeating state: " + stateToExplore.toString());
-					//						mainLog.println("Repeating state: " + stateToExplore.toString());
-					//
-					//					} else
-					//						reallocatedStates.add(stateToExplore);
 					// get first failed robot
 					numPlanning++;
 					resSaver.recordValues(numPlanning, "Realloc", varIDs.numreallocationsincode);
@@ -619,6 +512,10 @@ public class STAPU
 			}
 		}
 		mainLog.println("All done");
+		modifiedEndTime = System.currentTimeMillis(); 
+		modifiedDuration = modifiedEndTime - modifiedStartTime; 
+		stapuTimeDuration+=modifiedDuration;
+		
 		return resultValues(result, jointPolicyBuilder.jointMDP);
 
 	}
