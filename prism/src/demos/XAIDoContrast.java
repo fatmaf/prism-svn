@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import explicit.MDP;
 import explicit.ModelCheckerPartialSatResult;
 import parser.State;
+import parser.VarList;
 import parser.ast.Expression;
 import parser.ast.ExpressionReward;
 import prism.PrismException;
@@ -32,17 +33,29 @@ public class XAIDoContrast
 		//example 
 		String saveplace = "/home/fatma/Data/PhD/melb/prism/joint/";
 
+		HashMap<String,Double> variableWeights = new HashMap<String,Double>(); 
+		variableWeights.put("p1", 1.0);
+		variableWeights.put("p2", 1.0);
+		variableWeights.put("da", 1.0);
 		ArrayList<String> nonMDPDistVars = new ArrayList<String>();
 //		nonMDPDistVars.add("turn");
 		nonMDPDistVars.add("p1");
 		nonMDPDistVars.add("p2");
-		String[] filenames = new String[] { "scenario3", "scenario3_alt" };
+
+		String[] filenames = new String[] { "random_maze_15"/*"scenario5", "scenario5_alt" */};
 		XAIStateInformation prevSSTop = null;
 		XAIStateInformation prevSSBottom = null;
 
 		XAIPathCreator previousPath = null;
+		VarList otherVL = null;
 		for (String filename : filenames) {
 
+			if(previousPath!=null)
+			{
+				otherVL = previousPath.pc.mdpCreator.mdp.getVarList(); 
+				
+			}
+			
 			double discount = 1.0;
 
 			boolean noappend = true;
@@ -51,7 +64,8 @@ public class XAIDoContrast
 
 			//load model 
 			sa.readModel(saveplace, filename, noappend);
-
+			variableWeights.put("mdp", (double)sa.mdp.getNumStates());
+			sa.variableWeights = variableWeights;
 			//get distance for mdp states 
 			HashMap<State, HashMap<State, Double>> mdpDistshm = null;
 
@@ -108,14 +122,14 @@ public class XAIDoContrast
 			System.out.println("Top: " + ssTop.toString());
 
 			if (printStuff) {
-				sa.listClosestStatesToStateOnTheFly(ssTop, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(ssTop, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
+				sa.listClosestStatesToStateOnTheFly(ssTop,null,  optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(ssTop,null,  optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
 						optimalPolicy);
 			}
 			if (prevSSTop != null) {
 				System.out.println("Listing states to closest prev state " + prevSSTop.toString());
-				sa.listClosestStatesToStateOnTheFly(prevSSTop, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(prevSSTop, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
+				sa.listClosestStatesToStateOnTheFly(prevSSTop,otherVL,  optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(prevSSTop, otherVL, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
 						optimalPolicy);
 			}
 			if (prevSSTop == null)
@@ -123,15 +137,15 @@ public class XAIDoContrast
 			System.out.println("Bottom: " + ssBottom.toString());
 
 			if (printStuff) {
-				sa.listClosestStatesToStateOnTheFly(ssBottom, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm,  sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(ssBottom, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
+				sa.listClosestStatesToStateOnTheFly(ssBottom,null, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm,  sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(ssBottom, null, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
 						optimalPolicy);
 			}
 			if (prevSSBottom != null) {
 			
 				System.out.println("Listing states to closest prev state " + prevSSBottom.toString());
-				sa.listClosestStatesToStateOnTheFly(prevSSBottom, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(prevSSBottom, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp,
+				sa.listClosestStatesToStateOnTheFly(prevSSBottom,otherVL, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(prevSSBottom, otherVL, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp,
 						vi.productmdp, optimalPolicy);
 			
 
@@ -342,8 +356,8 @@ public class XAIDoContrast
 			}
 			if (prevSSTop != null) {
 				System.out.println("Listing states to closest prev state " + prevSSTop.toString());
-				sa.listClosestStatesToStateOnTheFly(prevSSTop, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(prevSSTop, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
+				sa.listClosestStatesToStateOnTheFly(prevSSTop,null, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(prevSSTop,null, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp, vi.productmdp,
 						optimalPolicy);
 			}
 			if (prevSSTop == null)
@@ -356,8 +370,8 @@ public class XAIDoContrast
 			}
 			if (prevSSBottom != null) {
 				System.out.println("Listing states to closest prev state " + prevSSBottom.toString());
-				sa.listClosestStatesToStateOnTheFly(prevSSBottom, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
-				sa.listClosestStatesToStateOnTheFly(prevSSBottom, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp,
+				sa.listClosestStatesToStateOnTheFly(prevSSBottom,null, optimalPolicyStateDistances, optimalPolicyPaths, mdpDistshm, sa.mdp, null, null);
+				sa.listClosestStatesToStateOnTheFly(prevSSBottom,null, optimalPolicyStateDistancesFromAllStates, optimalPolicyPaths, mdpDistshm, sa.mdp,
 						vi.productmdp, optimalPolicy);
 
 			}
