@@ -51,7 +51,7 @@ public class XAIStateAnalyser
 	ArrayList<String> nonMDPDistVars;
 	String currentSaveplace = "";
 	String currentFilename = "";
-
+	HashMap<String,Double> variableWeights ;
 	//main function 
 	public static void main(String[] args)
 	{
@@ -255,7 +255,7 @@ public class XAIStateAnalyser
 
 	}
 
-	public void listClosestStatesToStateOnTheFly(XAIStateInformation ssTop, HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,
+	public void listClosestStatesToStateOnTheFly(XAIStateInformation ssTop, VarList otherVL, HashMap<State, ArrayList<Entry<State, Double>>> optimalPolicyStateDistances,
 			XAIPathCreator optimalPolicyPaths, HashMap<State, HashMap<State, Double>> dijkstraDists, MDP originalMDP, MDP otherMDP,
 			ModelCheckerPartialSatResult nvires) throws Exception
 	{
@@ -289,6 +289,9 @@ public class XAIStateAnalyser
 
 		} else {
 			VarList vl = optimalPolicyPaths.pc.mdpCreator.mdp.getVarList();
+
+			if(otherVL == null)
+				otherVL = vl;
 			State istate = ssTop.getState();
 			State mdpState = this.getMDPState(vl, istate);
 			if (dijkstraDists == null || !dijkstraDists.containsKey(mdpState)) {
@@ -299,7 +302,7 @@ public class XAIStateAnalyser
 					//we need to find something close to this state in the mdp 
 					//close how ? 
 					//close in terms of distance 
-					calculateSingleStateDistances(mdpState, dijkstraDists, originalMDP.getStatesList(), originalMDP.getVarList(), originalMDP.getNumStates());
+					calculateSingleStateDistances(mdpState, dijkstraDists, originalMDP.getStatesList(), otherVL,originalMDP.getVarList(), originalMDP.getNumStates());
 					optimalPolicyPaths.pc.mdpCreator.saveMDPstatra(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
 					optimalPolicyPaths.pc.mdpCreator.saveMDP(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
 					System.out.println("bug here");
@@ -310,10 +313,10 @@ public class XAIStateAnalyser
 			}
 			ArrayList<Entry<State, Double>> pq;
 			if (otherMDP == null)
-				pq = this.calculateSingleStateDistances(istate, dijkstraDists, optimalPolicyPaths.pc.mdpCreator.mdp.getStatesList(), vl,
+				pq = this.calculateSingleStateDistances(istate, dijkstraDists, optimalPolicyPaths.pc.mdpCreator.mdp.getStatesList(), vl,vl,
 						optimalPolicyPaths.pc.mdpCreator.mdp.getNumStates());
 			else
-				pq = this.calculateSingleStateDistances(istate, dijkstraDists, otherMDP.getStatesList(), vl, otherMDP.getNumStates());
+				pq = this.calculateSingleStateDistances(istate, dijkstraDists, otherMDP.getStatesList(), vl,vl, otherMDP.getNumStates());
 			optimalPolicyStateDistances.put(istate, pq);
 			ArrayList<Entry<State, Double>> ssTopDistances = optimalPolicyStateDistances.get(ssTop.getState());
 			for (Entry<State, Double> e : ssTopDistances) {
@@ -530,19 +533,19 @@ public class XAIStateAnalyser
 				int oms = this.getStateIndex(originalMDP, mdpState);
 				dijkstraDists = mdpDijkstraUpdate(oms, originalMDP, dijkstraDists);
 			}
-			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl,vl, vl, numStates);
 			toret.put(istate, pq);
 		}
 		return toret;
 	}
 
 	public ArrayList<Entry<State, Double>> calculateSingleStateDistances(State istate, HashMap<State, HashMap<State, Double>> dijkstraDists, List<State> sl,
-			VarList vl, int numStates) throws Exception
+			VarList iStatevl,VarList oStatevl, int numStates) throws Exception
 	{
 		ArrayList<Entry<State, Double>> pq = new ArrayList<Entry<State, Double>>();
 		for (int j = 0; j < numStates; j++) {
 			State jstate = sl.get(j);
-			double dist = stateDist(istate, jstate, vl, dijkstraDists);
+			double dist = stateDist(istate, jstate, iStatevl,oStatevl, dijkstraDists);
 			Entry<State, Double> e = new AbstractMap.SimpleEntry<State, Double>(jstate, dist);
 			pq.add(e);
 		}
@@ -569,7 +572,7 @@ public class XAIStateAnalyser
 				int oms = this.getStateIndex(originalMDP, mdpState);
 				dijkstraDists = mdpDijkstraUpdate(oms, originalMDP, dijkstraDists);
 			}
-			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl,vl, vl, numStates);
 			toret.put(istate, pq);
 		}
 		return toret;
@@ -589,7 +592,7 @@ public class XAIStateAnalyser
 
 			int mdpSI = pathC.pc.policyStateToOriginalMDPMap.get(i);
 			State istate = sl.get(mdpSI);
-			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl,vl, numStates);
 			toret.put(istate, pq);
 		}
 		return toret;
@@ -604,7 +607,7 @@ public class XAIStateAnalyser
 		HashMap<State, ArrayList<Entry<State, Double>>> toret = new HashMap<State, ArrayList<Entry<State, Double>>>();
 		for (int i = 0; i < numStates; i++) {
 			State istate = sl.get(i);
-			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl, numStates);
+			ArrayList<Entry<State, Double>> pq = this.calculateSingleStateDistances(istate, dijkstraDists, sl, vl,vl, numStates);
 			toret.put(istate, pq);
 		}
 		return toret;
@@ -1013,23 +1016,65 @@ public class XAIStateAnalyser
 		return dist;
 	}
 
-	
-	public double stateDist(State s1p, State s2p, VarList s1vl, VarList s2vl,  HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
+	public State createNewStateUsingVL(VarList origvl, VarList newvl, State oldState)
+	{
+		State newState = new State(newvl.getNumVars());
+		for (int i = 0; i < newvl.getNumVars(); i++) {
+			String varname = newvl.getName(i);
+			//does it exist in the original state ? 
+			int oldVlIndex = origvl.getIndex(varname);
+			if (oldVlIndex != -1) {
+				newState.setValue(i, oldState.varValues[oldVlIndex]);
+			}
+
+		}
+		return newState;
+	}
+
+	public double stateDist(State s1p, State s2p, VarList s1vl, VarList s2vl, HashMap<State, HashMap<State, Double>> mdpDijkstraDists) throws Exception
 	{
 		double dist = 0;
-		State s1 = this.getMDPState(s1vl, s1p);
-		State s2 = this.getMDPState(s2vl, s2p);
+
 		boolean mdpBitsDone = false;
 		//we're doing a kind of euclidean distance 
 		//for each variable in vl 
+		//step 1 
+		//we check which vl is longer 
 		VarList vl = s1vl;
+
+		if (s1vl.getNumVars() != s2vl.getNumVars()) {
+			if (s1vl.getNumVars() > s2vl.getNumVars()) {
+				//if s1 is bigger 
+				//well we need to remove states 
+				//so the distance is just a distance 
+				//if we remove states we're alright 
+				//so we'd rather remove states than unremove them ? 
+				//cuz that would be filling them in with something 
+				vl = s2vl;
+				//now we must equal them 
+				//so we go over all the states in s1vl 
+				//and get rid of any names not in s1vl 
+				//and create a new state 
+				s1p = this.createNewStateUsingVL(s1vl, s2vl, s1p);
+			} else {
+				vl = s1vl;
+				s2p = this.createNewStateUsingVL(s2vl, s1vl, s2p);
+			}
+		}
+		State s1 = this.getMDPState(vl, s1p);
+		State s2 = this.getMDPState(vl, s2p);
 		int numVars = vl.getNumVars();
+		double weight = 1.0; 
 		if (!s1p.toString().contentEquals(s2p.toString())) {
 
 			double[] dists = new double[numVars];
 			//so we'll do all vars that are in the special list or part of the da 
 			for (int var = 0; var < numVars; var++) {
 				String vname = vl.getName(var);
+				if(variableWeights.containsKey(vname))
+					weight = variableWeights.get(vname); 
+				else 
+					weight = 1.0; 
 				int s1var = 0;
 				if (s1p.varValues[var] instanceof Boolean) {
 					if ((Boolean) s1p.varValues[var] == true)
@@ -1090,6 +1135,7 @@ public class XAIStateAnalyser
 									}
 								}
 								mdpBitsDone = true;
+								weight = variableWeights.get("mdp");
 							}
 
 						} else {
@@ -1098,7 +1144,7 @@ public class XAIStateAnalyser
 					}
 				}
 				//				}
-				dists[var] *= dists[var];
+				dists[var] *= (dists[var]*weight);
 				dist += dists[var];
 			}
 			dist = Math.sqrt(dist);
