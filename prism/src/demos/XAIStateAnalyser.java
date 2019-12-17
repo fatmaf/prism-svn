@@ -663,7 +663,7 @@ public class XAIStateAnalyser
 						double prob = spPair.getValue();
 						State nextState = mdp.getStatesList().get(nextS);
 						XAIStateInformation nextSI = new XAIStateInformation(nextState, nextS, null);
-						nextSI.addParent(currentStateState);
+						nextSI.addParent(s);
 						path.addChild(s, nextSI, prob);
 						stateQ.add(nextS);
 					}

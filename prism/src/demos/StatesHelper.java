@@ -224,7 +224,7 @@ public class StatesHelper
 		if (temp == "")
 			temp = folder;
 		temp = temp.replace("adv", "");
-		temp = temp.replaceAll(".tra", "");
+		temp = temp.replace(".tra", "");
 		String location = temp;
 		if (saveinsaveplace) {
 			location = getSaveplace();
@@ -264,7 +264,7 @@ public class StatesHelper
 		if (temp == "")
 			temp = folder;
 		temp = temp.replace("adv", "");
-		temp = temp.replaceAll(".tra", "");
+		temp = temp.replace(".tra", "");
 		String location = temp;
 		if (saveinsaveplace) {
 			location = getSaveplace();

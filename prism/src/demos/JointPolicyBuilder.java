@@ -343,8 +343,8 @@ public class JointPolicyBuilder
 					sharedStateChanges = sharedStateChangesQ.remove();
 					currentJointState = currentJointStateProbPair.getKey();
 					double currentJointStateProb = currentJointStateProbPair.getValue();
-					if (currentJointState.toString().contains("0,1,0,65,-1"))
-						mainLog.println("debug");
+//					if (currentJointState.toString().contains("0,1,0,65,-1"))
+//						mainLog.println("debug");
 					boolean isAcc = this.isAcceptingState(currentJointState);
 
 					//					if (currentJointState.toString().contains("0,0,1,-1,5"))
@@ -508,7 +508,7 @@ public class JointPolicyBuilder
 							}
 						}
 
-						boolean usingModifiedStates = false;
+						boolean usingModifiedStates = true;//false;
 						Entry<Entry<String, ArrayList<Double>>, ArrayList<Entry<int[], Double>>> actionAndCombinations = getActionAndSuccStatesAllRobots(strat,
 								modifiedRobotStatesInSeqTeamMDP, robotStatesInSeqTeamMDP, mdp, usingModifiedStates);
 
@@ -536,8 +536,8 @@ public class JointPolicyBuilder
 							sharedStateChanges = new HashMap<Integer, ArrayList<Entry<Integer, Entry<Integer, Integer>>>>();
 							State succJointState = createJointState(newSuccStatesForJointState, mdp.getStatesList(), mdp.getVarList(), currentJointState,
 									sharedStateChanges);
-							if (succJointState.toString().contains("0,1,0,65,-1"))
-								mainLog.println("debug");
+//							if (succJointState.toString().contains("0,1,0,65,-1"))
+//								mainLog.println("debug");
 							succStatesQueue.add(succJointState);
 							succStatesProbQueue.add(combination.getValue());
 							jointStateQueue.add(new AbstractMap.SimpleEntry<State, Double>(succJointState, combination.getValue() * currentJointStateProb));

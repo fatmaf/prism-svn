@@ -42,7 +42,7 @@ public class DAInfo
 	BitSet daAccStates = null;
 	PrismLog mainLog;
 	public int associatedIndexInProduct = -1;
-	RewardStruct costStruct;
+	RewardStruct costStruct=null;
 
 	public DAInfo(DAInfo other)
 	{
@@ -71,6 +71,9 @@ public class DAInfo
 			this.daAccStates = (BitSet) other.daAccStates.clone();
 		}
 		this.mainLog = other.mainLog;
+		this.associatedIndexInProduct = other.associatedIndexInProduct; 
+		if(other.costStruct!=null)
+			this.costStruct = other.costStruct;
 	}
 
 	public DAInfo(PrismLog log, Expression expr)
