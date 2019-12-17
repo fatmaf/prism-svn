@@ -714,6 +714,8 @@ public class STAPU
 
 			throws PrismException, FileNotFoundException
 	{
+		long modifiedStartTime = System.currentTimeMillis();
+		long modifiedEndTime, modifiedDuration; 
 		double[] res = null;
 
 		//Setting up
@@ -829,6 +831,10 @@ public class STAPU
 
 		StatesHelper.setNumMDPVars(maxMDPVars);
 
+		modifiedEndTime = System.currentTimeMillis(); 
+		modifiedDuration = modifiedEndTime - modifiedStartTime; 
+		this.stapuTimeDuration+=modifiedDuration;
+		
 		res = doSTAPULimitGoals(models, (ExpressionFunc) expr, null, new ProbModelChecker(prism), modulesFiles, shared_vars_list, includefailstatesinswitches,
 				matchsharedstatesinswitch, completeSwitchRing, numGoals, noReallocs, goalNumbers, reallocateOnSingleAgentDeadend, fileLog,
 				excludeRobotInitStates);

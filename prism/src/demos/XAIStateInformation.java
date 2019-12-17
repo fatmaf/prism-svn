@@ -20,7 +20,7 @@ public class XAIStateInformation
 	HashMap<Object, Integer> allActionIndicesInMDP;
 	HashMap<Object, HashMap<ValueLabel, Double>> actionValues;
 	HashMap<Object, HashMap<ValueLabel, Double>> actionValuesDifference;
-	ArrayList<State> parents = null; 
+	ArrayList<XAIStateInformation> parents = null; 
 
 	/**
 	 * @return the state
@@ -153,11 +153,11 @@ public class XAIStateInformation
 		return strToRet;
 	}
 
-	public void addParent(State p)
+	public void addParent(XAIStateInformation p)
 	{
 		if (parents == null)
 		{
-			parents = new ArrayList<State>();
+			parents = new ArrayList<XAIStateInformation>();
 		}
 		parents.add(p);
 	}
