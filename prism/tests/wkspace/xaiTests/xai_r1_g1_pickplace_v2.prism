@@ -1,0 +1,407 @@
+mdp
+const double p = 0.8;
+const int failstate = -1;
+const int open = 1;
+const int closed = 0;
+const int unknown = -1;
+
+
+module grid
+s:[0 .. 20] init 16;
+
+item:[0 .. 20] init 5; 
+picked: bool init false; 
+placed: bool init false; 
+
+item1:[0 .. 20] init 14; 
+picked1: bool init false; 
+placed1: bool init false; 
+
+item2:[0 .. 20] init 20; 
+picked2: bool init false; 
+placed2: bool init false; 
+
+item3:[0 .. 20] init 4; 
+picked3: bool init false; 
+placed3: bool init false; 
+
+
+[s0_s1] (s=0) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=1);
+[s0_s2] (s=0) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=2);
+[s1_s0] (s=1) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=0);
+[s1_s3] (s=1) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=3);
+[s1_s4] (s=1) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=4);
+[s3_s1] (s=3) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=1);
+[s3_s5] (s=3) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=5);
+[s5_s3] (s=5) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=3);
+[s5_s6] (s=5) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=6);
+[s6_s5] (s=6) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=5);
+[s6_s7] (s=6) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=7);
+[s2_s8] (s=2) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=8);
+[s2_s0] (s=2) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false)-> 1.0:(s'=0);
+[s2_s4] (s=2) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=4);
+[s4_s1] (s=4) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=1);
+[s4_s2] (s=4) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=2);
+[s4_s9] (s=4) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=9);
+[s7_s10] (s=7) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=10);
+[s7_s6] (s=7) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=6);
+[s8_s11] (s=8) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=11);
+[s8_s2] (s=8) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=2);
+[s8_s9] (s=8) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=9);
+[s9_s8] (s=9) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=8);
+[s9_s12] (s=9) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=12);
+[s9_s4] (s=9) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=4);
+[s9_s13] (s=9) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=13);
+[s13_s14] (s=13) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=14);
+[s13_s9] (s=13) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=9);
+[s14_s10] (s=14) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=10);
+[s14_s13] (s=14) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=13);
+[s10_s15] (s=10) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=15);
+[s10_s14] (s=10) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=14);
+[s10_s7] (s=10) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=7);
+[s11_s8] (s=11) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=8);
+[s11_s12] (s=11) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=12);
+[s11_s16] (s=11) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=16);
+[s12_s11] (s=12) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=11);
+[s12_s17] (s=12) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=17);
+[s12_s9] (s=12) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=9);
+[s15_s18] (s=15) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=18);
+[s15_s10] (s=15) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=10);
+[s16_s11] (s=16) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=11);
+[s16_s17] (s=16) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=17);
+[s17_s19] (s=17) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=19);
+[s17_s12] (s=17) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=12);
+[s17_s16] (s=17) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=16);
+[s19_s17] (s=19) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=17);
+[s19_s20] (s=19)& (picked=false)  & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=20);
+[s20_s19] (s=20)& (picked=false)  & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=19);
+[s20_s18] (s=20) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=18);
+[s18_s15] (s=18) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=15);
+[s18_s20] (s=18) & (picked=false) & (picked1=false)& (picked2=false) & (picked3=false) -> 1.0:(s'=20);
+
+[pick_item] (s=item) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false) -> (picked'=true); 
+[place_item] (picked=true) & (placed=false)  -> 1.0:(placed'=true) & (picked'=false); 
+
+[pick_item1] (s=item1) & (picked1=false) & (picked=false) & (picked2=false) & (picked3=false) -> (picked1'=true); 
+[place_item1] (picked1=true) & (placed1=false)  -> 1.0:(placed1'=true) & (picked1'=false); 
+
+
+[pick_item2] (s=item2) & (picked2=false) & (picked=false) & (picked1=false) & (picked3=false) -> (picked2'=true); 
+[place_item2] (picked2=true) & (placed2=false)  -> 1.0:(placed2'=true) & (picked2'=false); 
+
+
+[pick_item3] (s=item3) & (picked3=false) & (picked=false) & (picked2=false) & (picked1=false) -> (picked3'=true); 
+[place_item3] (picked3=true) & (placed3=false)  -> 1.0:(placed3'=true) & (picked3'=false); 
+
+
+[s0_s1] (s=0) & (item=0) & (picked=true)-> 1.0:(s'=1) & (item'=1);
+[s0_s2] (s=0) & (item=0) & (picked=true)-> 1.0:(s'=2)& (item'=2);
+[s1_s0] (s=1) & (item=1) & (picked=true)-> 1.0:(s'=0)& (item'=0);
+[s1_s3] (s=1) & (item=1) & (picked=true)-> 1.0:(s'=3)& (item'=3);
+[s1_s4] (s=1) & (item=1) & (picked=true)-> 1.0:(s'=4)& (item'=4);
+[s3_s1] (s=3) & (item=3) & (picked=true)-> 1.0:(s'=1)& (item'=1);
+[s3_s5] (s=3) & (item=3) & (picked=true)-> 1.0:(s'=5)& (item'=5);
+[s5_s3] (s=5) & (item=5) & (picked=true)-> 1.0:(s'=3)& (item'=3);
+[s5_s6] (s=5) & (item=5) & (picked=true)-> 1.0:(s'=6)& (item'=6);
+[s6_s5] (s=6) & (item=6) & (picked=true)-> 1.0:(s'=5)& (item'=5);
+[s6_s7] (s=6) & (item=6) & (picked=true)-> 1.0:(s'=7)& (item'=7);
+[s2_s8] (s=2) & (item=2) & (picked=true)-> 1.0:(s'=8)& (item'=8);
+[s2_s0] (s=2) & (item=2) & (picked=true)-> 1.0:(s'=0)& (item'=0);
+[s2_s4] (s=2) & (item=2) & (picked=true)-> 1.0:(s'=4)& (item'=4);
+[s4_s1] (s=4) & (item=4) & (picked=true)-> 1.0:(s'=1)& (item'=1);
+[s4_s2] (s=4) & (item=4) & (picked=true)-> 1.0:(s'=2)& (item'=2);
+[s4_s9] (s=4) & (item=4) & (picked=true)-> 1.0:(s'=9)& (item'=9);
+[s7_s10] (s=7)& (item=7) & (picked=true)-> 1.0:(s'=10)& (item'=10);
+[s7_s6] (s=7) & (item=7) & (picked=true)-> 1.0:(s'=6)& (item'=6);
+[s8_s11] (s=8)& (item=8) & (picked=true) -> 1.0:(s'=11)& (item'=11);
+[s8_s2] (s=8) & (item=8) & (picked=true)-> 1.0:(s'=2)& (item'=2);
+[s8_s9] (s=8) & (item=8) & (picked=true)-> 1.0:(s'=9)& (item'=9);
+[s9_s8] (s=9) & (item=9) & (picked=true)-> 1.0:(s'=8)& (item'=8);
+[s9_s12] (s=9)& (item=9) & (picked=true)-> 1.0:(s'=12)& (item'=12);
+[s9_s4] (s=9) & (item=9) & (picked=true)-> 1.0:(s'=4)& (item'=4);
+[s9_s13] (s=9)& (item=9) & (picked=true) -> 1.0:(s'=13)& (item'=13);
+[s13_s14] (s=13)& (item=13) & (picked=true) -> 1.0:(s'=14)& (item'=14);
+[s13_s9] (s=13)& (item=13) & (picked=true) -> 1.0:(s'=9)& (item'=9);
+[s14_s10] (s=14)& (item=14) & (picked=true) -> 1.0:(s'=10)& (item'=10);
+[s14_s13] (s=14)& (item=14) & (picked=true) -> 1.0:(s'=13)& (item'=13);
+[s10_s15] (s=10)& (item=10) & (picked=true) -> 1.0:(s'=15)& (item'=15);
+[s10_s14] (s=10)& (item=10) & (picked=true) -> 1.0:(s'=14)& (item'=14);
+[s10_s7] (s=10)& (item=10) & (picked=true) -> 1.0:(s'=7)& (item'=7);
+[s11_s8] (s=11)& (item=11) & (picked=true) -> 1.0:(s'=8)& (item'=8);
+[s11_s12] (s=11)& (item=11) & (picked=true) -> 1.0:(s'=12)& (item'=12);
+[s11_s16] (s=11)& (item=11) & (picked=true) -> 1.0:(s'=16)& (item'=16);
+[s12_s11] (s=12)& (item=12) & (picked=true) -> 1.0:(s'=11)& (item'=11);
+[s12_s17] (s=12)& (item=12) & (picked=true) -> 1.0:(s'=17)& (item'=17);
+[s12_s9] (s=12)& (item=12) & (picked=true) -> 1.0:(s'=9)& (item'=9);
+[s15_s18] (s=15)& (item=15) & (picked=true) -> 1.0:(s'=18)& (item'=18);
+[s15_s10] (s=15)& (item=15) & (picked=true) -> 1.0:(s'=10)& (item'=10);
+[s16_s11] (s=16)& (item=16) & (picked=true) -> 1.0:(s'=11)& (item'=11);
+[s16_s17] (s=16) & (item=16) & (picked=true)-> 1.0:(s'=17)& (item'=17);
+[s17_s19] (s=17)& (item=17) & (picked=true) -> 1.0:(s'=19)& (item'=19);
+[s17_s12] (s=17) & (item=17) & (picked=true)-> 1.0:(s'=12)& (item'=12);
+[s17_s16] (s=17)& (item=17) & (picked=true) -> 1.0:(s'=16)& (item'=16);
+[s19_s17] (s=19)& (item=19) & (picked=true) -> 1.0:(s'=17)& (item'=17);
+[s19_s20] (s=19) & (item=19) & (picked=true)-> 1.0:(s'=20)& (item'=20);
+[s20_s19] (s=20)& (item=20) & (picked=true) -> 1.0:(s'=19)& (item'=19);
+[s20_s18] (s=20) & (item=20) & (picked=true)-> 1.0:(s'=18)& (item'=18);
+[s18_s15] (s=18)& (item=18) & (picked=true) -> 1.0:(s'=15)& (item'=15);
+[s18_s20] (s=18) & (item=18) & (picked=true)-> 1.0:(s'=20) & (item'=20);
+
+[s0_s1] (s=0) & (item1=0) & (picked1=true)-> 1.0:(s'=1) & (item1'=1);
+[s0_s2] (s=0) & (item1=0) & (picked1=true)-> 1.0:(s'=2)& (item1'=2);
+[s1_s0] (s=1) & (item1=1) & (picked1=true)-> 1.0:(s'=0)& (item1'=0);
+[s1_s3] (s=1) & (item1=1) & (picked1=true)-> 1.0:(s'=3)& (item1'=3);
+[s1_s4] (s=1) & (item1=1) & (picked1=true)-> 1.0:(s'=4)& (item1'=4);
+[s3_s1] (s=3) & (item1=3) & (picked1=true)-> 1.0:(s'=1)& (item1'=1);
+[s3_s5] (s=3) & (item1=3) & (picked1=true)-> 1.0:(s'=5)& (item1'=5);
+[s5_s3] (s=5) & (item1=5) & (picked1=true)-> 1.0:(s'=3)& (item1'=3);
+[s5_s6] (s=5) & (item1=5) & (picked1=true)-> 1.0:(s'=6)& (item1'=6);
+[s6_s5] (s=6) & (item1=6) & (picked1=true)-> 1.0:(s'=5)& (item1'=5);
+[s6_s7] (s=6) & (item1=6) & (picked1=true)-> 1.0:(s'=7)& (item1'=7);
+[s2_s8] (s=2) & (item1=2) & (picked1=true)-> 1.0:(s'=8)& (item1'=8);
+[s2_s0] (s=2) & (item1=2) & (picked1=true)-> 1.0:(s'=0)& (item1'=0);
+[s2_s4] (s=2) & (item1=2) & (picked1=true)-> 1.0:(s'=4)& (item1'=4);
+[s4_s1] (s=4) & (item1=4) & (picked1=true)-> 1.0:(s'=1)& (item1'=1);
+[s4_s2] (s=4) & (item1=4) & (picked1=true)-> 1.0:(s'=2)& (item1'=2);
+[s4_s9] (s=4) & (item1=4) & (picked1=true)-> 1.0:(s'=9)& (item1'=9);
+[s7_s10] (s=7)& (item1=7) & (picked1=true)-> 1.0:(s'=10)& (item1'=10);
+[s7_s6] (s=7) & (item1=7) & (picked1=true)-> 1.0:(s'=6)& (item1'=6);
+[s8_s11] (s=8)& (item1=8) & (picked1=true) -> 1.0:(s'=11)& (item1'=11);
+[s8_s2] (s=8) & (item1=8) & (picked1=true)-> 1.0:(s'=2)& (item1'=2);
+[s8_s9] (s=8) & (item1=8) & (picked1=true)-> 1.0:(s'=9)& (item1'=9);
+[s9_s8] (s=9) & (item1=9) & (picked1=true)-> 1.0:(s'=8)& (item1'=8);
+[s9_s12] (s=9)& (item1=9) & (picked1=true)-> 1.0:(s'=12)& (item1'=12);
+[s9_s4] (s=9) & (item1=9) & (picked1=true)-> 1.0:(s'=4)& (item1'=4);
+[s9_s13] (s=9)& (item1=9) & (picked1=true) -> 1.0:(s'=13)& (item1'=13);
+[s13_s14] (s=13)& (item1=13) & (picked1=true) -> 1.0:(s'=14)& (item1'=14);
+[s13_s9] (s=13)& (item1=13) & (picked1=true) -> 1.0:(s'=9)& (item1'=9);
+[s14_s10] (s=14)& (item1=14) & (picked1=true) -> 1.0:(s'=10)& (item1'=10);
+[s14_s13] (s=14)& (item1=14) & (picked1=true) -> 1.0:(s'=13)& (item1'=13);
+[s10_s15] (s=10)& (item1=10) & (picked1=true) -> 1.0:(s'=15)& (item1'=15);
+[s10_s14] (s=10)& (item1=10) & (picked1=true) -> 1.0:(s'=14)& (item1'=14);
+[s10_s7] (s=10)& (item1=10) & (picked1=true) -> 1.0:(s'=7)& (item1'=7);
+[s11_s8] (s=11)& (item1=11) & (picked1=true) -> 1.0:(s'=8)& (item1'=8);
+[s11_s12] (s=11)& (item1=11) & (picked1=true) -> 1.0:(s'=12)& (item1'=12);
+[s11_s16] (s=11)& (item1=11) & (picked1=true) -> 1.0:(s'=16)& (item1'=16);
+[s12_s11] (s=12)& (item1=12) & (picked1=true) -> 1.0:(s'=11)& (item1'=11);
+[s12_s17] (s=12)& (item1=12) & (picked1=true) -> 1.0:(s'=17)& (item1'=17);
+[s12_s9] (s=12)& (item1=12) & (picked1=true) -> 1.0:(s'=9)& (item1'=9);
+[s15_s18] (s=15)& (item1=15) & (picked1=true) -> 1.0:(s'=18)& (item1'=18);
+[s15_s10] (s=15)& (item1=15) & (picked1=true) -> 1.0:(s'=10)& (item1'=10);
+[s16_s11] (s=16)& (item1=16) & (picked1=true) -> 1.0:(s'=11)& (item1'=11);
+[s16_s17] (s=16) & (item1=16) & (picked1=true)-> 1.0:(s'=17)& (item1'=17);
+[s17_s19] (s=17)& (item1=17) & (picked1=true) -> 1.0:(s'=19)& (item1'=19);
+[s17_s12] (s=17) & (item1=17) & (picked1=true)-> 1.0:(s'=12)& (item1'=12);
+[s17_s16] (s=17)& (item1=17) & (picked1=true) -> 1.0:(s'=16)& (item1'=16);
+[s19_s17] (s=19)& (item1=19) & (picked1=true) -> 1.0:(s'=17)& (item1'=17);
+[s19_s20] (s=19) & (item1=19) & (picked1=true)-> 1.0:(s'=20)& (item1'=20);
+[s20_s19] (s=20)& (item1=20) & (picked1=true) -> 1.0:(s'=19)& (item1'=19);
+[s20_s18] (s=20) & (item1=20) & (picked1=true)-> 1.0:(s'=18)& (item1'=18);
+[s18_s15] (s=18)& (item1=18) & (picked1=true) -> 1.0:(s'=15)& (item1'=15);
+[s18_s20] (s=18) & (item1=18) & (picked1=true)-> 1.0:(s'=20) & (item1'=20);
+
+
+[s0_s1] (s=0) & (item2=0) & (picked2=true)-> 1.0:(s'=1) & (item2'=1);
+[s0_s2] (s=0) & (item2=0) & (picked2=true)-> 1.0:(s'=2)& (item2'=2);
+[s1_s0] (s=1) & (item2=1) & (picked2=true)-> 1.0:(s'=0)& (item2'=0);
+[s1_s3] (s=1) & (item2=1) & (picked2=true)-> 1.0:(s'=3)& (item2'=3);
+[s1_s4] (s=1) & (item2=1) & (picked2=true)-> 1.0:(s'=4)& (item2'=4);
+[s3_s1] (s=3) & (item2=3) & (picked2=true)-> 1.0:(s'=1)& (item2'=1);
+[s3_s5] (s=3) & (item2=3) & (picked2=true)-> 1.0:(s'=5)& (item2'=5);
+[s5_s3] (s=5) & (item2=5) & (picked2=true)-> 1.0:(s'=3)& (item2'=3);
+[s5_s6] (s=5) & (item2=5) & (picked2=true)-> 1.0:(s'=6)& (item2'=6);
+[s6_s5] (s=6) & (item2=6) & (picked2=true)-> 1.0:(s'=5)& (item2'=5);
+[s6_s7] (s=6) & (item2=6) & (picked2=true)-> 1.0:(s'=7)& (item2'=7);
+[s2_s8] (s=2) & (item2=2) & (picked2=true)-> 1.0:(s'=8)& (item2'=8);
+[s2_s0] (s=2) & (item2=2) & (picked2=true)-> 1.0:(s'=0)& (item2'=0);
+[s2_s4] (s=2) & (item2=2) & (picked2=true)-> 1.0:(s'=4)& (item2'=4);
+[s4_s1] (s=4) & (item2=4) & (picked2=true)-> 1.0:(s'=1)& (item2'=1);
+[s4_s2] (s=4) & (item2=4) & (picked2=true)-> 1.0:(s'=2)& (item2'=2);
+[s4_s9] (s=4) & (item2=4) & (picked2=true)-> 1.0:(s'=9)& (item2'=9);
+[s7_s10] (s=7)& (item2=7) & (picked2=true)-> 1.0:(s'=10)& (item2'=10);
+[s7_s6] (s=7) & (item2=7) & (picked2=true)-> 1.0:(s'=6)& (item2'=6);
+[s8_s11] (s=8)& (item2=8) & (picked2=true) -> 1.0:(s'=11)& (item2'=11);
+[s8_s2] (s=8) & (item2=8) & (picked2=true)-> 1.0:(s'=2)& (item2'=2);
+[s8_s9] (s=8) & (item2=8) & (picked2=true)-> 1.0:(s'=9)& (item2'=9);
+[s9_s8] (s=9) & (item2=9) & (picked2=true)-> 1.0:(s'=8)& (item2'=8);
+[s9_s12] (s=9)& (item2=9) & (picked2=true)-> 1.0:(s'=12)& (item2'=12);
+[s9_s4] (s=9) & (item2=9) & (picked2=true)-> 1.0:(s'=4)& (item2'=4);
+[s9_s13] (s=9)& (item2=9) & (picked2=true) -> 1.0:(s'=13)& (item2'=13);
+[s13_s14] (s=13)& (item2=13) & (picked2=true) -> 1.0:(s'=14)& (item2'=14);
+[s13_s9] (s=13)& (item2=13) & (picked2=true) -> 1.0:(s'=9)& (item2'=9);
+[s14_s10] (s=14)& (item2=14) & (picked2=true) -> 1.0:(s'=10)& (item2'=10);
+[s14_s13] (s=14)& (item2=14) & (picked2=true) -> 1.0:(s'=13)& (item2'=13);
+[s10_s15] (s=10)& (item2=10) & (picked2=true) -> 1.0:(s'=15)& (item2'=15);
+[s10_s14] (s=10)& (item2=10) & (picked2=true) -> 1.0:(s'=14)& (item2'=14);
+[s10_s7] (s=10)& (item2=10) & (picked2=true) -> 1.0:(s'=7)& (item2'=7);
+[s11_s8] (s=11)& (item2=11) & (picked2=true) -> 1.0:(s'=8)& (item2'=8);
+[s11_s12] (s=11)& (item2=11) & (picked2=true) -> 1.0:(s'=12)& (item2'=12);
+[s11_s16] (s=11)& (item2=11) & (picked2=true) -> 1.0:(s'=16)& (item2'=16);
+[s12_s11] (s=12)& (item2=12) & (picked2=true) -> 1.0:(s'=11)& (item2'=11);
+[s12_s17] (s=12)& (item2=12) & (picked2=true) -> 1.0:(s'=17)& (item2'=17);
+[s12_s9] (s=12)& (item2=12) & (picked2=true) -> 1.0:(s'=9)& (item2'=9);
+[s15_s18] (s=15)& (item2=15) & (picked2=true) -> 1.0:(s'=18)& (item2'=18);
+[s15_s10] (s=15)& (item2=15) & (picked2=true) -> 1.0:(s'=10)& (item2'=10);
+[s16_s11] (s=16)& (item2=16) & (picked2=true) -> 1.0:(s'=11)& (item2'=11);
+[s16_s17] (s=16) & (item2=16) & (picked2=true)-> 1.0:(s'=17)& (item2'=17);
+[s17_s19] (s=17)& (item2=17) & (picked2=true) -> 1.0:(s'=19)& (item2'=19);
+[s17_s12] (s=17) & (item2=17) & (picked2=true)-> 1.0:(s'=12)& (item2'=12);
+[s17_s16] (s=17)& (item2=17) & (picked2=true) -> 1.0:(s'=16)& (item2'=16);
+[s19_s17] (s=19)& (item2=19) & (picked2=true) -> 1.0:(s'=17)& (item2'=17);
+[s19_s20] (s=19) & (item2=19) & (picked2=true)-> 1.0:(s'=20)& (item2'=20);
+[s20_s19] (s=20)& (item2=20) & (picked2=true) -> 1.0:(s'=19)& (item2'=19);
+[s20_s18] (s=20) & (item2=20) & (picked2=true)-> 1.0:(s'=18)& (item2'=18);
+[s18_s15] (s=18)& (item2=18) & (picked2=true) -> 1.0:(s'=15)& (item2'=15);
+[s18_s20] (s=18) & (item2=18) & (picked2=true)-> 1.0:(s'=20) & (item2'=20);
+
+
+[s0_s1] (s=0) & (item3=0) & (picked3=true)-> 1.0:(s'=1) & (item3'=1);
+[s0_s2] (s=0) & (item3=0) & (picked3=true)-> 1.0:(s'=2)& (item3'=2);
+[s1_s0] (s=1) & (item3=1) & (picked3=true)-> 1.0:(s'=0)& (item3'=0);
+[s1_s3] (s=1) & (item3=1) & (picked3=true)-> 1.0:(s'=3)& (item3'=3);
+[s1_s4] (s=1) & (item3=1) & (picked3=true)-> 1.0:(s'=4)& (item3'=4);
+[s3_s1] (s=3) & (item3=3) & (picked3=true)-> 1.0:(s'=1)& (item3'=1);
+[s3_s5] (s=3) & (item3=3) & (picked3=true)-> 1.0:(s'=5)& (item3'=5);
+[s5_s3] (s=5) & (item3=5) & (picked3=true)-> 1.0:(s'=3)& (item3'=3);
+[s5_s6] (s=5) & (item3=5) & (picked3=true)-> 1.0:(s'=6)& (item3'=6);
+[s6_s5] (s=6) & (item3=6) & (picked3=true)-> 1.0:(s'=5)& (item3'=5);
+[s6_s7] (s=6) & (item3=6) & (picked3=true)-> 1.0:(s'=7)& (item3'=7);
+[s2_s8] (s=2) & (item3=2) & (picked3=true)-> 1.0:(s'=8)& (item3'=8);
+[s2_s0] (s=2) & (item3=2) & (picked3=true)-> 1.0:(s'=0)& (item3'=0);
+[s2_s4] (s=2) & (item3=2) & (picked3=true)-> 1.0:(s'=4)& (item3'=4);
+[s4_s1] (s=4) & (item3=4) & (picked3=true)-> 1.0:(s'=1)& (item3'=1);
+[s4_s2] (s=4) & (item3=4) & (picked3=true)-> 1.0:(s'=2)& (item3'=2);
+[s4_s9] (s=4) & (item3=4) & (picked3=true)-> 1.0:(s'=9)& (item3'=9);
+[s7_s10] (s=7)& (item3=7) & (picked3=true)-> 1.0:(s'=10)& (item3'=10);
+[s7_s6] (s=7) & (item3=7) & (picked3=true)-> 1.0:(s'=6)& (item3'=6);
+[s8_s11] (s=8)& (item3=8) & (picked3=true) -> 1.0:(s'=11)& (item3'=11);
+[s8_s2] (s=8) & (item3=8) & (picked3=true)-> 1.0:(s'=2)& (item3'=2);
+[s8_s9] (s=8) & (item3=8) & (picked3=true)-> 1.0:(s'=9)& (item3'=9);
+[s9_s8] (s=9) & (item3=9) & (picked3=true)-> 1.0:(s'=8)& (item3'=8);
+[s9_s12] (s=9)& (item3=9) & (picked3=true)-> 1.0:(s'=12)& (item3'=12);
+[s9_s4] (s=9) & (item3=9) & (picked3=true)-> 1.0:(s'=4)& (item3'=4);
+[s9_s13] (s=9)& (item3=9) & (picked3=true) -> 1.0:(s'=13)& (item3'=13);
+[s13_s14] (s=13)& (item3=13) & (picked3=true) -> 1.0:(s'=14)& (item3'=14);
+[s13_s9] (s=13)& (item3=13) & (picked3=true) -> 1.0:(s'=9)& (item3'=9);
+[s14_s10] (s=14)& (item3=14) & (picked3=true) -> 1.0:(s'=10)& (item3'=10);
+[s14_s13] (s=14)& (item3=14) & (picked3=true) -> 1.0:(s'=13)& (item3'=13);
+[s10_s15] (s=10)& (item3=10) & (picked3=true) -> 1.0:(s'=15)& (item3'=15);
+[s10_s14] (s=10)& (item3=10) & (picked3=true) -> 1.0:(s'=14)& (item3'=14);
+[s10_s7] (s=10)& (item3=10) & (picked3=true) -> 1.0:(s'=7)& (item3'=7);
+[s11_s8] (s=11)& (item3=11) & (picked3=true) -> 1.0:(s'=8)& (item3'=8);
+[s11_s12] (s=11)& (item3=11) & (picked3=true) -> 1.0:(s'=12)& (item3'=12);
+[s11_s16] (s=11)& (item3=11) & (picked3=true) -> 1.0:(s'=16)& (item3'=16);
+[s12_s11] (s=12)& (item3=12) & (picked3=true) -> 1.0:(s'=11)& (item3'=11);
+[s12_s17] (s=12)& (item3=12) & (picked3=true) -> 1.0:(s'=17)& (item3'=17);
+[s12_s9] (s=12)& (item3=12) & (picked3=true) -> 1.0:(s'=9)& (item3'=9);
+[s15_s18] (s=15)& (item3=15) & (picked3=true) -> 1.0:(s'=18)& (item3'=18);
+[s15_s10] (s=15)& (item3=15) & (picked3=true) -> 1.0:(s'=10)& (item3'=10);
+[s16_s11] (s=16)& (item3=16) & (picked3=true) -> 1.0:(s'=11)& (item3'=11);
+[s16_s17] (s=16) & (item3=16) & (picked3=true)-> 1.0:(s'=17)& (item3'=17);
+[s17_s19] (s=17)& (item3=17) & (picked3=true) -> 1.0:(s'=19)& (item3'=19);
+[s17_s12] (s=17) & (item3=17) & (picked3=true)-> 1.0:(s'=12)& (item3'=12);
+[s17_s16] (s=17)& (item3=17) & (picked3=true) -> 1.0:(s'=16)& (item3'=16);
+[s19_s17] (s=19)& (item3=19) & (picked3=true) -> 1.0:(s'=17)& (item3'=17);
+[s19_s20] (s=19) & (item3=19) & (picked3=true)-> 1.0:(s'=20)& (item3'=20);
+[s20_s19] (s=20)& (item3=20) & (picked3=true) -> 1.0:(s'=19)& (item3'=19);
+[s20_s18] (s=20) & (item3=20) & (picked3=true)-> 1.0:(s'=18)& (item3'=18);
+[s18_s15] (s=18)& (item3=18) & (picked3=true) -> 1.0:(s'=15)& (item3'=15);
+[s18_s20] (s=18) & (item3=18) & (picked3=true)-> 1.0:(s'=20) & (item3'=20);
+
+endmodule
+
+
+label "s16" = (s=16);
+label "s9" = (s=9);
+label "s8" = (s=8);
+label "s17" = (s=17);
+label "s10" = (s=10);
+label "s3" = (s=3);
+label "s2" = (s=2);
+label "s1" = (s=1);
+label "s0" = (s=0);
+label "s7" = (s=7);
+label "s6" = (s=6);
+label "s5" = (s=5);
+label "s4" = (s=4);
+label "s13" = (s=13);
+label "s20" = (s=20);
+label "s18" = (s=18);
+label "s15" = (s=15);
+label "s12" = (s=12);
+label "s19" = (s=19);
+label "s14" = (s=14);
+label "s11" = (s=11);
+
+
+rewards"time"
+[s0_s1] (s=0) : 1.0;
+[s0_s2] (s=0) : 1.0;
+[s1_s0] (s=1) : 1.0;
+[s1_s3] (s=1) : 1.0;
+[s1_s4] (s=1) : 1.0;
+[s3_s1] (s=3) : 1.0;
+[s3_s5] (s=3) : 1.0;
+[s5_s3] (s=5) : 1.0;
+[s5_s6] (s=5) : 1.0;
+[s6_s5] (s=6) : 1.0;
+[s6_s7] (s=6) : 1.0;
+[s2_s8] (s=2) : 1.0;
+[s2_s0] (s=2) : 1.0;
+[s2_s4] (s=2) : 1.0;
+[s4_s1] (s=4) : 1.0;
+[s4_s2] (s=4) : 1.0;
+[s4_s9] (s=4) : 1.0;
+[s7_s10] (s=7) : 1.0;
+[s7_s6] (s=7) : 1.0;
+[s8_s11] (s=8) : 1.0;
+[s8_s2] (s=8) : 1.0;
+[s8_s9] (s=8) : 1.0;
+[s9_s8] (s=9) : 1.0;
+[s9_s12] (s=9) : 1.0;
+[s9_s4] (s=9) : 1.0;
+[s9_s13] (s=9) : 1.0;
+[s13_s14] (s=13) : 1.0;
+[s13_s9] (s=13) : 1.0;
+[s14_s10] (s=14) : 1.0;
+[s14_s13] (s=14) : 1.0;
+[s10_s15] (s=10) : 1.0;
+[s10_s14] (s=10) : 1.0;
+[s10_s7] (s=10) : 1.0;
+[s11_s8] (s=11) : 1.0;
+[s11_s12] (s=11) : 1.0;
+[s11_s16] (s=11) : 1.0;
+[s12_s11] (s=12) : 1.0;
+[s12_s17] (s=12) : 1.0;
+[s12_s9] (s=12) : 1.0;
+[s15_s18] (s=15) : 1.0;
+[s15_s10] (s=15) : 1.0;
+[s16_s11] (s=16) : 1.0;
+[s16_s17] (s=16) : 1.0;
+[s17_s19] (s=17) : 1.0;
+[s17_s12] (s=17) : 1.0;
+[s17_s16] (s=17) : 1.0;
+[s19_s17] (s=19) : 1.0;
+[s19_s20] (s=19) : 1.0;
+[s20_s19] (s=20) : 1.0;
+[s20_s18] (s=20) : 1.0;
+[s18_s15] (s=18) : 1.0;
+[s18_s20] (s=18) : 1.0;
+
+[pick_item] (s=item) & (picked=false) & (picked1=false) & (picked2=false) & (picked3=false) :1.0; 
+[place_item] (picked=true) & (placed=false)  :1.0; 
+
+[pick_item1] (s=item1) & (picked1=false) & (picked=false) & (picked2=false) & (picked3=false) :1.0; 
+[place_item1] (picked1=true) & (placed1=false)  :1.0; 
+
+
+[pick_item2] (s=item2) & (picked2=false) & (picked=false) & (picked1=false) & (picked3=false) :1.0; 
+[place_item2] (picked2=true) & (placed2=false)  :1.0; 
+
+
+[pick_item3] (s=item3) & (picked3=false) & (picked=false) & (picked2=false) & (picked1=false) :1.0; 
+[place_item3] (picked3=true) & (placed3=false) :1.0; 
+
+
+
+endrewards

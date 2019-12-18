@@ -1,0 +1,3 @@
+//R{"time"}max=? [ (F (s1=3) )]
+//R{"time"}min=? [ (F (F (item0=2) ) & (F (item1=2) & (F (item2=2) ) ) & ( X (F ((hasItem1=0) & (hasItem0=0)))))]
+R{"time"}min=? [  (F (item0=2))&(F (item1=2)) & ( F (item2=2) )]
