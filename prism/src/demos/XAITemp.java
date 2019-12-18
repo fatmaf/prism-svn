@@ -46,7 +46,8 @@ public class XAITemp
 	BitSet accStates;
 	BitSet sinkStates;
 	int daVarInd = -1;
-
+	ModulesFile modulesFile=null; 
+	
 	//main function 
 	public static void main(String[] args)
 	{
@@ -215,7 +216,7 @@ public class XAITemp
 		//load the mdp for a single model 
 
 		String modelFileName = saveplace + filename + "0.prism";
-		ModulesFile modulesFile = prism.parseModelFile(new File(modelFileName));
+		 modulesFile = prism.parseModelFile(new File(modelFileName));
 		prism.loadPRISMModel(modulesFile);
 		PropertiesFile propertiesFile = prism.parsePropertiesFile(modulesFile, new File(saveplace + filename + "_rew.props"));
 		prism.buildModel();
