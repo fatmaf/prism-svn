@@ -472,12 +472,13 @@ class PrismFileReader(object):
         return toret
     
     def getLabelLines(self):
-        lines = [] 
-        for label in self.labels:
-            src = self.labels[label]
-            strsrc = self.stateString(src,False)
-            line = "label "+'"'+label+'" = '+strsrc+";"
-            lines.append(line)
+        lines = []
+        if not self.labels is None:
+            for label in self.labels:
+                src = self.labels[label]
+                strsrc = self.stateString(src,False)
+                line = "label "+'"'+label+'" = '+strsrc+";"
+                lines.append(line)
         return lines
     
         

@@ -18,12 +18,8 @@ class RegexHelper:
             
         p = re.compile(pattern,re.IGNORECASE)
 
-        if printThis:
-            print p
-            
         result = p.match(string)
-        if printThis:
-            print result
+        
         if result:
             return True
         else:
@@ -45,20 +41,22 @@ class RegexHelper:
                 else:
                     toret = groups
         if toret is None:
+            #trying the other regex
             raise Exception('No regex match name:'+pattern+" "+string)
         return toret
     
-
+    
     @staticmethod
     def processState(state,constants,variables):
         states = state.split('&')
-        stateRE = "\((.*)=(.*)\)"
+        stateRE = "\((\w*)([=,<,>]*)(\w*|\w*[+,-]\w*)\)" #"\((.*)=(.*)\)"
         varValues = [] 
         for nv in states:
             nameValuePair = RegexHelper.getRegexMatchName(stateRE,nv)
             name = nameValuePair[0]
             name = name.replace("'",'')
-            value = nameValuePair[1]
+            operator = nameValuePair[1]
+            value = nameValuePair[2]
             if value in constants:
                 value = constants[value]
             #print name
@@ -71,9 +69,10 @@ class RegexHelper:
                     var = PrismVariable()
                     var.createUsingOtherPrismVariable(constants[name],value)
                 else:
-                    print states
+                    #print states
                     var = PrismVariable()
                     var.create(name,value,None,None,None,VariableType.notConst,"double")
+            var.operator = operator
             varValues.append(var)
         return varValues
 
