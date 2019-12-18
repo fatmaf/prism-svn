@@ -15,6 +15,7 @@ class PrismVariable(object):
         self.initValue = None
         self.varType = None
         self.subType = None
+        self.operator = '='
 
         
 
@@ -72,7 +73,7 @@ class PrismVariable(object):
         toret = '('+self.name;
         if isDest:
             toret = toret + "'"
-        toret = toret + "="+self.getStringRep(self.value)+")"
+        toret = toret + self.operator+self.getStringRep(self.value)+")"
         return toret
     
         

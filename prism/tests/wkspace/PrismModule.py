@@ -111,7 +111,7 @@ class PrismModule(object):
         #repeated = False 
         while(len(actionsPicked) != numActionsToPick):
             actionsPickedTemp = actionsPicked + random.sample(actions,n)
-            print actionsPickedTemp
+            #print actionsPickedTemp
             
             toSkip = self.findActionsToSkip(actionsPickedTemp,varname,prevStatePairs)
             print toSkip
@@ -269,10 +269,10 @@ class PrismModule(object):
 
     def createAction(self,name,rewVals,srcString,destString,probs):
 
-        print "In create action"
-        print name
-        print srcString
-        print destString
+        #print "In create action"
+        #print name
+        #print srcString
+        #print destString
         
         src = []
         dest = [] 
