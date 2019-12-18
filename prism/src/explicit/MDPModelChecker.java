@@ -1469,7 +1469,78 @@ public class MDPModelChecker extends ProbModelChecker
 			statesToIgnoreForVI.flip(0, unknown.size());
 		}
 
-	
+//		ArrayList<Integer> prefixStates = new ArrayList<Integer>(); 
+//		ArrayList<Integer> prefixActions = new ArrayList<Integer>(); 
+//		prefixStates.add(96);
+//		prefixActions.add(0);
+//		prefixStates.add(57);
+//		prefixActions.add(0);
+//		prefixStates.add(80);
+//		prefixActions.add(2);
+//		prefixStates.add(104);
+//		prefixActions.add(0);
+//		prefixStates.add(504);
+//		prefixActions.add(3);
+//		prefixStates.add(844);
+//		prefixActions.add(3);
+//		prefixStates.add(1336);
+//		prefixActions.add(3);
+//		prefixStates.add(2272);
+//		prefixActions.add(0);
+//		prefixStates.add(2296);
+//		prefixActions.add(1);
+//		prefixStates.add(2273);
+//		prefixActions.add(1);
+//		prefixStates.add(2308);
+//		prefixActions.add(3);
+
+//		prefixStates.add(8);
+//		prefixActions.add(0);
+//		prefixStates.add(9);
+//		prefixActions.add(2);
+//		prefixStates.add(33);
+//		prefixActions.add(0);
+//		prefixStates.add(56);
+//		prefixActions.add(0);
+//		prefixStates.add(80);
+//		prefixActions.add(1);
+//		prefixStates.add(57);
+//		prefixActions.add(2);
+//		prefixStates.add(96);
+//		prefixActions.add(1);
+//		prefixStates.add(120);
+//		prefixActions.add(0);
+//		prefixStates.add(128);
+//		prefixActions.add(0);
+//		prefixStates.add(152);
+//		prefixActions.add(3);
+//		prefixStates.add(177);
+//		prefixActions.add(0);
+//		prefixStates.add(216);
+//		prefixActions.add(0);
+//		prefixStates.add(240);
+//		prefixActions.add(3);
+//		prefixStates.add(264);
+//		prefixActions.add(3);
+//		prefixStates.add(273);
+//		prefixActions.add(2);
+//		prefixStates.add(296);
+//		prefixActions.add(0);
+//
+//		prefixStates.add(548);
+//		prefixActions.add(3);
+//		prefixStates.add(748);
+//		prefixActions.add(0);
+//		prefixStates.add(713);
+//		prefixActions.add(0);
+//		prefixStates.add(736);
+//		prefixActions.add(2);
+//		prefixStates.add(760);
+//		prefixActions.add(2);
+//		prefixStates.add(796);
+//		prefixActions.add(1);
+//		prefixStates.add(820);
+//		prefixActions.add(3);
 
 		while (!done && iters < maxIters) {
 
@@ -1485,6 +1556,8 @@ public class MDPModelChecker extends ProbModelChecker
 						for (int rew = 0; rew < numRewards; rew++) {
 							// if(iters > 1000 && rew == 0 && i == 25)
 							// mainLog.print("");
+							if(rewards.get(rew) == null)
+									{mainLog.println("Reward null!!!"+rew);}
 							currentCost = mdp.mvMultRewSingle(i, j, solnReward.get(rew), rewards.get(rew));
 							if (currentCostVal.size() > rew)
 								currentCostVal.set(rew, currentCost);
@@ -1527,6 +1600,13 @@ public class MDPModelChecker extends ProbModelChecker
 
 						}
 					}
+//					if (prefixStates.contains(i))
+//					{
+//						int indexofs = prefixStates.indexOf(i);
+//						numChoices = mdp.getNumChoices(i);
+//						if(prefixActions.get(indexofs) < numChoices)
+//						strat[i] = prefixActions.get(indexofs);
+//					}
 				}
 			}
 

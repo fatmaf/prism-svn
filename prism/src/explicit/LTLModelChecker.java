@@ -80,6 +80,14 @@ public class LTLModelChecker extends PrismComponent {
 		private int invMap[];
 		private AcceptanceOmega acceptance;
 
+		public int getDASize()
+		{
+			return daSize;
+		}
+		public int[] getInvMap()
+		{
+			return invMap.clone();
+		}
 		public LTLProduct(M productModel, M originalModel, AcceptanceOmega acceptance, int daSize, int[] invMap) {
 			super(productModel, originalModel);
 			this.daSize = daSize;
