@@ -1,5 +1,0 @@
-2,2,450
-[(0,0,450)*{"fill":False,"isInitPos":False,"isGoalPos":True,"isFailState":False,"isAvoidState":False,"isDoor":False,"label":"0","otherDoor":None}]
-[(0,1,450)*{"fill":False,"isInitPos":True,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"label":"1","otherDoor":None}]
-[(1,0,450)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"label":"2","otherDoor":None}]
-[(1,1,450)*{"fill":False,"isInitPos":False,"isGoalPos":False,"isFailState":False,"isAvoidState":False,"isDoor":False,"label":"3","otherDoor":None}]
