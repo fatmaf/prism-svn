@@ -198,6 +198,7 @@ class GeneratePrismFile(object):
             else:
                 combs = [(x,yy),(x,_y),(xx,y),(_x,y),(_x,yy),(xx,yy),(_x,_y),(xx,_y)]
             combs = list(set(combs))
+            usedCombs = [] 
             for xyp in combs:
                 xp = xyp[0]
                 yp = xyp[1]
@@ -205,6 +206,7 @@ class GeneratePrismFile(object):
                     continue
                 if xyp in blockedStates:
                     continue
+                usedCombs.append(xyp)
                 smap = self.addToSmap(xyp,smap)
                 pvar = self.stateLabel(varname,smap[xyp])
                 pstr = self.stateString(varname,smap[xyp])
@@ -236,6 +238,17 @@ class GeneratePrismFile(object):
                 #print pa.prismStringReward('"time"')
                 
                 mod.actions.append(copy.deepcopy(pa))
+            doThis = False 
+            if doThis and len(usedCombs) != len(combs):
+                print "Generated Combs for " + str(x)+","+str(y)
+                print combs
+                print "Used combs"
+                print usedCombs
+                #checking if different things have the same values
+                for xc in usedCombs:
+                    print xc
+                    print smap[xc]
+                raw_input("continue")
         if len(failstates)>0:
             pa = mod.createAction('failed',{'"time"':1.0},'('+varname+'=failstate)','('+varname+'=failstate)','1.0')
             mod.actions.append(copy.deepcopy(pa))
@@ -422,7 +435,7 @@ class GeneratePrismFile(object):
         pfr.writeGoalStatesAvoidReward(newGoalStates,newAvoidStates,varname,fn+'_rew.props',pfr.rewardNames[0])
         pfr.writeGoalStatesSplitAvoidLabels(newGoalStates,newAvoidStates,varname,fn+'.prop')
         
-        print smap
+        #print smap
         return smap 
         
    
