@@ -205,7 +205,7 @@ class PrismAction(object):
     def destString(self,dest):
         dests = []
         #print "In destination string"
-        print dest 
+        #print dest 
         for d in dest:
             p = d["prob"]
             src = d["states"]

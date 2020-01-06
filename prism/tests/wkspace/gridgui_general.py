@@ -441,6 +441,9 @@ class GridGui(object):
         stateChoices = None
         if len(depotChoices) == 0:
             depotChoices = openStates
+            if(len(avoidChoices) > 0):
+                depotChoices = self.listOneMinuslistTwo(openStates,avoidChoices)
+                
             print 'You did not choose initial state locations so setting it to everything!!!!!'
             
         
@@ -448,11 +451,15 @@ class GridGui(object):
             failStateChoices = openStates
         if len(goalChoices) == 0:
             if stateChoices is None:
-                stateChoices = list(set(openStates).symmetric_difference(set(depotChoices)))
+                if(len(avoidChoices) > 0):
+                    stateChoices = self.listOneMinuslistTwo(openStates,avoidChoices) 
+                #stateChoices = self.listOneMinuslistTwo(openStates,depotChoices)
+                #list(set(openStates).symmetric_difference(set(depotChoices)))
             goalChoices = stateChoices
         if len(avoidChoices) == 0:
             if stateChoices is None:
-                stateChoices = list(set(openStates).symmetric_difference(set(depotChoices)))
+                stateChoices =self.listOneMinuslistTwo(openStates,depotChoices)
+                #stateChoices = self.listOneMinuslistTwo(stateChoices,goalChoices) #list(set(openStates).symmetric_difference(set(depotChoices)))
             avoidChoices = stateChoices
             
         return (depotChoices,failStateChoices,goalChoices,avoidChoices,blockedStates,openStates)
@@ -463,6 +470,12 @@ class GridGui(object):
         lst3 = [value for value in lst1 if value in lst2] 
         return lst3
 
+    #sub lst2 from lst1 so basically just get all the values in lst1 that are not in lst2 
+    def listOneMinuslistTwo(self,lst1,lst2):
+        intersectingList = self.intersection(lst1,lst2)
+        lst4 = [value for value in lst1 if value not in intersectingList]
+        return lst4
+    
     def listsIntersect(self,lst1,lst2):
         lst3 = self.intersection(lst1,lst2)
         if len(lst3) != 0:
@@ -486,13 +499,17 @@ class GridGui(object):
         #the min grid size = int(sqrt(max (numgoals+numinitlocs+avoidstates,failstates)))
 
         #import math 
-        maxStatesNeeded = max(self.numRobots+self.numGoals+self.numAS,self.numFS)
+        maxStatesNeeded = min(self.numRobots+self.numGoals+self.numAS,self.numFS)
         minGridSize = int(math.sqrt(maxStatesNeeded))+1
         print "Min Grid Size"
         print minGridSize
         
         numGridSizeVars = 10
         gridIncs =int(truediv((self.maxGridSize - minGridSize),numGridSizeVars))+1
+        print "Grid incs"
+        print gridIncs
+        #raw_input("continue")
+        
 
         for gridSx in range(minGridSize,self.maxGridSize,gridIncs):
             gridSy = gridSx
@@ -539,6 +556,7 @@ class GridGui(object):
                     fsNums.append(numFSHere)
 
             fsNums.append(self.numFS)
+            print "fail states"
             print fsNums
             #raw_input("num fs for grid size "+str(gridSx))
             
@@ -555,7 +573,7 @@ class GridGui(object):
                         print fsNums[j]
                         print j*pcInc
 
-                        smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour)
+                        smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,gridSx,gridSy,fn,doFour)
                         self.updateGridArray(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,smap)
                         self.screenshotfn(fn)
                         self.writeGridFileOnly(fn)
@@ -568,7 +586,7 @@ class GridGui(object):
 
                     fn = self.fn +"_fs"+str(self.numFS)+ "_"+str(i)+"_"
 
-                    smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour)
+                    smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,gridSx,gridSy,fn,doFour)
                     self.updateGridArray(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,smap)
                     self.screenshotfn(fn)
                     self.writeGridFileOnly(fn)                    
@@ -626,8 +644,13 @@ class GridGui(object):
             numFSInc = 1
             numFSSteps = 10 
             if self.numFS > 10:
-                numFSInc = (self.numFS-1)/numFSSteps
-                
+                numFSInc = (self.numFS)/numFSSteps
+            print "Max fs"
+            print self.numFS
+            print "fs inc"
+            print numFSInc
+            #raw_input("continue")
+            
             for i in range(self.numFilesToGenerate):
                 if self.numFS>0:
                     for j in range(0,self.numFS,numFSInc):
@@ -668,14 +691,32 @@ class GridGui(object):
         if (len(depotChoices))==0:
             depotChoices = openStates
         chosenInitialLocations = random.sample(depotChoices,self.numRobots)
-        if(len(goalChoices))== 0:
-            goalChoices = list(set(openStates).symmetric_difference(set(chosenInitialLocations)))
+        #print("initial locations")
+        #raw_input(chosenInitialLocations)
+
+        if goalChoices is None or (len(goalChoices))== 0:
+            goalChoices =self.listOneMinuslistTwo(openStates,chosenInitialLocations) #list(set(openStates).symmetric_difference(set(chosenInitialLocations)))
+        else:
+            if (self.listsIntersect(chosenInitialLocations,goalChoices)):
+                print "Initial states and goal states intersect!!"
+                print "Changing this!!"
+                #raw_input()
+                goalChoices = self.listOneMinuslistTwo(goalChoices,chosenInitialLocations)#list(set(goalChoices).symmetric_difference(set(chosenInitialLocations)))
+                
+                
+        if (len(goalChoices)) < self.numGoals:
+            goalChoices =self.listOneMinuslistTwo(openStates,chosenInitialLocations)# list(set(openStates).symmetric_difference(set(chosenInitialLocations)))
+        #raw_input(goalChoices)
         chosenGoalLocations = random.sample(goalChoices,self.numGoals)
+        #print("goal locations")
+        #raw_input(chosenGoalLocations)
+        #print("initial locations")
+        #raw_input(chosenInitialLocations)
+        
         if(len(avoidChoices)) == 0:
-            avoidChoices = list(set(openStates).symmetric_difference(set(chosenInitialLocations)))
-        statesToPickFrom = list(set(avoidChoices).symmetric_difference(set(chosenGoalLocations)))
-        if len(statesToPickFrom) == len(avoidChoices)+len(chosenGoalLocations):
-            statesToPickFrom = avoidChoices
+            avoidChoices = self.listOneMinuslistTwo(openStates,chosenInitialLocations)#list(set(openStates).symmetric_difference(set(chosenInitialLocations)))
+        statesToPickFrom =self.listOneMinuslistTwo(avoidChoices,chosenGoalLocations)# list(set(avoidChoices).symmetric_difference(set(chosenGoalLocations)))
+        
         chosenAvoidStates = random.sample(statesToPickFrom,self.numAS)
         statesToPickFrom = failStatesChoices
         if (len(failStatesChoices)) == 0:
