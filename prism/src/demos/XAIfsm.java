@@ -194,6 +194,13 @@ public class XAIfsm
 
 			//preparing to get the optimal policy 
 			sa.setMCExportOptionsAll(saveplace, filename);
+			Vector<BitSet> labelBS = new Vector<BitSet>();
+			XAITemp xaiLtlBit = new XAITemp();
+			xaiLtlBit.mainLog = sa.mainLog; 
+			xaiLtlBit.mc = sa.mc; 
+			xaiLtlBit.prism = sa.prism; 
+			xaiLtlBit.modulesFile = sa.modulesFile; 
+			xaiLtlBit.mdp = sa.mdp; 
 
 			Expression expr = exprRew.getExpression();
 
@@ -204,6 +211,14 @@ public class XAIfsm
 
 			sa.dasinkStates = vi.daSinkStates;
 			sa.da = vi.origda;
+			
+			xaiLtlBit .processDA(sa.da, labelBS);
+
+			ArrayList<BitSet> statelabels = xaiLtlBit.setStateLabels(labelBS,vi.productmdp);
+
+			HashMap<State, HashMap<Object, ArrayList<BitSet>>> actionLabels = xaiLtlBit.getStateActionLabels(statelabels, vi.productmdp);
+			HashMap<State, ArrayList<Object>> sinkStateActionLabels = xaiLtlBit.getStateActionLabelsSinkStates(statelabels,vi.productmdp);
+			
 			//save the product mdp 
 			PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
 			vi.productmdp.exportToDotFile(pfl, null, true);

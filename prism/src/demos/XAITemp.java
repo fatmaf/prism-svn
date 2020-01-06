@@ -307,7 +307,21 @@ public class XAITemp
 		}
 		return stateLabelPairsLeadingToSinkStates;
 	}
+	public HashMap<Integer, List<BitSet>> processDA(	DA<BitSet, ? extends AcceptanceOmega> da, Vector<BitSet> labelBS) throws PrismException
+	{
+		this.da = da; 
+		mainLog.println(da.size());
+		//get sink states 
+		//for each state in the da 
+		//if it has no outward edges or only one that leads to itself its a deadend 
+		accStates = getAccStatesReachorRabin(da);
+		sinkStates = getSinkStates(da, accStates);
+		HashMap<Integer, List<BitSet>> stateLabelPairsLeadingToSinkStates = getStateLabelPairsLeadingToSinkStates(sinkStates);
 
+		mainLog.println("Acc States " + accStates.toString());
+		mainLog.println("Sink States " + sinkStates.toString());
+		return stateLabelPairsLeadingToSinkStates;
+	}
 	public HashMap<Integer, List<BitSet>> convertPropertyToDA(Expression expr, Vector<BitSet> labelBS) throws PrismException
 	{
 		//convert property to da 

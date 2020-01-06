@@ -318,7 +318,7 @@ public class CompareSTAPUSSINVI
 		this.reallocSSIOnFirstDeadend = true;
 		this.reallocSTAPUOnFirstDeadend = false;//true; 
 
-		this.doSeqSTAPUPolicy = false; 
+		this.doSeqSTAPUPolicy = true;//false;
 
 		this.stapuNoReallocs = false;
 		this.ssiNoReallocs = false;
@@ -326,14 +326,16 @@ public class CompareSTAPUSSINVI
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 		//		dir = dir+"simpleTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
 		//		dir = dir + "strangehouse/";//"compareSTAPUSSIFS/";
-		dir = dir + "compareSTAPUSSIFS/";
+//		dir = dir + "compareSTAPUSSIFS/";
 
+		dir = dir + "gridIncTests/";
 		//g20x4_r10_g10_fs10_fsgen0
 		int numRobots = 10;
 		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "g20x4_r10_g10_fs80fs21_fsgen8_";//"g20x4_r10_g10_fs80fs31_fsgen9_";
+		String fn = "r10_g10_grid_9_fsp_0_0_";
+		//"g20x4_r10_g10_fs80fs21_fsgen8_";//"g20x4_r10_g10_fs80fs31_fsgen9_";
 		//fn = "g20x4_r10_g10_fs80fs11_fsgen6_";
 		//fn = "strange_house_r10_g10_fs40_1_";
 		// strange_house_r10_g10_fs20_4__R:4-[6,3,7,5]_G:3-[4,5]
@@ -343,8 +345,10 @@ public class CompareSTAPUSSINVI
 		//		fn = "strange_house_r10_g10_fs25_6_";//strange_house_r10_g10_fs25_6__R:4-[5,3,2,6]_G:3-[7,0]
 		fn = "g20x4_r10_g10_fs80fs11_fsgen9_";// g20x4_r10_g10_fs80fs11_fsgen9__R:2-[0,3]_G:6-[5,6,7,3,8]
 		fn = "g20x4_r10_g10_fs80fs51_fsgen10_"; // g20x4_r10_g10_fs80fs51_fsgen10__R:4-[9,6,7,8]_G:3-[4,8]
+		fn = "r10_g10_grid_9_fsp_0_0_"; //R:2-[3, 1] G:3 [3, 0]
+		
 		String resString = "";
-		int r = 4;//2;//numRobots;
+		int r = 2;//numRobots;
 		int g = 3;//3;//numGoals;
 		//R:4-[2, 4, 1, 7] G:3 [1, 6]
 		//R:4-[5, 6, 9, 4] G:6 [0, 3, 8, 1, 5]
@@ -354,21 +358,21 @@ public class CompareSTAPUSSINVI
 		ArrayList<Integer> robotNumbers = new ArrayList<Integer>();//generateListOfRandomNumbers(r, numRobots);
 		ArrayList<Integer> goalNumbers = new ArrayList<Integer>(); //generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
 
-		robotNumbers.add(9);
-		robotNumbers.add(6);
-		robotNumbers.add(7); 
-		robotNumbers.add(8);
+		robotNumbers.add(3);
+		robotNumbers.add(1);
+//		robotNumbers.add(7);
+//		robotNumbers.add(8);
 		//		robotNumbers.add(2);
 		//		robotNumbers.add(6);
 
 		//		goalNumbers.add(5);
 		//		goalNumbers.add(2);
 
-		goalNumbers.add(4);
-		goalNumbers.add(8);
-//		goalNumbers.add(7);
-//		goalNumbers.add(3);
-//		goalNumbers.add(8);
+		goalNumbers.add(3);
+		goalNumbers.add(0);
+		//		goalNumbers.add(7);
+		//		goalNumbers.add(3);
+		//		goalNumbers.add(8);
 
 		int[] rgdf = new int[] { r, g, numDoors, numFS };
 		if (!results.get(fn).containsKey(rgdf))
@@ -495,9 +499,9 @@ public class CompareSTAPUSSINVI
 
 	public void run(String[] args)
 	{
-		String[] options = new String[] { "robot", "door", "fsgoal", "fs", "single", "warehouse1", "warehouse2", "rvar", "wvar", "strangehouse" };
+		String[] options = new String[] { "robot", "door", "fsgoal", "fs", "single", "warehouse1", "warehouse2", "rvar", "wvar", "strangehouse", "grid" };
 
-		this.doSeqSTAPUPolicy = false;//false; 
+		this.doSeqSTAPUPolicy = true;//false; 
 		this.reallocSSIOnFirstDeadend = true;
 		this.reallocSTAPUOnFirstDeadend = false;
 		this.ssiNoReallocs = false;
@@ -519,10 +523,7 @@ public class CompareSTAPUSSINVI
 			} else if (option.contains(options[4]))
 				singleTests();
 			else if (option.contains(options[5])) {
-				//				this.reallocSSIOnFirstDeadend = true; 
-				//				this.reallocSTAPUOnFirstDeadend = false; 
-				//				this.doDebug=false; 
-				//				this.doSeqSTAPUPolicy = true; 
+
 				runWarehouse(0, "");
 			} else if (option.contains(options[6]))
 				runWarehouse(1, "");
@@ -531,11 +532,11 @@ public class CompareSTAPUSSINVI
 			else if (option.contains(options[8]))
 				this.runWarehouseVariations();
 			else if (option.contains(options[9])) {
-				//				this.reallocSSIOnFirstDeadend = true; 
-				//				this.reallocSTAPUOnFirstDeadend = false; 
-				//				this.doDebug=false; 
-				//				this.doSeqSTAPUPolicy = false;//true; 
+
 				runStrangeHouse();
+
+			} else if (option.contains(options[10])) {
+				runGridStates("");
 			} else
 				System.out.println("invalid option, options are: " + Arrays.toString(options));
 		} catch (Exception e) {
@@ -762,10 +763,10 @@ public class CompareSTAPUSSINVI
 
 		int numFilesPerFS = 10;
 
-		String fnPrefix = "strange_house_r10_g10_";
+		String fnPrefix = "sh_r10_g10_";//"strange_house_r10_g10_";
 		String fsBit = "fs";
 		String fnSuffix = "";
-		int[] fsList = new int[] { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50 };
+		int[] fsList = new int[] { 0, 5, 10, 15, 20, 25, 30, 35, 40, 45 };
 		int[] rarr = new int[] { 2, 4 };
 		int[][] garr = new int[][] { { 3, 6 }, { 3, 6 } };
 		int r, g;
@@ -825,6 +826,99 @@ public class CompareSTAPUSSINVI
 		System.out.println("***************************************************************");
 		String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
 		String resname = "sh_" + fnPrefix + fnSuffix;
+		this.printResults(resSavePlace + resname);
+		printResults();
+	}
+
+	private void runGridStates(String fnSuffix)
+	{
+
+		String fnPrefix = "r10_g10_grid_";
+		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/gridIncTests/";
+		String keepGoing = "";
+
+		int numRobots = 10;
+		int numGoals = 10;
+		int numDoors = 0;
+		String fn = "";
+
+		String fsBit = "_fsp_";
+		String resString = "";
+
+		int numFilesPerFS = 10;
+
+		int[] gridIncs = new int[] { 5, 9, 13, 17, 21, 25, 29, 33, 37 };
+		int[] fsPercentages = new int[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+		int[] fsPercentagesToDo = new int[] { 0, 20, 40, 80, 100 };
+		int[] rarr = new int[] { 2, 4 };
+		int[][] garr = new int[][] { { 3, 6, 9 }, { 3, 6, 9 } };
+		int r, g;
+		for (int i = 0; i < rarr.length; i++) {
+			r = rarr[i];
+			for (int j = 0; j < garr[i].length; j++) {
+				g = garr[i][j];
+				try {
+
+					for (int gridV : gridIncs) {
+
+						for (int fs : fsPercentagesToDo) {
+							//						for (int fileForFS = 0; fileForFS < numFilesPerFS; fileForFS++) {
+							int fileForFS = 0;
+
+							fn = fnPrefix + gridV + fsBit + fs + "_" + +fileForFS + "_";
+							if (!results.containsKey(fn))
+								results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
+
+							ArrayList<Integer> robotNumbers = generateListOfRandomNumbers(r, numRobots);
+							ArrayList<Integer> goalNumbers = generateListOfRandomNumbers(g - 1, numGoals - 1); //-1 cuz the last one is always a safety 
+
+							int[] rgdf = new int[] { r, g, numDoors, fs };
+							if (!results.get(fn).containsKey(rgdf))
+								results.get(fn).put(rgdf, new ArrayList<float[][]>());
+							float[][] resArr = new float[2][4];
+							resString += "\nR:" + r + "\tG:" + g;
+
+							resString += doCompare(dir, fn, r, fs, g, numDoors, resArr, robotNumbers, goalNumbers, doDebug);
+							results.get(fn).get(rgdf).add(resArr);
+
+						}
+						System.out.println("***************************************************************");
+						System.out.println(resString);
+						System.out.println("***************************************************************");
+						String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+						String resname = "grid_fs_r" + r + "g" + g + "grid" + gridV + "_" + fnPrefix + fnSuffix;
+						this.printResults(resSavePlace + resname);
+						//			}
+						//				}
+
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+				} finally {
+					System.out.println("***************************************************************");
+					System.out.println(resString);
+					System.out.println("***************************************************************");
+					String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+					String resname = "grid_r" + r + "g" + g + "_" + fnPrefix + fnSuffix;
+					this.printResults(resSavePlace + resname);
+					//					printResults();
+				}
+				System.out.println("Waiting to say go");
+				Scanner in = new Scanner(System.in);
+				keepGoing = in.nextLine();
+				while (keepGoing.contains("no")) {
+					keepGoing = in.nextLine();
+					System.out.println("Paused at " + "grid_r" + r + "g" + g + "_" + fnPrefix + fnSuffix);
+				}
+			}
+		}
+
+		System.out.println("***************************************************************");
+		System.out.println(resString);
+		System.out.println("***************************************************************");
+		String resSavePlace = "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+		String resname = "grid_" + fnPrefix + fnSuffix;
 		this.printResults(resSavePlace + resname);
 		printResults();
 	}
