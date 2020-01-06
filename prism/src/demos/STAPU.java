@@ -375,6 +375,12 @@ public class STAPU
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
 				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
 
+		if (debugSTAPU) {
+			PolicyCreator pc = new PolicyCreator();
+			pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches, solution.strat,
+					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
+			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicyRew.dot");
+			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0_init_seqTeamPolicyRews", true);}
 		jointPolicyBuilder.doSeq = doSeqPolicyBuilding;
 		jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP, initialState, reallocateOnSingleAgentDeadend, 1.0);
 		endTime = System.currentTimeMillis();
@@ -384,11 +390,11 @@ public class STAPU
 
 		if (debugSTAPU) {
 			PolicyCreator pc = new PolicyCreator();
-			pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches, solution.strat,
-					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
-			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicyRew.dot");
-			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0_init_seqTeamPolicyRews", true);
-			pc = new PolicyCreator();
+//			pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches, solution.strat,
+//					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
+//			//			pc.savePolicy("/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/compareSTAPUSSIFS/results/", "seqTeamPolicyRew.dot");
+//			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0_init_seqTeamPolicyRews", true);
+//			pc = new PolicyCreator();
 			pc.recreateMDPWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches,
 					seqTeamMDP.progressionRewards, seqTeamMDP.rewardsWithSwitches.get(0), seqTeamMDP.acceptingStates);
 			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_initTeamMDPWithRews", true);
