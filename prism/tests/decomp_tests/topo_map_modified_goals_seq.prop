@@ -1,1 +1,0 @@
-partial(R{"time"}min=?  [ F (("WayPoint10") & (F ("WayPoint9")))],Pmax=? [ F "WayPoint28"],Pmax=? [ F "WayPoint21"],Pmax=? [ F "WayPoint23"], Pmax=?[G (!"WayPoint17")])

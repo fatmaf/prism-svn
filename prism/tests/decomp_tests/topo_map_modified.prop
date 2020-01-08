@@ -1,8 +1,0 @@
-//partial(R{"time"}min=? [ F "WayPoint"],Pmax=? [F "v5"], Pmax=? [F "v6"], Pmax=?[G (!"v4")]  )
-
-//partial(R{"time"}min=? [ F "WayPoint16"], Pmax=? [ F "WayPoint22"],Pmax=? [ F "WayPoint20"],Pmax=? [ F "WayPoint19"],Pmax=? [ F "WayPoint23"],Pmax=? [ F "WayPoint28"],Pmax=? [ F "WayPoint27"],Pmax=? [ F "WayPoint7"],Pmax=? [ F "WayPoint2"],Pmax=? [ F "WayPoint3"],Pmax=? [ F "WayPoint4"],Pmax=? [ F "WayPoint30"], Pmax=? [ F "WayPoint6"], Pmax=?[G (!"WayPoint16")])
-
-partial(R{"time"}min=? [ F "WayPoint22"],Pmax=? [ F "WayPoint20"],Pmax=? [ F "WayPoint19"],Pmax=? [ F "WayPoint23"]
-//,Pmax=? [ F "WayPoint28"],Pmax=? [ F "WayPoint27"],Pmax=? [ F "WayPoint7"],Pmax=? [ F "WayPoint2"],Pmax=? [ F "WayPoint3"],Pmax=? [ F "WayPoint4"],Pmax=? [ F "WayPoint30"], Pmax=? [ F "WayPoint6"]
-
-, Pmax=?[G (!"WayPoint16")])

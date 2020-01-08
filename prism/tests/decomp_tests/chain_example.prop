@@ -1,2 +1,0 @@
-//stapu(R{"time"}min=? [ F "v2"],Pmax=? [F "v4"], Pmax=? [F "v8"], Pmax=?[G (!"v9")]  )
-stapu(R{"time"}min=? [ F "v2"],Pmax=? [F "v10"], Pmax=? [F "v8"], Pmax=?[G (!"v9")]  )
