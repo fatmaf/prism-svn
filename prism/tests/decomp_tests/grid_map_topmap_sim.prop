@@ -1,3 +1,0 @@
-//states_to_fail_at=[18,21,29,4,30,31]
-//avoid = 12
-partial(R{"time"}min=?  [ F (("WayPoint30") & (F ("WayPoint31")))],Pmax=? [ F "WayPoint18"],Pmax=? [ F "WayPoint21"],Pmax=? [ F "WayPoint29"], Pmax=?[G (!"WayPoint12")])

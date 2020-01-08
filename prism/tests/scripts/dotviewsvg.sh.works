@@ -1,7 +1,0 @@
-#!/bin/bash
-
-mypwd=${PWD}"/"
-echo $mypwd
-
-dot -Tsvg $mypwd$1.dot -o $mypwd$1.dot.svg
-google-chrome-stable $mypwd$1.dot.svg

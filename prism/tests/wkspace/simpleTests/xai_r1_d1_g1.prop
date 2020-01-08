@@ -1,1 +1,0 @@
-partial(R{"time"}min=? [F ("s7") ])
