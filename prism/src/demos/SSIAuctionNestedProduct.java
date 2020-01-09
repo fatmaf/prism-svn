@@ -65,6 +65,9 @@ public class SSIAuctionNestedProduct
 	public boolean debugSSI = false;
 	public long totalTimeDuration = 0;
 
+	public long firstSolDuration = 0;
+	public long allReplanningDuration = 0; 
+	
 	public ArrayList<MDPRewardsSimple> createMaxExpTaskRewStruct(SingleAgentNestedProductMDP saMDP, MDPRewardsSimple costsModel)
 	{
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>();
@@ -1067,6 +1070,8 @@ public class SSIAuctionNestedProduct
 			modifiedDuration = modifiedEndTime - modifiedStartTime;
 			totalTimeDuration += modifiedDuration;
 
+			firstSolDuration = totalTimeDuration; 
+			
 			if (doingReallocs) {
 				modifiedStartTime = System.currentTimeMillis();
 				startTime = System.currentTimeMillis();
@@ -1251,6 +1256,8 @@ public class SSIAuctionNestedProduct
 			modifiedDuration = modifiedEndTime - modifiedStartTime;
 			totalTimeDuration += modifiedDuration;
 
+			allReplanningDuration = totalTimeDuration - firstSolDuration;
+			
 			return resultValues(nviSol, mdpCreator.mdp);
 			//			return resultvalues;
 		} catch (Exception e) {

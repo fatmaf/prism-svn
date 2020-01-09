@@ -54,7 +54,7 @@ public class XAITemp
 		new XAITemp().run();
 	}
 
-	public ArrayList<BitSet> setStateLabels(Vector<BitSet> labelBS, MDP mdp)
+	public ArrayList<BitSet> setStateLabels(Vector<BitSet> labelBS, MDP mdp, MDP originalMDP) throws PrismException
 	{
 		//initialise to get labels for actions 
 		int numAPs = da.getAPList().size();
@@ -62,13 +62,50 @@ public class XAITemp
 		//associate a label with each state in the mdp 
 		ArrayList<BitSet> statelabels = new ArrayList<BitSet>();
 		for (int s_0 : new IterableStateSet(mdp.getNumStates())) {
+			//find the same state in the original mdp 
+			int s_p = s_0;
+			int q_s = da.getStartState(); 
+			
+			if(originalMDP!=null)
+			{
+				int so_0 = this.getMatchingStateExcludingDA(s_0, mdp, originalMDP);
+				int qo_s = this.getDAStateVar(mdp, mdp.getStatesList().get(s_0));
+				if(so_0!=-1)
+				{
+					s_p = so_0; 
+				}
+				else 
+					System.out.println("BUG BC");
+				if(qo_s!=-1)
+				{
+					q_s = qo_s;
+				}
+					
+			}
+			
+				
 			s_labels = new BitSet(numAPs);
 			// Get BitSet representing APs (labels) satisfied by state s_0
 			for (int k = 0; k < numAPs; k++) {
-				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_0));
+				s_labels.set(k, labelBS.get(Integer.parseInt(da.getAPList().get(k).substring(1))).get(s_p));
 			}
+		
+			//TODO: this is not right 
+			//because if its the prod mdp then we already have the start state!!! 
+			//so we can only check if from the start state we see any of these labels!! 
+			//I will do this tomorrow!!! 
+			//cuz I have a headache 
+			//this will be a slow week 
+			
+			//so we get the da state - well we don't need it do we ? 
+			//yes we do - we just want to know that if we start in this state 
+			//we'll end up in the other state of the da 
+			//and what labels we'll see 
+			//and if its possible to get to another state with these labels 
+			
+			
 			// Find corresponding initial state in DA
-			int q_0 = da.getEdgeDestByLabel(da.getStartState(), s_labels);
+			int q_0 = da.getEdgeDestByLabel(q_s, s_labels);
 			mainLog.println(mdp.getStatesList().get(s_0) + " " + s_0 + "," + q_0 + ":" + s_labels.toString());
 			statelabels.add(s_labels);
 		}
@@ -191,7 +228,7 @@ public class XAITemp
 		mainLog.println(da.getAPList().toString());
 		mainLog.println(expr.toString());
 
-		ArrayList<BitSet> statelabels = setStateLabels(labelBS, mdp);
+		ArrayList<BitSet> statelabels = setStateLabels(labelBS, mdp,null);
 
 		HashMap<Object, ArrayList<BitSet>> actionLabels = getActionLabelsOnly(statelabels, mdp);
 
@@ -307,7 +344,7 @@ public class XAITemp
 		}
 		return stateLabelPairsLeadingToSinkStates;
 	}
-	public HashMap<Integer, List<BitSet>> processDA(	DA<BitSet, ? extends AcceptanceOmega> da, Vector<BitSet> labelBS) throws PrismException
+	public HashMap<Integer, List<BitSet>> processDA(	DA<BitSet, ? extends AcceptanceOmega> da) throws PrismException
 	{
 		this.da = da; 
 		mainLog.println(da.size());
@@ -363,6 +400,37 @@ public class XAITemp
 			throw new PrismException("no da variable!!!");
 		}
 	}
+	
+	int getMatchingStateExcludingDA(int productState, MDP prodMdp, MDP mdp)
+	{
+		int toret = -1; 
+		if(prodMdp.getStatesList().size()>productState)
+		{
+			State ps = prodMdp.getStatesList().get(productState); 
+			State toMatch = new State(ps.varValues.length-1);
+			int j = 0; 
+			for(int i = 0; i<prodMdp.getVarList().getNumVars(); i++)
+			{
+				String vname = prodMdp.getVarList().getName(i); 
+				if(!vname.contains("da"))
+				{
+					toMatch.setValue(j, ps.varValues[i]); 
+					j++;
+				}
+			}
+			//now we can look for this in the old mdp states list 
+			for (int i = 0; i<mdp.getStatesList().size(); i++)
+			{
+				State oldState = mdp.getStatesList().get(i); 
+				if(oldState.compareTo(toMatch)==0)
+				{
+					toret = i; 
+					break; 
+				}
+			}
+		}
+		return toret; 
+	}
 
 	public void mdpActionsToDAPropsProduct() throws PrismException, FileNotFoundException
 	{
@@ -386,13 +454,13 @@ public class XAITemp
 		Vector<BitSet> labelBS = new Vector<BitSet>();
 		convertPropertyToDA(expr, labelBS);
 
-		mdp = productMDP;
-		//initialise to get labels for actions 
+		
 
 		mainLog.println(expr.toString());
 
-		ArrayList<BitSet> statelabels = setStateLabels(labelBS, mdp);
-
+		ArrayList<BitSet> statelabels = setStateLabels(labelBS, productMDP,mdp);
+		mdp = productMDP;
+		//initialise to get labels for actions 
 		HashMap<State, HashMap<Object, ArrayList<BitSet>>> actionLabels = getStateActionLabels(statelabels, mdp);
 		HashMap<State, ArrayList<Object>> sinkStateActionLabels = getStateActionLabelsSinkStates(statelabels, mdp);
 		try {

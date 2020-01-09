@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import acceptance.AcceptanceOmega;
+import automata.DA;
 import explicit.MDP;
 import explicit.ModelCheckerPartialSatResult;
 import parser.State;
@@ -19,6 +21,7 @@ import parser.ast.ExpressionReward;
 import parser.ast.PropertiesFile;
 import prism.PrismException;
 import prism.PrismFileLog;
+import prism.PrismLog;
 import strat.MDStrategy;
 
 //kind of the engine for my xai stuff incorporating ltl 
@@ -40,6 +43,17 @@ public class XAIfsm
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public void saveDA(DA<BitSet, ? extends AcceptanceOmega> da, String saveLoc, String name) throws PrismException
+	{
+		String fn = saveLoc + name + ".dot";
+		System.out.println("Saving DA to " + fn);
+
+		PrismLog out = new PrismFileLog(fn);
+		da.printDot(out);
+
+		out.close();
 	}
 
 	public void doLTLViolationStuff(String saveplace, String filename, boolean noappend) throws PrismException, FileNotFoundException
@@ -71,13 +85,14 @@ public class XAIfsm
 		Vector<BitSet> labelBS = new Vector<BitSet>();
 		xaiLtlBit.convertPropertyToDA(expr, labelBS);
 
-		xaiLtlBit.mdp = productMDP;
+		this.saveDA(xaiLtlBit.da, saveplace + "results/", "xai_" + filename + "_da");
+
 		//initialise to get labels for actions 
 
 		xaiLtlBit.mainLog.println(expr.toString());
 
-		ArrayList<BitSet> statelabels = xaiLtlBit.setStateLabels(labelBS, xaiLtlBit.mdp);
-
+		ArrayList<BitSet> statelabels = xaiLtlBit.setStateLabels(labelBS, productMDP, xaiLtlBit.mdp);
+		xaiLtlBit.mdp = productMDP;
 		HashMap<State, HashMap<Object, ArrayList<BitSet>>> actionLabels = xaiLtlBit.getStateActionLabels(statelabels, xaiLtlBit.mdp);
 		HashMap<State, ArrayList<Object>> sinkStateActionLabels = xaiLtlBit.getStateActionLabelsSinkStates(statelabels, xaiLtlBit.mdp);
 		try {
@@ -196,11 +211,11 @@ public class XAIfsm
 			sa.setMCExportOptionsAll(saveplace, filename);
 			Vector<BitSet> labelBS = new Vector<BitSet>();
 			XAITemp xaiLtlBit = new XAITemp();
-			xaiLtlBit.mainLog = sa.mainLog; 
-			xaiLtlBit.mc = sa.mc; 
-			xaiLtlBit.prism = sa.prism; 
-			xaiLtlBit.modulesFile = sa.modulesFile; 
-			xaiLtlBit.mdp = sa.mdp; 
+			xaiLtlBit.mainLog = sa.mainLog;
+			xaiLtlBit.mc = sa.mc;
+			xaiLtlBit.prism = sa.prism;
+			xaiLtlBit.modulesFile = sa.modulesFile;
+			xaiLtlBit.mdp = sa.mdp;
 
 			Expression expr = exprRew.getExpression();
 
@@ -211,14 +226,14 @@ public class XAIfsm
 
 			sa.dasinkStates = vi.daSinkStates;
 			sa.da = vi.origda;
-			
-			xaiLtlBit .processDA(sa.da, labelBS);
 
-			ArrayList<BitSet> statelabels = xaiLtlBit.setStateLabels(labelBS,vi.productmdp);
+			xaiLtlBit.processDA(sa.da);
+			labelBS = vi.origdaLabelBS;
+			ArrayList<BitSet> statelabels = xaiLtlBit.setStateLabels(vi.origdaLabelBS, vi.productmdp, sa.mdp);
 
 			HashMap<State, HashMap<Object, ArrayList<BitSet>>> actionLabels = xaiLtlBit.getStateActionLabels(statelabels, vi.productmdp);
-			HashMap<State, ArrayList<Object>> sinkStateActionLabels = xaiLtlBit.getStateActionLabelsSinkStates(statelabels,vi.productmdp);
-			
+			HashMap<State, ArrayList<Object>> sinkStateActionLabels = xaiLtlBit.getStateActionLabelsSinkStates(statelabels, vi.productmdp);
+
 			//save the product mdp 
 			PrismFileLog pfl = new PrismFileLog(saveplace + "results/" + "xai_" + filename + "_prodmpd.dot");
 			vi.productmdp.exportToDotFile(pfl, null, true);
@@ -334,7 +349,7 @@ public class XAIfsm
 		String saveplace = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/xaiTests/";//"/home/fatma/Data/phD/work/code/mdpltl/prism-svn/prism/tests/decomp_tests/";
 		String filename = "xai_r1_d1_g1_fs1notgoal_avoid";//"g5_r2_t3_d2_fs1";//"g7x3_r2_t3_d0_fs1";//"robot";
 		boolean noappend = false;
-		doLTLViolationStuff(saveplace, filename, noappend);
+		//		doLTLViolationStuff(saveplace, filename, noappend);
 		identifySwingStatesContextAvoid(saveplace, filename, noappend);
 
 	}

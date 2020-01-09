@@ -57,6 +57,8 @@ public class STAPU
 	public boolean debugSTAPU = false;
 	public boolean doSeqPolicyBuilding = false;
 	public long stapuTimeDuration = 0; 
+	public long stapuFirstSolDuration = 0; 
+	public long stapuAllReplanningDuration = 0; 
 
 	public STAPU()
 	{
@@ -71,24 +73,11 @@ public class STAPU
 		boolean reallocOnFirstRobotDeadend = false;
 		boolean excludeRobotInitStates = false;
 		STAPU stapu = new STAPU();
-		//		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/simpleTests/";
+
 		String dir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 		dir = dir + "compareSTAPUSSIFS/";
 
 		String resString = "";
-
-		//		numRobots = 2;
-		//		numFS = 0;//5;//1;
-		//		numGoals = 3;//6;//4;
-		//		numDoors = 2;//2;
-		//		fn = "andar_r2_g3_d2_fs0";
-		//
-		//		//
-		//		//		numRobots = 8;
-		//		//		numFS = 0;//5;//1;
-		//		//		numGoals = 10;//6;//4;
-		//		//		numDoors = 4;//2;
-		//		//		fn = "andar_r8_g10_d4_fs0";
 
 		int numRobots = 10;
 		int numFS = 31;
@@ -162,24 +151,13 @@ public class STAPU
 				res.daList.get(otherDAs).updateStateNumbers(product);
 				res.daList.get(otherDAs).associatedIndexInProduct++; //and everyone else also gets shifted once. 
 
-				//								StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
-				//										name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
-				//								StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
-				//										name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
 			}
-			//						StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//								name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
+
 			res.updateProductToMDPStateMapping(product);
-			//						StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//								name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
 			res.daList.add(daInfo);
 		}
 		DAInfo daInfo = res.daList.get(res.daList.size() - 1);
 		int daNum = res.daList.size() - 1;
-		//		StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-		//		StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-		//		StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-		//		StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 		res.setDAListAndFinalProduct(product);
 		return res;
@@ -190,7 +168,6 @@ public class STAPU
 	{
 
 		ModelCheckerMultipleResult res2 = computeNestedValIterFailurePrint(mdp, target, statesToAvoid, rewards, minRewards, probPreference, null);// computeNestedValIterFailurePrint(mdp, target, statesToAvoid,
-		// rewards,minRewards,target,probPreference,null);
 
 		return res2;
 	}
@@ -226,7 +203,7 @@ public class STAPU
 
 			}
 			mainLog.println("\nFor p = " + maxProb + ", rewards " + resString);
-			System.out.println("\nFor p = " + maxProb + ", rewards " + resString);
+//			System.out.println("\nFor p = " + maxProb + ", rewards " + resString);
 		}
 		return res2;
 	}
@@ -375,6 +352,7 @@ public class STAPU
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
 				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
 
+		
 		if (debugSTAPU) {
 			PolicyCreator pc = new PolicyCreator();
 			pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches, solution.strat,
@@ -426,8 +404,19 @@ public class STAPU
 		// add to joint policy
 		//		ArrayList<State> reallocatedStates = new ArrayList<State>();
 //		noReallocs = true; 
+		modifiedEndTime = System.currentTimeMillis(); 
+		modifiedDuration = modifiedEndTime - modifiedStartTime; 
+		stapuTimeDuration+=modifiedDuration;
+		this.stapuFirstSolDuration = this.stapuTimeDuration; 
+		modifiedStartTime = System.currentTimeMillis();
+		long startTimex = System.currentTimeMillis();
+
 		if (!noReallocs) {
 			int numPlanning = 0;
+			////profile
+			
+	
+
 			while (jointPolicyBuilder.hasFailedStates()) {
 
 				Entry<Entry<State, Double>, BitSet> stateToExploreAndBitSet = jointPolicyBuilder.getNextFailedState();
@@ -494,14 +483,21 @@ public class STAPU
 					}
 				}
 			}
+			//TODO:your code here 
 
-			resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
+			
+					resSaver.recordTime("All Reallocations", varIDs.allreallocationstime, false);
 
 			//		jointPolicyBuilder.saveJointPolicyMDP();
 			mainLog.println("All done");
 			mainLog.println("NVI done " + numPlanning + " times");
 			//			jointPolicyBuilder.printStatesExploredOrder();
 		}
+		long stopTimex = System.currentTimeMillis();
+		long runTimex = stopTimex - startTime;
+		System.out.println("\nProcessingALLReallocations: " + runTimex + "ms" + "(" + TimeUnit.SECONDS.convert(runTimex, TimeUnit.MILLISECONDS) + "s)\n");
+		//end profiling
+
 		resSaver.saveJointPolicy(jointPolicyBuilder);
 		mainLog.println(jointPolicyBuilder.accStates.toString());
 		HashMap<String, Double> values = new HashMap<String, Double>();
@@ -521,7 +517,7 @@ public class STAPU
 		modifiedEndTime = System.currentTimeMillis(); 
 		modifiedDuration = modifiedEndTime - modifiedStartTime; 
 		stapuTimeDuration+=modifiedDuration;
-		
+		stapuAllReplanningDuration = stapuTimeDuration - stapuFirstSolDuration;
 		return resultValues(result, jointPolicyBuilder.jointMDP);
 
 	}

@@ -27,9 +27,14 @@ import explicit.rewards.MDPRewards;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.Rewards;
 import parser.ast.Expression;
+import parser.ast.ExpressionBinaryOp;
 import parser.ast.ExpressionReward;
+import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
 import parser.ast.ModulesFile;
 import parser.ast.RewardStruct;
+import parser.type.TypeBool;
+import parser.type.TypePathBool;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismLog;
@@ -54,6 +59,7 @@ public class XAIvi
 
 	BitSet daSinkStates;
 	DA<BitSet, ? extends AcceptanceOmega> origda;
+	Vector<BitSet> origdaLabelBS;
 
 	public BitSet getSinkStates(DA<BitSet, ? extends AcceptanceOmega> da)
 	{
@@ -84,6 +90,74 @@ public class XAIvi
 			}
 		}
 		return sinkStates;
+	}
+
+	public boolean saveExprNumInMap(Expression expr,Expression opExpr, HashMap<Expression, Integer> exprNumMap, HashMap<Expression, Integer> actualExprNumMap)
+	{
+		boolean saved = false; 
+		if(opExpr.getType() instanceof TypeBool) {
+		if (!exprNumMap.containsKey(opExpr)) {
+			Expression exprC = opExpr.deepCopy();
+			Expression.isNot(exprC);
+			if (!exprNumMap.containsKey(exprC)) {
+				exprNumMap.put(opExpr, exprNumMap.size());
+			} else {
+				exprNumMap.put(opExpr, exprNumMap.get(exprC));
+			}
+		}
+		actualExprNumMap.put(expr, exprNumMap.get(opExpr));
+		saved = true; 
+		}
+		return saved; 
+	}
+	public void tryingToGetExprConversionPrism(Expression ltl, HashMap<Expression, Integer> exprNumMap, HashMap<Expression, Integer> actualExprNumMap)
+	{
+		//copied from ltl model checker and modified 
+		Expression expr = ltl;
+		if (!saveExprNumInMap(expr,expr,exprNumMap,actualExprNumMap)) {
+//			//there is no checking for a repeated not 
+//			if (!exprNumMap.containsKey(expr)) {
+//				Expression exprC = expr.deepCopy();
+//				Expression.isNot(exprC);
+//				if (!exprNumMap.containsKey(exprC)) {
+//					exprNumMap.put(expr, exprNumMap.size());
+//				} else {
+//					exprNumMap.put(expr, exprNumMap.get(exprC));
+//				}
+//			}
+//			actualExprNumMap.put(expr, exprNumMap.get(expr));
+//			
+//		} else {
+			// A path formula (recurse, modify, return)
+			if (expr.getType() instanceof TypePathBool) {
+				if (expr instanceof ExpressionBinaryOp) {
+					ExpressionBinaryOp exprBinOp = (ExpressionBinaryOp) expr;
+					if (!saveExprNumInMap(expr,exprBinOp.getOperand1(),exprNumMap,actualExprNumMap)) {
+					
+					tryingToGetExprConversionPrism(exprBinOp.getOperand1(), exprNumMap, actualExprNumMap);
+					}
+					if (!saveExprNumInMap(expr,exprBinOp.getOperand2(),exprNumMap,actualExprNumMap)) {
+					tryingToGetExprConversionPrism(exprBinOp.getOperand2(), exprNumMap, actualExprNumMap);
+					}
+				} else if (expr instanceof ExpressionUnaryOp) {
+					ExpressionUnaryOp exprUnOp = (ExpressionUnaryOp) expr;
+					if (!saveExprNumInMap(expr,exprUnOp.getOperand(),exprNumMap,actualExprNumMap)) {
+						tryingToGetExprConversionPrism(exprUnOp.getOperand(), exprNumMap, actualExprNumMap);
+					}
+				} else if (expr instanceof ExpressionTemporal) {
+					ExpressionTemporal exprTemp = (ExpressionTemporal) expr;
+					if (exprTemp.getOperand1() != null) {
+						if (!saveExprNumInMap(expr,exprTemp.getOperand1(),exprNumMap,actualExprNumMap)) {
+						tryingToGetExprConversionPrism(exprTemp.getOperand1(), exprNumMap, actualExprNumMap);}
+					}
+					if (exprTemp.getOperand2() != null) {
+						if (!saveExprNumInMap(expr,exprTemp.getOperand2(),exprNumMap,actualExprNumMap)) {
+								
+						tryingToGetExprConversionPrism(exprTemp.getOperand2(), exprNumMap, actualExprNumMap);}
+					}
+				}
+			}
+		}
 	}
 
 	public ModelCheckerPartialSatResult nviexposed(Prism prism, PrismLog mainLog, Model model, Expression expr, ExpressionReward rewExpr,
@@ -122,7 +196,9 @@ public class XAIvi
 		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
 		labelBS = new Vector<BitSet>();
 		da = mcLtl.constructDAForLTLFormula(mc, model, ltl, labelBS, allowedAcceptance);
-
+		HashMap<Expression, Integer> exprNumMap = new HashMap<Expression, Integer>();
+		HashMap<Expression, Integer> actualExprNumMap = new HashMap<Expression, Integer>();
+		tryingToGetExprConversionPrism(ltl, exprNumMap,actualExprNumMap);
 		if (!(da.getAcceptance() instanceof AcceptanceReach) && !(da.getAcceptance() instanceof AcceptanceRabin)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
@@ -146,6 +222,7 @@ public class XAIvi
 		}
 		product = mcLtl.constructProductModel(da, (MDP) model, labelBS, bsInit);
 
+		this.origdaLabelBS = labelBS;
 		// System.out.println("The product MDP has " +
 		// product.getProductModel().getNumStates() + " states");
 
@@ -292,11 +369,11 @@ public class XAIvi
 		ModelCheckerPartialSatResult res;
 		int i, n, iters, numYes, numNo;
 		double initValProb, initValRew, initValCost;
-//		if (saveVals) {
-//			stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
-//			stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
-//			stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
-//		}
+		//		if (saveVals) {
+		//			stateActionProbValues = new HashMap<Integer, HashMap<Integer, Double>>();
+		//			stateActionProgValues = new HashMap<Integer, HashMap<Integer, Double>>();
+		//			stateActionCostValues = new HashMap<Integer, HashMap<Integer, Double>>();
+		//		}
 		double solnProb[], soln2Prob[];
 		double solnProg[], soln2Prog[];
 		double solnCost[], soln2Cost[];
@@ -414,14 +491,14 @@ public class XAIvi
 				double minIS = -1;
 				//				if (progStates.get(i)) {
 				if (!target.get(i)) {
-//					if (saveVals) {
-//						if (!stateActionProbValues.containsKey(i))
-//							stateActionProbValues.put(i, new HashMap<Integer, Double>());
-//						if (!stateActionProgValues.containsKey(i))
-//							stateActionProgValues.put(i, new HashMap<Integer, Double>());
-//						if (!stateActionCostValues.containsKey(i))
-//							stateActionCostValues.put(i, new HashMap<Integer, Double>());
-//					}
+					//					if (saveVals) {
+					//						if (!stateActionProbValues.containsKey(i))
+					//							stateActionProbValues.put(i, new HashMap<Integer, Double>());
+					//						if (!stateActionProgValues.containsKey(i))
+					//							stateActionProgValues.put(i, new HashMap<Integer, Double>());
+					//						if (!stateActionCostValues.containsKey(i))
+					//							stateActionCostValues.put(i, new HashMap<Integer, Double>());
+					//					}
 					numChoices = trimProdMdp.getNumChoices(i);
 					for (j = 0; j < numChoices; j++) {
 
@@ -431,12 +508,12 @@ public class XAIvi
 						sameProb = PrismUtils.doublesAreClose(currentProbVal, solnProb[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameProg = PrismUtils.doublesAreClose(currentProgVal, solnProg[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
 						sameCost = PrismUtils.doublesAreClose(currentCostVal, solnCost[i], termCritParam, termCrit == TermCrit.ABSOLUTE);
-//						if (saveVals) {
-//
-//							stateActionProbValues.get(i).put(j, currentProbVal);
-//							stateActionProgValues.get(i).put(j, currentProgVal);
-//							stateActionCostValues.get(i).put(j, currentCostVal);
-//						}
+						//						if (saveVals) {
+						//
+						//							stateActionProbValues.get(i).put(j, currentProbVal);
+						//							stateActionProgValues.get(i).put(j, currentProgVal);
+						//							stateActionCostValues.get(i).put(j, currentCostVal);
+						//						}
 
 						if (setIS) {
 							maxIS = currentCostVal;

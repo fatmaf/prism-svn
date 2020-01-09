@@ -132,7 +132,7 @@ public class ResultsTiming
 	void saveJointPolicy(JointPolicyBuilder jointPolicyBuilder)
 	{
 		StatesHelper.saveMDP(jointPolicyBuilder.jointMDP, null, "", prefix +  "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS + "jointPolicy", true);
-		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", prefix +  "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
+//		StatesHelper.saveMDPstatra(jointPolicyBuilder.jointMDP, "", prefix +  "_r" + numRobots + "_t" + numTasks + "_d" + numDoors + "_fs" + numFS+ "jointPolicy", true);
 	}
 	
 	public String createJsonStyleString(String varname, HashMap<String, Double> varvalues)
