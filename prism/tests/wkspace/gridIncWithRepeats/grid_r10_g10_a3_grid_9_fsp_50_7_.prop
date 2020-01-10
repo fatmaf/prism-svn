@@ -1,0 +1,1 @@
+partial(R{"time"}min=? [F ("s10") ], Pmax=? [F ("s18") ], Pmax=? [F ("s0") ], Pmax=? [F ("s6") ], Pmax=? [F ("s72") ], Pmax=? [F ("s13") ], Pmax=? [F ("s59") ], Pmax=? [F ("s46") ], Pmax=? [F ("s37") ], Pmax=? [F ("s42") ], Pmax=? [ ( G ! ("s48") ) & ( G ! ("s11") ) & ( G ! ("s23") )])
