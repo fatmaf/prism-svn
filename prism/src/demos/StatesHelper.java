@@ -26,8 +26,7 @@ import prism.PrismFileLog;
 import prism.PrismLog;
 import strat.Strategy;
 
-public class StatesHelper
-{
+public class StatesHelper {
 	static int robotVar = 0;
 	static int mdpVarStart;
 	public static int failState = -1;
@@ -37,8 +36,7 @@ public class StatesHelper
 	public static int numMdpVars;
 	public static PrismLog mainLog;
 
-	public static boolean areEqual(State s1, State s2, Vector<Integer> indicesToMatch)
-	{
+	public static boolean areEqual(State s1, State s2, Vector<Integer> indicesToMatch) {
 		boolean result = true;
 
 		Object[] s1Array = s1.varValues;
@@ -55,9 +53,8 @@ public class StatesHelper
 		return result;
 	}
 
-	//new
-	public static Object[] getDAStatesFromState(State state, VarList varlist, int numTasks)
-	{
+	// new
+	public static Object[] getDAStatesFromState(State state, VarList varlist, int numTasks) {
 		// so return everything from after robotVar upto mdpVarStart
 		Object[] stateObj = state.varValues;
 		Object[] toRet = new Object[numTasks];
@@ -73,23 +70,22 @@ public class StatesHelper
 		return toRet;
 	}
 
-	public static Object[] getSharedStatesFromState(State state, VarList varlist, ArrayList<String> sharedVars)
-	{
+	public static Object[] getSharedStatesFromState(State state, VarList varlist, ArrayList<String> sharedVars) {
 		Object[] stateObj = state.varValues;
 		Object[] toret = new Object[sharedVars.size()];
 		int index = -1;
 		int numnull = 0;
 
-		//		for (int i = 0; i<varlist.getNumVars(); i++)
-		//		{
-		//			String name = varlist.getName(i); 
-		//			if(sharedVars.contains(name))
-		//			{
-		//				index++;
-		//				toret[index] = stateObj[i]; 
+		// for (int i = 0; i<varlist.getNumVars(); i++)
+		// {
+		// String name = varlist.getName(i);
+		// if(sharedVars.contains(name))
+		// {
+		// index++;
+		// toret[index] = stateObj[i];
 		//
-		//			}
-		//		}
+		// }
+		// }
 		for (int i = 0; i < sharedVars.size(); i++) {
 			index = varlist.getIndex(sharedVars.get(i));
 			if (index != -1)
@@ -97,17 +93,16 @@ public class StatesHelper
 			else
 				numnull++;
 		}
-		//		if (index == -1)
-		//			numnull = sharedVars.size();
-		//		
+		// if (index == -1)
+		// numnull = sharedVars.size();
+		//
 		if (numnull == sharedVars.size())
 			toret = null;
 		return toret;
 
 	}
 
-	public static boolean stateIsDeadend(MDP mdp, int s) throws PrismException
-	{
+	public static boolean stateIsDeadend(MDP mdp, int s) throws PrismException {
 		boolean isdeadend = false;
 		int numChoices = mdp.getNumChoices(s);
 		if (numChoices == 0) {
@@ -115,7 +110,7 @@ public class StatesHelper
 		} else if (numChoices == 1) {
 			int numTransitions = mdp.getNumTransitions(s, 0);
 			if (numTransitions == 1) {
-				//is it a self loop ?? 
+				// is it a self loop ??
 				Iterator<Entry<Integer, Double>> choiceIter = mdp.getTransitionsIterator(s, 0);
 
 				while (choiceIter.hasNext()) {
@@ -126,7 +121,8 @@ public class StatesHelper
 					} else {
 						if (isdeadend)
 							throw new PrismException(
-									"We thought we detected a deadend but apparently its a bit mysterious " + mdp.getStatesList().get(s).toString());
+									"We thought we detected a deadend but apparently its a bit mysterious "
+											+ mdp.getStatesList().get(s).toString());
 					}
 
 				}
@@ -135,8 +131,7 @@ public class StatesHelper
 		return isdeadend;
 	}
 
-	public static int getExactlyTheSameState(Object s1v[], List<State> states)
-	{
+	public static int getExactlyTheSameState(Object s1v[], List<State> states) {
 		int res = BADVALUE;
 		for (int s = 0; s < states.size(); s++) {
 			if (statesAreEqual(s1v, states.get(s))) {
@@ -147,14 +142,12 @@ public class StatesHelper
 		return res;
 	}
 
-	public static int getIndexValueFromState(State s1, int index)
-	{
+	public static int getIndexValueFromState(State s1, int index) {
 		return (int) s1.varValues[index];
 	}
 
-	//in use
-	public static Object[] getMDPStateFromState(State s1, VarList varlist, ArrayList<String> notSharedVarsList)
-	{
+	// in use
+	public static Object[] getMDPStateFromState(State s1, VarList varlist, ArrayList<String> notSharedVarsList) {
 		Object[] stateVar = s1.varValues;
 		int numVarsNotShared = /* varlist.getNumVars() - */notSharedVarsList.size();
 
@@ -167,20 +160,17 @@ public class StatesHelper
 		return mdpState;
 	}
 
-	public static int getRobotNumberFromSeqTeamMDPState(State s1)
-	{
+	public static int getRobotNumberFromSeqTeamMDPState(State s1) {
 		Object[] stateVar = s1.varValues;
 		return (int) stateVar[robotVar];
 
 	}
 
-	public static String getSaveplace()
-	{
+	public static String getSaveplace() {
 		return savePlace;
 	}
 
-	public static boolean isFailState(State s1)
-	{
+	public static boolean isFailState(State s1) {
 		int ind = mdpVarStart;
 		if (getIndexValueFromState(s1, ind) == failState)
 			return true;
@@ -188,8 +178,7 @@ public class StatesHelper
 			return false;
 	}
 
-	public static String getLocation()
-	{
+	public static String getLocation() {
 		String temp = folder;
 		temp = temp.replace("adv", "");
 		temp = temp.replaceAll(".tra", "");
@@ -200,26 +189,20 @@ public class StatesHelper
 	}
 
 	/**
-	 * @param anotherfolder
-	 *            the location of the tile to save
+	 * @param anotherfolder   the location of the tile to save
 	 * 
-	 * @param saveplace
-	 *            alternate location
-	 * @param mdp
-	 *            The mdp
+	 * @param saveplace       alternate location
+	 * @param mdp             The mdp
 	 * 
-	 * @param statesToMark
-	 *            a bitset for states you'd like to highlight in the mdp
+	 * @param statesToMark    a bitset for states you'd like to highlight in the mdp
 	 * 
-	 * @param name
-	 *            filename
+	 * @param name            filename
 	 * 
-	 * @param saveinsaveplace
-	 *            save in predefined save location (set to true) if false saves in
-	 *            same location as adversary
+	 * @param saveinsaveplace save in predefined save location (set to true) if
+	 *                        false saves in same location as adversary
 	 */
-	public static void saveMDP(MDP mdp, BitSet statesToMark, String anotherfolder, String name, boolean saveinsaveplace)
-	{
+	public static void saveMDP(MDP mdp, BitSet statesToMark, String anotherfolder, String name,
+			boolean saveinsaveplace) {
 		String temp = anotherfolder;
 		if (temp == "")
 			temp = folder;
@@ -233,6 +216,8 @@ public class StatesHelper
 		}
 		name = name.replace(" ", "_");
 		mainLog.println("Saving MDP to " + location + "_" + name + ".dot");
+		System.out.println("Saving MDP to " + location + "_" + name + ".dot");
+		System.out.println(mdp.infoStringTable());
 		PrismLog out = new PrismFileLog(location + "_" + name + ".dot");
 		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();
@@ -240,26 +225,19 @@ public class StatesHelper
 	}
 
 	/**
-	 * @param anotherfolder
-	 *            the location of the tile to save
+	 * @param anotherfolder   the location of the tile to save
 	 * 
-	 * @param saveplace
-	 *            alternate location
-	 * @param mdp
-	 *            The mdp
+	 * @param saveplace       alternate location
+	 * @param mdp             The mdp
 	 * 
-	 * @param statesToMark
-	 *            a bitset for states you'd like to highlight in the mdp
+	 * @param statesToMark    a bitset for states you'd like to highlight in the mdp
 	 * 
-	 * @param name
-	 *            filename
+	 * @param name            filename
 	 * 
-	 * @param saveinsaveplace
-	 *            save in predefined save location (set to true) if false saves in
-	 *            same location as adversary
+	 * @param saveinsaveplace save in predefined save location (set to true) if
+	 *                        false saves in same location as adversary
 	 */
-	public static void saveMDPstatra(MDP mdp, String anotherfolder, String name, boolean saveinsaveplace)
-	{
+	public static void saveMDPstatra(MDP mdp, String anotherfolder, String name, boolean saveinsaveplace) {
 		String temp = anotherfolder;
 		if (temp == "")
 			temp = folder;
@@ -277,38 +255,34 @@ public class StatesHelper
 		out.close();
 		out = new PrismFileLog(location + "_" + name + ".sta");
 		try {
-			if(mdp.getVarList() != null)
-			mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
+			if (mdp.getVarList() != null)
+				mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		out.close();
+		System.out.println("Saved MDP statra to " + location + "_" + name);
 
 	}
 
-	public static void setFolder(String folderVal)
-	{
+	public static void setFolder(String folderVal) {
 		folder = folderVal;
 	}
 
-	public static void setMDPVar(int var)
-	{
+	public static void setMDPVar(int var) {
 		mdpVarStart = var;
 	}
 
-	public static void setNumMDPVars(int mdpvars)
-	{
+	public static void setNumMDPVars(int mdpvars) {
 		numMdpVars = mdpvars;
 	}
 
-	public static void setSavePlace(String saveplace)
-	{
+	public static void setSavePlace(String saveplace) {
 		savePlace = saveplace;
 	}
 
-	public static boolean statesAreEqual(Object s1v[], State s2)
-	{
+	public static boolean statesAreEqual(Object s1v[], State s2) {
 		boolean res = true;
 		Object s2v[] = s2.varValues;
 		int numVar = s2v.length;
@@ -325,8 +299,7 @@ public class StatesHelper
 	 * written to check for the same automata state for a seq team mdp assuming the
 	 * automata states start at 1 and end at mdpVarStart
 	 */
-	public static boolean statesHaveTheSameAutomataProgress(State s1, State s2)
-	{
+	public static boolean statesHaveTheSameAutomataProgress(State s1, State s2) {
 		// hardcoding this here
 		Vector<Integer> indicesToMatch = new Vector<Integer>();
 		int numVar = mdpVarStart;// s1.varValues.length;
@@ -349,8 +322,7 @@ public class StatesHelper
 	 * @param s2
 	 * @return
 	 */
-	public static int[] XORIntegers(Object[] s1, Object[] s2)
-	{
+	public static int[] XORIntegers(Object[] s1, Object[] s2) {
 		int maxLen = Math.max(s1.length, s2.length);
 		int[] mask = new int[maxLen];
 		for (int i = 0; i < maxLen; i++) {
@@ -363,8 +335,7 @@ public class StatesHelper
 
 	}
 
-	public static int[] XORIntegers(State firstStateState, State lastStateState)
-	{
+	public static int[] XORIntegers(State firstStateState, State lastStateState) {
 		// TODO Auto-generated method stub
 		return XORIntegers(firstStateState.varValues, lastStateState.varValues);
 
