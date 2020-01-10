@@ -639,28 +639,54 @@ class GridGui(object):
             #then we choose the goals
             #then we choose the avoid states
             #then we choose the failstate
-            if self.numFS > len(failStatesChoices):
-                self.numFS = len(failStatesChoices)
-            numFSInc = 1
-            numFSSteps = 10 
-            if self.numFS > 10:
-                numFSInc = (self.numFS)/numFSSteps
-            print "Max fs"
-            print self.numFS
-            print "fs inc"
-            print numFSInc
-            #raw_input("continue")
+            doPercentageFS = True
+            maxStates = len(openStates)
+            
+            if doPercentageFS:
+                #resetting the numfs
+                self.numFS = maxStates
+
+                #do a percentage of the state space
+                fsNums = []
+                pcInc = 10 
+                for i in range(0,100,pcInc):
+                    if i == 0:
+                        fsNums.append(0)
+                    else:
+
+                        numFSHere = int(truediv(i,100)*self.numFS)+1
+                        fsNums.append(numFSHere)
+
+                fsNums.append(self.numFS)
+                print "fail states"
+                print fsNums                
+            else:
+                if self.numFS > len(failStatesChoices):
+                    self.numFS = len(failStatesChoices)
+                numFSInc = 1
+                numFSSteps = 10 
+                if self.numFS > 10:
+                    numFSInc = (self.numFS)/numFSSteps
+                print "Max fs"
+                print self.numFS
+                print "fs inc"
+                print numFSInc
+                fsNums = range(0,self.numFS,numFSInc)
+                print fsNums
+                #raw_input("continue")
             
             for i in range(self.numFilesToGenerate):
                 if self.numFS>0:
-                    for j in range(0,self.numFS,numFSInc):
-                        (chosenInitialLocations,chosenGoalLocations,chosenAvoidStates,chosenFailStates)= self.chooseAllStates(depotChoices,openStates,goalChoices,avoidChoices,failStatesChoices,j)
+                    for j in range(len(fsNums)):
+                        (chosenInitialLocations,chosenGoalLocations,chosenAvoidStates,chosenFailStates)= self.chooseAllStates(depotChoices,openStates,goalChoices,avoidChoices,failStatesChoices,fsNums[j])
 
                             
                         gfr = GeneratePrismFile()
                         doFour = True #four grid actions
-
-                        fn = self.fn +"_fs"+str(j)+ "_"+str(i)+"_"
+                        if doPercentageFS:
+                            fn = self.fn +"_fs"+str(fsNums[j])+"_fsp_"+str(j*10)+ "_"+str(i)+"_"
+                        else:
+                            fn = self.fn +"_fs"+str(fsNums[j])+ "_"+str(i)+"_"
 
                         smap=gfr.generateFromGUIGrid(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,doorPairs,self.xside,self.yside,fn,doFour)
                         self.updateGridArray(chosenInitialLocations,blockedStates,chosenGoalLocations,chosenAvoidStates,chosenFailStates,openStates,smap)
