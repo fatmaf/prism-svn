@@ -701,8 +701,8 @@ public class CompareSTAPUSSINVI
 
 		int numFilesPerFS = 10;
 		String errorString = "";
-		int[] rarr = new int[] { 2, 4, 6 };
-		int[][] garr = new int[][] { { 3, 5, 7 }, { 3, 5, 7 }, { 3, 5, 7 } };
+		int[] rarr = new int[] { /*2, 4,*/ 6 };
+		int[][] garr = new int[][] { { 3, 5, 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ };
 		int r, g;
 		int maxFiles = 3 * 3 * fsShelfDepot.length * numFilesPerFS;
 		int testFileNum = 1;
@@ -712,9 +712,11 @@ public class CompareSTAPUSSINVI
 				g = garr[i][j];
 
 				for (int fsNum = 0; fsNum < fsShelfDepot.length; fsNum++) {
+					int fs = fsShelfDepot[fsNum];
+//					if (fs < 99)
+//						continue;
 					for (int fileForFS = 0; fileForFS < numFilesPerFS; fileForFS++) {
 
-						int fs = fsShelfDepot[fsNum];
 						fn = fnPrefix + fsBit + fs + "_fsp_" + fspStrings[fsNum] + "_" + fileForFS + "_";
 
 						errorString = fn;
@@ -760,10 +762,11 @@ public class CompareSTAPUSSINVI
 				System.out.println(resString);
 				System.out.println("***************************************************************");
 				fileText("", maxFiles, testFileNum);
-				String resname = "w_r" + r + "g" + g + "_" + fnPrefix + fnSuffix;
-				this.printResults(resSavePlace + resname, hasGridData);
-				//					printResults();
-
+				if (this.results.size() > 0) {
+					String resname = "w_r" + r + "g" + g + "_" + fnPrefix + fnSuffix;
+					this.printResults(resSavePlace + resname, hasGridData);
+					//					printResults();
+				}
 				System.out.println("Waiting to say go");
 				Scanner in = new Scanner(System.in);
 				keepGoing = in.nextLine();
@@ -778,9 +781,11 @@ public class CompareSTAPUSSINVI
 		System.out.println(resString);
 		System.out.println("***************************************************************");
 
-		String resname = "w_" + fnPrefix + fnSuffix;
-		this.printResults(resSavePlace + resname, hasGridData);
-		printResults(hasGridData);
+		if (this.results.size() > 0) {
+			String resname = "w_" + fnPrefix + fnSuffix;
+			this.printResults(resSavePlace + resname, hasGridData);
+			printResults(hasGridData);
+		}
 		if (errors.size() > 0) {
 			for (String error : errors) {
 				System.out.println(error);

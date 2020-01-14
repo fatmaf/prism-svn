@@ -374,7 +374,7 @@ public class XAIStateAnalyser
 			prefixActions.add(2);
 		}
 		alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
-				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates);
+				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates,false);
 		return alternativePolicyPath;
 	}
 
@@ -414,7 +414,7 @@ public class XAIStateAnalyser
 			}
 		}
 		alternativePolicyPath.creatPathFlex(prefixStates, prefixActions, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
-				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates);
+				"xai_" + filename + "alternatePath" + prefixStates.toString(), vi.progRewards, vi.costRewards, vi.accStates,false);
 		return alternativePolicyPath;
 	}
 

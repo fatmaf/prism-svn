@@ -80,7 +80,7 @@ public class XAIPathCreator
 	}
 
 	public void creatPathFlex(ArrayList<Integer> states, ArrayList<Integer> actions, MDP m, Strategy strat, String savePath, String saveName,
-			MDPRewardsSimple progCosts, MDPRewardsSimple costs, BitSet accStates) throws PrismException
+			MDPRewardsSimple progCosts, MDPRewardsSimple costs, BitSet accStates,boolean stickToStatesList) throws PrismException
 	{
 		setPCVarList(m);
 		boolean hasRewards = (progCosts != null) & (costs != null);
@@ -111,9 +111,15 @@ public class XAIPathCreator
 				int sIndex = states.indexOf(s);
 				a = actions.get(sIndex);
 			} else {
+				if(!stickToStatesList) {
 				strat.initialise(s);
 				Object action = strat.getChoiceAction();
 				a = pc.findActionIndex(m, s, action);
+				}
+				else
+				{
+					a = -1; 
+				}
 			}
 			State ps = m.getStatesList().get(s);
 			if(accStates.get(s))

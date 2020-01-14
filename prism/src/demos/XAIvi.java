@@ -61,6 +61,8 @@ public class XAIvi
 	DA<BitSet, ? extends AcceptanceOmega> origda;
 	Vector<BitSet> origdaLabelBS;
 
+	HashMap<Expression, Integer> actualExprNumMap = null;
+	
 	public BitSet getSinkStates(DA<BitSet, ? extends AcceptanceOmega> da)
 	{
 		BitSet daaccStates;
@@ -199,6 +201,7 @@ public class XAIvi
 		HashMap<Expression, Integer> exprNumMap = new HashMap<Expression, Integer>();
 		HashMap<Expression, Integer> actualExprNumMap = new HashMap<Expression, Integer>();
 		tryingToGetExprConversionPrism(ltl, exprNumMap,actualExprNumMap);
+		this.actualExprNumMap = actualExprNumMap; 
 		if (!(da.getAcceptance() instanceof AcceptanceReach) && !(da.getAcceptance() instanceof AcceptanceRabin)) {
 			mainLog.println("\nAutomaton is not a DFA. Breaking.");
 			// Dummy return vector
@@ -265,7 +268,7 @@ public class XAIvi
 
 		mainLog.println("\nComputing reachability probability, expected progression, and expected cost...");
 		accStates = (BitSet) acc.clone();
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true, discount);
+		ModelCheckerPartialSatResult res = computeValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, progStates, true, discount);
 		this.productmdp = productMdp;
 		probsProduct = StateValues.createFromDoubleArray(res.solnProb, productMdp);
 
@@ -304,7 +307,7 @@ public class XAIvi
 		MDPRewardsSimple progRewards = pc.pc.mdpCreator.expectedTaskCompletionRewards;
 		MDPRewardsSimple prodCosts = pc.pc.mdpCreator.stateActionCostRewards;
 
-		ModelCheckerPartialSatResult res = computeNestedValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false, discount);
+		ModelCheckerPartialSatResult res = computeValIter(maxIters, mainLog, mc, productMdp, acc, progRewards, prodCosts, null, false, discount);
 
 		// Get final prob result
 		double maxProb = res.solnProb[productMdp.getFirstInitialState()];
@@ -363,7 +366,7 @@ public class XAIvi
 	 *            Note: if 'known' is specified (i.e. is non-null, 'init' must also
 	 *            be given and is used for the exact values.
 	 */
-	protected ModelCheckerPartialSatResult computeNestedValIter(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
+	protected ModelCheckerPartialSatResult computeValIter(int maxIters, PrismLog mainLog, MDPModelChecker mc, MDP trimProdMdp, BitSet target,
 			MDPRewards progRewards, MDPRewards prodCosts, BitSet progStates, boolean saveVals, double discount) throws PrismException
 	{
 		ModelCheckerPartialSatResult res;

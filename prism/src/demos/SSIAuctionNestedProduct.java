@@ -66,8 +66,8 @@ public class SSIAuctionNestedProduct
 	public long totalTimeDuration = 0;
 
 	public long firstSolDuration = 0;
-	public long allReplanningDuration = 0; 
-	
+	public long allReplanningDuration = 0;
+
 	public ArrayList<MDPRewardsSimple> createMaxExpTaskRewStruct(SingleAgentNestedProductMDP saMDP, MDPRewardsSimple costsModel)
 	{
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>();
@@ -1070,8 +1070,8 @@ public class SSIAuctionNestedProduct
 			modifiedDuration = modifiedEndTime - modifiedStartTime;
 			totalTimeDuration += modifiedDuration;
 
-			firstSolDuration = totalTimeDuration; 
-			
+			firstSolDuration = totalTimeDuration;
+
 			if (doingReallocs) {
 				modifiedStartTime = System.currentTimeMillis();
 				startTime = System.currentTimeMillis();
@@ -1257,7 +1257,7 @@ public class SSIAuctionNestedProduct
 			totalTimeDuration += modifiedDuration;
 
 			allReplanningDuration = totalTimeDuration - firstSolDuration;
-			
+
 			return resultValues(nviSol, mdpCreator.mdp);
 			//			return resultvalues;
 		} catch (Exception e) {
@@ -1315,8 +1315,9 @@ public class SSIAuctionNestedProduct
 				//				mainLog.println(res.combinedAcceptingStates.toString());
 				//				mainLog.println(res.combinedEssentialStates.toString());
 				//				mainLog.println(res.combinedStatesToAvoid.toString());
-				new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + 0,
-						res.combinedAcceptingStates);
+				if (debugSSI)
+					new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + 0,
+							res.combinedAcceptingStates);
 				//				mainLog.println(res.numMDPVars);
 				startTime = System.currentTimeMillis();
 				ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mcs.get(rnum), res.finalProduct.getProductModel(),
@@ -1399,9 +1400,9 @@ public class SSIAuctionNestedProduct
 				costRewards.add(rewards.get(1)); //cuz its always 2 for now 
 
 				expTaskRews.add(rewards.get(0));
-
-				new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + rnum,
-						res.combinedAcceptingStates);
+				if (debugSSI)
+					new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + rnum,
+							res.combinedAcceptingStates);
 				//				mainLog.println(res.numMDPVars);
 				startTime = System.currentTimeMillis();
 				ModelCheckerMultipleResult nviSol = nviSols.get(rnum);
@@ -1924,7 +1925,7 @@ public class SSIAuctionNestedProduct
 			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 			throw e;
 		}
-		mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_" + numPlanning + "_" + jointState.toString() + "_jp");
+		//		mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_" + numPlanning + "_" + jointState.toString() + "_jp");
 		//		mainLog.println(mdpCreator.essStates.toString());
 		//		mainLog.println(mdpCreator.accStates.toString());
 
@@ -1938,10 +1939,10 @@ public class SSIAuctionNestedProduct
 
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(null, mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
-			PolicyCreator pc = new PolicyCreator();
-			pc.createPolicyWithRewardsStructuresAsLabels(mdpCreator.mdp.getFirstInitialState(), mdpCreator.mdp, nviSol.strat,
-					mdpCreator.getRewardsInArray().get(0), mdpCreator.getRewardsInArray().get(1), mdpCreator.accStates);
-			pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "_" + numPlanning + "_" + jointState.toString() + "_jpRews");
+			//			PolicyCreator pc = new PolicyCreator();
+			//			pc.createPolicyWithRewardsStructuresAsLabels(mdpCreator.mdp.getFirstInitialState(), mdpCreator.mdp, nviSol.strat,
+			//					mdpCreator.getRewardsInArray().get(0), mdpCreator.getRewardsInArray().get(1), mdpCreator.accStates);
+			//			pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "_" + numPlanning + "_" + jointState.toString() + "_jpRews");
 			return resultValues(nviSol, mdpCreator.mdp);
 		} else {
 			return new double[] { 0.0, 0.0, 0.0 };
