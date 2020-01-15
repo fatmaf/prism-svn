@@ -925,8 +925,8 @@ public class CompareSTAPUSSINVI {
 
 		int numFilesPerFS = 10;
 
-		int[] gridIncs = new int[] { 5, 7, 9, 11, 13, 15, 17, 19, 21, 23/*, 25*/ };
-		int[] fsPercentages = new int[] { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+		int[] gridIncs = new int[] { 5, 8,  11, 14,  17, 20, 23/*, 25*/ };
+		int[] fsPercentages = new int[] { 0, /*10,*/ 20,/* 30,*/ 40, /*50,*/ 60,/* 70,*/ 80,/* 90,*/ 100 };
 		int[] fsPercentagesToDo = new int[] { 0, /* 20, */40/* , 80 */, 100 };
 		int[] rarr_grid9 = new int[] { 2, 4, 6, 8 };
 		int[] garr_grid9 = new int[] { 3, 5, 7, 9 };
