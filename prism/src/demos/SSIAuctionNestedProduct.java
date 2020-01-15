@@ -236,57 +236,6 @@ public class SSIAuctionNestedProduct
 
 	}
 
-	public Entry<Integer, double[]> getSingleAgentBidNestedProduct(MDP agentMDP, ArrayList<Expression> taskSet, ArrayList<Expression> agentTasks,
-			ExpressionReward rewardExpr, MDPModelChecker mc, double[] sumSoFar, MDPRewardsSimple costsModel, PrismLog mainLog, Prism prism, String saveplace,
-			String filename) throws PrismException
-	{
-
-		Expression bidPick = null;
-		double[] bidValue = new double[] { 0, 0, 10000 };
-
-		int indexOfChosenTask = -1;
-
-		for (int exprNum = 0; exprNum < taskSet.size(); exprNum++) {
-			ArrayList<Expression> currentAgentTasks = new ArrayList<Expression>();
-			currentAgentTasks.addAll(agentTasks);
-			currentAgentTasks.add(0, getInnerExpression(taskSet.get(exprNum)));
-			double[] nvicosts = getSingleAgentSolNVINestedProduct(currentAgentTasks, rewardExpr, mainLog, mc, (MDPSimple) agentMDP, costsModel, saveplace,
-					filename, prism);
-
-			double[] nvicostsinc = nvicosts.clone();
-			nvicostsinc[1] -= sumSoFar[0];
-			nvicostsinc[2] -= sumSoFar[1];
-
-			//			nvicosts[2] +=sumOfCosts;
-			if (progCostIsBetter(nvicostsinc, bidValue)) {
-				bidPick = taskSet.get(exprNum);
-				bidValue = nvicostsinc.clone();
-				indexOfChosenTask = exprNum;
-			}
-
-		}
-		//		bidValue[2]-=sumOfCosts;
-		return new AbstractMap.SimpleEntry<Integer, double[]>(indexOfChosenTask, bidValue);
-	}
-
-	double[] getSingleAgentSolNVINestedProduct(ArrayList<Expression> robotsTasksBroken, ExpressionReward rewExpr, PrismLog mainLog, MDPModelChecker mc,
-			MDPSimple mdp, MDPRewardsSimple costsModel, String saveplace, String filename, Prism prism) throws PrismException
-	{
-
-		ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(robotsTasksBroken, mainLog);
-
-		SingleAgentNestedProductMDP res = buildSingleAgentNestedProductMDP("r", mdp, daList, null, prism, mc, mainLog);
-
-		ArrayList<MDPRewardsSimple> rewards = createMaxExpTaskRewStruct(res, costsModel);
-
-		//		new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + 0, res.combinedAcceptingStates);
-		//		mainLog.println(res.numMDPVars);
-		ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mc, res.finalProduct.getProductModel(), res.combinedAcceptingStates,
-				res.combinedStatesToAvoid, rewards, 0, true, prism, mainLog);
-		return resultValues(nviSol, (MDPSimple) res.finalProduct.getProductModel());
-
-	}
-
 	Entry<SingleAgentNestedProductMDP, ModelCheckerMultipleResult> getSingleAgentSolNVINestedProductIncremental(SingleAgentNestedProductMDP prev,
 			ArrayList<Expression> robotsTasksBroken, ExpressionReward rewExpr, PrismLog mainLog, MDPModelChecker mc, MDPSimple mdp, MDPRewardsSimple costsModel,
 			String saveplace, String filename, Prism prism) throws PrismException
@@ -384,96 +333,16 @@ public class SSIAuctionNestedProduct
 		return ((ExpressionQuant) expr).getExpression();
 	}
 
-	public ArrayList<ArrayList<Expression>> auctionTasksSumOfCostsNestedProduct(ArrayList<Expression> taskSet, int numRobots, ArrayList<MDPSimple> mdps,
-			ExpressionReward rewExpr, Expression safetyExpr, ArrayList<MDPModelChecker> mcs, ArrayList<MDPRewardsSimple> costsModels, Prism prism,
-			String saveplace, String filename, PrismLog mainLog, PrismLog fileLog) throws PrismException
-	{
-
-		long allTasksBidDuration = 0;
-
-		//so basically we start with the mdps 
-		//then we auction one task using the nested product thing 
-		//then we reuse that mdp for the next task 
-		//got it ? 
-
-		//		ArrayList<Expression> robotsTasks = new ArrayList<Expression>();
-		ArrayList<ArrayList<Expression>> robotsTasksBroken = new ArrayList<ArrayList<Expression>>();
-		double[][] previousCost = new double[numRobots][2];
-
-		//so what we've got to do here is 
-		//we got to mix the single agent bid with the sum of costs 
-		//so we have this current sum of costs 
-		//then we get the bid for one agent 
-		//if its less than the current sum, that agent gets the bid 
-		// so technically we're merging the whole process 
-
-		for (int i = 0; i < numRobots; i++) {
-			//			robotsTasks.add(getInnerExpression(safetyExpr));
-			robotsTasksBroken.add(new ArrayList<Expression>());
-			robotsTasksBroken.get(i).add(getInnerExpression(safetyExpr));
-			previousCost[i][0] = 0;
-			previousCost[i][1] = 0;
-		}
-
-		int auctionRound = 0;
-		while (!taskSet.isEmpty()) {
-
-			int bestBidIndex = -1;
-			double[] bestBidValues = new double[] { 0, 0, 10000 };
-			Expression bestBidExpression = null;
-			int bestBidRobotIndex = -1;
-			double[] bestBidValuesFull = new double[] { 0, 0, 10000 };
-			long maxBidCalculationForTask = 0;
-			for (int i = 0; i < numRobots; i++) {
-				////profile
-				long robotBidCalculationStartTime = System.currentTimeMillis();
-
-				//TODO:your code here 
-				Entry<Integer, double[]> bid = getSingleAgentBidNestedProduct(mdps.get(i), taskSet, robotsTasksBroken.get(i), rewExpr, mcs.get(i),
-						previousCost[i], costsModels.get(i), mainLog, prism, saveplace, filename);
-
-				int bidTaskIndex = bid.getKey();
-				double[] bidValues = bid.getValue();
-
-				if (progCostIsBetter(bidValues, bestBidValues)) {
-					bestBidValues = bidValues;
-					bestBidIndex = bidTaskIndex;
-					bestBidRobotIndex = i;
-					bestBidExpression = getInnerExpression(taskSet.get(bestBidIndex));
-
-				}
-				long robotBidCalculationEndTime = System.currentTimeMillis();
-				long robotBidCalculationDuration = robotBidCalculationEndTime - robotBidCalculationStartTime;
-				fileLog.println("Auction Round " + auctionRound + " Time for Robot Bid " + i + ":" + (robotBidCalculationDuration));
-
-				if (maxBidCalculationForTask < robotBidCalculationDuration) {
-					maxBidCalculationForTask = robotBidCalculationDuration;
-				}
-			}
-
-			previousCost[bestBidRobotIndex][0] += bestBidValues[1];
-			previousCost[bestBidRobotIndex][1] += bestBidValues[2];
-
-			robotsTasksBroken.get(bestBidRobotIndex).add(bestBidExpression);
-
-			taskSet.remove(bestBidIndex);
-
-			allTasksBidDuration += maxBidCalculationForTask;
-			fileLog.println("Auction Round " + auctionRound + " Time (only max not sum):" + (maxBidCalculationForTask));
-			auctionRound++;
-		}
-
-		this.totalTimeDuration += allTasksBidDuration;
-		return robotsTasksBroken;
-	}
-
 	public Entry<ArrayList<ArrayList<Expression>>, Entry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>> auctionTasksSumOfCostsNestedProductIncremental(
 			ArrayList<Expression> taskSet, int numRobots, ArrayList<MDPSimple> mdps, ExpressionReward rewExpr, Expression safetyExpr,
 			ArrayList<MDPModelChecker> mcs, ArrayList<MDPRewardsSimple> costsModels, Prism prism, String saveplace, String filename, PrismLog mainLog,
 			PrismLog fileLog) throws PrismException
 	{
 
-		long allTasksBidDuration = 0;
+		////profile
+		long startTime = System.currentTimeMillis();
+
+		long maxBidDuration = 0;
 
 		//so basically we start with the mdps 
 		//then we auction one task using the nested product thing 
@@ -504,7 +373,15 @@ public class SSIAuctionNestedProduct
 		}
 
 		int auctionRound = 0;
+		//TODO:your code here 
+
+		long stopTime = System.currentTimeMillis();
+		long runTime = stopTime - startTime;
+		totalTimeDuration += runTime;
+
 		while (!taskSet.isEmpty()) {
+			////profile
+			long startTimex = System.currentTimeMillis();
 
 			int bestBidIndex = -1;
 			double[] bestBidValues = new double[] { 0, 0, 10000 };
@@ -514,12 +391,15 @@ public class SSIAuctionNestedProduct
 			long maxBidCalculationForTask = 0;
 			SingleAgentNestedProductMDP bestNP = null;
 			ModelCheckerMultipleResult bestNPSol = null;
+
+			//TODO:your code here 
+
+			long stopTimex = System.currentTimeMillis();
+			long runTimex = stopTimex - startTimex;
+			totalTimeDuration += runTimex;
+
 			for (int i = 0; i < numRobots; i++) {
-				////profile
-				long robotBidCalculationStartTime = System.currentTimeMillis();
-
-				//TODO:your code here 
-
+				startTimex = System.currentTimeMillis();
 				Entry<Entry<Integer, double[]>, Entry<SingleAgentNestedProductMDP, ModelCheckerMultipleResult>> returnStuff = getSingleAgentBidNestedProductIncremental(
 						prevNPs.get(i), mdps.get(i), taskSet, robotsTasksBroken.get(i), rewExpr, mcs.get(i), previousCost[i], costsModels.get(i), mainLog,
 						prism, saveplace, filename);
@@ -537,15 +417,14 @@ public class SSIAuctionNestedProduct
 					bestNPSol = returnStuff.getValue().getValue();
 
 				}
-				long robotBidCalculationEndTime = System.currentTimeMillis();
-				long robotBidCalculationDuration = robotBidCalculationEndTime - robotBidCalculationStartTime;
-				fileLog.println("Auction Round " + auctionRound + " Time for Robot Bid " + i + ":" + (robotBidCalculationDuration));
+				stopTimex = System.currentTimeMillis();
+				runTimex = stopTimex - startTimex;
+				if (runTimex < maxBidDuration)
+					maxBidDuration = runTimex;
 
-				if (maxBidCalculationForTask < robotBidCalculationDuration) {
-					maxBidCalculationForTask = robotBidCalculationDuration;
-				}
 			}
-
+			totalTimeDuration += maxBidDuration;
+			startTimex = System.currentTimeMillis();
 			previousCost[bestBidRobotIndex][0] += bestBidValues[1];
 			previousCost[bestBidRobotIndex][1] += bestBidValues[2];
 
@@ -555,17 +434,19 @@ public class SSIAuctionNestedProduct
 
 			taskSet.remove(bestBidIndex);
 
-			allTasksBidDuration += maxBidCalculationForTask;
-			fileLog.println("Auction Round " + auctionRound + " Time (only max not sum):" + (maxBidCalculationForTask));
 			auctionRound++;
+			stopTimex = System.currentTimeMillis();
+			runTimex = stopTimex - startTimex;
+			totalTimeDuration += runTimex;
 		}
-
-		this.totalTimeDuration += allTasksBidDuration;
-
+		startTime = System.currentTimeMillis();
 		SimpleEntry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>> stuff = new AbstractMap.SimpleEntry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>(
 				prevNPs, results);
 		SimpleEntry<ArrayList<ArrayList<Expression>>, Entry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>> toret = new AbstractMap.SimpleEntry<ArrayList<ArrayList<Expression>>, Entry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>>(
 				robotsTasksBroken, stuff);
+		stopTime = System.currentTimeMillis();
+		runTime = stopTime - startTime;
+		totalTimeDuration += runTime;
 		return toret;//robotsTasksBroken;
 	}
 
@@ -665,78 +546,6 @@ public class SSIAuctionNestedProduct
 			res.updateProductToMDPStateMapping(product);
 			res.daList.add(daInfo);
 		}
-
-		res.setDAListAndFinalProduct(product);
-		return res;
-	}
-
-	/**
-	 * @param model
-	 *            - the mdp model
-	 * 
-	 * @param exprs
-	 *            - array list of expressions
-	 * 
-	 * @param statesOfInterest
-	 *            - states to care about - we care about everything so we don't
-	 *            really need this
-	 * 
-	 */
-	protected SingleAgentNestedProductMDP buildSingleAgentNestedProductMDP(String name, Model model, ArrayList<DAInfo> daList, BitSet statesOfInterest,
-			Prism prism, MDPModelChecker mc, PrismLog mainLog) throws PrismException
-	{
-		// return the list of daInfo and the product mdp
-
-		SingleAgentNestedProductMDP res = new SingleAgentNestedProductMDP(mainLog);
-		res.setNumMDPVars(model.getVarList().getNumVars());
-		res.initializeProductToMDPStateMapping((MDP) model);
-
-		LTLProduct<MDP> product = null;
-		MDP productMDP = null;
-		LTLModelChecker mcLTL = new LTLModelChecker(prism); // is this okay ?
-		AcceptanceType[] allowedAcceptance = { AcceptanceType.RABIN, AcceptanceType.REACH };
-
-		int numStates = model.getNumStates();
-		BitSet bsInit = new BitSet(numStates);
-		// all the states are states of interest
-		bsInit.set(0, numStates);
-		productMDP = (MDP) model;
-		res.daList = new ArrayList<DAInfo>();
-
-		for (int daNum = 0; daNum < daList.size(); daNum++) {
-			DAInfo daInfo = new DAInfo(daList.get(daNum));
-			daInfo.associatedIndexInProduct++; //should go to zero from -1 
-
-			product = daInfo.constructDAandProductModel(mcLTL, mc, allowedAcceptance, productMDP, null, true);
-			productMDP = product.getProductModel();
-			daInfo.getEssentialStates(productMDP);
-
-			//			RewardStruct costStruct = exprRew.getRewardStructByIndexObject(getModulesFile(), getModulesFile().getConstantValues());
-			//			mainLog.println("Building cost structure...");
-			//			Rewards costsModel = constructRewards(model, costStruct);
-			// update state numbers
-			for (int otherDAs = 0; otherDAs < daNum; otherDAs++) {
-				res.daList.get(otherDAs).updateStateNumbers(product);
-				res.daList.get(otherDAs).associatedIndexInProduct++; //and everyone else also gets shifted once. 
-
-				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).essentialStates, "",
-				//						name + "pda_" + daNum + "_" + otherDAs + ".ess", true);
-				//				StatesHelper.saveBitSet(res.daList.get(otherDAs).productAcceptingStates, "",
-				//						name + "pda_" + daNum + "_" + otherDAs + ".acc", true);
-			}
-			//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//					name + "pda_" + daNum + "_before_productStateToMDPState.txt", true);
-			res.updateProductToMDPStateMapping(product);
-			//			StatesHelper.saveHashMap(res.productStateToMDPState, "",
-			//					name + "pda_" + daNum + "_after_productStateToMDPState.txt", true);
-			res.daList.add(daInfo);
-		}
-		DAInfo daInfo = res.daList.get(res.daList.size() - 1);
-		int daNum = res.daList.size() - 1;
-		//					StatesHelper.saveDA(daInfo.da, "", name + "da_" + daNum, true);
-		//					StatesHelper.saveMDP(productMDP, daInfo.productAcceptingStates, "", name + "pda_" + daNum, true);
-		//					StatesHelper.saveMDP(productMDP, daInfo.essentialStates, "", name + "pda_" + daNum + "switchStates", true);
-		//					StatesHelper.saveMDPstatra(productMDP, "", name + "pda_" + daNum + "sta_tra", true);
 
 		res.setDAListAndFinalProduct(product);
 		return res;
@@ -921,6 +730,12 @@ public class SSIAuctionNestedProduct
 	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
 			boolean stopReallocationWhenAnyRobotDeadends, PrismLog fileLog, String mainLogFile)
 	{
+		////profile
+		long startTime = System.currentTimeMillis();
+		long stopTime;
+		long runTime;
+		double[] results = null;
+
 		ArrayList<double[]> planningValuesSSI = null;
 		ArrayList<double[]> planningValuesJP = null;
 		if (debugSSI) {
@@ -928,10 +743,6 @@ public class SSIAuctionNestedProduct
 			planningValuesJP = new ArrayList<double[]>();
 		}
 
-		long modifiedStartTime = System.currentTimeMillis();
-		long modifiedEndTime = 0;
-		long modifiedDuration = 0;
-		long startTime, endTime, superStartTime = System.currentTimeMillis();
 		fnPrefix += "r" + numRobots + "_g" + numGoals + "d" + numDoors;
 		try {
 			String filename = fn;
@@ -958,22 +769,14 @@ public class SSIAuctionNestedProduct
 
 			ArrayList<MDPSimple> mdps = new ArrayList<MDPSimple>();
 			ArrayList<MDPModelChecker> mcs = new ArrayList<MDPModelChecker>();
-
-			startTime = System.currentTimeMillis();
-			superStartTime = startTime;
 			PropertiesFile propertiesFile = loadFiles(prism, saveplace, filename, numRobots, mdps, mcs, robotNumbers);
-			endTime = System.currentTimeMillis();
-			fileLog.println("Loaded all models:" + (endTime - startTime));
 			int[] mdpInitialStates = new int[mdps.size()];
 			for (int i = 0; i < mdpInitialStates.length; i++) {
 				mdpInitialStates[i] = mdps.get(i).getFirstInitialState();
 			}
 			//do things to the properties 
-			startTime = System.currentTimeMillis();
 			Entry<ExpressionReward, Entry<Expression, ArrayList<Expression>>> processedProperties = processProperties(propertiesFile, mainLog, numGoals,
 					goalNumbers);
-			endTime = System.currentTimeMillis();
-			fileLog.println("Processed properties:" + (endTime - startTime));
 			ExpressionReward rewExpr = processedProperties.getKey();
 			Entry<Expression, ArrayList<Expression>> safetyExprAndList = processedProperties.getValue();
 			Expression safetyExpr = safetyExprAndList.getKey();
@@ -983,28 +786,23 @@ public class SSIAuctionNestedProduct
 
 			ArrayList<MDPRewardsSimple> costsModels = new ArrayList<MDPRewardsSimple>();
 			getCostsModels(numRobots, rewExpr, mcs, mdps, costsModels);
-			startTime = System.currentTimeMillis();
-			modifiedEndTime = System.currentTimeMillis();
-			modifiedDuration = modifiedEndTime - modifiedStartTime;
-			totalTimeDuration += modifiedDuration;
-			//			ArrayList<ArrayList<Expression>> robotsTasksBroken =
-			//					auctionTasks
-			//					auctionTasksSumOfCosts(taskSetToEdit, numRobots, mdps, rewExpr, safetyExpr, mcs);
+
+			stopTime = System.currentTimeMillis();
+			runTime = stopTime - startTime;
+			//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+			totalTimeDuration += runTime;
 			Entry<ArrayList<ArrayList<Expression>>, Entry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>> meh = auctionTasksSumOfCostsNestedProductIncremental(
 					taskSetToEdit, numRobots, mdps, rewExpr, safetyExpr, mcs, costsModels, prism, saveplace, filename, mainLog, fileLog);
+			startTime = System.currentTimeMillis();
+			
 			ArrayList<ArrayList<Expression>> robotsTasksBroken = meh.getKey();
 
 			ArrayList<SingleAgentNestedProductMDP> samdps = meh.getValue().getKey();
 			ArrayList<ModelCheckerMultipleResult> nviSols = meh.getValue().getValue();
 
-			modifiedStartTime = System.currentTimeMillis();
 			if (rewExpr == null)
 				throw new PrismException("No reward function");
-			endTime = System.currentTimeMillis();
-			fileLog.println("Auctioning Time:" + (endTime - startTime));
-			mainLog.println("\n\nAssigned Tasks");
-			mainLog.println(robotsTasksBroken.toString());
-
 			//torepeat
 			//print task distribution and get strategy 
 			ArrayList<MDStrategy> nviStrategies = new ArrayList<MDStrategy>();
@@ -1012,22 +810,18 @@ public class SSIAuctionNestedProduct
 			ArrayList<ArrayList<DAInfo>> finalDAList = new ArrayList<ArrayList<DAInfo>>();
 			ArrayList<MDPRewardsSimple> costRewards = new ArrayList<MDPRewardsSimple>();
 			ArrayList<MDPRewardsSimple> expTaskRewards = new ArrayList<MDPRewardsSimple>();
-			startTime = System.currentTimeMillis();
 			ArrayList<BitSet> singleAgentNPAccStates = new ArrayList<BitSet>();
 
-			mainLog.println("Solution from Planning:");
-			System.out.println("Solution from Planning:");
-			modifiedEndTime = System.currentTimeMillis();
-			modifiedDuration = modifiedEndTime - modifiedStartTime;
-			totalTimeDuration += modifiedDuration;
+
+			stopTime = System.currentTimeMillis();
+			runTime = stopTime - startTime;
+			//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+			totalTimeDuration += runTime;
+			
 			ArrayList<BitSet> statesToAvoid = getRobotPlansUsingNVINestedProductIncremental(numRobots, samdps, nviSols, costsModels, productMDPs, mainLog,
 					costRewards, saveplace, filename, prism, nviStrategies, finalDAList, singleAgentNPAccStates, fileLog, expTaskRewards, planningValuesSSI);
-			modifiedStartTime = System.currentTimeMillis();
-			mainLog.println("Solution from Planning above");
-			System.out.println("Solution from Planning above");
-			endTime = System.currentTimeMillis();
-			fileLog.println("Planning Time:" + (endTime - startTime));
-
+			startTime = System.currentTimeMillis();
 			if (debugSSI) {
 
 				for (int i = 0; i < productMDPs.size(); i++) {
@@ -1043,7 +837,6 @@ public class SSIAuctionNestedProduct
 				}
 			}
 
-			startTime = System.currentTimeMillis();
 			ArrayList<Integer> daIndices = new ArrayList<Integer>();
 
 			VarList jvl = createJointVarList(ssNames, mdps, daIndices);
@@ -1062,29 +855,28 @@ public class SSIAuctionNestedProduct
 			ArrayList<ArrayList<Expression>> remainingTasks = new ArrayList<ArrayList<Expression>>();
 			ArrayList<int[]> correspondingMDPInitialStates = new ArrayList<int[]>();
 			ArrayList<State> correspondingJointStates = new ArrayList<State>();
-			endTime = System.currentTimeMillis();
-			fileLog.println("Joint Policy:" + (endTime - startTime));
 			int numPlanning = 0;
 			//			doingReallocs = false; 
-			modifiedEndTime = System.currentTimeMillis();
-			modifiedDuration = modifiedEndTime - modifiedStartTime;
-			totalTimeDuration += modifiedDuration;
+			stopTime = System.currentTimeMillis();
+			runTime = stopTime - startTime;
+			//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
 
-			firstSolDuration = totalTimeDuration;
-
+			totalTimeDuration += runTime;
+			this.firstSolDuration = totalTimeDuration;
+			
 			if (doingReallocs) {
-				modifiedStartTime = System.currentTimeMillis();
 				startTime = System.currentTimeMillis();
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
 						mdpInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
-				endTime = System.currentTimeMillis();
-				fileLog.println("Processed reallocation states:" + (endTime - startTime));
-				modifiedEndTime = System.currentTimeMillis();
-				modifiedDuration = modifiedEndTime - modifiedStartTime;
-				totalTimeDuration += modifiedDuration;
 				//so now we just repeat for each remainingTasks thing 
+				stopTime = System.currentTimeMillis();
+				runTime = stopTime - startTime;
+				//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+				totalTimeDuration += runTime;
+				
 				while (!reallocStatesPQ.isEmpty()) {
-					modifiedStartTime = System.currentTimeMillis();
+					startTime = System.currentTimeMillis();
 					numPlanning++;
 					StateExtended currentSE = reallocStatesPQ.remove();
 					State ps = currentSE.getChildStateState();
@@ -1104,25 +896,14 @@ public class SSIAuctionNestedProduct
 								break;
 						}
 					}
-					modifiedEndTime = System.currentTimeMillis();
-					modifiedDuration = modifiedEndTime - modifiedStartTime;
-					totalTimeDuration += modifiedDuration;
 					if (allDeadends)
 						continue;
 					//sanity check 
-					modifiedStartTime = System.currentTimeMillis();
 					State sanityCheckS = correspondingJointStates.get(stateIndex);
 					if (ps.compareTo(sanityCheckS) != 0)
 						throw new PrismException("Whoops the states dont match");
 					String ms = ps.toString() + " - ";
-					modifiedEndTime = System.currentTimeMillis();
-					modifiedDuration = modifiedEndTime - modifiedStartTime;
-					totalTimeDuration += modifiedDuration;
 					if (currentTaskSet.size() > 0) {
-						modifiedStartTime = System.currentTimeMillis();
-						startTime = System.currentTimeMillis();
-						//now lets just do this again 
-						//one time 
 						for (int i = 0; i < mdps.size(); i++) {
 
 							((MDPSimple) mdps.get(i)).clearInitialStates();
@@ -1132,20 +913,17 @@ public class SSIAuctionNestedProduct
 								ms += ((MDPSimple) mdps.get(i)).getStatesList().get(((MDPSimple) mdps.get(i)).getFirstInitialState()).toString() + " ";
 							}
 						}
-						modifiedEndTime = System.currentTimeMillis();
-						modifiedDuration = modifiedEndTime - modifiedStartTime;
-						totalTimeDuration += modifiedDuration;
-						//						robotsTasksBroken 
+						stopTime = System.currentTimeMillis();
+						runTime = stopTime - startTime;
+						//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+						totalTimeDuration += runTime;
 						meh = auctionTasksSumOfCostsNestedProductIncremental(currentTaskSet, numRobots, mdps, rewExpr, safetyExpr, mcs, costsModels, prism,
 								saveplace, filename, mainLog, fileLog);
+						startTime = System.currentTimeMillis();
 						robotsTasksBroken = meh.getKey();
 						samdps = meh.getValue().getKey();
 						nviSols = meh.getValue().getValue();
-						modifiedStartTime = System.currentTimeMillis();
-						endTime = System.currentTimeMillis();
-						fileLog.println("Realloc" + numPlanning + " auction time:" + (endTime - startTime));
-						mainLog.println("\n\nAssigned Tasks");
-						mainLog.println(robotsTasksBroken.toString());
 
 						//lets process these 
 						for (int i = 0; i < robotsTasksBroken.size(); i++) {
@@ -1170,24 +948,19 @@ public class SSIAuctionNestedProduct
 						expTaskRewards = new ArrayList<MDPRewardsSimple>();
 						//					if (robotsTasksBroken.get(1).size() == 1)
 						//						continue;
-						startTime = System.currentTimeMillis();
-						System.out.println("Solution from Planning:");
-						modifiedEndTime = System.currentTimeMillis();
-						modifiedDuration = modifiedEndTime - modifiedStartTime;
-						totalTimeDuration += modifiedDuration;
+						stopTime = System.currentTimeMillis();
+						runTime = stopTime - startTime;
+						//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+						totalTimeDuration += runTime;
 						statesToAvoid = getRobotPlansUsingNVINestedProductIncremental(numRobots, samdps, nviSols, costsModels, productMDPs, mainLog,
 								costRewards, saveplace, filename, prism, nviStrategies, finalDAList, singleAgentNPAccStates, fileLog, expTaskRewards,
 								planningValuesSSI);
-
-						modifiedStartTime = System.currentTimeMillis();
-						System.out.println("Solution from Planning above");
+						startTime = System.currentTimeMillis();
 						for (int i = 0; i < productMDPs.size(); i++) {
 							if (productMDPs.get(i) != null)
 								ms += productMDPs.get(i).getStatesList().get(productMDPs.get(i).getFirstInitialState()) + " ";
 						}
-						mainLog.println(ms);
-						endTime = System.currentTimeMillis();
-						fileLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
 						if (debugSSI) {
 
 							for (int i = 0; i < productMDPs.size(); i++) {
@@ -1202,48 +975,27 @@ public class SSIAuctionNestedProduct
 								}
 							}
 						}
-						//so now this bit is the bane of my existence really 
-						//we have to find a super smart way to create the policy 
-						//step 1 we fix a varlist for the joint policy 
-						//easily done 
-						//step 2 for every reallocation 
-						//we've got to find the mapping of the new policy to this reallocation 
-						//update it 
-						//then go on 
-						//it sounds easy samantha 
-						//well for the life of me i cant get myself to do it alice 
-						//begs the question of liff does it not 
-						//indeed liff 
-						//						jvlDAMap = new HashMap<Integer, DAInfo>(); 
-						//the jvlDAMap should NOT change!!! 
-						startTime = System.currentTimeMillis();
+
 						jvlTosvl = mapJointVarListToRobotVarList(ssNames, finalDAList, jvl, productMDPs, null, null);
 						resultvalues = createJointPolicy(daIndices, jvlDAMap, jvlTosvl, costRewards, productMDPs, mainLog, nviStrategies, saveplace, filename,
 								ssNames, prism, ps, singleAgentNPAccStates, stopReallocationWhenAnyRobotDeadends, stateProb, statesToAvoid, numPlanning, null);
-						endTime = System.currentTimeMillis();
 						if (debugSSI) {
 							planningValuesJP.add(resultvalues);
 						}
-						mainLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
-						fileLog.println("Realloc" + numPlanning + " planning time:" + (endTime - startTime));
-						startTime = System.currentTimeMillis();
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
 								jvlTosvl, currentMDPInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
-						endTime = System.currentTimeMillis();
-						fileLog.println("Realloc" + numPlanning + " processed reallocations:" + (endTime - startTime));
-
-						//						break;
-						modifiedEndTime = System.currentTimeMillis();
-						modifiedDuration = modifiedEndTime - modifiedStartTime;
-						totalTimeDuration += modifiedDuration;
+						
 					}
+					stopTime = System.currentTimeMillis();
+					runTime = stopTime - startTime;
+					//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+					totalTimeDuration += runTime;
 				}
 			}
-			modifiedStartTime = System.currentTimeMillis();
+			startTime = System.currentTimeMillis();
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mcs.get(0), mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
-			endTime = System.currentTimeMillis();
-			fileLog.println("Finished:" + (endTime - superStartTime));
 
 			mainLog.println("Reallocated " + numPlanning + " times");
 			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
@@ -1252,23 +1004,24 @@ public class SSIAuctionNestedProduct
 					mainLog.println(i + ":" + "P:" + Arrays.toString(planningValuesSSI.get(i)) + " C:" + Arrays.toString(planningValuesJP.get(i)));
 				}
 			}
-			modifiedEndTime = System.currentTimeMillis();
-			modifiedDuration = modifiedEndTime - modifiedStartTime;
-			totalTimeDuration += modifiedDuration;
+			results = resultValues(nviSol, mdpCreator.mdp);
 
-			allReplanningDuration = totalTimeDuration - firstSolDuration;
-
-			return resultValues(nviSol, mdpCreator.mdp);
 			//			return resultvalues;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			endTime = System.currentTimeMillis();
-			fileLog.println("Finished: (Error)" + (endTime - superStartTime));
 			fileLog.println(e.getStackTrace().toString());
 
 		}
-		return null;
+		//TODO:your code here 
+		stopTime = System.currentTimeMillis();
+		runTime = stopTime - startTime;
+		//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+
+		totalTimeDuration += runTime;
+		allReplanningDuration = totalTimeDuration - firstSolDuration;
+		
+		return results;
 	}
 
 	void getCostsModels(int numRobots, ExpressionReward rewExpr, ArrayList<MDPModelChecker> mcs, ArrayList<MDPSimple> mdps,
@@ -1280,98 +1033,11 @@ public class SSIAuctionNestedProduct
 			MDPRewardsSimple costsModel = (MDPRewardsSimple) mcs.get(rnum).constructRewards(mdps.get(rnum), costStruct);
 			costsModels.add(costsModel);
 			MDPSimple model = mdps.get(rnum);
-			System.out.println("Initial State: " + model.getStatesList().get(model.getFirstInitialState()));
-			System.out.println("First action name: " + model.getAction(model.getFirstInitialState(), 0).toString());
-			System.out.println("Reward for first action " + costsModel.getTransitionReward(model.getFirstInitialState(), 0));
+//			System.out.println("Initial State: " + model.getStatesList().get(model.getFirstInitialState()));
+//			System.out.println("First action name: " + model.getAction(model.getFirstInitialState(), 0).toString());
+//			System.out.println("Reward for first action " + costsModel.getTransitionReward(model.getFirstInitialState(), 0));
 
 		}
-	}
-
-	ArrayList<BitSet> getRobotPlansUsingNVINestedProduct(int numRobots, ArrayList<ArrayList<Expression>> robotsTasksBroken, ExpressionReward rewExpr,
-			ArrayList<MDP> productMDPs, PrismLog mainLog, ArrayList<MDPModelChecker> mcs, ArrayList<MDPSimple> mdps, ArrayList<MDPRewardsSimple> costRewards,
-			String saveplace, String filename, Prism prism, ArrayList<MDStrategy> nviStrategies, ArrayList<ArrayList<DAInfo>> finalDAList,
-			ArrayList<MDPRewardsSimple> costsModels, ArrayList<BitSet> singleAgentNPAccStates, PrismLog fileLog, ArrayList<MDPRewardsSimple> expTaskRews,
-			ArrayList<double[]> planningValuesSSI) throws PrismException
-	{
-		long startTime, endTime;
-		long maxPlanningTime = 0;
-
-		double[] finalResVals = new double[] { 1.0, 0.0, 0.0 };
-		double[][] resValsRobots = new double[numRobots][3];
-		ArrayList<BitSet> statesToAvoid = new ArrayList<BitSet>();
-		for (int rnum = 0; rnum < numRobots; rnum++) {
-			if (robotsTasksBroken.get(rnum).size() > 0) {
-				long robotPlanningStartTime = System.currentTimeMillis();
-				ArrayList<DAInfo> daList = initializeDAInfoFromLTLExpressions(robotsTasksBroken.get(rnum), mainLog);
-				startTime = System.currentTimeMillis();
-				SingleAgentNestedProductMDP res = buildSingleAgentNestedProductMDP("r" + rnum, mdps.get(rnum), daList, null, prism, mcs.get(rnum), mainLog);
-				MDPRewardsSimple costsModel = costsModels.get(rnum);
-				ArrayList<MDPRewardsSimple> rewards = createMaxExpTaskRewStruct(res, costsModel);
-				endTime = System.currentTimeMillis();
-				fileLog.println("Nested Product and Reward Structures " + rnum + ":" + (endTime - startTime));
-				costRewards.add(rewards.get(1)); //cuz its always 2 for now 
-
-				expTaskRews.add(rewards.get(0));
-				//				mainLog.println(res.combinedAcceptingStates.toString());
-				//				mainLog.println(res.combinedEssentialStates.toString());
-				//				mainLog.println(res.combinedStatesToAvoid.toString());
-				if (debugSSI)
-					new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + 0,
-							res.combinedAcceptingStates);
-				//				mainLog.println(res.numMDPVars);
-				startTime = System.currentTimeMillis();
-				ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mcs.get(rnum), res.finalProduct.getProductModel(),
-						res.combinedAcceptingStates, res.combinedStatesToAvoid, rewards, 0, true, prism, mainLog);
-				double[] resVals = this.resultValues(nviSol, (MDPSimple) res.finalProduct.getProductModel());
-				for (int i = 0; i < resVals.length; i++) {
-					if (i == 0)
-						finalResVals[i] *= resVals[i];
-					else
-						finalResVals[i] += resVals[i];
-				}
-				resValsRobots[rnum] = resVals.clone();
-				statesToAvoid.add((BitSet) res.combinedStatesToAvoid.clone());
-				endTime = System.currentTimeMillis();
-				fileLog.println("Solution Time" + rnum + ":" + (endTime - startTime));
-				//for each da in daList ;
-				//lets see what we have 
-				singleAgentNPAccStates.add((BitSet) res.combinedAcceptingStates.clone());
-				productMDPs.add(res.finalProduct.getProductModel());
-				nviStrategies.add(nviSol.strat);
-				finalDAList.add(res.daList);
-				if (debugSSI) {
-					PolicyCreator pc = new PolicyCreator();
-					pc.createPolicy(res.finalProduct.getProductModel(), nviSol.strat);
-					pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "p" + rnum);
-				}
-
-				long robotPlanningEndTime = System.currentTimeMillis();
-				long robotPlanningDuration = robotPlanningEndTime - robotPlanningStartTime;
-				fileLog.println("Solution Time Used For Max Planning" + rnum + ":" + (robotPlanningDuration));
-				if (maxPlanningTime < robotPlanningDuration) {
-					maxPlanningTime = robotPlanningDuration;
-				}
-			} else {
-				statesToAvoid.add(null);
-				singleAgentNPAccStates.add(null);
-				productMDPs.add(null);
-				nviStrategies.add(null);
-				finalDAList.add(null);
-				costRewards.add(null);
-				expTaskRews.add(null);
-			}
-
-		}
-		for (int rnum = 0; rnum < numRobots; rnum++) {
-			System.out.println(rnum + ": " + Arrays.toString(resValsRobots[rnum]));
-		}
-		System.out.println("Solution from planning: " + Arrays.toString(finalResVals));
-		if (debugSSI) {
-			planningValuesSSI.add(finalResVals);
-		}
-		this.totalTimeDuration += maxPlanningTime;
-		return statesToAvoid;
-
 	}
 
 	ArrayList<BitSet> getRobotPlansUsingNVINestedProductIncremental(int numRobots, ArrayList<SingleAgentNestedProductMDP> nps,
@@ -1380,23 +1046,33 @@ public class SSIAuctionNestedProduct
 			ArrayList<ArrayList<DAInfo>> finalDAList, ArrayList<BitSet> singleAgentNPAccStates, PrismLog fileLog, ArrayList<MDPRewardsSimple> expTaskRews,
 			ArrayList<double[]> planningValuesSSI) throws PrismException
 	{
+////profile
+long startTime = System.currentTimeMillis();
 
-		long startTime, endTime;
-		long maxPlanningTime = 0;
 
 		double[] finalResVals = new double[] { 1.0, 0.0, 0.0 };
 		double[][] resValsRobots = new double[numRobots][3];
 		ArrayList<BitSet> statesToAvoid = new ArrayList<BitSet>();
+		//TODO:your code here 
+
+		long stopTime = System.currentTimeMillis();
+		long runTime = stopTime - startTime;
+		totalTimeDuration+=runTime;
+		
+		long maxTime = 0; 
 		for (int rnum = 0; rnum < numRobots; rnum++) {
+			////profile
+			long startTimex = System.currentTimeMillis();
+
+			
+//			System.out.println("\nRun time: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
+			//end profiling
 			SingleAgentNestedProductMDP sanp = nps.get(rnum);
 			if (sanp != null) {
-				long robotPlanningStartTime = System.currentTimeMillis();
-				startTime = System.currentTimeMillis();
+
 				SingleAgentNestedProductMDP res = sanp;
 				MDPRewardsSimple costsModel = costsModels.get(rnum);
 				ArrayList<MDPRewardsSimple> rewards = createMaxExpTaskRewStruct(res, costsModel);
-				endTime = System.currentTimeMillis();
-				fileLog.println("Nested Product and Reward Structures " + rnum + ":" + (endTime - startTime));
 				costRewards.add(rewards.get(1)); //cuz its always 2 for now 
 
 				expTaskRews.add(rewards.get(0));
@@ -1404,7 +1080,6 @@ public class SSIAuctionNestedProduct
 					new MDPCreator().saveMDP(res.finalProduct.getProductModel(), saveplace + "results/" + fnPrefix, filename + "_prod_" + rnum,
 							res.combinedAcceptingStates);
 				//				mainLog.println(res.numMDPVars);
-				startTime = System.currentTimeMillis();
 				ModelCheckerMultipleResult nviSol = nviSols.get(rnum);
 				double[] resVals = this.resultValues(nviSol, (MDPSimple) res.finalProduct.getProductModel());
 				for (int i = 0; i < resVals.length; i++) {
@@ -1415,8 +1090,6 @@ public class SSIAuctionNestedProduct
 				}
 				resValsRobots[rnum] = resVals.clone();
 				statesToAvoid.add((BitSet) res.combinedStatesToAvoid.clone());
-				endTime = System.currentTimeMillis();
-				fileLog.println("Solution Time" + rnum + ":" + (endTime - startTime));
 				//for each da in daList ;
 				//lets see what we have 
 				singleAgentNPAccStates.add((BitSet) res.combinedAcceptingStates.clone());
@@ -1429,12 +1102,6 @@ public class SSIAuctionNestedProduct
 					pc.savePolicy(saveplace + "results/" + fnPrefix, filename + "p" + rnum);
 				}
 
-				long robotPlanningEndTime = System.currentTimeMillis();
-				long robotPlanningDuration = robotPlanningEndTime - robotPlanningStartTime;
-				fileLog.println("Solution Time Used For Max Planning" + rnum + ":" + (robotPlanningDuration));
-				if (maxPlanningTime < robotPlanningDuration) {
-					maxPlanningTime = robotPlanningDuration;
-				}
 			} else {
 				statesToAvoid.add(null);
 				singleAgentNPAccStates.add(null);
@@ -1444,16 +1111,25 @@ public class SSIAuctionNestedProduct
 				costRewards.add(null);
 				expTaskRews.add(null);
 			}
+			//TODO:your code here 
 
+			long stopTimex = System.currentTimeMillis();
+			long runTimex = stopTimex - startTimex;
+			if(maxTime < runTimex)
+				maxTime = runTimex; 
 		}
+		totalTimeDuration += maxTime;
+		startTime = System.currentTimeMillis();
 		for (int rnum = 0; rnum < numRobots; rnum++) {
 			System.out.println(rnum + ": " + Arrays.toString(resValsRobots[rnum]));
 		}
-		System.out.println("Solution from planning: " + Arrays.toString(finalResVals));
+
 		if (debugSSI) {
 			planningValuesSSI.add(finalResVals);
 		}
-		this.totalTimeDuration += maxPlanningTime;
+		stopTime = System.currentTimeMillis();
+		runTime = stopTime - startTime;
+		totalTimeDuration+=runTime;
 		return statesToAvoid;
 
 	}
@@ -1700,12 +1376,12 @@ public class SSIAuctionNestedProduct
 
 		if (numAcc == numDAs)
 			isAcc = true;
-		if (numEss > 0) {
-			System.out.println("Essential State: " + jointState.toString());
-
-		}
-		if (isAcc)
-			System.out.println("Accepting State: " + jointState.toString());
+//		if (numEss > 0) {
+//			System.out.println("Essential State: " + jointState.toString());
+//
+//		}
+//		if (isAcc)
+//			System.out.println("Accepting State: " + jointState.toString());
 		res[0] = jointState;
 		res[1] = numEss;
 		res[2] = isAcc;

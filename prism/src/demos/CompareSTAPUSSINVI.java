@@ -346,7 +346,7 @@ public class CompareSTAPUSSINVI
 
 	public void singleTests() throws Exception
 	{
-		doDebug = true;
+		doDebug = false;
 		this.reallocSSIOnFirstDeadend = true;
 		this.reallocSTAPUOnFirstDeadend = false;//true; 
 
@@ -364,7 +364,7 @@ public class CompareSTAPUSSINVI
 		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "grid_r10_g10_a3_grid_5_fsp_30_1_";
+		String fn = "r10_g10_a1_grid_5_fsp_30_2_";
 		boolean hasGridData = true;
 		int gridV = 5;
 		String resString = "";
