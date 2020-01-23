@@ -213,6 +213,7 @@ public class XAIfsm
 			System.out.println("Mean: " + mean);
 			System.out.println("STD: " + std);
 
+			
 			double stdDiff = 1;
 			XAIDoContrast xaicont = new XAIDoContrast();
 			System.out.println("Swing States for Optimal Path");
@@ -225,6 +226,15 @@ public class XAIfsm
 				System.out.println(xaicont.textTemplate(ssBottom));
 			}
 
+			//find all states atleast 1 std away from mean 
+			for(XAIStateInformation ss:ssQ)
+			{
+				if (isXStdAwayFromMean(ss,mean,std,stdDiff))
+				{
+					System.out.println("Potentially impactful: " + ss.toString());
+					System.out.println(xaicont.textTemplate(ss));
+				}
+			}
 			double range = xaicont.compareRelativeCostDifference(ssTop, ssBottom);
 			System.out.println("Range: " + range);
 
@@ -252,6 +262,17 @@ public class XAIfsm
 				System.out.println("Bottom: " + altssBottom.toString());
 				System.out.println(xaicont.textTemplate(altssBottom));
 			}
+			
+			for(XAIStateInformation ss:altssQ)
+			{
+				if (isXStdAwayFromMean(ss,mean,std,stdDiff))
+				{
+					System.out.println("Potentially impactful: " + ss.toString());
+					System.out.println(xaicont.textTemplate(ss));
+				}
+			}
+
+			
 			double rangeAlt = xaicont.compareRelativeCostDifference(altssTop, altssBottom);
 			System.out.println("Range: " + rangeAlt);
 

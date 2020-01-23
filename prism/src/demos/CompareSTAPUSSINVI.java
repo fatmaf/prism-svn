@@ -664,10 +664,10 @@ public class CompareSTAPUSSINVI
 	{
 		String fnPrefix = "shelfDepot_r10_g10_";
 		//skipping some to save time really 
-		int[] fsShelfDepot = new int[] { 0, /*13,*/ 25, /* 37,*/ 50, /*62,*/ 74, /*87,*/99/*,*//* 100*/, 111 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
+		int[] fsShelfDepot = new int[] {0,13, 25,  37,50, 62, 74, 87,99, 100, 111 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
 		int[] fsDepotShelf = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111 };//{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
-		String[] fsPercentageStrings = new String[] { "0.0", /*"11.0",*/ "20.0", /*"30.0",*/ "41.0", /*"50.0",*/ "60.0", /*"71.0",*/ "80.0",
-				/*"81.0",*/ "90.0" };
+		String[] fsPercentageStrings = new String[] { "0.0","11.0", "20.0","30.0","41.0", "50.0","60.0","71.0","80.0",
+				"81.0", "90.0" };
 		String fsBit = "fs";
 
 		if (tnum == 0)
@@ -700,22 +700,23 @@ public class CompareSTAPUSSINVI
 		String resString = "";
 
 		int numFilesPerFS = 10;
+		int fileForFSstart = 4; 
 		String errorString = "";
-		int[] rarr = new int[] { /*2, 4,*/ 6 };
-		int[][] garr = new int[][] { { 3, 5, 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ };
+		int[] rarr = new int[] { 4};///*2,4,*/ 6 };
+		int[] garr = new int[] { 5};///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
 		int r, g;
-		int maxFiles = 3 * 3 * fsShelfDepot.length * numFilesPerFS;
+		int maxFiles = rarr.length * garr.length * fsShelfDepot.length * numFilesPerFS;
 		int testFileNum = 1;
 		for (int i = 0; i < rarr.length; i++) {
 			r = rarr[i];
-			for (int j = 0; j < garr[i].length; j++) {
-				g = garr[i][j];
+			for (int j = 0; j < garr.length; j++) {
+				g = garr[j];
 
 				for (int fsNum = 0; fsNum < fsShelfDepot.length; fsNum++) {
+					
 					int fs = fsShelfDepot[fsNum];
-//					if (fs < 99)
-//						continue;
-					for (int fileForFS = 0; fileForFS < numFilesPerFS; fileForFS++) {
+
+					for (int fileForFS = fileForFSstart; fileForFS < numFilesPerFS; fileForFS++) {
 
 						fn = fnPrefix + fsBit + fs + "_fsp_" + fspStrings[fsNum] + "_" + fileForFS + "_";
 
