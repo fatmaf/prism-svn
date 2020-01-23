@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -856,7 +858,10 @@ public class CompareSTAPUSSINVI
 						} catch (Exception e) {
 							System.out.print("Error");
 							System.out.println(errorString);
-							errors.add(errorString);
+							StringWriter sw = new StringWriter();
+				            e.printStackTrace(new PrintWriter(sw));
+				            String exceptionAsString = sw.toString();
+							errors.add(errorString + "\n"+exceptionAsString);
 							e.printStackTrace();
 						}
 					}
