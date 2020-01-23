@@ -97,6 +97,7 @@ public class CompareSTAPUSSINVI
 			}
 		}
 
+		outLog.close();
 	}
 
 	public void printResults(boolean hasGridData)
@@ -664,10 +665,9 @@ public class CompareSTAPUSSINVI
 	{
 		String fnPrefix = "shelfDepot_r10_g10_";
 		//skipping some to save time really 
-		int[] fsShelfDepot = new int[] {0,13, 25,  37,50, 62, 74, 87,99, 100, 111 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
+		int[] fsShelfDepot = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
 		int[] fsDepotShelf = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111 };//{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
-		String[] fsPercentageStrings = new String[] { "0.0","11.0", "20.0","30.0","41.0", "50.0","60.0","71.0","80.0",
-				"81.0", "90.0" };
+		String[] fsPercentageStrings = new String[] { "0.0", "11.0", "20.0", "30.0", "41.0", "50.0", "60.0", "71.0", "80.0", "81.0", "90.0" };
 		String fsBit = "fs";
 
 		if (tnum == 0)
@@ -699,11 +699,12 @@ public class CompareSTAPUSSINVI
 
 		String resString = "";
 
+		String currentErrorfn = "";
 		int numFilesPerFS = 10;
-		int fileForFSstart = 4; 
+		int fileForFSstart = 4;
 		String errorString = "";
-		int[] rarr = new int[] { 4};///*2,4,*/ 6 };
-		int[] garr = new int[] { 5};///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
+		int[] rarr = new int[] { 4 };///*2,4,*/ 6 };
+		int[] garr = new int[] { 5 };///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
 		int r, g;
 		int maxFiles = rarr.length * garr.length * fsShelfDepot.length * numFilesPerFS;
 		int testFileNum = 1;
@@ -713,7 +714,7 @@ public class CompareSTAPUSSINVI
 				g = garr[j];
 
 				for (int fsNum = 0; fsNum < fsShelfDepot.length; fsNum++) {
-					
+
 					int fs = fsShelfDepot[fsNum];
 
 					for (int fileForFS = fileForFSstart; fileForFS < numFilesPerFS; fileForFS++) {
@@ -721,6 +722,7 @@ public class CompareSTAPUSSINVI
 						fn = fnPrefix + fsBit + fs + "_fsp_" + fspStrings[fsNum] + "_" + fileForFS + "_";
 
 						errorString = fn;
+						currentErrorfn = fn;
 						fileText(fn, maxFiles, testFileNum);
 						if (!results.containsKey(fn))
 							results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
@@ -745,7 +747,8 @@ public class CompareSTAPUSSINVI
 							System.out.print("Error");
 							System.out.println(errorString);
 							errors.add(errorString);
-
+							if (results.containsKey(currentErrorfn))
+								results.remove(currentErrorfn);
 							e.printStackTrace();
 
 						}
@@ -775,22 +778,26 @@ public class CompareSTAPUSSINVI
 					keepGoing = in.nextLine();
 					System.out.println("Paused at " + "w_r" + r + "g" + g + "_" + fnPrefix + fnSuffix);
 				}
+				in.close();
 			}
 		}
 
 		System.out.println("***************************************************************");
 		System.out.println(resString);
 		System.out.println("***************************************************************");
-
+		String resname = "w_" + fnPrefix + fnSuffix;
 		if (this.results.size() > 0) {
-			String resname = "w_" + fnPrefix + fnSuffix;
+
 			this.printResults(resSavePlace + resname, hasGridData);
 			printResults(hasGridData);
 		}
 		if (errors.size() > 0) {
+
 			for (String error : errors) {
 				System.out.println(error);
 			}
+			String errorfn = resSavePlace + resname + "_errors";
+			this.writeErrors(errorfn);
 		}
 	}
 
@@ -994,6 +1001,29 @@ public class CompareSTAPUSSINVI
 
 		}
 
+	}
+
+	public void writeErrors(String errorfn)
+	{
+		PrintStream outLog = System.out;
+		File file = null;
+		FileOutputStream fileOutputStream = null;
+		if (errorfn != null) {
+			file = new File(errorfn + ".txt");
+
+			try {
+				fileOutputStream = new FileOutputStream(file);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (fileOutputStream != null)
+				outLog = new PrintStream(fileOutputStream);
+		}
+		for (String error : errors) {
+			outLog.println(error);
+		}
+		outLog.close();
 	}
 
 	public static void main(String[] args)
