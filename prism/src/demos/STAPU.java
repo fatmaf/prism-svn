@@ -498,6 +498,7 @@ public class STAPU
 			//			jointPolicyBuilder.printStatesExploredOrder();
 		}
 		stopTime = System.currentTimeMillis();
+		runTime = stopTime-startTime;
 		stapuTimeDuration += runTime;
 		stapuAllReplanningDuration = runTime;
 		startTime = System.currentTimeMillis();

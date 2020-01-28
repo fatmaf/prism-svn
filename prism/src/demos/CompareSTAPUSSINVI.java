@@ -667,9 +667,15 @@ public class CompareSTAPUSSINVI
 	{
 		String fnPrefix = "shelfDepot_r10_g10_";
 		//skipping some to save time really 
-		int[] fsShelfDepot = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
-		int[] fsDepotShelf = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111 };//{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
-		String[] fsPercentageStrings = new String[] { "0.0", "11.0", "20.0", "30.0", "41.0", "50.0", "60.0", "71.0", "80.0", "81.0", "90.0" };
+		//		int[] fsShelfDepot = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, /*100,*/ 111, 123 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
+
+//		int[] fsShelfDepot = new int[] { 0, 62, 123 }; //{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
+		int[] fsShelfDepot = new int[] {62, 123 };
+		int[] fsDepotShelf = new int[] { 0, 13, 25, 37, 50, 62, 74, 87, 99, 100, 111, 123 };//{ 0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80 };
+		//		String[] fsPercentageStrings = new String[] { "0.0", "11.0", "20.0", "30.0", "41.0", "50.0", "60.0", "71.0", "80.0", /*"81.0",*/ "90.0", "100" };
+
+//		String[] fsPercentageStrings = new String[] { "0.0", "50.0", "100" };
+		String[] fsPercentageStrings = new String[] {  "50.0", "100" };
 		String fsBit = "fs";
 
 		if (tnum == 0)
@@ -700,13 +706,19 @@ public class CompareSTAPUSSINVI
 		String fn = "";
 
 		String resString = "";
-
+		//fnSuffix = "allfs";
 		String currentErrorfn = "";
 		int numFilesPerFS = 10;
-		int fileForFSstart = 4;
+		int fileForFSstart = 0;
 		String errorString = "";
 		int[] rarr = new int[] { 4 };///*2,4,*/ 6 };
-		int[] garr = new int[] { 5 };///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
+		//		int [] rarr=new int[] {/*2,4,*/6,8,10};
+		//		fnSuffix = "allr";
+
+		//		int[] garr = new int[] { 5 };///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
+//		int[] garr = new int[] { 3, 5, 7, 9 };
+		int[] garr = new int[] {  9 };
+		fnSuffix = "allg";
 		int r, g;
 		int maxFiles = rarr.length * garr.length * fsShelfDepot.length * numFilesPerFS;
 		int testFileNum = 1;
@@ -718,7 +730,10 @@ public class CompareSTAPUSSINVI
 				for (int fsNum = 0; fsNum < fsShelfDepot.length; fsNum++) {
 
 					int fs = fsShelfDepot[fsNum];
-
+					if (fs == 62)
+						fileForFSstart = 5;
+					else
+						fileForFSstart = 0;
 					for (int fileForFS = fileForFSstart; fileForFS < numFilesPerFS; fileForFS++) {
 
 						fn = fnPrefix + fsBit + fs + "_fsp_" + fspStrings[fsNum] + "_" + fileForFS + "_";
@@ -773,14 +788,14 @@ public class CompareSTAPUSSINVI
 					this.printResults(resSavePlace + resname, hasGridData);
 					//					printResults();
 				}
-				System.out.println("Waiting to say go");
-				Scanner in = new Scanner(System.in);
-				keepGoing = in.nextLine();
-				while (keepGoing.contains("no")) {
-					keepGoing = in.nextLine();
-					System.out.println("Paused at " + "w_r" + r + "g" + g + "_" + fnPrefix + fnSuffix);
-				}
-				in.close();
+				//				System.out.println("Waiting to say go");
+				//				Scanner in = new Scanner(System.in);
+				//				keepGoing = in.nextLine();
+				//				while (keepGoing.contains("no")) {
+				//					keepGoing = in.nextLine();
+				//					System.out.println("Paused at " + "w_r" + r + "g" + g + "_" + fnPrefix + fnSuffix);
+				//				}
+				//				in.close();
 			}
 		}
 
@@ -859,9 +874,9 @@ public class CompareSTAPUSSINVI
 							System.out.print("Error");
 							System.out.println(errorString);
 							StringWriter sw = new StringWriter();
-				            e.printStackTrace(new PrintWriter(sw));
-				            String exceptionAsString = sw.toString();
-							errors.add(errorString + "\n"+exceptionAsString);
+							e.printStackTrace(new PrintWriter(sw));
+							String exceptionAsString = sw.toString();
+							errors.add(errorString + "\n" + exceptionAsString);
 							e.printStackTrace();
 						}
 					}
