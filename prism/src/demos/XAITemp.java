@@ -106,7 +106,7 @@ public class XAITemp
 			
 			// Find corresponding initial state in DA
 			int q_0 = da.getEdgeDestByLabel(q_s, s_labels);
-			mainLog.println(mdp.getStatesList().get(s_0) + " " + s_0 + "," + q_0 + ":" + s_labels.toString());
+//			mainLog.println(mdp.getStatesList().get(s_0) + " " + s_0 + "," + q_0 + ":" + s_labels.toString());
 			statelabels.add(s_labels);
 		}
 		return statelabels;
