@@ -701,7 +701,7 @@ public class CompareSTAPUSSINVI
 		String keepGoing = "";
 
 		int numRobots = 10;
-		int numGoals = 10;
+		int numGoals = 11;
 		int numDoors = 0;
 		String fn = "";
 
@@ -716,7 +716,7 @@ public class CompareSTAPUSSINVI
 		//		fnSuffix = "allr";
 
 		//		int[] garr = new int[] { 5 };///*3, 5,*/ 7 }/*, { 3, 5, 7 }, { 3, 5, 7 } */ ;
-//		int[] garr = new int[] { 3, 5, 7, 9 };
+//		int[] garr = new int[] { 3, 5, 7, 9,11 };
 		int[] garr = new int[] {  9 };
 		fnSuffix = "allg";
 		int r, g;
@@ -824,7 +824,7 @@ public class CompareSTAPUSSINVI
 		String dir = testDirBaseLoc + "strangehouse/";
 
 		int numRobots = 10;
-		int numGoals = 10;
+		int numGoals = 11;
 		int numDoors = 0;
 		String fn = "";
 
@@ -916,7 +916,7 @@ public class CompareSTAPUSSINVI
 		String keepGoing = "";
 
 		int numRobots = 10;
-		int numGoals = 10;
+		int numGoals = 11;
 		int numDoors = 0;
 		String fn = "";
 
