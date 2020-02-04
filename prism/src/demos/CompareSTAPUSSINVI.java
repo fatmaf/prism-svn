@@ -40,8 +40,8 @@ public class CompareSTAPUSSINVI {
 	boolean stapuNoReallocs = false;
 	boolean ssiNoReallocs = false;
 
-	String resSavePlace = "/data/private/fxf603/code/prism-svn/prism/tests/resultsSummary/";// "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
-	String testDirBaseLoc = "/data/private/fxf603/code/prism-svn/prism/tests/";// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
+	String resSavePlace =  "/home/fatma/Data/PhD/code/stapussi_prelim/xkcdStyle/data/";
+	String testDirBaseLoc =  "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
 
 	ArrayList<String> errors = new ArrayList<String>();
 	HashMap<String, HashMap<int[], ArrayList<float[][]>>> results = new HashMap<String, HashMap<int[], ArrayList<float[][]>>>();
