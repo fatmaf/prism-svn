@@ -281,7 +281,7 @@ public class CompareSTAPUSSINVI {
 	}
 
 	public void singleTests() throws Exception {
-		doDebug = false;
+		doDebug = true;
 		this.reallocSSIOnFirstDeadend = true;
 		this.reallocSTAPUOnFirstDeadend = false;// true;
 
@@ -290,7 +290,7 @@ public class CompareSTAPUSSINVI {
 		this.stapuNoReallocs = false;
 		this.ssiNoReallocs = false;
 
-		boolean justSTAPU = false;
+		boolean justSTAPU = true;
 		boolean justSSI = false;
 
 		String dir = testDirBaseLoc;// "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/";
@@ -302,17 +302,19 @@ public class CompareSTAPUSSINVI {
 		int numFS = 31;
 		int numGoals = 11;
 		int numDoors = 0;
-		String fn = "r10_g10_a1_grid_5_fsp_40_8_";// "r10_g10_a1_grid_5_fsp_30_2_";
+//		r10_g10_a1_grid_11_fsp_100_2_
+//		r:4 [6, 4, 1, 0]	g:9 [0, 5, 1, 7, 3, 2, 4, 6]
+		String fn = "r10_g10_a1_grid_11_fsp_100_2_";//"r10_g10_a1_grid_5_fsp_40_8_";// "r10_g10_a1_grid_5_fsp_30_2_";
 		// r10_g10_a1_grid_5_fsp_40_8_
 		// r:4 [9, 1, 8, 6] g:7 [4, 0, 8, 2, 1, 7]
-		fn = "r10_g10_a1_grid_11_fsp_50_2_"; // actually 100
+//		fn = "r10_g10_a1_grid_11_fsp_50_2_"; // actually 100
 //		r:4 [6, 4, 1, 0]	g:9 [0, 5, 1, 7, 3, 2, 4, 6]
 	//	fn = "shelfDepot_r10_g10_fs62_fsp_50.0_2_";
 		boolean hasGridData = true;
 		int gridV = 5;
 		String resString = "";
-		int r = 4;// numRobots;
-		int g = 9;// 3;//numGoals;
+		int r = 2;//4;// numRobots;
+		int g = 3;//9;// 3;//numGoals;
 		boolean doRandomRG = false;
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
@@ -330,16 +332,16 @@ public class CompareSTAPUSSINVI {
 			goalNumbers = new ArrayList<Integer>();
 			robotNumbers.add(6);
 			robotNumbers.add(4);
-			robotNumbers.add(1);
-			robotNumbers.add(0);
+//			robotNumbers.add(1);
+//			robotNumbers.add(0);
 			goalNumbers.add(0);
 			goalNumbers.add(5);
-			goalNumbers.add(1);
-			goalNumbers.add(7);
-			goalNumbers.add(3);
-			goalNumbers.add(2);
-			goalNumbers.add(4);
-			goalNumbers.add(6);
+//			goalNumbers.add(1);
+//			goalNumbers.add(7);
+//			goalNumbers.add(3);
+//			goalNumbers.add(2);
+//			goalNumbers.add(4);
+//			goalNumbers.add(6);
 		}
 		int[] rgdf;
 		if (hasGridData)

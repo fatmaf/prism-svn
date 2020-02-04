@@ -277,12 +277,88 @@ public class StatesHelper
 		out.close();
 		out = new PrismFileLog(location + "_" + name + ".sta");
 		try {
-			if(mdp.getVarList() != null)
-			mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
+			if (mdp.getVarList() != null)
+				mdp.exportStates(Prism.EXPORT_PLAIN, mdp.getVarList(), out);
 		} catch (PrismException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		out.close();
+
+	}
+
+	/**
+	 * @param anotherfolder
+	 *            the location of the tile to save
+	 * 
+	 * @param saveplace
+	 *            alternate location
+	 * @param bs
+	 *            The bitset array
+	 * 
+	 * @param name
+	 *            filename
+	 * 
+	 * @param saveinsaveplace
+	 *            save in predefined save location (set to true) if false saves in
+	 *            same location as adversary
+	 */
+	public static void saveBitSetVector(Vector<BitSet> bss, String anotherfolder, String name, boolean saveinsaveplace)
+	{
+		String temp = anotherfolder;
+		if (temp == "")
+			temp = folder;
+		temp = temp.replace("adv", "");
+		temp = temp.replace(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location + "_" + name + ".bs");
+		for (int i = 0; i < bss.size(); i++) {
+			out.println(i);
+			out.println(bss.get(i).toString());
+		}
+		out.close();
+
+	}
+
+	/**
+	 * @param anotherfolder
+	 *            the location of the tile to save
+	 * 
+	 * @param saveplace
+	 *            alternate location
+	 * @param bs
+	 *            The bitset
+	 * 
+	 * @param name
+	 *            filename
+	 * 
+	 * @param saveinsaveplace
+	 *            save in predefined save location (set to true) if false saves in
+	 *            same location as adversary
+	 */
+	public static void saveBitSet(BitSet bs, String anotherfolder, String name, boolean saveinsaveplace)
+	{
+		String temp = anotherfolder;
+		if (temp == "")
+			temp = folder;
+		temp = temp.replace("adv", "");
+		temp = temp.replace(".tra", "");
+		String location = temp;
+		if (saveinsaveplace) {
+			location = getSaveplace();
+			temp = temp.substring(temp.lastIndexOf("/") + 1, temp.length());
+			location += temp;
+		}
+		name = name.replace(" ", "_");
+		PrismLog out = new PrismFileLog(location + "_" + name + ".bs");
+		out.println(bs.toString());
+
 		out.close();
 
 	}

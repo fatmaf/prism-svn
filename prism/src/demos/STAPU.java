@@ -297,6 +297,7 @@ public class STAPU
 		// create team automaton from a set of MDP DA stuff
 		SequentialTeamMDP seqTeamMDP = new SequentialTeamMDP(this.mainLog, numRobots, matchSharedVars); // buildSequentialTeamMDPTemplate(singleAgentProductMDPs);
 
+		seqTeamMDP.doDebug = this.debugSTAPU;
 		seqTeamMDP = seqTeamMDP.buildSequentialTeamMDPTemplate(singleAgentProductMDPs, shared_vars_list);
 
 		int firstRobot = 0; // fix this

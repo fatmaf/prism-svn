@@ -41,6 +41,7 @@ public class SequentialTeamMDP
 	public MDPRewardsSimple progressionRewards;
 	private Vector<Integer> sharedVarIndices;
 	boolean switchesMatchSharedStatesToo;
+	public boolean doDebug = false;
 	PrismLog mainLog;
 	// basically its just the essential states that have progressionRewad
 
@@ -58,7 +59,8 @@ public class SequentialTeamMDP
 		this.sharedVarIndices = new Vector<Integer>();
 	}
 
-	public void addSwitchesAndSetInitialState(int firstRobot, boolean includefailstatesinswitches, boolean completeRing,boolean excludeRobotInitStates) throws PrismException
+	public void addSwitchesAndSetInitialState(int firstRobot, boolean includefailstatesinswitches, boolean completeRing, boolean excludeRobotInitStates)
+			throws PrismException
 	{
 		int[] robotStates = new int[numRobots];
 		for (int i = 0; i < numRobots; i++) {
@@ -67,10 +69,11 @@ public class SequentialTeamMDP
 			// it is a silly thing to do and should be fixed
 			robotStates[i] = initialStates.get(i).nextSetBit(0);
 		}
-		addSwitchesAndSetInitialState(firstRobot, robotStates, includefailstatesinswitches, completeRing,excludeRobotInitStates);
+		addSwitchesAndSetInitialState(firstRobot, robotStates, includefailstatesinswitches, completeRing, excludeRobotInitStates);
 	}
 
-	public void addSwitchesAndSetInitialState(int firstRobot, int[] robotStates, boolean includefailstates, boolean completeRing,boolean excludeRobotInitStates) throws PrismException
+	public void addSwitchesAndSetInitialState(int firstRobot, int[] robotStates, boolean includefailstates, boolean completeRing,
+			boolean excludeRobotInitStates) throws PrismException
 	{
 		// set initial state as those from the first robot
 		// you still need to check if the robot has failed
@@ -100,7 +103,7 @@ public class SequentialTeamMDP
 			// TODO: INITIAL STATE STUFF FOR LATER see above
 		}
 
-		addSwitchTransitions(firstRobot, isFailedState, includefailstates, completeRing,excludeRobotInitStates);
+		addSwitchTransitions(firstRobot, isFailedState, includefailstates, completeRing, excludeRobotInitStates);
 	}
 
 	public int addSwitchTransitions(int firstRobot, boolean[] hasFailed, boolean includefailstates, boolean completeRing, boolean excludeRobotInitStates)
@@ -142,6 +145,7 @@ public class SequentialTeamMDP
 	}
 
 	private int addSwitchTransitionsBetweenRobots(int toRobot, int fromRobot, BitSet fromRobotEssentialStates, BitSet toRobotInitialStates)
+			throws PrismException
 	{
 		// from the essential states of from robot
 		// to the initial states of to robot
@@ -162,8 +166,7 @@ public class SequentialTeamMDP
 				if (this.switchesMatchSharedStatesToo) {
 					stateVarsMatch = stateVarsMatch && StatesHelper.areEqual(fromRobotStateVar, toRobotStateVar, sharedVarIndices);
 				}
-				//				if(fromRobotState==6720)
-				//					mainLog.println("check here");
+
 				if (stateVarsMatch) {
 					Distribution distr = new Distribution();
 					distr.add(toRobotState, switchProb);
@@ -177,19 +180,24 @@ public class SequentialTeamMDP
 					totalSwitches++;
 					// making the assumption that since the to and from states are actually states
 					// from the mdp
-					// where we need too match progress
-					// this can only happen once per state
-					// hence this break
+					// where we need to match progress
+					// this can only happen once per state in the to states cuz like there's only one of them 
+					// hence this break but I'm commenting this out just to check stuff
 					// TODO: verify this
-					break;
+//					break;
+//					mainLog.println("Matched "+fromRobotStateVar+" to "+toRobotStateVar);
 				}
 				toRobotState = toRobotInitialStates.nextSetBit(toRobotState + 1);
 			}
 			fromRobotState = fromRobotEssentialStates.nextSetBit(fromRobotState + 1);
 		}
 		// mainLog.println(totalSwitches == fromRobotEssentialStates.cardinality());
-		if (!(totalSwitches == fromRobotEssentialStates.cardinality()))
-			mainLog.println("Number of switches doesnt match expected number");
+		if (!(totalSwitches == fromRobotEssentialStates.cardinality())) {
+			mainLog.println(
+//					"Number of switches doesnt match expected number");
+//			throw new PrismException(
+					"Number of switches doesnt match expected number, expected " + fromRobotEssentialStates.cardinality() + " added " + totalSwitches+" but this is fine because some of these are states to avoid etc");
+		}
 		return totalSwitches;
 	}
 
@@ -341,30 +349,20 @@ public class SequentialTeamMDP
 				// set the states
 				if (singleAgentNestedMDP.combinedAcceptingStates.get(s)) {
 					acceptingStates.set(indexInTeamState);
-					// singleAgentNestedMDP.daList.get(0).productAcceptingStates.get(s);
-					// this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
+
 				}
 				if (singleAgentNestedMDP.combinedStatesToAvoid.get(s)) {
 					statesToAvoid.set(indexInTeamState);
-//					if(teamMDPStatesList.get(indexInTeamState).toString().contains("1,0,1,1,"))
-//					{
-//						
-//							mainLog.println("Error "+indexInTeamState);
-//						
-//					}
-//					if(teamMDPStatesList.get(indexInTeamState).toString().contains("0,0,1,1,"))
-//					{
-//						
-//							mainLog.println("Error "+indexInTeamState);
-//						
-//					}
+			
 				}
 
 				if (singleAgentNestedMDP.combinedEssentialStates.get(s)) {
+					//make sure this is not a state we want to avoid 
+//					if(!singleAgentNestedMDP.combinedStatesToAvoid.get(s))
 					essentialStates.set(indexInTeamState);
-					// this.progressionRewards.addToStateReward(indexInTeamState, 1.0);
 				}
 				if (agentInitialStates.get(s)) {
+//					if(!singleAgentNestedMDP.combinedStatesToAvoid.get(s))
 					agentInitialStatesInTeam.set(indexInTeamState);
 				}
 
@@ -395,36 +393,19 @@ public class SequentialTeamMDP
 
 						}
 
-//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("1,0,1,1,65"))
-//						{
-//							mainLog.println("debug");
-//						}
+					
 						boolean[] essAcc = singleAgentNestedMDP.addRewardForTaskCompletion(nextState, s);
-//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("1,0,1,1,"))
-//						{
-//							if(essAcc[1]==false)
-//							{
-//								mainLog.println("Error "+indexInTeamNextState);
-//							}
-//						}
-//						if(teamMDPStatesList.get(indexInTeamNextState).toString().contains("0,0,1,1,"))
-//						{
-//							if(essAcc[1]==false)
-//							{
-//								mainLog.println("Error "+indexInTeamNextState);
-//							}
-//						}
+	
 						if (essAcc[0]) {
 							//somethings off with essential states stuff 
 							//this is a better way to do stuff anyway so just putting it here 
-							
+
 							essentialStates.set(indexInTeamNextState);
-							if(essAcc[1])
-							{
+							if (essAcc[1]) {
 								acceptingStates.nextSetBit(indexInTeamNextState);
 							}
 							//end update 
-							
+
 							if (addProgReward) {
 								expectedProgRewardValue += nextStateProb * progRewardFixedValue;
 							} else {
@@ -447,10 +428,6 @@ public class SequentialTeamMDP
 						int singleAgentState = singleAgentNestedMDP.productStateToMDPState.get(s);
 						double rewardHere = rewardStruct.getTransitionReward(singleAgentState, j);
 
-						//if its a deadend state set the reward to 0 
-
-						//						if(isDeadend)
-						//							rewardHere = 0.0;
 
 						teamRewardsList.get(rew).addToTransitionReward(indexInTeamState, transitionNum, rewardHere);
 
@@ -480,8 +457,15 @@ public class SequentialTeamMDP
 		this.teamMDPTemplate = teamMDP;
 		this.teamRewardsTemplate = teamRewardsList;
 
-//		StatesHelper.saveMDP(teamMDP, acceptingStates, "", "teamMDPTemplate", true);
+	
+		if (doDebug) {
+			StatesHelper.saveMDPstatra(teamMDP, "", "teamMDPTemplate", true);
 
+			StatesHelper.saveBitSet(acceptingStates, "", "teamMDPTemplate_acc", true);
+			StatesHelper.saveBitSet(statesToAvoid, "", "teamMDPTemplate_avoid", true);
+			StatesHelper.saveBitSetVector(this.essentialStates, "", "teamMDPTemplate_ess", true);
+			StatesHelper.saveBitSetVector(this.initialStates, "", "teamMDPTemplate_inits", true);
+		}
 		teamMDP.findDeadlocks(true); // TODO: do we do this here ? does it matter
 		// just return this
 		// add switch states after
