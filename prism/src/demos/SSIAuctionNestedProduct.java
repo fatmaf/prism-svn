@@ -175,8 +175,8 @@ public class SSIAuctionNestedProduct
 		int mdpInitState = mdp.getFirstInitialState();
 		mainLog.println("\nFor state " + mdpInitState + " p = " + resultVals[0] + ", max exp tasks completed: " + resultVals[1] + ", min sum of costs: "
 				+ resultVals[2]);
-		System.out.println("\nFor state " + mdpInitState + " p = " + resultVals[0] + ", max exp tasks completed: " + resultVals[1] + ", min sum of costs: "
-				+ resultVals[2]);
+//		System.out.println("\nFor state " + mdpInitState + " p = " + resultVals[0] + ", max exp tasks completed: " + resultVals[1] + ", min sum of costs: "
+//				+ resultVals[2]);
 		return resultVals;
 	}
 
@@ -358,7 +358,7 @@ public class SSIAuctionNestedProduct
 		//so what we've got to do here is 
 		//we got to mix the single agent bid with the sum of costs 
 		//so we have this current sum of costs 
-		//then we get the bid for one agent 
+		//then we get the bid for one agent -
 		//if its less than the current sum, that agent gets the bid 
 		// so technically we're merging the whole process 
 
@@ -427,6 +427,7 @@ public class SSIAuctionNestedProduct
 					maxBidDuration = runTimex;
 				fileLog.println("Robot " + i + " bid: " + getTimeString(runTimex));
 				fileLog.println("Max Bid Time" + getTimeString(maxBidDuration));
+				fileLog.println("XXX,A1,"+System.currentTimeMillis());
 
 			}
 			totalTimeDuration += maxBidDuration;
@@ -446,6 +447,7 @@ public class SSIAuctionNestedProduct
 			totalTimeDuration += runTimex;
 			fileLog.println("Auction cleanup: " + getTimeString(runTimex));
 			fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
+			fileLog.println("XXX,A2,"+System.currentTimeMillis());
 
 		}
 		startTime = System.currentTimeMillis();
@@ -458,6 +460,7 @@ public class SSIAuctionNestedProduct
 		totalTimeDuration += runTime;
 		fileLog.println("Auction cleanup: " + getTimeString(runTime));
 		fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
+		fileLog.println("XXX,A3,"+System.currentTimeMillis());
 		return toret;//robotsTasksBroken;
 	}
 
@@ -747,6 +750,7 @@ public class SSIAuctionNestedProduct
 	public double[] run(String saveplace, String fn, int numRobots, int numGoals, int numDoors, ArrayList<Integer> robotNumbers, ArrayList<Integer> goalNumbers,
 			boolean stopReallocationWhenAnyRobotDeadends, PrismLog fileLog, String mainLogFile)
 	{
+		fileLog.println("XXX,-A,"+System.currentTimeMillis());
 		////profile
 		long startTime = System.currentTimeMillis();
 		long stopTime;
@@ -770,6 +774,7 @@ public class SSIAuctionNestedProduct
 		fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
 
 		try {
+			
 			startTime = System.currentTimeMillis();
 			String filename = fn;
 			ssNames = new ArrayList<String>();
@@ -821,7 +826,7 @@ public class SSIAuctionNestedProduct
 
 			Entry<ArrayList<ArrayList<Expression>>, Entry<ArrayList<SingleAgentNestedProductMDP>, ArrayList<ModelCheckerMultipleResult>>> meh = auctionTasksSumOfCostsNestedProductIncremental(
 					taskSetToEdit, numRobots, mdps, rewExpr, safetyExpr, mcs, costsModels, prism, saveplace, filename, mainLog, fileLog);
-
+			fileLog.println("XXX,B,"+System.currentTimeMillis());
 			startTime = System.currentTimeMillis();
 
 			ArrayList<ArrayList<Expression>> robotsTasksBroken = meh.getKey();
@@ -850,6 +855,7 @@ public class SSIAuctionNestedProduct
 					costRewards, saveplace, filename, prism, nviStrategies, finalDAList, singleAgentNPAccStates, fileLog, expTaskRewards, planningValuesSSI);
 			fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
 			startTime = System.currentTimeMillis();
+			fileLog.println("XXX,C,"+System.currentTimeMillis());
 			if (debugSSI) {
 
 				for (int i = 0; i < productMDPs.size(); i++) {
@@ -891,7 +897,7 @@ public class SSIAuctionNestedProduct
 			this.firstSolDuration = totalTimeDuration;
 			fileLog.println("Joint Policy Building: " + getTimeString(runTime));
 			fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
-
+			fileLog.println("XXX,D,"+System.currentTimeMillis());
 			if (doingReallocs) {
 				startTime = System.currentTimeMillis();
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
@@ -969,7 +975,7 @@ public class SSIAuctionNestedProduct
 						meh = auctionTasksSumOfCostsNestedProductIncremental(currentTaskSet, numRobots, mdps, rewExpr, safetyExpr, mcs, costsModels, prism,
 								saveplace, filename, mainLog, fileLog);
 						fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
-
+						fileLog.println("XXX,B,"+System.currentTimeMillis());
 						startTime = System.currentTimeMillis();
 						robotsTasksBroken = meh.getKey();
 						samdps = meh.getValue().getKey();
@@ -1016,6 +1022,7 @@ public class SSIAuctionNestedProduct
 							if (productMDPs.get(i) != null)
 								ms += productMDPs.get(i).getStatesList().get(productMDPs.get(i).getFirstInitialState()) + " ";
 						}
+						fileLog.println("XXX,C,"+System.currentTimeMillis());
 						if (debugSSI) {
 
 							for (int i = 0; i < productMDPs.size(); i++) {
@@ -1040,7 +1047,7 @@ public class SSIAuctionNestedProduct
 						}
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
 								jvlTosvl, currentMDPInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
-
+						fileLog.println("XXX,D,"+System.currentTimeMillis());
 					}
 					stopTime = System.currentTimeMillis();
 					runTime = stopTime - startTime;
@@ -1065,7 +1072,7 @@ public class SSIAuctionNestedProduct
 				}
 			}
 			results = resultValues(nviSol, mdpCreator.mdp, fileLog);
-
+			fileLog.println("XXX,E,"+System.currentTimeMillis());
 			//			return resultvalues;
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -1082,7 +1089,7 @@ public class SSIAuctionNestedProduct
 		
 		fileLog.println("Final Clean up: " + getTimeString(runTime));
 		fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
-
+		fileLog.println("XXX,F,"+System.currentTimeMillis());
 		return results;
 	}
 

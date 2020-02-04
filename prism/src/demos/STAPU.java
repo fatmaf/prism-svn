@@ -215,6 +215,7 @@ public class STAPU
 		return timeString;
 	}
 
+
 	protected double[] doSTAPULimitGoals(ArrayList<Model> models, ExpressionFunc expr, BitSet statesOfInterest, ProbModelChecker mcProb,
 			ArrayList<ModulesFile> modulesFiles, ArrayList<String> shared_vars_list, boolean includefailstatesinswitches, boolean matchSharedVars,
 			boolean completeSwitchRing, int numGoals, boolean noReallocs, ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend,
@@ -222,6 +223,8 @@ public class STAPU
 	{
 
 		////profile
+		ModelCheckerMultipleResult result=null;
+		ArrayList<MDPRewardsSimple> finalRewards=null;
 		long startTime = System.currentTimeMillis();
 		long runningTimer = 0;
 		long startTimer = 0;
@@ -283,7 +286,9 @@ public class STAPU
 				maxTimeNP = runTimex;
 
 			fileLog.println("Build Nested Product: " + getTimeString(runTimex));
+			fileLog.println("XXX,A1,"+System.currentTimeMillis());
 		}
+		
 		fileLog.println("Max Nested Product: " + getTimeString(maxTimeNP));
 		stapuTimeDuration += maxTimeNP;
 		fileLog.println("Time so far: " + getTimeString(stapuTimeDuration));
@@ -303,7 +308,7 @@ public class STAPU
 			combinedEssentialStates.or(seqTeamMDP.essentialStates.get(i));
 
 		}
-
+		fileLog.println("XXX,B,"+System.currentTimeMillis());
 		ArrayList<MDPRewardsSimple> rewards = new ArrayList<MDPRewardsSimple>(seqTeamMDP.rewardsWithSwitches);
 		ArrayList<Boolean> minRewards = new ArrayList<Boolean>();
 		for (int rew = 0; rew < rewards.size(); rew++) {
@@ -331,7 +336,7 @@ public class STAPU
 				seqTeamMDP.statesToAvoid, rewards, minRewards, probPreference, fileLog);// ,probInitVals);
 
 		int initialState = seqTeamMDP.teamMDPWithSwitches.getFirstInitialState();
-
+		fileLog.println("XXX,C,"+System.currentTimeMillis());
 		mainLog.println("InitState = " + initialState);
 		stopTime = System.currentTimeMillis();
 		runTime = stopTime - startTime;
@@ -349,7 +354,7 @@ public class STAPU
 
 		JointPolicyBuilder jointPolicyBuilder = new JointPolicyBuilder(seqTeamMDP.numRobots, seqTeamMDP.agentMDPs.get(0).daList.size(), shared_vars_list,
 				seqTeamMDP.teamMDPTemplate.getVarList(), rewards, mainLog);
-
+		
 		if (debugSTAPU) {
 			PolicyCreator pc = new PolicyCreator();
 			pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches, solution.strat,
@@ -370,9 +375,9 @@ public class STAPU
 			planningValuesSTAPU.add(resultValues(solution, seqTeamMDP.teamMDPWithSwitches));
 
 			jointPolicyBuilder.createRewardStructures();
-			ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
+			 finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
 			jointPolicyBuilder.jointMDP.findDeadlocks(true);
-			ModelCheckerMultipleResult result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
+			result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
 					finalRewards, minRewards, probPreference, fileLog);
 			planningValuesJP.add(resultValues(result, jointPolicyBuilder.jointMDP));
 
@@ -380,19 +385,19 @@ public class STAPU
 			pc.createPolicyWithRewardsStructuresAsLabels(jointPolicyBuilder.jointMDP.getFirstInitialState(), jointPolicyBuilder.jointMDP, result.strat,
 					finalRewards.get(0), finalRewards.get(1), jointPolicyBuilder.accStates);
 			StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_0" + "_init_jpRews", true);
-
+			jointPolicyBuilder.createRewardStructures();
+			 finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
+			jointPolicyBuilder.jointMDP.findDeadlocks(true);
+			 result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
+					finalRewards, minRewards, probPreference, fileLog);
 		}
-		jointPolicyBuilder.createRewardStructures();
-		ArrayList<MDPRewardsSimple> finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
-		jointPolicyBuilder.jointMDP.findDeadlocks(true);
-		ModelCheckerMultipleResult result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates, new BitSet(),
-				finalRewards, minRewards, probPreference, fileLog);
+
 		stopTime = System.currentTimeMillis();
 		runTime = stopTime - startTime;
 		stapuTimeDuration += runTime;
 		fileLog.println("Joint Policy Building: " + getTimeString(runTime));
 		fileLog.println("Time so far: " + getTimeString(stapuTimeDuration));
-
+		fileLog.println("XXX,D,"+System.currentTimeMillis());
 		//		startTime = System.currentTimeMillis();
 
 		//		stopTime = System.currentTimeMillis();
@@ -417,8 +422,9 @@ public class STAPU
 
 				stopTimer = System.currentTimeMillis();
 				runTimer = stopTimer - startTimer;
-				fileLog.println("Replanning inits: " + getTimeString(runTimer));
 				runningTimer += runTimer;
+				fileLog.println("Replanning inits: " + getTimeString(runTimer));
+				
 				fileLog.println("Time so far: " + getTimeString(stapuTimeDuration + runningTimer));
 				if (!jointPolicyBuilder.inStatesExplored(stateToExplore)) {
 					startTimer = System.currentTimeMillis();
@@ -445,10 +451,11 @@ public class STAPU
 					fileLog.println("Time so far: " + getTimeString(stapuTimeDuration + runningTimer));
 
 					startTimer = System.currentTimeMillis();
-
+					fileLog.println("XXX,B,"+System.currentTimeMillis());
 					solution = computeNestedValIterFailurePrint(seqTeamMDP.teamMDPWithSwitches, seqTeamMDP.acceptingStates, statesToAvoid, rewards, minRewards,
 							probPreference, fileLog);// ,probInitVals);
-
+					fileLog.println("XXX,C,"+System.currentTimeMillis());
+					stopTimer = System.currentTimeMillis();
 					runTimer = stopTimer - startTimer;
 					fileLog.println("Solution : " + getTimeString(runTimer));
 					runningTimer += runTimer;
@@ -457,7 +464,7 @@ public class STAPU
 					startTimer = System.currentTimeMillis();
 					jointPolicyBuilder.buildJointPolicyFromSequentialPolicy(solution.strat, seqTeamMDP.teamMDPWithSwitches, stateToExplore,
 							seqTeamMDP.acceptingStates, reallocateOnSingleAgentDeadend, stateToExploreProb);
-
+				
 					if (debugSTAPU) {
 						PolicyCreator pc = new PolicyCreator();
 						pc.createPolicyWithRewardsStructuresAsLabels(seqTeamMDP.teamMDPWithSwitches.getFirstInitialState(), seqTeamMDP.teamMDPWithSwitches,
@@ -475,13 +482,14 @@ public class STAPU
 						pc.createPolicyWithRewardsStructuresAsLabels(jointPolicyBuilder.jointMDP.getFirstInitialState(), jointPolicyBuilder.jointMDP,
 								result.strat, finalRewards.get(0), finalRewards.get(1), jointPolicyBuilder.accStates);
 						StatesHelper.saveMDP(pc.mdpCreator.mdp, null, "", "_" + numPlanning + "_" + stateToExplore.toString() + "_jpRews", true);
+						jointPolicyBuilder.createRewardStructures();
+						 finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
+						jointPolicyBuilder.jointMDP.findDeadlocks(true);
+						 result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates,
+								new BitSet(), finalRewards, minRewards, probPreference, fileLog);
 					}
-					
-					jointPolicyBuilder.createRewardStructures();
-					 finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
-					jointPolicyBuilder.jointMDP.findDeadlocks(true);
-					 result = computeNestedValIterFailurePrint(jointPolicyBuilder.jointMDP, jointPolicyBuilder.accStates,
-							new BitSet(), finalRewards, minRewards, probPreference, fileLog);
+					fileLog.println("XXX,D,"+System.currentTimeMillis());
+				
 					stopTimer = System.currentTimeMillis();
 					
 					runTimer = stopTimer - startTimer;
@@ -498,14 +506,13 @@ public class STAPU
 			//			jointPolicyBuilder.printStatesExploredOrder();
 		}
 		stopTime = System.currentTimeMillis();
-		runTime = stopTime-startTime;
-		stapuTimeDuration += runTime;
+		runTime = stopTime - startTime;
 		stapuAllReplanningDuration = runTime;
-		startTime = System.currentTimeMillis();
+		stapuTimeDuration += runTime;
 		//		HashMap<String, Double> values = new HashMap<String, Double>();
 		//		values.put("prob", jointPolicyBuilder.getProbabilityOfSatisfactionFromInitState());
 		startTimer = System.currentTimeMillis();
-
+		startTime = System.currentTimeMillis();
 		jointPolicyBuilder.createRewardStructures();
 		 finalRewards = jointPolicyBuilder.getExpTaskAndCostRewards();
 		jointPolicyBuilder.jointMDP.findDeadlocks(true);
@@ -521,17 +528,23 @@ public class STAPU
 		mainLog.println("All done");
 
 		double[] results = resultValues(result, jointPolicyBuilder.jointMDP);
+		stopTime = System.currentTimeMillis();
+		stopTimer = System.currentTimeMillis();
+		runTimer = stopTimer - startTimer;
 		
 		fileLog.println("Final Clean up: " + getTimeString(runTimer));
 		runningTimer += runTimer;
-		fileLog.println("Time so far: " + getTimeString(stapuTimeDuration + runningTimer));
+		fileLog.println("Time so far: " + getTimeString(stapuTimeDuration ));
 
-		fileLog.println("All Replanning: "+numPlanning+" time "+ getTimeString(runningTimer) + getTimeString(stapuAllReplanningDuration));
+		fileLog.println("All Replanning: "+numPlanning+" time "+ getTimeString(runningTimer-runTimer));
+		fileLog.println("All Replanning: "+numPlanning+" time "+ getTimeString(this.stapuAllReplanningDuration));
+		
 		runTime = stopTime - startTime;
+	
 		stapuTimeDuration += runTime;
-//		stapuAllReplanningDuration = runTime;
 		runTimer = stopTimer - startTimer;
 		fileLog.println("Time so far without timer: " + getTimeString(stapuTimeDuration));
+		fileLog.println("XXX,E,"+System.currentTimeMillis());
 		//end profiling
 		return results;
 
@@ -678,7 +691,7 @@ public class STAPU
 	public double[] runGUISimpleTestsOne(String dir, String fn, int numRobots, int numFS, int numGoals, int numDoors, ArrayList<Integer> robotNumbers,
 			ArrayList<Integer> goalNumbers, boolean reallocateOnSingleAgentDeadend, PrismLog fileLog, String mainLogfn, boolean excludeRobotInitStates)
 	{
-
+		fileLog.println("XXX,-A,"+System.currentTimeMillis());
 		double[] res = null;
 
 		String modelLocation = dir;
@@ -712,7 +725,7 @@ public class STAPU
 			int maxRobots = example_num_robot_list.get(example_id);
 			int maxGoals = example_num_goals_list.get(example_id);
 			try {
-
+				startTime = System.currentTimeMillis();
 				res = runOneExampleNumRobotsGoals(example_to_run, example_id, example_has_door_list, example_num_door_list, maxRobots, maxGoals,
 						example_num_fs_list, modelLocation, true, dir + "results/stapu", this.noreallocations, robotNumbers, goalNumbers,
 						reallocateOnSingleAgentDeadend, fileLog, mainLogfn, excludeRobotInitStates);
@@ -729,6 +742,7 @@ public class STAPU
 			}
 
 		}
+		fileLog.println("XXX,G,"+System.currentTimeMillis());
 		return res;
 
 	}
@@ -744,6 +758,7 @@ public class STAPU
 
 		double[] res = null;
 
+		fileLog.println("XXX,A,"+System.currentTimeMillis());
 		//Setting up
 		//Current Time 
 		////profile
@@ -861,6 +876,7 @@ public class STAPU
 		runTime = stopTime - startTime;
 		System.out.println("\nSTAPU Runtime: " + runTime + "ms" + "(" + TimeUnit.SECONDS.convert(runTime, TimeUnit.MILLISECONDS) + "s)\n");
 		//end profiling
+		fileLog.println("XXX,F,"+System.currentTimeMillis());
 		return res;
 
 	}
