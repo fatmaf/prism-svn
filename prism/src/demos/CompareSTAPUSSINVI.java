@@ -281,7 +281,7 @@ public class CompareSTAPUSSINVI {
 	}
 
 	public void singleTests() throws Exception {
-		doDebug = true;
+		doDebug = false;
 		this.reallocSSIOnFirstDeadend = true;
 		this.reallocSTAPUOnFirstDeadend = false;// true;
 
@@ -313,9 +313,9 @@ public class CompareSTAPUSSINVI {
 		boolean hasGridData = true;
 		int gridV = 5;
 		String resString = "";
-		int r = 2;//4;// numRobots;
-		int g = 3;//9;// 3;//numGoals;
-		boolean doRandomRG = false;
+		int r = 4; //numRobots;
+		int g = 7;//9;// 3;//numGoals;
+		boolean doRandomRG =true;
 		if (!results.containsKey(fn))
 			results.put(fn, new HashMap<int[], ArrayList<float[][]>>());
 		ArrayList<Integer> robotNumbers;// = new ArrayList<Integer>();// generateListOfRandomNumbers(r, numRobots);
@@ -332,16 +332,16 @@ public class CompareSTAPUSSINVI {
 			goalNumbers = new ArrayList<Integer>();
 			robotNumbers.add(6);
 			robotNumbers.add(4);
-//			robotNumbers.add(1);
-//			robotNumbers.add(0);
+			robotNumbers.add(1);
+			robotNumbers.add(0);
 			goalNumbers.add(0);
 			goalNumbers.add(5);
-//			goalNumbers.add(1);
-//			goalNumbers.add(7);
-//			goalNumbers.add(3);
-//			goalNumbers.add(2);
-//			goalNumbers.add(4);
-//			goalNumbers.add(6);
+			goalNumbers.add(1);
+			goalNumbers.add(7);
+			goalNumbers.add(3);
+			goalNumbers.add(2);
+			goalNumbers.add(4);
+			goalNumbers.add(6);
 		}
 		int[] rgdf;
 		if (hasGridData)
@@ -353,7 +353,7 @@ public class CompareSTAPUSSINVI {
 		float[][] resArr = new float[2][6];
 		resString += "\nR:" + r + "\tG:" + g;
 
-		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, doDebug, justSTAPU,
+		resString += doCompare(dir, fn, r, numFS, g, numDoors, resArr, robotNumbers, goalNumbers, true, justSTAPU,
 				justSSI);
 		results.get(fn).get(rgdf).add(resArr);
 

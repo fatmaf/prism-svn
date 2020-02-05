@@ -197,7 +197,7 @@ public class SSIAuctionNestedProduct
 
 	public Entry<Entry<Integer, double[]>, Entry<SingleAgentNestedProductMDP, ModelCheckerMultipleResult>> getSingleAgentBidNestedProductIncremental(
 			SingleAgentNestedProductMDP prev, MDP agentMDP, ArrayList<Expression> taskSet, ArrayList<Expression> agentTasks, ExpressionReward rewardExpr,
-			MDPModelChecker mc, double[] sumSoFar, MDPRewardsSimple costsModel, PrismLog mainLog, Prism prism, String saveplace, String filename)
+			MDPModelChecker mc, double[] sumSoFar, MDPRewardsSimple costsModel, PrismLog mainLog, Prism prism, String saveplace, String filename,PrismLog fileLog)
 			throws PrismException
 	{
 
@@ -215,6 +215,7 @@ public class SSIAuctionNestedProduct
 
 			Entry<SingleAgentNestedProductMDP, ModelCheckerMultipleResult> npSol = getSingleAgentSolNVINestedProductIncremental(prev, currentAgentTasks,
 					rewardExpr, mainLog, mc, (MDPSimple) agentMDP, costsModel, saveplace, filename, prism);
+fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().infoStringTable());
 			double[] nvicosts = resultValues(npSol.getValue(), (MDPSimple) npSol.getKey().finalProduct.getProductModel(), null);
 			double[] nvicostsinc = nvicosts.clone();
 
@@ -406,7 +407,7 @@ public class SSIAuctionNestedProduct
 				startTimex = System.currentTimeMillis();
 				Entry<Entry<Integer, double[]>, Entry<SingleAgentNestedProductMDP, ModelCheckerMultipleResult>> returnStuff = getSingleAgentBidNestedProductIncremental(
 						prevNPs.get(i), mdps.get(i), taskSet, robotsTasksBroken.get(i), rewExpr, mcs.get(i), previousCost[i], costsModels.get(i), mainLog,
-						prism, saveplace, filename);
+						prism, saveplace, filename,fileLog);
 				Entry<Integer, double[]> bid = returnStuff.getKey();
 
 				int bidTaskIndex = bid.getKey();
@@ -898,6 +899,7 @@ public class SSIAuctionNestedProduct
 			fileLog.println("Joint Policy Building: " + getTimeString(runTime));
 			fileLog.println("Time so far: " + getTimeString(totalTimeDuration));
 			fileLog.println("XXX,D,"+System.currentTimeMillis());
+			fileLog.println("JP MC:\n"+mdpCreator.mdp.infoStringTable());
 			if (doingReallocs) {
 				startTime = System.currentTimeMillis();
 				processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps, jvlTosvl,
@@ -1045,9 +1047,11 @@ public class SSIAuctionNestedProduct
 						if (debugSSI) {
 							planningValuesJP.add(resultvalues);
 						}
+						fileLog.println("XXX,JustJPNoReallocs,"+System.currentTimeMillis());
 						processReallocations(numRobots, taskSet, remainingTasks, correspondingMDPInitialStates, correspondingJointStates, productMDPs, mdps,
 								jvlTosvl, currentMDPInitialStates, mainLog, reallocStatesPQ, reallocStatesMapToList);
 						fileLog.println("XXX,D,"+System.currentTimeMillis());
+						fileLog.println("JP MC:\n"+mdpCreator.mdp.infoStringTable());
 					}
 					stopTime = System.currentTimeMillis();
 					runTime = stopTime - startTime;
@@ -1063,7 +1067,7 @@ public class SSIAuctionNestedProduct
 			startTime = System.currentTimeMillis();
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(mcs.get(0), mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
-
+			fileLog.println("JP MC:\n"+mdpCreator.mdp.infoStringTable());
 			mainLog.println("Reallocated " + numPlanning + " times");
 //			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 			if (debugSSI) {
@@ -1151,7 +1155,7 @@ public class SSIAuctionNestedProduct
 				//				mainLog.println(res.numMDPVars);
 				ModelCheckerMultipleResult nviSol = nviSols.get(rnum);
 				double[] resVals = this.resultValues(nviSol, (MDPSimple) res.finalProduct.getProductModel(), null);
-
+				fileLog.println("final MDP size:\n"+res.finalProduct.getProductModel().infoStringTable());
 				for (int i = 0; i < resVals.length; i++) {
 					if (i == 0)
 						finalResVals[i] *= resVals[i];
@@ -1663,7 +1667,7 @@ public class SSIAuctionNestedProduct
 		//		mainLog.println("Goal Prob:" + mdpCreator.getProbabilityToReachAccStateFromJointMDP(jointState));
 		mdpCreator.createRewardStructures();
 		mdpCreator.mdp.findDeadlocks(true);
-		if (mdpCreator.accStates.cardinality() > 0) {
+		if (this.debugSSI && mdpCreator.accStates.cardinality() > 0) {
 
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(null, mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
