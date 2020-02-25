@@ -303,7 +303,7 @@ public class XAIStateAnalyser
 					//close how ? 
 					//close in terms of distance 
 					calculateSingleStateDistances(mdpState, dijkstraDists, originalMDP.getStatesList(), otherVL,originalMDP.getVarList(), originalMDP.getNumStates());
-					optimalPolicyPaths.pc.mdpCreator.saveMDPstatra(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
+					optimalPolicyPaths.pc.mdpCreator.saveMDPstatra(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp");
 					optimalPolicyPaths.pc.mdpCreator.saveMDP(originalMDP, currentSaveplace + "results/", "xai_" + currentFilename + "_orignialmdp", null);
 					System.out.println("bug here");
 					throw new Exception("no such state in orignial mdp: " + mdpState.toString());

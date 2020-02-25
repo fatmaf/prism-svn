@@ -498,7 +498,7 @@ public class MDPCreator
 		mdp.exportToDotFile(out, statesToMark, true);
 		out.close();
 	}
-	public void saveMDPstatra(MDP mdp, String saveLoc, String name, BitSet statesToMark)
+	public void saveMDPstatra(MDP mdp, String saveLoc, String name)
 	{
 		String fn = saveLoc + name + ".sta";
 		System.out.println("Saving MDP states to "+fn);

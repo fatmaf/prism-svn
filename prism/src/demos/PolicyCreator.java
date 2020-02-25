@@ -36,7 +36,9 @@ public class PolicyCreator
 	{
 		int initialState = productMdp.getFirstInitialState();
 		//		if(productMdp instanceof MDPSimple)
-		return createPolicy(initialState, /*(MDPSimple)*/ productMdp, strat);
+		ArrayList<Integer> initialStates = new ArrayList<Integer>(); 
+		initialStates.add(initialState);
+		return createPolicy(initialStates, /*(MDPSimple)*/ productMdp, strat);
 		//		if(productMdp instanceof MDPSparse)
 		//			return createPolicy(initialState, (MDPSparse) productMdp, strat);
 	}
@@ -61,10 +63,11 @@ public class PolicyCreator
 		return actionIndex;
 	}
 
-	public MDPSimple createPolicy(int initialState, MDP mdp, Strategy strat)
+	public MDPSimple createPolicy(ArrayList<Integer> initialStates, MDP mdp, Strategy strat)
 	{
 		Stack<Integer> toVisit = new Stack<Integer>();
 		BitSet visited = new BitSet();
+		for(int initialState: initialStates)
 		toVisit.add(initialState);
 		int s;
 		while (!toVisit.isEmpty()) {

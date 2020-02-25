@@ -41,13 +41,49 @@ public class XAIPathCreator
 		if (hasRewards)
 			pc.createPolicyWithRewardsStructures(s, m, strat, progRews, costs, accStates);
 		else
-			pc.createPolicy(s, m, strat);
+		{
+			ArrayList<Integer> ss = new ArrayList<Integer>(); 
+			ss.add(s);
+			pc.createPolicy(ss, m, strat);
+		
+		}
 		State ps = m.getStatesList().get(s);
 		pc.mdpCreator.setInitialState(ps);
 		pc.mdpCreator.mdp.findDeadlocks(true);
 		pc.savePolicy(savePath, saveName);
 	}
-
+	public void createPathPolicy(ArrayList<Integer> ss, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple costs,
+			BitSet accStates) throws PrismException
+	{
+		setPCVarList(m);
+		
+			
+			pc.createPolicy(ss, m, strat);
+		
+		
+		State ps = m.getStatesList().get(ss.get(0));
+		pc.mdpCreator.setInitialState(ps);
+		pc.mdpCreator.mdp.findDeadlocks(true);
+		pc.savePolicy(savePath, saveName);
+	}
+	public void createPathPolicy(ArrayList<Integer> ss, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple progRews, MDPRewardsSimple costs,
+			BitSet accStates) throws PrismException
+	{
+		setPCVarList(m);
+		boolean hasRewards = (progRews != null) & (costs != null);
+		if (hasRewards)
+			pc.createPolicyWithRewardsStructures(ss.get(0), m, strat, progRews, costs, accStates);
+		else
+		{
+			
+			pc.createPolicy(ss, m, strat);
+		
+		}
+		State ps = m.getStatesList().get(ss.get(0));
+		pc.mdpCreator.setInitialState(ps);
+		pc.mdpCreator.mdp.findDeadlocks(true);
+		pc.savePolicy(savePath, saveName);
+	}
 	public void creatPath(int s, int a, MDP m, Strategy strat, String savePath, String saveName, MDPRewardsSimple progRews, MDPRewardsSimple costs,
 			BitSet accStates) throws PrismException
 	{

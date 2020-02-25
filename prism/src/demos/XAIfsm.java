@@ -100,7 +100,8 @@ public class XAIfsm {
 
 			vi.productmdp.exportToDotFile(pfl, null, true);
 			pfl.close();
-
+			MDPCreator saveStuff = new MDPCreator(); 
+			saveStuff.saveMDPstatra(vi.productmdp, saveplace + "results/",  "xai_" + filename + "_prodmpd");
 			// now create a path from the optimal policy
 			XAIPathCreator optimalPolicyPaths = new XAIPathCreator();
 			optimalPolicyPaths.createPathPolicy(0, vi.productmdp, optimalPolicy.strat, saveplace + "results/",
@@ -116,19 +117,13 @@ public class XAIfsm {
 					.getStateActionLabelsSinkStates(statelabels, vi.productmdp);
 			HashMap<Expression, Integer> actualExprMap = vi.actualExprNumMap;
 
+			
 			if (doalt) {
 				// create alternate path that violates ltl
 				XAIPathCreator ltlViolatingPath = new XAIPathCreator();
 				ArrayList<Integer> altStates = new ArrayList<Integer>();
 				ArrayList<Integer> altActions = new ArrayList<Integer>();
-				altStates.add(0);
-				altStates.add(3);
-				altStates.add(4);
-				altStates.add(16);
-				altActions.add(2);
-				altActions.add(0);
-				altActions.add(1);
-				altActions.add(5);
+				getAltStatesAndActions(altStates,altActions,filename,"ltl");
 				ltlViolatingPath.creatPathFlex(altStates, altActions, vi.productmdp, optimalPolicy.strat,
 						saveplace + "results/", "xai_" + filename + "altltlvpath", vi.progRewards, vi.costRewards,
 						vi.accStates, true);// sa.createAlternatePath(pathToFollow, filename, vi, optimalPolicy,
@@ -182,18 +177,8 @@ public class XAIfsm {
 				altPathWrong = new XAIPathCreator();
 				altStates = new ArrayList<Integer>();
 				altActions = new ArrayList<Integer>();
-				altStates.add(0);
-				altStates.add(1);
-				altStates.add(6);
-				altStates.add(28);
-				altStates.add(60);
-				altStates.add(71);
-				altActions.add(0);
-				altActions.add(4);
-				altActions.add(4);
-				altActions.add(4);
-				altActions.add(3);
-				altActions.add(2);
+		
+				getAltStatesAndActions(altStates,altActions,filename,"wrong");
 				altPathWrong.creatPathFlex(altStates, altActions, vi.productmdp, optimalPolicy.strat,
 						saveplace + "results/", "xai_" + filename + "_doorpath", vi.progRewards, vi.costRewards,
 						vi.accStates, /* false */true);// sa.createAlternatePath(pathToFollow, filename, vi,
@@ -297,13 +282,19 @@ public class XAIfsm {
 	public boolean isXStdAwayFromMean(XAIStateInformation ssTop, double mean, double std, double X) {
 		double val = (ssTop.actionValuesDifference.get(ssTop.getChosenAction()).get(ValueLabel.cost));
 		val = val - mean;
-		val = val / std;
-		System.out.println(ssTop.getState().toString() + "is " + val + " stds away from the mean");
+		if(std != 0 )
+		{val = val / std;
+		
+		System.out.println(ssTop.getState().toString() + "is " + val + " stds away from the mean"); 
 		if (Math.abs(val) >= X)
 			return true;
 		else
 			return false;
-
+		}
+		else
+		{	System.out.println(ssTop.getState().toString() + "is " + val + " different from the mean"); 
+			return false;
+		}
 	}
 
 	public double doMean(ArrayList<XAIStateInformation> ssQ) {
@@ -657,6 +648,70 @@ public class XAIfsm {
 		}
 
 	}
+	
+	public void getAltStatesAndActions(ArrayList<Integer>altStates,ArrayList<Integer>altActions,String fn,String type)
+	{
+		if (fn == "xai_r1_d1_g1_fs1notgoal_avoid")
+		{
+			if(type == "ltl")
+			{
+				altStates.add(0);
+				altStates.add(3);
+				altStates.add(4);
+				altStates.add(16);
+				altActions.add(2);
+				altActions.add(0);
+				altActions.add(1);
+				altActions.add(5);
+			}
+			else
+			{
+				altStates.add(0);
+				altStates.add(1);
+				altStates.add(6);
+				altStates.add(28);
+				altStates.add(60);
+				altStates.add(71);
+				altActions.add(0);
+				altActions.add(4);
+				altActions.add(4);
+				altActions.add(4);
+				altActions.add(3);
+				altActions.add(2);
+			}
+			
+		}
+		else if (fn == "scenario1_alt")
+		{
+			if(type == "ltl")
+			{
+				altStates.add(0);
+				altStates.add(2);
+				altStates.add(56);
+				altStates.add(334);
+				altStates.add(1040);
+				altStates.add(1897);
+				altActions.add(1);
+				altActions.add(8);
+				altActions.add(17);
+				altActions.add(0);
+				altActions.add(2);
+				altActions.add(29);
+			}
+			else
+			{
+				altStates.add(0);
+				altStates.add(1);
+				altStates.add(29);
+				altStates.add(196);
+				altActions.add(0);
+				altActions.add(3);
+				altActions.add(3);
+				altActions.add(35);
+			}
+		}
+	}
+	
 
 	// the actual main method
 	public void run() throws Exception {
@@ -666,11 +721,12 @@ public class XAIfsm {
 		String ronalScenariosJointSaveplace = "/home/fatma/Data/PhD/melb/prism/joint/";
 		String ronalScenarioJoint1 = "scenario1_alt";
 
-		String saveplace = ronalScenariosJointSaveplace;
-		String filename = ronalScenarioJoint1;
-		boolean noappend = true;
+		String saveplace = basictestsaveplace;//ronalScenariosJointSaveplace;
+		String filename = basictestname;//ronalScenarioJoint1;
+		boolean noappend = false;//true;
 		boolean doalt = false;
 
+	
 		fromScratch(saveplace, filename, noappend, doalt);
 
 	}
