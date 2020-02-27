@@ -35,7 +35,29 @@ public class XAIMdpOption {
 		terminationStates = new ArrayList<State>();
 		labels = new HashSet<BitSet>();
 	}
-	
+	public boolean combine(XAIMdpOption o2)
+	{
+		boolean combined = false; 
+		//the actions and labels are the same 
+//		if(actions.containsAll(o2.actions) && o2.actions.containsAll(actions))
+//		{
+//			if(labels.containsAll(o2.labels) && o2.labels.containsAll(labels))
+//			{
+				//now just combine the termination states and stateActionlist 
+				stateActionList.putAll(o2.stateActionList);
+				terminationStates.addAll(o2.terminationStates);
+				actions.addAll(o2.actions);
+				labels.addAll(o2.labels);
+				combined = true; 
+//			}
+//		}
+		return combined;
+	}
+	@Override
+	public String toString() {
+		return "XAIMdpOption [name=" + name + ", labels=" + labels
+				+ ", actions=" + actions + "]";
+	}
 	
 
 }

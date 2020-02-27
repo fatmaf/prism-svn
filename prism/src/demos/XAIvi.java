@@ -339,6 +339,60 @@ public class XAIvi {
 
 							}
 						}
+						// now lets look at all options
+						// and combine ones with the same label as others
+						ArrayList<XAIMdpOption> combinedOptions = new ArrayList<XAIMdpOption>();
+						int[] matchedoptions = new int[alloptions.size()];
+						Arrays.fill(matchedoptions, -1);
+						for (int o1 = 0; o1 < alloptions.size(); o1++) {
+							XAIMdpOption option1 = alloptions.get(o1);
+							for (int o2 = o1 + 1; o2 < alloptions.size(); o2++) {
+								XAIMdpOption option2 = alloptions.get(o2);
+								if (option1.labels.containsAll(option2.labels)
+										&& option2.labels.containsAll(option1.labels)) {
+//									if (option1.actions.containsAll(option2.actions)
+//											&& option2.actions.containsAll(option1.actions)) {
+										System.out.println("Combine " + option1.name + " " + option2.name);
+										if (matchedoptions[o2] == -1) {
+											matchedoptions[o2] = o1;
+										} else {
+											if (matchedoptions[o2] != matchedoptions[o1]) {
+												System.out.println("Strange");
+											}
+										}
+//									}
+								}
+
+							}
+
+						}
+						System.out.println(Arrays.toString(matchedoptions));
+						// now we do the options stuff
+						// like basically we go over the array start with the first non -1 one and
+						// combine those two.
+						for (int i = 0; i < matchedoptions.length; i++) {
+							if (matchedoptions[i] != -1) {
+
+								XAIMdpOption option1 = null;// = alloptions.get(i);
+								XAIMdpOption option2 = null;// = alloptions.get(matchedoptions[i]);
+
+								option1 = alloptions.get(i);
+//									XAIMdpOption
+								option2 = alloptions.get(matchedoptions[i]);
+
+								option2.combine(option1);
+								System.out.println("Adding option "+i+" to "+matchedoptions[i]);
+
+							}
+						}
+						for(int i = 0; i<matchedoptions.length; i++)
+						{
+							if(matchedoptions[i]==-1)
+							{
+								combinedOptions.add(alloptions.get(i));
+							}
+						}
+						
 						// end at daS2
 						// and ignore daIg
 						// int[] daStatesHere = daStates.get(daS).toArray(new
@@ -347,12 +401,13 @@ public class XAIvi {
 						optimalPolicyPaths.createPathPolicy(daStates.get(daS), productMDP, res.strat,
 								saveplace + "results/", "xai_" + daS + "_" + daS2 + "_options",
 								(MDPRewardsSimple) prodCosts, accDA);
-						optionsWorld.add(alloptions);
+						optionsWorld.add(combinedOptions);
 
 					}
 				}
 			}
 		}
+		System.out.println(optionsWorld.toString());
 
 	}
 
