@@ -7,10 +7,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
-import java.util.Set;
 import java.util.Vector;
 
 import acceptance.AcceptanceOmega;
@@ -18,7 +16,6 @@ import acceptance.AcceptanceRabin;
 import acceptance.AcceptanceReach;
 import acceptance.AcceptanceType;
 import automata.DA;
-import explicit.Distribution;
 import explicit.LTLModelChecker;
 import explicit.MDP;
 import explicit.MDPModelChecker;
@@ -66,6 +63,8 @@ public class XAIvi {
 	Vector<BitSet> origdaLabelBS;
 
 	HashMap<Expression, Integer> actualExprNumMap = null;
+	
+	ArrayList<ArrayList<XAIMdpOption>> optionsList = null;
 
 	public BitSet getSinkStates(DA<BitSet, ? extends AcceptanceOmega> da) {
 		BitSet daaccStates;
@@ -168,10 +167,11 @@ public class XAIvi {
 		}
 	}
 
-	public void doOptionsVI(DA<BitSet, ? extends AcceptanceOmega> da, LTLModelChecker.LTLProduct<MDP> product,
+	public ArrayList<ArrayList<XAIMdpOption>> doOptionsVI(DA<BitSet, ? extends AcceptanceOmega> da, LTLModelChecker.LTLProduct<MDP> product,
 			int maxIters, PrismLog mainLog, MDPModelChecker mc, MDPRewards prodCosts, double discount, String saveplace,
 			Vector<BitSet> labelBS) throws PrismException {
 
+		
 		ArrayList<ArrayList<XAIMdpOption>> optionsWorld = new ArrayList<ArrayList<XAIMdpOption>>();
 		MDP productMDP = (MDP) product.getProductModel();
 		int numStatesprod = productMDP.getNumStates();
@@ -189,6 +189,7 @@ public class XAIvi {
 
 		for (int productState = 0; productState < numStatesprod; productState++) {
 			currentautomatonState = product.getAutomatonState(productState);
+			
 			daBSs.get(currentautomatonState).set(productState);
 			daStates.get(currentautomatonState).add(productState);
 		}
@@ -196,6 +197,10 @@ public class XAIvi {
 		for (int daS = 0; daS < da.size(); daS++) {
 			for (int daS2 = 0; daS2 < da.size(); daS2++) {
 				if (daS != daS2) {
+					if(daS == 1 && daS2 == 2)
+					{
+						System.out.println("Debug here");
+					}
 					if (da.getNumEdges(daS, daS2) > 0) {
 						BitSet accDA = daBSs.get(daS2);
 						// then you go and like do a thing for all the ones you'd like to ignore
@@ -256,8 +261,16 @@ public class XAIvi {
 										alloptions.add(anoption);
 										optionNum++;
 										anoption = new XAIMdpOption("" + optionNum);
+										if(daSinkStates.get(daS2))
+										{
+											anoption.leadsToSinkState=true;
+										}
 									} else {
 										anoption = new XAIMdpOption("" + optionNum);
+										if(daSinkStates.get(daS2))
+										{
+											anoption.leadsToSinkState=true;
+										}
 									}
 								}
 								if (action != null) {
@@ -301,7 +314,7 @@ public class XAIvi {
 															s_labels.set(k,
 																	labelBS.get(Integer.parseInt(
 																			da.getAPList().get(k).substring(1)))
-																			.get(nextstate));
+																			.get(product.getModelState(nextstate)));
 														}
 														// Find corresponding successor in DA
 														int q_2 = da.getEdgeDestByLabel(daS, s_labels);
@@ -352,7 +365,7 @@ public class XAIvi {
 										&& option2.labels.containsAll(option1.labels)) {
 //									if (option1.actions.containsAll(option2.actions)
 //											&& option2.actions.containsAll(option1.actions)) {
-										System.out.println("Combine " + option1.name + " " + option2.name);
+//										System.out.println("Combine " + option1.name + " " + option2.name);
 										if (matchedoptions[o2] == -1) {
 											matchedoptions[o2] = o1;
 										} else {
@@ -381,7 +394,7 @@ public class XAIvi {
 								option2 = alloptions.get(matchedoptions[i]);
 
 								option2.combine(option1);
-								System.out.println("Adding option "+i+" to "+matchedoptions[i]);
+//								System.out.println("Adding option "+i+" to "+matchedoptions[i]);
 
 							}
 						}
@@ -408,6 +421,7 @@ public class XAIvi {
 			}
 		}
 		System.out.println(optionsWorld.toString());
+		return optionsWorld; 
 
 	}
 
@@ -547,7 +561,57 @@ public class XAIvi {
 		// System.out.println("Expected progression reward: " + maxRew);
 		// System.out.println("Expected time to execute task: " + minCost);
 		// System.out.println("--------------------------------------------------------------");
-		doOptionsVI(da, product, maxIters, mainLog, mc, prodCosts, discount, saveplace, labelBS);
+		ArrayList<ArrayList<XAIMdpOption>> optionsWorld = doOptionsVI(da, product, maxIters, mainLog, mc, prodCosts, discount, saveplace, labelBS);
+		
+//		actualExprNumMap
+		//now we want to link the actual expressions to the labels in options world okay 
+		//okay 
+		for (int i = 0; i<optionsWorld.size(); i++)
+		{
+			ArrayList<XAIMdpOption> currentOptionsList = optionsWorld.get(i);
+			for(int j = 0; j<currentOptionsList.size(); j++)
+			{
+				//now we get the expressions 
+				XAIMdpOption currentOption = currentOptionsList.get(j); 
+				//now we get its first label 
+				Iterator<BitSet> labelIter = currentOption.labels.iterator();
+				while(labelIter.hasNext())
+				{
+					BitSet label = labelIter.next(); 
+					String labelString = "";
+					String notlabelString = "";
+					//for each set bit set print out its expression 
+					for(Expression labexpr:actualExprNumMap.keySet())
+					{
+						
+						int labexprint = actualExprNumMap.get(labexpr);
+						if(label.get(labexprint))
+						{
+							if(labelString!="")
+							{
+								labelString+=" & ";
+							}
+							labelString+=labexpr.toString();
+						}
+						else
+						{
+							if(notlabelString!="")
+							{
+								notlabelString+=" & ";
+							}
+							notlabelString+=labexpr.toString();
+						}
+					}
+					System.out.println(label.toString()+" satifies "+labelString);
+
+					System.out.println(label.toString()+" does not satisfy "+notlabelString);
+					currentOption.satisfiesString=labelString; 
+					currentOption.doesnotsatisfyString = notlabelString; 
+				}
+				
+			}
+		}
+		optionsList = optionsWorld; 
 		return res;
 
 		// return new

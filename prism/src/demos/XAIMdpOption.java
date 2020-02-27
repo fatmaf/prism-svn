@@ -27,6 +27,10 @@ public class XAIMdpOption {
 	public Set<BitSet> labels; 
 	public ArrayList<Object> actions; 
 	public ArrayList<State> terminationStates; 
+	public boolean leadsToSinkState = false; 
+	public String satisfiesString =""; 
+	public String doesnotsatisfyString=""; 
+	public String violatesString=""; 
 	public XAIMdpOption(String name)
 	{
 		stateActionList = new HashMap<State,Object>(); 
