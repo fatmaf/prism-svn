@@ -23,7 +23,7 @@ def ensure_dir(file_path):
 #from https://stackoverflow.com/questions/37765197/darken-or-lighten-a-color-in-matplotlib
 def lighten_color(color, amount=0.5):
     """
-    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Lightens the given color by multiplying (1-luminosity) by the given amount.1
     Input can be matplotlib color string, hex string, or RGB tuple.
 
     Examples:
@@ -765,9 +765,19 @@ class GridGui(object):
                         else:
                             fn = self.fn +"_fs"+str(fsNums[j])+ "_"+str(i)+"_"
                         if self.incrementDoors:
-                            for dp in range(2,len(doorPairs),2):
-                                nfn = fn+"d_"+str(dp/2)+"_"
-                                chosenDoorPairs = doorPairs[0:dp]
+                            numDoors = len(doorPairs)/2
+                            for dp in range(numDoors):
+                                if (dp+1) == numDoors:
+                                    doorNumbers = range(numDoors)
+                                else:
+                                    doorNumbers = random.sample(range(numDoors),dp+1)
+                                chosenDoorPairs = []
+                                for doorNumber in doorNumbers:
+                                    chosenDoorPairs.append(doorPairs[doorNumber*2])
+                                    chosenDoorPairs.append(doorPairs[(doorNumber*2)+1])
+                                    
+
+                                nfn = fn+"d_"+str(dp+1)+"_"
                                 self.writeFileSet(depotChoices,openStates,goalChoices,avoidChoices,failStatesChoices,fsNums[j],chosenDoorPairs,nfn,self.xside,self.yside,blockedStates)
                         else:
 
@@ -778,12 +788,21 @@ class GridGui(object):
 
                     fn = self.fn +"_fs"+str(self.numFS)+ "_"+str(i)+"_"
                     if self.incrementDoors:
-                        #fn = self.fn +"_fs"+str(self.numFS)+ "_"+str(i)+"_"
-                        for dp in range(2,len(doorPairs),2):
-                            #nfn = self.fn +"_fs"+str(self.numFS)+ "_"+str(i)+"_"
-                            nfn = fn+"d_"+str(dp/2)+"_"
-                            chosenDoorPairs = doorPairs[0:dp]
+                        numDoors = len(doorPairs)/2
+                        for dp in range(numDoors):
+                            if (dp+1) == numDoors:
+                                doorNumbers = range(numDoors)
+                            else:
+                                doorNumbers = random.sample(range(numDoors),dp+1)
+                            #now our chosenDoorPairs are
+                            chosenDoorPairs = []
+                            for doorNumber in doorNumbers:
+                                chosenDoorPairs.append(doorPairs[doorNumber*2])
+                                chosenDoorPairs.append(doorPairs[(doorNumber*2)+1])
+                            nfn = fn+"d_"+str(dp+1)+"_"
                             self.writeFileSet(depotChoices,openStates,goalChoices,avoidChoices,failStatesChoices,self.numFS,chosenDoorPairs,nfn,self.xside,self.yside,blockedStates)
+
+                            
                     else:
                         self.writeFileSet(depotChoices,openStates,goalChoices,avoidChoices,failStatesChoices,self.numFS,doorPairs,fn,self.xside,self.yside,blockedStates)
             
