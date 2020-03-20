@@ -790,6 +790,11 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 			if (mainLogFile != null) {
 				mainLog = new PrismFileLog(mainLogFile);
 			}
+			else
+			{
+				if(!this.debugSSI)
+					mainLog = new PrismDevNullLog();
+			}
 
 			// Initialise PRISM engine 
 			Prism prism = new Prism(mainLog);
@@ -922,6 +927,8 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 					State ps = currentSE.getChildStateState();
 					double stateProb = currentSE.parentToChildTransitionProbability;
 
+					if(ps.toString().contains("0,0,0,0,0,-1,10,14,17,-1"))
+						mainLog.println("debugHere");
 					int stateIndex = reallocStatesMapToList.get(ps);
 
 					ArrayList<Expression> currentTaskSet = remainingTasks.get(stateIndex);
@@ -1213,7 +1220,7 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 	int updateMDPStateUsingSS(HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl, MDPSimple mdp, int state, ArrayList<String> ssNames, State js, VarList jvl)
 	{
 
-		State stateState = mdp.getStatesList().get(state);
+		State stateState = new State(mdp.getStatesList().get(state));
 		VarList svl = mdp.getVarList();
 		for (String ss : ssNames) {
 			int svlIndex = svl.getIndex(ss);
@@ -1249,6 +1256,8 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 				}
 			}
 
+			if(s.toString().contains("0,0,0,0,0,-1,10,14,17,-1"))
+				mainLog.println("debugHere");
 			int[] currentStates = jointStateToRobotStates(productMDPs, s, jvlTosvl, mainLog);
 			correspondingJointStates.add(s);
 			int[] mdpStates = new int[currentStates.length];
@@ -1268,9 +1277,9 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 			mlString += s.toString() + " - ";
 			for (int i = 0; i < productMDPs.size(); i++) {
 				if (productMDPs.get(i) != null)
-					mlString += productMDPs.get(i).getStatesList().get(currentStates[i]) + ":" + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
+					mlString += productMDPs.get(i).getStatesList().get(currentStates[i]) + ":" +mdpStates[i]+":"  + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
 				else
-					mlString += "x : " + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
+					mlString += "x : "+mdpStates[i]+":" + mdps.get(i).getStatesList().get(mdpStates[i]) + ", ";
 			}
 			mainLog.println(mlString);
 
@@ -1330,15 +1339,22 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 	int findStateIndexFromState(MDP mdp, State mdpStateState)
 	{
 		//now we've got to find this state 
-		int mdpState = -1;
+		int mdpStateIndex = -1;
+		State mdpState;
 		List<State> mdpStatesList = mdp.getStatesList();
 		for (int s = 0; s < mdpStatesList.size(); s++) {
-			if (mdpStatesList.get(s).compareTo(mdpStateState) == 0) {
-				mdpState = s;
+			mdpState = mdpStatesList.get(s);
+			if(mdpState.toString().contentEquals(mdpStateState.toString()))
+			{if(mdpState.compareTo(mdpStateState) != 0)
+				System.out.println("error!!");
+				
+			}
+			if (mdpState.compareTo(mdpStateState) == 0) {
+				mdpStateIndex = s;
 				break;
 			}
 		}
-		return mdpState;
+		return mdpStateIndex;
 	}
 
 	Object[] createJointState(ArrayList<String> ssNames, ArrayList<Integer> daIndices, HashMap<Integer, HashMap<Integer, Integer>> jvlTosvl,
@@ -1507,6 +1523,8 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 		statesQueues.add(jointState);
 		statesProbQueue.add(initStateProb);
 
+		if(jointState.toString().contains("0,0,0,0,0,-1,10,14,17,-1"))
+			mainLog.println("debugHere");
 		ArrayList<State> visited = new ArrayList<State>();
 		State currentJointState;
 		double currentJointStateProb;
@@ -1671,6 +1689,7 @@ fileLog.println("Bid MDP size:\n"+npSol.getKey().finalProduct.getProductModel().
 
 			ModelCheckerMultipleResult nviSol = computeNestedValIterFailurePrint(null, mdpCreator.mdp, mdpCreator.accStates, new BitSet(),
 					mdpCreator.getRewardsInArray(), 0, true, prism, mainLog);
+			mdpCreator.saveMDP(saveplace + "results/" + fnPrefix, filename + "_jp");
 			return resultValues(nviSol, mdpCreator.mdp, fileLog);
 		} else {
 			return new double[] { 0.0, 0.0, 0.0 };
