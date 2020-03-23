@@ -213,8 +213,40 @@ class ReadMDPStaTra(object):
                         agentStates[temp]=varval
         print(agentStates)
         return (agentStates)
-                    
+
+    def getDAStatesFromState(self,state):
+        daStates={}
+        if state in self.staDict:
+            stateVals = self.staDict[state]
+            for varname in self.varlist:
+                import re
+                pattern = re.compile(r"^da\d")
+                if pattern.match(varname):
+                    danum = self.varlist[varname]
+                    if stateVals[danum] == 1:
+                        daStates[danum]=True
+        return daStates
+    
+
+    def hasDAStateChanged(self,s1,s2):
+        
+        state1 = self.staDict[s1]
+        state2 = self.staDict[s2]
+        daIndsChanged={}
+        for varname in self.varlist:
+            import re
+            pattern = re.compile(r"^da\d")
+            if(pattern.match(varname)):
+                danum = self.varlist[varname]
+                if(state1[danum]!=state2[danum]):
+                    daIndsChanged[danum]=True
+                #else:
+                #    daIndsChanged[danum]=False
+        return daIndsChanged
+    
                 
+
+            
         
         
                     
@@ -235,8 +267,10 @@ def test():
     readMDPStaTra.doAllPaths()
     print(readMDPStaTra.getMostProbableStateReactive(0))
     readMDPStaTra.getAgentStatesFromState(0)
+    #propdir = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/"
+    #propfn = "smallerShelfDepot_r10_g10_a1_fs79_fsp_90_0_d_1_.prop"
+    #readMDPStaTra.readPropsFile(propdir+propfn)
     
-        
 if __name__=="__main__":
     test()
     

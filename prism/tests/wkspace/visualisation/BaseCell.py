@@ -21,8 +21,28 @@ class Agent(object):
         self.location = None
         self.color = None
         self.name = None
-        self.dead = False 
+        self.dead = False
+        self.deadCounter = 0
+
+    def died(self):
+        if not self.dead:
+            self.dead = True
+            self.deadCounter = self.deadCounter + 1
+
+    def alive(self):
+        if self.dead:
+            self.dead = False 
         
+class Goal(object):
+    def __init__(self):
+        self.visited = False
+        self.location = None
+
+    def visited(self):
+        self.visited = True
+
+    def clear(self):
+        self.visited = False
 
         
 #constants
@@ -57,6 +77,8 @@ class Cell():
         self.defaultLabel = str(y)+","+str(x)
         self.defaultColor = None
         self.agents=None
+        self.goal=None
+        self.lines=None
         
 
     def clear_all_flags(self):
@@ -106,6 +128,20 @@ class Cell():
             points.extend((sxc+i*t,syc-i*t))
         return points
 
+    def getCrossPoints(self,sx,sy,ex,ey):
+        xlen =abs (ex - sx)
+        ylen = abs(ey - sy )
+        #cross points
+        crosspoints = [(0,0),(0.2,0),(0.5,0.3),(0.8,0),(1,0),(1,0.2),(0.7,0.5),(1,0.8),(1,1),(0.8,1),(0.5,0.7),(0.2,1),(0,1),(0,0.8),(0.3,0.5),(0,0.2)]
+        #first we've got to scale all the points
+        minscale = min(xlen,ylen)
+        mcrosspoints = []
+        for t in crosspoints:
+            mt = (t[0]*minscale+sx,t[1]*minscale+sy)
+            mcrosspoints.append(mt)
+        return mcrosspoints
+        
+
     def draw(self):
         """ order to the cell to draw its representation on the canvas """
         isNothing = True
@@ -124,14 +160,6 @@ class Cell():
                     
             if self.isInitPos:
                 isNothing = False
-                #d = (self.abs,self.ord)
-                #if d not in Cell.robot_colors:
-                    #rnum = len(Cell.assigned_colors_list)
-                    #Cell.robot_colors[d]=Cell.ROBOT_COLORS_LIST[rnum]
-                    #Cell.assigned_colors_list.append(Cell.robot_colors[d])
-                    
-                #fill = Cell.FILL_COLORS[GuiState.INITLOCS]
-                #outline = Cell.BORDER_COLORS[GuiState.INITLOCS]
                 
             if self.isAvoidState:
                 isNothing = False 
@@ -139,8 +167,12 @@ class Cell():
                 outline = Cell.BORDER_COLORS[GuiState.AVOIDSTATES]
                 
             if self.isGoalPos:
-                isNothing = False 
-                fill = Cell.FILL_COLORS[GuiState.GOALS]
+                isNothing = False
+                fillcolor = Cell.FILL_COLORS[GuiState.GOALS]
+                if self.goal is not None:
+                    if self.goal.visited:
+                        fillcolor=self.mixColor(fillcolor,'orange')
+                fill = fillcolor #Cell.FILL_COLORS[GuiState.GOALS]
                 outline = Cell.BORDER_COLORS[GuiState.GOALS]
                 
             if self.isDoor:
@@ -151,7 +183,10 @@ class Cell():
             if self.isFailState:
                 if not isNothing:
                     #if not self.isInitPos:
+                    if fill == Cell.FILL_COLORS[GuiState.EMPTY]:
+                        fill = Cell.FILL_COLORS[GuiState.FAILSTATES]
                     fill = self.lighten_color(fill,0.5)
+                    outline = Cell.BORDER_COLORS[GuiState.FAILSTATES]
                     #else:
                     #    fill = Cell.FILL_COLORS[GuiState.FAILSTATES]
                     #    outline = Cell.BORDER_COLORS[GuiState.FAILSTATES]
@@ -173,26 +208,54 @@ class Cell():
 
             self.master.create_rectangle(xmin, ymin, xmax, ymax, fill = fill, outline = outline)
             if self.isInitPos:
+                dotiling = self.agents is not None
                 xpos = xmin+crad
                 ypos = ymin+crad
                 d = self.getXY()
                 #process agents
                 if self.agents is not None:
-                    alivecolor = None
-                    deadcolor = None
-                    for ag in self.agents:
-                        agcolor = ag['color']
-                        if ag['dead']:
-                            deadcolor = self.mixColor(deadcolor,agcolor)
+                    if dotiling:
+                        divsize = self.size/3
+                        for i in range(len(self.agents)):
+                            ag = self.agents[i]
+                            agcolor = ag['color']
+                            agx = i/3
+                            agy = i%3
+                            xpos = xmin+agx*divsize
+                            ypos = ymin+agy*divsize
+                            xposl = xpos+divsize
+                            yposl = ypos+divsize
+                            if ag['dead']:
+                                cp = self.getCrossPoints(xpos,ypos,xposl,yposl)
+                                self.master.create_polygon(cp,fill=agcolor,outline=Cell.BORDER_COLORS[GuiState.INITLOCS])
+                            else:
+                                self.master.create_oval(xpos,ypos,xposl,yposl,fill=agcolor,outline=Cell.BORDER_COLORS[GuiState.INITLOCS])
+                            xposc = (xpos+xposl)/2
+                            yposc = (ypos+yposl)/2
+                            numdead = ag['deadCounter']
+                            self.master.create_text((xposc,yposc),text=str(numdead))
+                    else:
+
+                        alivecolor = None
+                        deadcolor = None
+                        for ag in self.agents:
+                            agcolor = ag['color']
+                            if ag['dead']:
+                                deadcolor = self.mixColor(deadcolor,agcolor)
+                            else:
+                                alivecolor = self.mixColor(alivecolor,agcolor)
+                        if alivecolor is not None:
+                            self.master.create_oval(xpos,ypos,xpos+crad,ypos+crad,fill=alivecolor,outline=Cell.BORDER_COLORS[GuiState.INITLOCS])
+                        if deadcolor is not None:
+                            self.master.create_text((xmax-crad,ymax-crad),text='X',fill=deadcolor)
+                        if alivecolor is not None:
+                            if self.goal is not None:
+                                self.goal.visited = True
                         else:
-                            alivecolor = self.mixColor(alivecolor,agcolor)
-                    if alivecolor is not None:
-                        self.master.create_oval(xpos,ypos,xpos+crad,ypos+crad,fill=alivecolor,outline=Cell.BORDER_COLORS[GuiState.INITLOCS])
-                    if deadcolor is not None:
-                        self.master.create_text((xmax-crad,ymax-crad),text='X',fill=deadcolor)
-                        
-                    #hmmm?
-                    #for all the not dead agents get a new color 
+                            if self.goal is not None:
+                                self.goal.visited=False 
+                        #hmmm?
+                        #for all the not dead agents get a new color 
                     
                 else:
                     if self.defaultColor is None:
