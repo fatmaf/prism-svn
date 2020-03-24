@@ -58,6 +58,7 @@ class GuiState(Enum):
 class Cell():
     BORDER_COLORS = {GuiState.OBSTACLES:'#000000',GuiState.EMPTY:'#000000',GuiState.INITLOCS:'#FFFFFF',GuiState.GOALS:'#00FF00',GuiState.AVOIDSTATES:'#FF0000',GuiState.FAILSTATES:'#888888',GuiState.DOORS:'#923A00'}
     FILL_COLORS= {GuiState.OBSTACLES:'#000000',GuiState.EMPTY:'#FFFFFF',GuiState.INITLOCS:'#0000FF',GuiState.GOALS:'#00FF00',GuiState.AVOIDSTATES:'#FF0000',GuiState.FAILSTATES:'#888888',GuiState.DOORS:'#923AFF'}
+    currentPathNumber = 0
 
 
     def __init__(self,master,x,y,size):
@@ -182,14 +183,11 @@ class Cell():
 
             if self.isFailState:
                 if not isNothing:
-                    #if not self.isInitPos:
                     if fill == Cell.FILL_COLORS[GuiState.EMPTY]:
                         fill = Cell.FILL_COLORS[GuiState.FAILSTATES]
                     fill = self.lighten_color(fill,0.5)
                     outline = Cell.BORDER_COLORS[GuiState.FAILSTATES]
-                    #else:
-                    #    fill = Cell.FILL_COLORS[GuiState.FAILSTATES]
-                    #    outline = Cell.BORDER_COLORS[GuiState.FAILSTATES]
+
                 else:
                     fill = Cell.FILL_COLORS[GuiState.FAILSTATES]
                     outline = Cell.BORDER_COLORS[GuiState.FAILSTATES]
@@ -267,6 +265,39 @@ class Cell():
                 if d[0] == 1:
                     self.master.create_line(xmax,ymin+self.size/4,xmax-self.size/4,ymax-self.size/3)
                     self.master.create_line(xmax-self.size/4,ymax-self.size/3,xmax,ymax-self.size/4)
+            if self.lines is not None:
+                numlines = len(self.lines)
+                actualcount = 0 
+                for linenum in range(len(self.lines)):
+                    line = self.lines[linenum]
+                    #for each line just draw a dot
+                    #we want to lighten the path by the color
+                    fill = line['color']
+                    pathnum = line['pathNumber']
+                    difference = self.currentPathNumber - pathnum
+                    if difference > 10:
+                        continue 
+                    if(self.currentPathNumber != 0):
+                        lightenby = float(10.0-difference)/10.0#float(pathnum)/float(self.currentPathNumber)
+                        print(pathnum)
+                        print(self.currentPathNumber)
+                        print(lightenby)
+                        fill = self.lighten_color(fill,lightenby)
+                    maxdotsperline = 10 
+                    circrad = self.size/maxdotsperline
+                    
+                    xpos = xmin+actualcount*circrad
+                    ypos = ymax-circrad
+                    
+                    if(actualcount >= maxdotsperline):
+                        mult = actualcount / maxdotsperline
+                        ypos = ypos - mult*circrad
+                        xpos = xmin + (actualcount%maxdotsperline)*circrad
+                        if ypos < ymin:
+                            ypos = ymin
+                    
+                    self.master.create_oval(xpos,ypos,xpos+circrad,ypos+circrad,fill=fill,outline=fill)
+                    actualcount=actualcount + 1
 
             self.master.create_text((xc,yc),text=self.label)
 

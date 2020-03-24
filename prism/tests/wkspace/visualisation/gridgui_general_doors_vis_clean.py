@@ -162,6 +162,14 @@ class CellGrid(Canvas):
         
                 
 
+    def haveAgentsMoved(self,psDict,csDict):
+        moved = {}
+        for agnum in psDict:
+            if psDict[agnum] == csDict[agnum]:
+                moved[agnum]=False
+            else:
+                moved[agnum]=True
+        return moved 
     
     def clearAgentsList(self):
         self.agentsList = []
@@ -452,12 +460,16 @@ class GridGui(object):
             self.drawCellsForAgents()
             ignoredstates = [startState]
             parentstates = {startState:None}
+            allpaths = {}
+            parentpaths = {}
+            pathnumber = 0
             while(len(ignoredstates)!=0):
                 startState = ignoredstates.pop(0)
                 raw_input("Executing plan for state "+str(startState))
                 if startState in parentstates:
                     if parentstates[startState] is not None:
                         #set stuff up
+                        pathnumber = pathnumber + 1
                         self.clearCellsForAllRobots()
                         agentsLocDict = readMDPStaTra.getAgentStatesFromState(parentstates[startState])
                         self.grid.updateAgentsListFromStatesDict(agentsLocDict)
@@ -465,25 +477,35 @@ class GridGui(object):
                         self.drawCellsForAgents()
                         daState = readMDPStaTra.getDAStatesFromState(parentstates[startState])
                         self.grid.setGoalsFromState(self.goals,self.goalsDAVals,daState)
-                        #nsotherstates = readMDPStaTra.getMostProbableStateReactive(parentStates[startState])
-                        
+                
+                pathstates = [startState]
                 nsotherstates = readMDPStaTra.getMostProbableStateReactive(startState)
+                Cell.currentPathNumber = pathnumber
                 if nsotherstates is not None:
                     ns=nsotherstates[0]
-                    q = [ns]
+                    q = [(startState,ns)]
                     for ignorestate in nsotherstates[1]:
                         if ignorestate not in ignoredstates:
                             ignoredstates.append(ignorestate)
                             parentstates[ignorestate] = startState
-                    #ignoredstates = ignoredstates+nsotherstates[1]
+                            parentpaths[ignorestate] = pathnumber
+            
                     while(len(q)!=0):
                         raw_input("next move")
-                        cs = q.pop(0)
+                        cns = q.pop(0)
+                        cs = cns[1]
+                        ps = cns[0]
                         agentsLocDict = readMDPStaTra.getAgentStatesFromState(cs)
-                        daState = readMDPStaTra.getDAStatesFromState(cs)
+                        agentsLocDictps = readMDPStaTra.getAgentStatesFromState(ps)
+                        agentsMoved = self.grid.haveAgentsMoved(agentsLocDictps,agentsLocDict)
+                        pathstates.append(cs)
+                        if self.goalsDAVals is not None and (len(self.goals)==len(self.goalsDAVals)):
+                            daState = readMDPStaTra.getDAStatesFromState(cs)
+                            self.grid.setGoalsFromState(self.goals,self.goalsDAVals,daState)
                         self.clearCellsForAllRobots()
                         self.grid.updateAgentsListFromStatesDict(agentsLocDict)
-                        self.updateAgentsLocationColors()
+                        self.updateAgentsLocationColors(pathnumber,agentsMoved)
+                        daState = readMDPStaTra.getDAStatesFromState(cs)
                         self.drawCellsForAgents()
                         nsotherstates = readMDPStaTra.getMostProbableStateReactive(cs)
                         if nsotherstates is not None:
@@ -491,9 +513,10 @@ class GridGui(object):
                             for ignoredstate in nsotherstates[1]:
                                 if ignoredstate not in ignoredstates:
                                     parentstates[ignoredstate] = cs
+                                    parentpaths[ignoredstate]=pathnumber
                                     ignoredstates.append(ignoredstate)
                             #ignoredstates = ignoredstates+nsotherstates[1]
-                            q.append(ns)
+                            q.append((cs,ns))
                             daIndsChanged = readMDPStaTra.hasDAStateChanged(cs,ns)
                             if self.goalsDAVals is None:
                                 self.goalsDAVals = {}
@@ -516,6 +539,12 @@ class GridGui(object):
                                                 print(self.goalsDAVals)
                                                 
                             #print(daIndsChanged)
+                    #now you just add this whole path and the pathnumber to all paths
+                    allpaths[pathnumber]={'states':pathstates}
+                    if startState in parentpaths:
+                        allpaths[pathnumber]['parentpath']=parentpaths[startState]
+                    print (pathnumber)
+                    print (pathstates)
 
             
 
@@ -544,16 +573,31 @@ class GridGui(object):
             for agent in self.grid.agentsList:
                 agent.move(actions)
                 agent.location = self.grid.validatelocation(agent.location)
-                    
 
-    def updateAgentsLocationColors(self):
-        for agent in self.grid.agentsList:
+
+
+    def updateAgentsLocationColors(self,pathNumber=0,agentsHaveMoved=None):
+        
+        for agnum in range(len(self.grid.agentsList)):
+            agent = self.grid.agentsList[agnum]
             currloc = agent.location
             currcell = self.grid.getCellFromAgentLoc(currloc)
             currcell.updateInitPosColor(agent.defaultColor)
             if currcell.agents is None:
                 currcell.agents = []
             currcell.agents.append({'color':agent.defaultColor,'dead':agent.dead,'deadCounter':agent.deadCounter})
+            if currcell.lines is None:
+                currcell.lines=[]
+            if not agent.dead:
+                doappend = True
+                if agentsHaveMoved is not None:
+                    if agentsHaveMoved[agnum]:
+                        doappend = True
+                    else:
+                        doappend = False 
+                if doappend:
+                    currcell.lines.append({'pathNumber':pathNumber,'color':agent.defaultColor})
+            #if currcell is also a goal then its visited 
 
     def drawCellsForAgents(self):
         for agent in self.grid.agentsList:
