@@ -218,9 +218,10 @@ class Agent(object):
         return (xmove,ymove)
     
     def updateCell(self,nextloc,nextcell,currentPath=0):
-        if currentPath not in self.paths:
-            self.paths[currentPath] = Path(currentPath,self.currloc,self.cell,self.canvas,self.colour)
-        self.paths[currentPath].addStateCell(nextloc,nextcell)
+        if currentPath != -1:
+            if currentPath not in self.paths:
+                self.paths[currentPath] = Path(currentPath,self.currloc,self.cell,self.canvas,self.colour)
+            self.paths[currentPath].addStateCell(nextloc,nextcell)
         
         #self.paths[currentPath].append({'loc':self.currloc,'cell':self.currcell,'ncell':nextcell}]
         (xmove,ymove) = self.getMoveLimits(nextcell)

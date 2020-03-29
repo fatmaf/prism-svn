@@ -43,6 +43,7 @@ class CanvasWorld(object):
         self.currentGoals = None
         self.policyObj = None
         self.currentAgents = None
+        self.currentGoalsToDAInds = None
         
 
     def initialiseOrResetCanvas(self,app,size=50,ncols=10,nrows=10):
@@ -141,24 +142,61 @@ class CanvasWorld(object):
         else:
             if self.policyObj is not None:
                 if self.currentJointState is not None:
+                    prevJS = self.currentJointState
                     self.moveAgentsFromPolicy()
                     if self.currentJointState is not None:
                         agentsLocDict = self.policyObj.getAgentStatesFromState(self.currentJointState)
-                        for agnum in agentsLocDict:
-                            coragnum = self.currentAgents[agnum]
-                            agent = self.agents[coragnum]
-                            currloc = agent.currloc
-                            nextloc = agentsLocDict[agnum]
-                            if nextloc in self.labelsmap:
-                                agent.alive()
-                                agent.updateCell(nextloc,self.labelsmap[nextloc],self.pathNumber)
-                                if nextloc in self.goals:
-                                    self.goals[nextloc].setVisited()
-                            if nextloc == -1:
-                                agent.died()
+                        newJs = self.currentJointState
+                        changedAndTrueDAStates = None
+                        if self.currentGoalsToDAInds is None:
+                            changedDAStates = self.policyObj.hasDAStateChanged(prevJS,newJs)
+                            trueDAStates = self.policyObj.getDAStatesFromState(self.currentJointState)
+                            #changedandtrue
+                            changedAndTrueDAStates = {}
+                            for danum in changedDAStates:
+                                if danum in trueDAStates:
+                                    changedAndTrueDAStates[danum]=True
+                        elif len(self.currentGoalsToDAInds) != len(self.currentGoals):
+                            changedDAStates = self.policyObj.hasDAStateChanged(prevJS,newJs)
+                            trueDAStates = self.policyObj.getDAStatesFromState(self.currentJointState)
+                            changedAndTrueDAStates = {}
+                            for danum in changedDAStates:
+                                if danum in trueDAStates:
+                                    changedAndTrueDAStates[danum]=True
+                        self.moveAgentsFromAgentLocDict(agentsLocDict,self.pathNumber,changedAndTrueDAStates)
+
                                 
                         
 
+    def moveAgentsFromAgentLocDict(self,agentsLocDict,pathNumber,changedDAStates=None):
+        for agnum in agentsLocDict:
+            coragnum = self.currentAgents[agnum]
+            agent = self.agents[coragnum]
+            currloc = agent.currloc
+            nextloc = agentsLocDict[agnum]
+            if nextloc in self.labelsmap:
+                agent.alive()
+                agent.updateCell(nextloc,self.labelsmap[nextloc],pathNumber)
+                if nextloc in self.goals:
+                    self.goals[nextloc].setVisited()
+                    if changedDAStates is not None:
+                        if self.currentGoalsToDAInds is None:
+                            self.currentGoalsToDAInds = {}
+                        if len(self.currentGoalsToDAInds) != len(self.currentGoals):
+                            if len(changedDAStates) > 1:
+                                print ("Two da states changed at the same time, can not determine goal")
+                            else:
+                                print (changedDAStates)
+                                print (nextloc)
+                                for danum in changedDAStates:
+                                    if self.goals[nextloc].justVisited:
+                                        self.currentGoalsToDAInds[nextloc]=danum
+                                        print (self.currentGoalsToDAInds)
+                                    
+                                
+            if nextloc == -1:
+                agent.died()
+            
         
     def drawAgents(self):
         if self.currentAgents is None:
@@ -175,6 +213,17 @@ class CanvasWorld(object):
                 
 
 
+    def resetGoals(self,daStates):
+        if self.currentGoalsToDAInds is not None:
+            if len(self.currentGoalsToDAInds) == len(self.currentGoals):
+                for gl in self.currentGoalsToDAInds:
+                    danum = self.currentGoalsToDAInds[gl]
+                    print("Goal:"+str(gl)+"danum:"+str(danum))
+                    if danum not in daStates:
+                        #unset goal
+                        self.goals[gl].unsetVisited()
+                        print("Unsetting goal "+str(gl))
+                
     def drawGoals(self):
         if self.currentGoals is None:
             for gl in self.goals:
@@ -253,6 +302,47 @@ class CanvasWorld(object):
         
 
 
+    def anyDeadRobots(self,agentsLocDict):
+        anyAgentsDead = False
+        deadAgentNumbers = []
+        for ag in agentsLocDict:
+            if agentsLocDict[ag] == -1:
+                deadAgentNumbers.append(ag)
+        if len(deadAgentNumbers) > 0:
+            anyAgentsDead = True
+        return (anyAgentsDead,deadAgentNumbers)
+            
+    def getUndeadPositions(self,state):
+        import copy
+        agentsLocDict = self.policyObj.getAgentStatesFromState(state)
+        firstagentslocdict = copy.deepcopy(agentsLocDict)
+        #print ("First State")
+        #print (firstagentslocdict)
+        (anyAgentsDead,deadAgentNumbers) = self.anyDeadRobots(agentsLocDict)
+        previousDeadAgentNumbers = copy.deepcopy(deadAgentNumbers)
+        stateToConsider = state 
+        while(anyAgentsDead):
+            if stateToConsider in self.parentStates:
+                stateToConsider = self.parentStates[stateToConsider]
+            else:
+                stateToConsider = None
+            if stateToConsider is not None:
+                agentsLocDict = self.policyObj.getAgentStatesFromState(stateToConsider)
+                (anyAgentsDead,deadAgentNumbers) = self.anyDeadRobots(agentsLocDict)
+                if(len(deadAgentNumbers) < len(previousDeadAgentNumbers)):
+                    #then we've got a possible state
+                    for agnum in previousDeadAgentNumbers:
+                        if agnum not in deadAgentNumbers:
+                            firstagentslocdict[agnum]=agentsLocDict[agnum]
+                previousDeadAgentNumbers = copy.deepcopy(deadAgentNumbers)
+            else:
+                anyAgentsDead = False 
+
+        #print ("Undead States")
+        #print (firstagentslocdict)
+        return firstagentslocdict
+        
+                
     def moveAgentsFromPolicy(self):
         nextJSes=self.policyObj.getMostProbableStateReactive(self.currentJointState)
         if nextJSes is not None:
@@ -262,6 +352,10 @@ class CanvasWorld(object):
                     self.statesToExploreLater.append(js)
                     self.parentStates[js]=self.currentJointState
                     self.parentPaths[js]=self.pathNumber
+                    #agentsLocDict = self.policyObj.getAgentStatesFromState(self.currentJointState)
+                    #agentsLocDict2 = self.policyObj.getAgentStatesFromState(js)
+                    #print("Joint State "+str(agentsLocDict))
+                    #print("Successor "+str(agentsLocDict2))
             agentsLocDict = self.policyObj.getAgentStatesFromState(mostProbableNextJS)
             self.currentJointState = mostProbableNextJS
         else:
@@ -269,10 +363,14 @@ class CanvasWorld(object):
                 print("Previous State: "+str(self.policyObj.getAgentStatesFromState(self.currentJointState)))
                 self.currentJointState = self.statesToExploreLater.pop()
                 self.pathNumber = self.pathNumber + 1
-                agentsLocDict = self.policyObj.getAgentStatesFromState(self.currentJointState)
-                print ("New State?"+str(agentsLocDict))
-                if self.currentJointState in self.parentStates:
-                    print ("Parent State "+str(self.policyObj.getAgentStatesFromState(self.parentStates[self.currentJointState])))
+                undeadPositions=self.getUndeadPositions(self.currentJointState)
+                self.moveAgentsFromAgentLocDict(undeadPositions,-1)
+                #also reset any goals
+                daStates = self.policyObj.getDAStatesFromState(self.currentJointState)
+                print("New DA states? "+str(daStates))
+                self.resetGoals(daStates)
+                
+
                 #we've got to reset the goals here 
                 
                 #print (self.currentJointState)

@@ -40,7 +40,10 @@ class ReadMDPStaTra(object):
                     varname = pline[varnum]
                     self.varlist[varname]=varnum
                     self.invvarlist[varnum] = varname
-                #print ("Processed var names: "+str(self.varlist))
+                
+                print ("Processed var names: "+str(self.varlist))
+                print ("Processed var nums: "+str(self.invvarlist))
+                
             else:
                 pline = line.split(':')
                 statenum = int(pline[0])
@@ -216,15 +219,19 @@ class ReadMDPStaTra(object):
 
     def getDAStatesFromState(self,state):
         daStates={}
+        strToPrint = ""
         if state in self.staDict:
             stateVals = self.staDict[state]
             for varname in self.varlist:
                 import re
                 pattern = re.compile(r"^da\d")
                 if pattern.match(varname):
+                    
                     danum = self.varlist[varname]
                     if stateVals[danum] == 1:
                         daStates[danum]=True
+                    strToPrint= strToPrint+"\n"+str(danum)+":"+varname+"="+str(stateVals[danum])
+        #print(strToPrint)
         return daStates
     
 

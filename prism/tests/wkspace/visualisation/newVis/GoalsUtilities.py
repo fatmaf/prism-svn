@@ -19,7 +19,8 @@ class Goal(object):
         self.maxLen = cell.size/4
         self.maxWid = cell.size/8
         self.canvasobj = None
-        self.isHidden = False 
+        self.isHidden = False
+        self.justVisited = False 
         
         
 
@@ -53,13 +54,17 @@ class Goal(object):
 
     def setVisited(self):
         if not self.visited:
+            self.justVisited = True 
             self.visited = True
             self.draw()
+        else:
+            self.justVisited = False 
 
     def unsetVisited(self):
         if self.visited:
             self.visited = False
             self.draw()
+            self.justVisited = False 
 
             
 class GridGuiGoalsDialog(tkSimpleDialog.Dialog):
