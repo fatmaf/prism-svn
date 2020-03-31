@@ -12,16 +12,43 @@ class Path(object):
         self.canvas = canvas
         self.color = color
         self.doLines = True
+        self.fadeByVal = 0,1 
+
+    def __repr__(self):
+        #print path number
+        retstr = str(self.pathnum)+": [ "
+        for s in self.states:
+            retstr = retstr + str(s) + " , "
+        retstr = retstr + ' ] '
+        retstr = retstr + 'doLines:'+str(doLines)
+        retstr = retstr + ' statesDrawn:'+str(len(statesDrawn))
+        return retstr
+
+    def __str__(self):
+        retstr = str(self.pathnum)+": [ "
+        for s in self.states:
+            retstr = retstr + str(s) + " , "
+        retstr = retstr + ' ] '
+        return retstr 
 
     def fadePath(self,agnum=0,agsize=None):
-        self.color = ColourHelper.lighten_color(self.color)
+        self.color = ColourHelper.lighten_color(self.color,self.fadeByVal)
         self.clearPath()
         self.drawPath(agnum,agsize)
     
     def addStateCell(self,state,cell):
-        self.states.append(state)
-        if state not in self.cells:
-            self.cells[state] = cell
+        #we want to check if the states have changed
+        #if not we don't add them
+        doaddStateCell = True 
+        lastStateInd = len(self.states)-1
+        if lastStateInd !=-1:
+            lastState = self.states[lastStateInd]
+            if lastState == state:
+                doaddStateCell = False 
+        if doaddStateCell:
+            self.states.append(state)
+            if state not in self.cells:
+                self.cells[state] = cell
 
     def getAgentCenter(self,cell,agsize,agnum):
         if agsize is None:
@@ -132,16 +159,19 @@ class Agent(object):
         self.canvasobj = {'shape':None,'number':None}
         self.num = num
         self.paths = {}
-        self.hidden = False 
+        self.hidden = False
+        self.aliveCounter = 0 
 
     def died(self):
         if not self.dead:
             self.dead = True
             self.deadCounter = self.deadCounter + 1
             self.draw()
+            self.updateDeadCounter()
 
     def alive(self):
         if self.dead:
+            self.aliveCounter = self.aliveCounter + 1
             self.dead=False
             self.draw()
 
@@ -208,6 +238,12 @@ class Agent(object):
                     self.canvas.itemconfigure(self.canvasobj['shape'],state='hidden')
                 if self.canvasobj['number'] is not None:
                     self.canvas.itemconfigure(self.canvasobj['number'],state='hidden')
+
+    def updateDeadCounter(self):
+        if self.canvasobj['number'] is None:
+            self.canvasobj['number']=self.canvas.create_text((xposc,yposc),text=str(self.deadCounter))
+        else:
+            self.canvas.itemconfigure(self.canvasobj['number'],text=str(self.deadCounter))
                 
 
     def getMoveLimits(self,nextcell):
@@ -254,6 +290,15 @@ class Agent(object):
             for p in self.paths:
                 self.paths[p].fadePath(self.num,self.size)
                 self.paths[p].shiftPath(shiftby)
+
+
+    def getPathString(self,pathNum):
+        if pathNum in self.paths:
+            return str(self.paths[pathNum])
+        else:
+            return None
+
+    
             
 
 

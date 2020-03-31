@@ -131,7 +131,7 @@ class ReadMDPStaTra(object):
                         
                 
         else:
-            print (str(state)+" not in transitions list")
+            print (str(state)+":"+str(self.staDict[state])+" not in transitions list")
         return None
             
     def doMostProbablePath(self,startState=0):
