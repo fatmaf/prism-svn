@@ -13,9 +13,11 @@ class MainApp(object):
     StapuCanvasSide = 'left'
     SsiCanvasSide = 'right'
     def loadGridFile(self):
-        fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/",title="Open Grid File", filetypes=(("grid",".grid"),("all files","*.*")))
+        fn = tkFileDialog.askopenfilename(initialfile="smallerShelfDepot_r10_g10_a1_fs79_fsp_90_6_d_1_.grid",initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/",title="Open Grid File", filetypes=(("grid",".grid"),("all files","*.*")))
+        foldername = fn[:fn.rfind("/")+1]
         filename = fn[fn.rfind("/")+1:]
         filename = filename.replace('.grid','')
+        self.folderguide = foldername
         self.fnguide = filename 
         print ("Loading "+ filename)
         gfr = GridFileReader()
@@ -29,7 +31,10 @@ class MainApp(object):
 
 
     def loadGoalsFile(self):
-        fn = tkFileDialog.askdirectory(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/",title="Open Properties File Directory")
+        if self.folderguide is None:
+            fn = tkFileDialog.askdirectory(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/",title="Open Properties File Directory")
+        else:
+            fn = tkFileDialog.askdirectory(initialdir=self.folderguide,title="Open Properties File Directory")
         folder = fn +'/'
         if self.fnguide is None:
             fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/",title="Open Goals File", filetypes=(("prop",".prop"),("all files","*.*")))
@@ -51,7 +56,10 @@ class MainApp(object):
         goalsHere = None
         
         #if(d.goalsArray is None):
-        fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/results/logs/",title="Open Goals File", filetypes=(("stapu",fnguide+"*_stapu.txt"),("all files","*.*")))
+        if self.folderguide is None:
+            fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/results/logs/",title="Open Goals File", filetypes=(("stapu",fnguide+"*_stapu.txt"),("all files","*.*")))
+        else:
+            fn = tkFileDialog.askopenfilename(initialdir=self.folderguide+"results/logs/",title="Open Goals File", filetypes=(("stapu",fnguide+"*_stapu.txt"),("all files","*.*")))
             #we just parse the filename
         if fn:
             import re
@@ -75,7 +83,12 @@ class MainApp(object):
         #print(d.goalsArray)
         
     def loadStaTra(self):
-        d = GridGuiStaTraDialog(self.app)
+        if self.folderguide is None:
+            d = GridGuiStaTraDialog(self.app)
+        else:
+            print ("folderguide "+self.folderguide)
+            GridGuiStaTraDialog.defaultFolder =self.folderguide+"results/logs/debugRes/extras"
+            d = GridGuiStaTraDialog(self.app)
         staputraname = d.staputraname
         stapustaname = d.stapustaname
         ssitraname = d.ssitraname
@@ -93,6 +106,10 @@ class MainApp(object):
         self.stapucanvas.packCanvas(MainApp.StapuCanvasSide)
         self.ssicanvas.packCanvas(MainApp.SsiCanvasSide)
 
+    def listPaths(self):
+        self.stapucanvas.listPaths()
+        self.ssicanvas.listPaths()
+
     
     def exitApp(self):
         self.app.destroy()
@@ -106,10 +123,54 @@ class MainApp(object):
         menu.add_command(label='Move Agents',command=self.moveAgentsOnBothCanvases)
         menu.add_command(label='Start Animation',command=self.animateAgentsOnBothCanvases)
         menu.add_command(label='Stop Animation',command=self.stopAnimationOnBothCanvases)
-        menu.add_command(label='Shift Path', command=self.shiftPaths)
+        menu.add_command(label='Increase Animation Speed',command=self.increaseAnimationSpeed)
+        menu.add_command(label='Load MDP For Simulation',command=self.loadMDPFile)
+        menu.add_command(label='Simulate Policy',command=self.moveAgentsSimulatePolicies)
+        menu.add_command(label='List Paths',command=self.listPaths)
         menu.add_command(label='Exit',command=self.exitApp)
         self.app.config(menu=menu)
 
+
+    def loadMDPFile(self):
+        if self.folderguide is None:
+            fn = tkFileDialog.askopenfilename(initialdir="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/results/logs/",title="Open MDP File", filetypes=(("sta","*.sta"),("all files","*.*")))
+        else:
+            fn = tkFileDialog.askopenfilename(initialdir=self.folderguide+"results/logs/",title="Open MDP File", filetypes=(("sta","*.sta"),("all files","*.*")))
+        fn = fn.replace('.sta','')
+        self.stapucanvas.setPolicySimObj(fn)
+        self.ssicanvas.setPolicySimObj(fn)
+        #self.stapucanvas.doPolicySim = True
+        #self.ssicanvas.doPolicySim = True
+        self.maxPolSims = 1000
+        self.polRunNum = 0
+        self.numGoalsStapu = 0
+        self.numGoalsSSI = 0 
+        
+
+    def moveAgentsSimulatePolicies(self):
+        if(self.polRunNum < self.maxPolSims):
+            self.stapucanvas.doPolicySim = True
+            self.ssicanvas.doPolicySim = True
+            moveagentsstapu = self.stapucanvas.moveAgents()
+            moveagentsssi = self.ssicanvas.moveAgents()
+            if (moveagentsstapu and moveagentsssi):
+                #reset things
+                numGoalSTAPU = self.stapucanvas.resetEverythingForPolSim()
+                numGoalSSI = self.ssicanvas.resetEverythingForPolSim()
+                self.numGoalsStapu = self.numGoalsStapu + numGoalSTAPU
+                self.numGoalsSSI = self.numGoalsStapu + numGoalSSI
+                self.polRunNum = self.polRunNum + 1
+                self.stapucanvas.doPolicySim = False
+                self.ssicanvas.doPolicySim = False
+            if self.polRunNum == self.maxPolSims:
+                stapuavg = float(self.numGoalsStapu)/float(self.polRunNum)
+                print ("STAPU avg: "+str(stapuavg))
+                ssiavg = float(self.numGoalsSSI)/float(self.polRunNum)
+                print ("SSI avg: "+str(ssiavg))
+            self.app.after(self.animationSpeed,self.moveAgentsSimulatePolicies)
+            
+            
+        
         
 
     def shiftPaths(self):
@@ -118,9 +179,13 @@ class MainApp(object):
         
     def moveAgentsOnBothCanvases(self):
         if self.animateBothCanvases:
-            self.stapucanvas.moveAgents()
-            self.ssicanvas.moveAgents()
-            self.app.after(100,self.moveAgentsOnBothCanvases)
+            moveagentstapu = self.stapucanvas.moveAgents()
+            moveagentsssi = self.ssicanvas.moveAgents()
+            if(moveagentstapu and moveagentsssi):
+                self.animateBothCanvases = False
+                print ("Stopping animation")
+            self.app.after(self.animationSpeed,self.moveAgentsOnBothCanvases)
+            
         else:
             self.stapucanvas.moveAgents()
             self.ssicanvas.moveAgents()
@@ -134,10 +199,18 @@ class MainApp(object):
         self.animateBothCanvases = False
             
 
+    def increaseAnimationSpeed(self):
+        if self.animationSpeed > self.maxSpeed:
+            self.animationSpeed = self.animationSpeed/self.increaseSpeedBy
+            print("Increasing Animation speed to every "+str(self.animationSpeed)+" ms")
         
     def __init__(self):
+        self.animationSpeed = 100
+        self.increaseSpeedBy = 5
+        self.maxSpeed = 0
         self.animateBothCanvases = False
-        self.fnguide = None 
+        self.fnguide = None
+        self.folderguide = None
         self.app = Tk()
         self.stapucanvas = CanvasWorld('STAPU')
         self.ssicanvas = CanvasWorld('Auctioning')

@@ -268,7 +268,7 @@ class Agent(object):
         self.canvas.move(self.canvasobj['number'],xmove,ymove)
         self.drawAllPaths(currentPath,True)
 
-    def drawAllPaths(self,currentPath,removeAllPreviousPaths=False):
+    def drawAllPaths(self,currentPath,removeAllPreviousPaths=True):
         if self.drawAgent:
             for p in self.paths:
                 if p == currentPath:

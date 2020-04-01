@@ -123,15 +123,14 @@ class GridFileReader(object):
 
 
 class GridGuiStaTraDialog(tkSimpleDialog.Dialog):
-    defaultAddress = "/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/results/logs/debugRes/extras"
-    
+    defaultFolder="/home/fatma/Data/PhD/code/prism_ws/prism-svn/prism/tests/wkspace/smallerwhdoors/results/logs/debugRes/extras"
     def body(self,master):
         self.stapustaname = None
         self.staputraname = None
         self.ssistaname = None
         self.ssitraname = None
-        self.addressToOpen = GridGuiStaTraDialog.defaultAddress
-        
+        self.addressToOpen = GridGuiStaTraDialog.defaultFolder
+        #print(defaultFolder)
         #self.addressToOpen = defaultAddress 
         defaultAddressVar = StringVar(master,value=self.addressToOpen)
         
