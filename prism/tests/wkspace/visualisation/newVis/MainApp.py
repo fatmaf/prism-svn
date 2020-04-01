@@ -141,7 +141,7 @@ class MainApp(object):
         self.ssicanvas.setPolicySimObj(fn)
         #self.stapucanvas.doPolicySim = True
         #self.ssicanvas.doPolicySim = True
-        self.maxPolSims = 1000
+        self.maxPolSims = 2000
         self.polRunNum = 0
         self.numGoalsStapu = 0
         self.numGoalsSSI = 0 
