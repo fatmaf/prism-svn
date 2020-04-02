@@ -20,7 +20,7 @@ class SimulatePolicy(object):
         policyObj.readtra()
         return policyObj
 
-    def getnextstatesMDP(self,agentStates,brokenaction):
+    def getnextstatesMDP(self,agentStates,brokenaction,doorStates):
         nextStates = {}
         mdp = self.mdp
         combp = 1.0
@@ -30,12 +30,14 @@ class SimulatePolicy(object):
             if 'switch' in agaction or agaction=='*':
                 nextStates[agnum]=agstate
             else:
-                agstate = mdp.findStateNum(agstate)
+                    
+                agstate = mdp.findStateNum(agstate,doorStates)
                 if agstate != -1:
                     (nextstatenum,nsp) = mdp.simulateAction(agstate,agaction)
                     nextstate = mdp.getStateVal(nextstatenum)
                     nextStates[agnum] = nextstate
                     combp = combp*nsp
+                    print ("State prob for "+str(nextstatenum)+" "+str(nsp))
                     
 
         return (nextStates,combp)
@@ -54,11 +56,15 @@ class SimulatePolicy(object):
             print (action)
             agentStates = polobj.getAgentStatesFromState(state)
             brokenaction = polobj.breakJointAction(action)
-            (nextstates,combp) = self.getnextstatesMDP(agentStates,brokenaction)
+            doorStates = None
+            if self.mdp.hasDoors:
+                doorStates = polobj.getDoorStatesFromState(state)
+            (nextstates,combp) = self.getnextstatesMDP(agentStates,brokenaction,doorStates)
             (ns,nsp) = polobj.createStateFromAgentStates(state,nextstates)
-            print(ns)
+            self.polobj.printMessage(ns)
             if(combp != nsp):
-                print ("Error!!!")
+                self.polobj.printMessage ("Unexpected probabilities: Expected "+str(combp)+ " got "+str(nsp))
+                self.polobj.printMessage (" Expected state "+str(nextstates)+ " got "+str(ns))
         return ns
         
     def simulatePolicy(self,polobj=None):

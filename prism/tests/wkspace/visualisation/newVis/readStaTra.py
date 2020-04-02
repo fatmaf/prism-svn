@@ -18,6 +18,7 @@ class ReadMDPStaTra(object):
             self.methodtype = 'STAPU'
         elif 'finalJPvi' in self.stafilename:
             self.methodtype = 'STAPU'
+        self.hasDoors = False 
 
     def printMessage(self,text):
         if self.methodtype is not None:
@@ -56,6 +57,8 @@ class ReadMDPStaTra(object):
                     varname = pline[varnum]
                     self.varlist[varname]=varnum
                     self.invvarlist[varnum] = varname
+                    if 'door' in varname:
+                        self.hasDoors = True 
                 
                 self.printMessage ("Processed var names: "+str(self.varlist))
                 self.printMessage ("Processed var nums: "+str(self.invvarlist))
@@ -118,20 +121,56 @@ class ReadMDPStaTra(object):
                 #raw_input("continue")
         self.traDict = traDict
 
-    def findStateNum(self,stateval):
+    def matchstatevals(self,sv1,sv2):
+        matched = True
+        if len(sv1) != len(sv2):
+            matched = False
+        if matched:
+            for i in range(len(sv1)):
+                if sv1[i] != sv2[i]:
+                    matched = False
+                    break
+
+        return matched 
+            
+    def findStateNum(self,stateval,doorStates = None):
+        if doorStates is not None:
+            newStateVals = [-1]*len(self.varlist)
+            for varname in self.varlist:
+                if varname in doorStates:
+                    newStateVals[self.varlist[varname]]=doorStates[varname]
+                else:
+                    newStateVals[self.varlist[varname]]=stateval
+        else:
+            newStateVals = [stateval]
+
+        statevalhere = -1000
         statetoret = -1
         for state in self.staDict:
             statevalhere = self.staDict[state]
-            if statevalhere == stateval:
+            if type(statevalhere) is not tuple:
+                statevalhere = list([statevalhere])
+            if self.matchstatevals(newStateVals,statevalhere):
                 statetoret = state
                 break
+        print ("State vals "+str(stateval))
+        if doorStates is not None:
+            print ("doors "+str(doorStates))
+        print ("New state vals "+str(newStateVals))
+        print ("state "+str(statetoret))
+        print("state vals in dict" + str(statevalhere))
         return statetoret
 
     def getStateVal(self,statenum):
         stateval = None
         if statenum in self.staDict:
             stateval = self.staDict[statenum]
-        return stateval
+        #just return the agent state
+        if type(stateval) is not tuple:
+            agentstate = stateval
+        else:
+            agentstate = stateval[self.varlist['s']]
+        return agentstate
     
     
     def findAction(self,state,actionname):
@@ -303,6 +342,17 @@ class ReadMDPStaTra(object):
                         if nextState != -1:
                             q.append(nextState)
 
+    def getDoorStatesFromState(self,state):
+        doorStates = {}
+        if state in self.staDict:
+            stateVals = self.staDict[state]
+            for varname in self.varlist:
+                if 'door' in varname:
+                    varval = stateVals[self.varlist[varname]]
+                    doorStates[varname] = varval
+
+        return doorStates
+    
     def getAgentStatesFromState(self,state):
         agentStates = {}
         if state in self.staDict:

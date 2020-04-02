@@ -125,7 +125,8 @@ class MainApp(object):
         menu.add_command(label='Stop Animation',command=self.stopAnimationOnBothCanvases)
         menu.add_command(label='Increase Animation Speed',command=self.increaseAnimationSpeed)
         menu.add_command(label='Load MDP For Simulation',command=self.loadMDPFile)
-        menu.add_command(label='Simulate Policy',command=self.moveAgentsSimulatePolicies)
+        menu.add_command(label='Simulate Policy Animation',command=self.moveAgentsSimulatePolicies)
+        menu.add_command(label='Simulate Policy Step',command=self.moveAgentsSimulatePoliciesStep)
         menu.add_command(label='List Paths',command=self.listPaths)
         menu.add_command(label='Exit',command=self.exitApp)
         self.app.config(menu=menu)
@@ -141,13 +142,22 @@ class MainApp(object):
         self.ssicanvas.setPolicySimObj(fn)
         #self.stapucanvas.doPolicySim = True
         #self.ssicanvas.doPolicySim = True
-        self.maxPolSims = 2000
+        self.maxPolSims = 1000
         self.polRunNum = 0
         self.numGoalsStapu = 0
         self.numGoalsSSI = 0 
         
 
     def moveAgentsSimulatePolicies(self):
+        doMove = self.moveAgentsSimulatePoliciesStep()
+        if(self.polRunNum < self.maxPolSims):
+            self.stapucanvas.doPolicySim = True
+            self.ssicanvas.doPolicySim = True
+            doMove = False 
+        if not doMove:
+            self.app.after(self.animationSpeed,self.moveAgentsSimulatePolicies)
+            
+    def moveAgentsSimulatePoliciesStep(self):
         if(self.polRunNum < self.maxPolSims):
             self.stapucanvas.doPolicySim = True
             self.ssicanvas.doPolicySim = True
@@ -167,9 +177,7 @@ class MainApp(object):
                 print ("STAPU avg: "+str(stapuavg))
                 ssiavg = float(self.numGoalsSSI)/float(self.polRunNum)
                 print ("SSI avg: "+str(ssiavg))
-            self.app.after(self.animationSpeed,self.moveAgentsSimulatePolicies)
-            
-            
+        return (moveagentsstapu and moveagentsssi)
         
         
 
