@@ -7,6 +7,7 @@ from GoalsUtilities import GoalsFileReader
 from GoalsUtilities import GridGuiGoalsDialog
 from HelperClasses import GridFileReader
 from HelperClasses import GridGuiStaTraDialog
+#import pyscreenshot as ImageGrab
 
 class MainApp(object):
 
@@ -110,7 +111,24 @@ class MainApp(object):
         self.stapucanvas.listPaths()
         self.ssicanvas.listPaths()
 
-    
+    def setNumGoalsAndAgents(self):
+        numgoals = tkSimpleDialog.askinteger("Input","Goals",parent=self.app,minvalue=1,maxvalue = 10)
+        if numgoals is not None:
+            print (numgoals)
+        else:
+            numgoals = 4
+            print ("Setting Num Goals to default")
+        numagents = tkSimpleDialog.askinteger("Input","Robots",parent=self.app,minvalue=1,maxvalue=10)
+        if numagents is not None:
+            print(numagents)
+        else:
+            numagents = 4
+            print("Setting num robots to default")
+
+        self.stapucanvas.showRandomAgentsAndGoals(numgoals,numagents)
+        self.ssicanvas.showRandomAgentsAndGoals(numgoals,numagents)
+            
+
     def exitApp(self):
         self.app.destroy()
         
@@ -119,7 +137,7 @@ class MainApp(object):
         menu.add_command(label='Grid File',command=self.loadGridFile)
         menu.add_command(label='Goals File',command=self.loadGoalsFile)
         menu.add_command(label='Policy Files',command=self.loadStaTra)
-        
+        menu.add_command(label='Set Num Goals and Agents',command = self.setNumGoalsAndAgents)
         menu.add_command(label='Move Agents',command=self.moveAgentsOnBothCanvases)
         menu.add_command(label='Start Animation',command=self.animateAgentsOnBothCanvases)
         menu.add_command(label='Stop Animation',command=self.stopAnimationOnBothCanvases)
@@ -128,9 +146,19 @@ class MainApp(object):
         menu.add_command(label='Simulate Policy Animation',command=self.moveAgentsSimulatePolicies)
         menu.add_command(label='Simulate Policy Step',command=self.moveAgentsSimulatePoliciesStep)
         menu.add_command(label='List Paths',command=self.listPaths)
+        menu.add_command(label='Screenshot',command=self.screenshotCanvases)
         menu.add_command(label='Exit',command=self.exitApp)
         self.app.config(menu=menu)
 
+    #def grabCanvas(self,canvasobj,name):
+    #    canvas = canvasobj.canvasbbox()  # Get Window Coordinates of Canvas
+    #    self.grabcanvas = ImageGrab.grab(bbox=canvas).save(name+".pdf")
+        
+    def screenshotCanvases(self):
+        #self.grabCanvas(self.stapucanvas,"stapucanvas")
+        #self.grabCanvas(self.ssicanvas,"ssicanvas")
+        self.stapucanvas.canvas.postscript(file="stapucanvas.ps",colormode='color')
+        self.ssicanvas.canvas.postscript(file="ssicanvas.ps",colormode='color')
 
     def loadMDPFile(self):
         if self.folderguide is None:

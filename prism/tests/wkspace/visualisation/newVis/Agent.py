@@ -198,10 +198,10 @@ class Agent(object):
             self.draw()
 
     def show(self):
-        if self.hidden:
+        if self.hidden or not self.drawAgent:
             self.hidden = False
-            self.drawAgent()
-        if not self.drawAgent:
+            #self.draw()
+            #if not self.drawAgent:
             self.drawAgent = True
             self.draw()
             

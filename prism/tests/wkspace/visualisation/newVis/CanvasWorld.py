@@ -43,6 +43,23 @@ class CanvasWorld(object):
     MAXSIZE=(ONESIDE*ONESIDE)
     MESSAGEAREASIZE = 100.0
     ROBOT_COLORS_LIST=[mc.XKCD_COLORS['xkcd:aqua'],mc.XKCD_COLORS['xkcd:beige'],mc.XKCD_COLORS['xkcd:coral'],mc.XKCD_COLORS['xkcd:fuchsia'],mc.XKCD_COLORS['xkcd:indigo'],mc.XKCD_COLORS['xkcd:goldenrod'],mc.XKCD_COLORS['xkcd:khaki'],mc.XKCD_COLORS['xkcd:lavender'],mc.XKCD_COLORS['xkcd:lightblue'],mc.XKCD_COLORS['xkcd:tomato'],mc.XKCD_COLORS['xkcd:pink'],mc.XKCD_COLORS['xkcd:teal']]
+
+    def canvasbbox(self):
+        
+        print('  def _canvas(self):')
+        print('self.cv.winfo_rootx() = ', self.canvas.winfo_rootx())
+        print('self.cv.winfo_rooty() = ', self.canvas.winfo_rooty())
+        print('self.cv.winfo_x() =', self.canvas.winfo_x())
+        print('self.cv.winfo_y() =', self.canvas.winfo_y())
+        print('self.cv.winfo_width() =', self.canvas.winfo_width())
+        print('self.cv.winfo_height() =', self.canvas.winfo_height())
+        x=self.canvas.winfo_rootx()+self.canvas.winfo_x()
+        y=self.canvas.winfo_rooty()+self.canvas.winfo_y()
+        x1=x+self.canvas.winfo_width()
+        y1=y+self.canvas.winfo_height()
+        box=(x,y,x1,y1)
+        print('box = ', box)
+        return box
     
     def calculateDimensions(self,size=50,ncols=10,nrows=10):
         maxCellsSide = max(ncols,nrows)
@@ -542,7 +559,29 @@ class CanvasWorld(object):
         self.currentJointState = 0
         self.pathNumber = self.pathNumber+ 1
         return glvisited
-    
+
+
+    def showRandomAgentsAndGoals(self,numgoals,numagents):
+        import random
+        agkeys = self.agents.keys()
+        ags = random.sample(agkeys,numagents)
+
+        gkeys = self.goals.keys()
+        gs = random.sample(gkeys,numgoals)
+
+        for ag in self.agents:
+            if ag in ags:
+                self.agents[ag].show()
+            else:
+                self.agents[ag].hide()
+
+        for g in self.goals:
+            if g in gs:
+                self.goals[g].showGoal()
+            else:
+                self.goals[g].hideGoal()
+                
+        
         
             
                     
