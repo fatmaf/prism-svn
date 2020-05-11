@@ -157,7 +157,45 @@ public class PolicyCreator
 		}
 		return actionIndex;
 	}
+	public MDPSimple createPolicyAllStates(MDP mdp,Strategy strat)
+	{
+		return createPolicyAllStates((MDPSimple)mdp,strat);
+	}
+	public MDPSimple createPolicyAllStates(MDPSimple mdp, Strategy strat)
+	{
+		Stack<Integer> toVisit = new Stack<Integer>();
+		BitSet visited = new BitSet();
+		for(int i = 0; i<mdp.getNumStates(); i++)
+		toVisit.add(i);
+		int s;
+		while (!toVisit.isEmpty()) {
+			s = toVisit.pop();
+			visited.set(s);
+			State sState = mdp.getStatesList().get(s);
 
+			strat.initialise(s);
+			//			strat.initialise(s);
+			Object action = strat.getChoiceAction();
+			int actionIndex = findActionIndex(mdp, s, action);
+
+			if (actionIndex > -1) {
+				Iterator<Entry<Integer, Double>> tranIter = mdp.getTransitionsIterator(s, actionIndex);
+				ArrayList<Entry<State, Double>> successors = new ArrayList<Entry<State, Double>>();
+				while (tranIter.hasNext()) {
+					Entry<Integer, Double> stateProbPair = tranIter.next();
+					int succ = stateProbPair.getKey();
+					State succState = mdp.getStatesList().get(stateProbPair.getKey());
+					double prob = stateProbPair.getValue();
+					successors.add(new AbstractMap.SimpleEntry<State, Double>(succState, prob));
+					if (!toVisit.contains(succ) && !visited.get(succ)) {
+						toVisit.add(succ);
+					}
+				}
+				mdpCreator.addAction(sState, action, successors);
+			}
+		}
+		return mdpCreator.mdp;
+	}
 	private MDPSimple createPolicy(int initialState, MDPSimple mdp, Strategy strat)
 	{
 		Stack<Integer> toVisit = new Stack<Integer>();

@@ -154,11 +154,27 @@ public class DecisionNode extends THTSNode
 	@Override
 	public String toString()
 	{
-		String str = super.toString(); 
+		String str = "N{s:" + s + ", p:" + probValues + ", pr:" + progValues + ", r:" + rewsValues + ", n:" + numVisits + ", solved:" + solved;
+		if (parents == null || parents.size() == 0) {
+			str += ", abus:[]";
+		} else {
+			str += ", abus:[";
+			for (THTSNode abu : parents) {
+				if (abu != null) {
+					str += abu.getState() + ",";
+				}
+			}
+			str+="]";
+		}
 		if(this.isDeadend)
-			str+= " de ";
+			str+= ",de:True";
 		if(this.isGoal)
-			str+= " g ";
-		return str; 
+			str+= ",g:True";
+		str += "}";
+
+		return str;
 	}
+
+	
+	
 }

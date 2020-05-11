@@ -802,6 +802,7 @@ public class MultiAgentProductModelGenerator
 		// TODO Auto-generated method stub
 		this.mainLog.println("Max States calculated "+maxStates);
 		maxStates = Math.min(maxStates,MAXTRIALLEN);
+//		maxStates = MAXTRIALLEN;
 		return maxStates;
 	}
 

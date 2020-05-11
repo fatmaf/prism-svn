@@ -103,24 +103,28 @@ public class ChanceNode extends THTSNode {
 	}
 
 	@Override
-	public String toString() {
-		String str = "CN[s=" + s + ", p=" + probValues + ", pr=" + progValues + ", r=" + rewsValues + ", n=" + numVisits
-				+ ", solved=" + solved;
+	public String toString()
+	{
+		String str = "N{s:" + s + ", p:" + probValues + ", pr:" + progValues + ", r:" + rewsValues + ", n:" + numVisits + ", solved:" + solved;
 		if (parents == null || parents.size() == 0) {
-			str += ", abus=noone";
+			str += ", abus:[]";
 		} else {
-			str += ", abus=";
+			str += ", abus:[";
 			for (THTSNode abu : parents) {
-				str += abu.getState() + " ";
+				if (abu != null) {
+					str += abu.getState() + ",";
+				}
 			}
+			str+="]";
 		}
-		str += "a=" + action;
+		str += ",a:'" + action+"'";
 		if(this.leadToDeadend)
-			str+=" de ";
-		str += "]";
+			str+=",de:True";
+		str += "}";
 
 		return str;
 	}
+
 
 	@Override
 	public String getShortName() {
